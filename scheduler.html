@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Turbo Scheduler</title>
+<meta name="theme-color" content="#1C1C1E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Scheduler">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA2NCA2NCc+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0nZycgeDE9JzAnIHkxPScwJyB4Mj0nMCcgeTI9JzEnPjxzdG9wIG9mZnNldD0nMCcgc3RvcC1jb2xvcj0nI0Y0QkEzRScvPjxzdG9wIG9mZnNldD0nMScgc3RvcC1jb2xvcj0nI0Q2OEMwQycvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cmVjdCB4PScyJyB5PScyJyB3aWR0aD0nNjAnIGhlaWdodD0nNjAnIHJ4PScxNCcgZmlsbD0ndXJsKCNnKScvPgo8cmVjdCB4PScxNScgeT0nMjEnIHdpZHRoPSczNCcgaGVpZ2h0PScyOCcgcng9JzQnIGZpbGw9JyMxQzFDMUUnLz4KPHJlY3QgeD0nMjInIHk9JzE2JyB3aWR0aD0nNC41JyBoZWlnaHQ9JzknIHJ4PScyLjInIGZpbGw9JyMxQzFDMUUnLz48cmVjdCB4PSczNy41JyB5PScxNicgd2lkdGg9JzQuNScgaGVpZ2h0PSc5JyByeD0nMi4yJyBmaWxsPScjMUMxQzFFJy8+CjxyZWN0IHg9JzE5JyB5PScyOScgd2lkdGg9JzI2JyBoZWlnaHQ9JzE3JyByeD0nMi41JyBmaWxsPSd1cmwoI2cpJy8+CjxyZWN0IHg9JzIwLjUnIHk9JzMwLjUnIHdpZHRoPSc4LjUnIGhlaWdodD0nNicgcng9JzEuNicgZmlsbD0nIzFDMUMxRScvPjx0ZXh0IHg9JzI0Ljc1JyB5PSczNS40JyBmb250LWZhbWlseT0nQXJpYWwsc2Fucy1zZXJpZicgZm9udC13ZWlnaHQ9J2JvbGQnIGZvbnQtc2l6ZT0nNScgdGV4dC1hbmNob3I9J21pZGRsZScgZmlsbD0nI0U4QTMxNyc+MzE8L3RleHQ+CjxjaXJjbGUgY3g9JzMzJyBjeT0nMzYnIHI9JzMuNCcgZmlsbD0nIzFDMUMxRScvPjxwYXRoIGQ9J00zMS4zIDM3LjYgTDM0LjcgMzcuNiBMMzMuOCA0MyBMMzIuMiA0MyBaJyBmaWxsPScjMUMxQzFFJy8+Cjwvc3ZnPg==">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiVHVyYm8gU2NoZWR1bGVyIiwic2hvcnRfbmFtZSI6IlNjaGVkdWxlciIsImljb25zIjpbeyJzcmMiOiJpY29uLTE5Mi5wbmciLCJzaXplcyI6IjE5MngxOTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIn0seyJzcmMiOiJpY29uLTUxMi5wbmciLCJzaXplcyI6IjUxMng1MTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIn1dLCJ0aGVtZV9jb2xvciI6IiMxQzFDMUUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzExMTExMyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwic3RhcnRfdXJsIjoiLi8ifQ==">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+<script>
+/* Set theme before the page paints so a dark-mode user never sees a white flash. */
+(function(){
+  try{
+    var s = localStorage.getItem('tks_sched_theme');
+    var theme = s ? JSON.parse(s)
+      : ((window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* =========================================================================
+   TURBO KEYSMITH — TRAINEE SCHEDULER
+   Single-file app. Walks a new hire through booking a job, tells him exactly
+   what to say, coaches small talk + upselling, and adds the job to your
+   calendar with one tap. Shares the Bittings customer database.
+   No backend, no logins, no cost. Works offline once loaded.
+   ========================================================================= */
+
+/* ---- LIGHT THEME (default) ---- */
+:root{
+  --gold:#E8A317;          /* brand accent (key gold) */
+  --gold-soft:#FFF6E2;     /* tint for selected choices */
+  --gold-line:#F0C462;
+  --ink:#1C1C1E;           /* main text */
+  --ink-soft:#5A5A60;      /* secondary text */
+  --bg:#F4F3F0;            /* page background */
+  --card:#FFFFFF;
+  --input-bg:#FFFFFF;
+  --line:#E3E1DC;
+  --green:#1F8A4C;
+  --green-soft:#E7F4EC;
+  --red:#C0392B;
+  --red-soft:#FDF1F0;
+  --on-gold:#1C1C1E;       /* text that sits on a gold button (dark in both themes) */
+  /* header */
+  --header-bg:#1C1C1E; --header-fg:#FFFFFF; --toggle-bg:#2C2C2E; --toggle-fg:#9A9A9F;
+  /* "say this" coaching card */
+  --coach-bg:#FFF6E2; --coach-border:#F0C462; --coach-accent:#E8A317; --coach-tag:#9A6B00; --coach-text:#3A2D08;
+  /* "tip" coaching card */
+  --tip-bg:#EEF3FF; --tip-border:#C9D8FF; --tip-accent:#3B6FE0; --tip-tag:#2E55B5; --tip-text:#22335E;
+  --header-h:64px;
+  --maxw:540px;
+  --radius:16px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 6px 20px rgba(0,0,0,.05);
+}
+/* ---- DARK THEME ---- */
+:root[data-theme="dark"]{
+  --gold:#F2B43A;
+  --gold-soft:#3A2E12;
+  --gold-line:#5C4A1E;
+  --ink:#F1F1F4;
+  --ink-soft:#9A9AA2;
+  --bg:#111113;
+  --card:#1C1C20;
+  --input-bg:#16161A;
+  --line:#33333A;
+  --green:#54C98A;
+  --green-soft:#16291F;
+  --red:#E26A5E;
+  --red-soft:#2E1A18;
+  --on-gold:#1C1C1E;
+  --header-bg:#0E0E10; --header-fg:#FFFFFF; --toggle-bg:#28282C; --toggle-fg:#9A9AA2;
+  --coach-bg:#2E2410; --coach-border:#5C4A1E; --coach-accent:#F2B43A; --coach-tag:#E0A93C; --coach-text:#F5E4C2;
+  --tip-bg:#16203A; --tip-border:#2A3F6B; --tip-accent:#5B86E5; --tip-tag:#9DB8F0; --tip-text:#D3E0FA;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--ink);
+  font-size:17px;line-height:1.45;
+  padding-bottom:env(safe-area-inset-bottom);
+  transition:background-color .2s ease,color .2s ease;
+}
+h1,h2,h3,.brand{font-family:"Sora",-apple-system,sans-serif;}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:50;height:var(--header-h);
+  background:var(--header-bg);color:var(--header-fg);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;padding-top:env(safe-area-inset-top);
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;}
+.brand .dot{width:10px;height:10px;border-radius:50%;background:var(--gold);}
+.hdr-right{display:flex;align-items:center;gap:10px;}
+.lang-toggle{
+  display:flex;background:var(--toggle-bg);border-radius:999px;padding:3px;font-size:13px;font-weight:600;
+}
+.lang-toggle button{
+  border:0;background:transparent;color:var(--toggle-fg);padding:5px 11px;border-radius:999px;cursor:pointer;font:inherit;
+}
+.lang-toggle button.active{background:var(--gold);color:var(--on-gold);}
+.theme-btn{
+  border:0;background:var(--toggle-bg);color:var(--header-fg);width:38px;height:38px;
+  border-radius:50%;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
+}
+
+/* ---------- layout ---------- */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:18px 16px 120px;}
+.screen{display:none;}
+.screen.active{display:block;animation:fade .25s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+/* ---------- progress ---------- */
+.progress{height:6px;background:var(--line);border-radius:999px;margin-bottom:18px;overflow:hidden;}
+.progress > i{display:block;height:100%;background:var(--gold);width:0;transition:width .3s ease;}
+
+/* ---------- coaching card (the "say this" box) ---------- */
+.coach{
+  background:var(--coach-bg);border:1px solid var(--coach-border);
+  border-left:5px solid var(--coach-accent);border-radius:14px;
+  padding:14px 16px;margin:0 0 18px;position:relative;
+}
+.coach .tag{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--coach-tag);margin-bottom:6px;
+}
+.coach .line{font-size:18px;font-weight:600;color:var(--coach-text);line-height:1.4;}
+.coach.tip{background:var(--tip-bg);border-color:var(--tip-border);border-left-color:var(--tip-accent);}
+.coach.tip .tag{color:var(--tip-tag);}
+.coach.tip .line{font-weight:500;color:var(--tip-text);}
+
+/* ---------- step content ---------- */
+.step-title{font-size:15px;font-weight:600;color:var(--ink-soft);margin:0 0 12px;}
+label{display:block;font-size:14px;font-weight:600;color:var(--ink-soft);margin:14px 0 6px;}
+input,select,textarea{
+  width:100%;font:inherit;padding:13px 14px;border:1.5px solid var(--line);
+  border-radius:12px;background:var(--input-bg);color:var(--ink);
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);}
+textarea{min-height:70px;resize:vertical;}
+.field-err{border-color:var(--red)!important;background:var(--red-soft);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* ---------- big choice buttons ---------- */
+.choices{display:grid;gap:10px;}
+.choice{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  background:var(--card);border:1.5px solid var(--line);border-radius:14px;
+  padding:16px;font:inherit;font-weight:600;font-size:17px;cursor:pointer;color:var(--ink);
+  transition:.15s;
+}
+.choice:active{transform:scale(.99);}
+.choice.sel{border-color:var(--gold);background:var(--gold-soft);}
+.choice .emo{font-size:22px;width:28px;text-align:center;}
+
+/* ---------- yes/no toggle for upsell ---------- */
+.yn{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.yn button{
+  padding:14px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);
+  font:inherit;font-weight:700;font-size:16px;cursor:pointer;color:var(--ink);
+}
+.yn button.yes.sel{background:var(--green-soft);border-color:var(--green);color:var(--green);}
+.yn button.no.sel{background:var(--red-soft);border-color:var(--red);color:var(--red);}
+
+/* ---------- nav buttons ---------- */
+.nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:40;
+  background:linear-gradient(to top,var(--bg) 70%,transparent);
+  padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+}
+.nav-inner{max-width:var(--maxw);margin:0 auto;display:flex;gap:10px;}
+.btn{
+  flex:1;padding:16px;border-radius:14px;border:0;font:inherit;font-weight:700;font-size:17px;
+  cursor:pointer;font-family:"Sora",sans-serif;
+}
+.btn.primary{background:var(--gold);color:var(--on-gold);}
+.btn.ghost{flex:0 0 auto;background:transparent;border:1.5px solid var(--line);color:var(--ink-soft);min-width:84px;}
+.btn:disabled{opacity:.45;}
+
+/* ---------- summary + calendar ---------- */
+.summary{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px 16px;margin-bottom:16px;box-shadow:var(--shadow);}
+.summary .r{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px;}
+.summary .r:last-child{border-bottom:0;}
+.summary .r b{color:var(--ink-soft);font-weight:600;}
+.cal{display:grid;gap:10px;margin-bottom:10px;}
+.cal a,.cal button{
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  padding:14px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);
+  font:inherit;font-weight:600;text-decoration:none;color:var(--ink);cursor:pointer;font-size:16px;
+}
+.opencal{
+  display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
+  padding:15px;border-radius:12px;border:1.5px solid var(--gold);background:var(--gold-soft);
+  color:var(--ink);font:inherit;font-weight:700;font-size:16px;cursor:pointer;margin-bottom:18px;
+}
+
+/* ---------- home + lists ---------- */
+.hero{text-align:center;padding:18px 0 8px;}
+.hero h1{font-size:26px;margin:0 0 4px;}
+.hero p{color:var(--ink-soft);margin:0 0 22px;}
+.tile{
+  display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);
+  border-radius:16px;padding:18px;width:100%;font:inherit;text-align:left;cursor:pointer;
+  margin-bottom:12px;box-shadow:var(--shadow);color:var(--ink);
+}
+.tile .big{font-size:26px;}
+.tile h3{margin:0;font-size:18px;}
+.tile p{margin:2px 0 0;color:var(--ink-soft);font-size:14px;}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;}
+.stat .n{font-family:"Sora";font-size:24px;font-weight:700;}
+.stat .l{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+.backup-row{display:flex;gap:10px;margin-top:24px;}
+.mini{flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink-soft);font:inherit;font-weight:600;font-size:14px;cursor:pointer;}
+.bk-caption{font-size:12px;color:var(--ink-soft);text-align:center;margin:10px 4px 0;line-height:1.4;}
+.job{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);}
+.job .top{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft);}
+.job h3{margin:4px 0 2px;font-size:17px;}
+.job .meta{font-size:14px;color:var(--ink-soft);}
+.empty{text-align:center;color:var(--ink-soft);padding:40px 0;}
+.section-h{font-family:"Sora";font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin:24px 0 10px;}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--gold-soft);color:var(--coach-tag);}
+.cust-hit{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;}
+.cust-hit b{display:block;}
+.cust-hit span{font-size:14px;color:var(--ink-soft);}
+.done-check{font-size:54px;text-align:center;margin:18px 0 6px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="dot"></span>Turbo Scheduler</div>
+  <div class="hdr-right">
+    <div class="lang-toggle" id="langToggle">
+      <button data-lang="en" class="active">EN</button>
+      <button data-lang="es">ES</button>
+    </div>
+    <button class="theme-btn" id="themeBtn" aria-label="Toggle dark mode">🌙</button>
+  </div>
+</header>
+
+<div class="wrap" id="app"></div>
+
+<div class="nav" id="nav" style="display:none">
+  <div class="nav-inner">
+    <button class="btn ghost" id="backBtn">Back</button>
+    <button class="btn primary" id="nextBtn">Next</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   1) STORAGE HELPERS  (same pattern as Bittings: readLS / writeLS)
+   These read and write the browser's localStorage. Because this app is
+   hosted on the same turbokeysmith.github.io domain as Bittings, it sees
+   the SAME saved data — so customers added here show up in Bittings.
+   ========================================================================= */
+function readLS(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function writeLS(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); }
+  catch(e){ console.warn('save failed', e); }
+}
+
+/* Shared keys (must match Bittings). >>> VERIFY against app_template_v2.html <<< */
+const K_CUSTOMERS = 'tks_customers';   // shared customer database (read + write)
+const K_SHOPS     = 'tks_shops';       // Bittings stores BUSINESS customers here
+const K_SETTINGS  = 'tks_settings';    // shared settings (read only here)
+const K_BOOKINGS  = 'tks_bookings';    // NEW key created by this app for scheduled jobs
+const K_LANG      = 'tks_sched_lang';  // remembers EN/ES choice for this app
+const K_THEME     = 'tks_sched_theme'; // remembers light/dark choice for this app
+const K_LASTLINE  = 'tks_sched_lastline'; // remembers last script variant per slot (rotation)
+
+/* =========================================================================
+   2) LANGUAGE  (English / Spanish)
+   ========================================================================= */
+let LANG = readLS(K_LANG, 'en');
+
+const UI = {
+  en:{
+    home_sub:"Book a job, step by step.", new_booking:"New booking",
+    new_booking_sub:"Walk through a call and add it to the calendar",
+    todays:"Today's jobs", all_jobs:"All bookings", view_jobs:"View jobs",
+    coaching_progress:"Your coaching so far",
+    stat_jobs:"Booked", stat_offered:"Upsells offered", stat_rate:"Offer rate",
+    back:"Back", next:"Next", save:"Save booking", done:"Done", start:"Caller's on — start",
+    say_this:"Say this", tip:"Tip — what to do",
+    existing_q:"Have we helped this customer before?", search_cust:"Search name or phone…",
+    new_cust:"➕ New customer", no_match:"No match — add as new customer",
+    name:"Customer name", phone:"Best callback number", email:"Email (optional)",
+    jobtype:"What do they need help with?",
+    auto:"Car / vehicle", res:"House / home", com:"Business / commercial",
+    subtype:"What kind of job?",
+    addr:"Service address", veh_y:"Year", veh_mk:"Make", veh_md:"Model", vin:"VIN (if they have it)",
+    where_parked:"Where is the car parked?",
+    sched:"When can we go out?", date:"Date", time:"Time", dur:"How long to block?",
+    open_cal:"Open Google Calendar", check_sched:"Check my schedule",
+    check_sched_sub:"Opens Google Calendar in a new tab",
+    bk_export:"Back up", bk_import:"Restore", bk_caption:"Save a copy of your contacts so you never lose them. Keep the file in Google Drive.",
+    bk_restored:"Restored:", bk_contacts:"new contacts", bk_bookings:"new bookings",
+    bk_badfile:"That file couldn't be read. Make sure it's a Turbo Scheduler backup.",
+    upsell_q:"Did you offer the add-on?", yes:"Yes, I offered", no:"Not this time",
+    upsell_acc:"Did they say yes to it?", acc_yes:"They said yes", acc_no:"They passed",
+    confirm:"Confirm the booking", add_cal:"Add to calendar",
+    g_cal:"Google Calendar", o_cal:"Outlook", ics:"Apple / other (.ics)",
+    notes:"Notes (anything to remember)",
+    booked:"Booked!", booked_sub:"It's saved and ready to add to your calendar.",
+    another:"Book another", home:"Home",
+    r_customer:"Customer", r_phone:"Phone", r_job:"Job", r_vehicle:"Vehicle",
+    r_address:"Address", r_when:"When", r_upsell:"Add-on offered",
+    yes_short:"Yes", no_short:"No",
+    err:"Please fill the highlighted fields."
+  },
+  es:{
+    home_sub:"Agenda un trabajo, paso a paso.", new_booking:"Nueva cita",
+    new_booking_sub:"Guíate por la llamada y agéndala en el calendario",
+    todays:"Trabajos de hoy", all_jobs:"Todas las citas", view_jobs:"Ver trabajos",
+    coaching_progress:"Tu progreso hasta ahora",
+    stat_jobs:"Agendados", stat_offered:"Extras ofrecidos", stat_rate:"% ofrecido",
+    back:"Atrás", next:"Siguiente", save:"Guardar cita", done:"Listo", start:"Está al teléfono — empezar",
+    say_this:"Di esto", tip:"Consejo — qué hacer",
+    existing_q:"¿Ya hemos ayudado a este cliente antes?", search_cust:"Busca nombre o teléfono…",
+    new_cust:"➕ Cliente nuevo", no_match:"Sin resultados — agregar como nuevo",
+    name:"Nombre del cliente", phone:"Mejor número de contacto", email:"Correo (opcional)",
+    jobtype:"¿En qué necesita ayuda?",
+    auto:"Carro / vehículo", res:"Casa / hogar", com:"Negocio / comercial",
+    subtype:"¿Qué tipo de trabajo?",
+    addr:"Dirección del servicio", veh_y:"Año", veh_mk:"Marca", veh_md:"Modelo", vin:"VIN (si lo tiene)",
+    where_parked:"¿Dónde está estacionado el carro?",
+    sched:"¿Cuándo podemos ir?", date:"Fecha", time:"Hora", dur:"¿Cuánto tiempo reservar?",
+    open_cal:"Abrir Google Calendar", check_sched:"Ver mi horario",
+    check_sched_sub:"Abre Google Calendar en otra pestaña",
+    bk_export:"Respaldar", bk_import:"Restaurar", bk_caption:"Guarda una copia de tus contactos para no perderlos nunca. Guarda el archivo en Google Drive.",
+    bk_restored:"Restaurado:", bk_contacts:"contactos nuevos", bk_bookings:"citas nuevas",
+    bk_badfile:"No se pudo leer el archivo. Asegúrate de que sea un respaldo de Turbo Scheduler.",
+    upsell_q:"¿Ofreciste el extra?", yes:"Sí, lo ofrecí", no:"Esta vez no",
+    upsell_acc:"¿Lo aceptó?", acc_yes:"Dijo que sí", acc_no:"No esta vez",
+    confirm:"Confirma la cita", add_cal:"Agregar al calendario",
+    g_cal:"Google Calendar", o_cal:"Outlook", ics:"Apple / otro (.ics)",
+    notes:"Notas (algo que recordar)",
+    booked:"¡Agendado!", booked_sub:"Está guardado y listo para tu calendario.",
+    another:"Agendar otro", home:"Inicio",
+    r_customer:"Cliente", r_phone:"Teléfono", r_job:"Trabajo", r_vehicle:"Vehículo",
+    r_address:"Dirección", r_when:"Cuándo", r_upsell:"Extra ofrecido",
+    yes_short:"Sí", no_short:"No",
+    err:"Por favor completa los campos marcados."
+  }
+};
+function t(key){ return (UI[LANG] && UI[LANG][key]) || UI.en[key] || key; }
+
+/* =========================================================================
+   3) COACHING SCRIPT LIBRARY  (Phase 2 — the "brain")
+   Each slot now has THREE variants per language. The app rotates them so the
+   trainee never says the exact same line twice in a row — and it remembers
+   across calls, so he's not repeating yesterday's script either.
+   Want different wording? Just edit/add lines inside any array. Keep the EN
+   and ES arrays the SAME length so they stay matched up.
+   ========================================================================= */
+const SCRIPT = {
+  /* GREETING — how he answers the phone (before we know anything). */
+  greeting:{
+    en:[
+      "Thanks for calling Turbo Keysmith! What can I help you with today?",
+      "Turbo Keysmith! Thanks for calling — what do you need a hand with?",
+      "Hi, thanks for calling Turbo Keysmith! What's going on today?"
+    ],
+    es:[
+      "¡Gracias por llamar a Turbo Keysmith! ¿En qué le puedo ayudar hoy?",
+      "¡Turbo Keysmith! Gracias por llamar — ¿en qué le doy una mano?",
+      "¡Hola, gracias por llamar a Turbo Keysmith! ¿Qué se le ofrece hoy?"
+    ]
+  },
+  /* ASK INFO — gets name + number FIRST, before any small talk. */
+  ask_info:{
+    en:[
+      "I can help with that — can I start with your name and the best number to reach you?",
+      "Sure thing. First, what's your name and a good callback number in case we get cut off?",
+      "Let's get you taken care of. Can I grab your name and best phone number?"
+    ],
+    es:[
+      "Con gusto le ayudo — ¿me da su nombre y el mejor número para localizarlo?",
+      "Claro. Primero, ¿su nombre y un buen número por si se corta la llamada?",
+      "Vamos a ayudarle. ¿Me da su nombre y su mejor número de teléfono?"
+    ]
+  },
+  /* EMPATHY — ONLY shown on an emergency lockout, right after we know the job. */
+  empathy_lockout:{
+    en:[
+      "Oh no — are you somewhere safe right now? Don't worry, we'll get you taken care of.",
+      "I'm sorry that happened! Are you safe where you are? We'll get someone out to you.",
+      "That's no fun — first, are you somewhere safe? Okay good, we'll handle the rest."
+    ],
+    es:[
+      "Ay, no — ¿está en un lugar seguro ahora? No se preocupe, lo vamos a resolver.",
+      "¡Lamento que le pasara! ¿Está seguro donde está? Le mandamos a alguien.",
+      "Qué mala suerte — primero, ¿está en un lugar seguro? Bien, nosotros nos encargamos."
+    ]
+  },
+  /* SMALL TALK — calm chit-chat, ONLY for routine (non-emergency) jobs, after info. */
+  smalltalk:{
+    en:[
+      "While I write this down — how's your day going so far?",
+      "Thanks for that. Staying busy today?",
+      "Got it. How's everything going on your end today?"
+    ],
+    es:[
+      "Mientras lo anoto — ¿cómo va su día?",
+      "Gracias. ¿Con mucho ajetreo hoy?",
+      "Perfecto. ¿Cómo va todo por allá hoy?"
+    ]
+  },
+  /* DETAILS (URGENT) — replaces small talk when it's an emergency: keep it moving. */
+  details_urgent:{
+    en:[
+      "I've got your info — let me grab the address and we'll get someone rolling.",
+      "Okay, hang tight — I just need the location and we'll head your way.",
+      "Almost there — give me the address and we'll get you moving quick."
+    ],
+    es:[
+      "Ya tengo sus datos — déme la dirección y mandamos a alguien en camino.",
+      "Listo, aguante — solo necesito la ubicación y vamos para allá.",
+      "Casi listo — déme la dirección y lo sacamos de apuros rápido."
+    ]
+  },
+  /* REASSURE — at the scheduling step. */
+  reassure:{
+    en:[
+      "No problem at all — let me find you the soonest time.",
+      "We can definitely help. Let me see what's open for you.",
+      "Easy fix — let's get you on the schedule right now."
+    ],
+    es:[
+      "Sin ningún problema — déjeme buscarle la hora más pronta.",
+      "Claro que le ayudamos. Déjeme ver qué tenemos disponible.",
+      "Fácil — vamos a agendarlo ahora mismo."
+    ]
+  },
+  /* CLOSING — on the confirmation screen. */
+  closing:{
+    en:[
+      "You're all set! We've got you down, and we'll text you if anything changes. Thanks again!",
+      "Perfect, you're booked. We'll see you then — call us if anything comes up!",
+      "All done! You're on the schedule. Thanks for choosing Turbo Keysmith!"
+    ],
+    es:[
+      "¡Listo! Quedó agendado, y le avisamos por mensaje si algo cambia. ¡Gracias de nuevo!",
+      "Perfecto, quedó agendado. ¡Nos vemos — llámenos si surge algo!",
+      "¡Todo listo! Está en el calendario. ¡Gracias por elegir Turbo Keysmith!"
+    ]
+  }
+};
+
+/* what-to-ask tips per step (coaching, not customer-facing) */
+const TIPS = {
+  customer:{ en:"Get their name and best number first. Repeat the number back to make sure it's right.",
+             es:"Primero pide su nombre y mejor número. Repite el número para confirmar que esté bien." },
+  jobtype:{  en:"Figure out if it's a car, a house, or a business — that decides everything else.",
+             es:"Averigua si es un carro, una casa o un negocio — eso decide todo lo demás." },
+  auto:{     en:"Ask if the key is lost or just locked inside. Get the year, make, and model.",
+             es:"Pregunta si la llave está perdida o solo encerrada adentro. Pide año, marca y modelo." },
+  res:{      en:"Ask if they're locked out, need new locks, or want existing locks rekeyed.",
+             es:"Pregunta si está afuera, necesita cerraduras nuevas, o reconfigurar las que tiene." },
+  com:{      en:"Ask who needs access and how many doors — bigger jobs need a quick site look.",
+             es:"Pregunta quién necesita acceso y cuántas puertas — trabajos grandes requieren visita." },
+  location:{ en:"Get the full address. For a car, ask exactly where it's parked.",
+             es:"Pide la dirección completa. Para un carro, pregunta dónde está estacionado." },
+  schedule:{ en:"Check the calendar first so you don't double-book. Then offer the soonest open time, with a backup.",
+             es:"Revisa el calendario primero para no agendar dos cosas a la vez. Luego ofrece la hora más pronta, con una de respaldo." }
+};
+
+/* upsell lines per job type — three rotating variants each (Phase 2) */
+const UPSELL = {
+  auto:{
+    en:[
+      "Since we're already programming a key — want a spare made today? Way cheaper now than another lockout later.",
+      "While we're out there, want a backup key cut and programmed? Saves you a tow down the road.",
+      "Want me to make you a spare while I'm on site? Most folks wish they had one when they're stuck."
+    ],
+    es:[
+      "Ya que vamos a programar una llave — ¿quiere una de repuesto hoy? Sale mucho más barato que otro encierro.",
+      "Ya que estamos allá, ¿le hacemos una llave de respaldo? Le ahorra una grúa después.",
+      "¿Le hago una copia mientras estoy ahí? Muchos la desean cuando ya están atorados."
+    ]
+  },
+  res:{
+    en:[
+      "Want me to rekey your other doors to match while I'm there? One key for the whole house.",
+      "While I'm on site, want all your locks on one key? Makes life a lot simpler.",
+      "Should I match your other locks to the same key? No more juggling a keyring."
+    ],
+    es:[
+      "¿Quiere que reconfigure las otras puertas para la misma llave? Una sola para toda la casa.",
+      "Ya que estoy ahí, ¿pongo todas las cerraduras en una sola llave? Le simplifica la vida.",
+      "¿Igualo las otras cerraduras a la misma llave? Así no anda con tantas llaves."
+    ]
+  },
+  com:{
+    en:[
+      "Want a master-key setup so you control who gets into which areas? Great for staff changes.",
+      "Should we set up a master key system? Makes managing access a lot easier.",
+      "Want one master key to run the whole place? Handy when staff turns over."
+    ],
+    es:[
+      "¿Le gustaría una llave maestra para controlar quién entra a cada área? Ideal cuando cambia el personal.",
+      "¿Montamos un sistema de llave maestra? Facilita mucho el control de acceso.",
+      "¿Quiere una llave maestra para manejar todo el lugar? Útil cuando rota el personal."
+    ]
+  }
+};
+
+/* sub-types per job type: [value, emoji, English, Spanish] */
+const SUBTYPES = {
+  auto:[["lockout","🚗","Locked out","Encerrado"],["lost","🔑","Lost all keys","Perdió las llaves"],
+        ["spare","🗝️","Need a spare key","Llave de repuesto"],["ignition","🔧","Key/ignition problem","Problema de ignición"],
+        ["other","➕","Something else","Otra cosa"]],
+  res:[["lockout","🚪","Locked out","Encerrado"],["rekey","🔄","Rekey locks","Reconfigurar"],
+       ["new","🔒","New locks","Cerraduras nuevas"],["lost","🔑","Lost keys","Perdió las llaves"],
+       ["other","➕","Something else","Otra cosa"]],
+  com:[["lockout","🏢","Locked out","Encerrado"],["master","🗝️","Master key system","Llave maestra"],
+       ["rekey","🔄","Rekey","Reconfigurar"],["access","💳","Access control","Control de acceso"],
+       ["other","➕","Something else","Otra cosa"]]
+};
+
+/* =========================================================================
+   3b) SCRIPT ROTATION ENGINE
+   Picks a variant for each slot, avoiding the one used last time so lines
+   don't repeat back-to-back. The choice is locked per booking (stable if he
+   taps Back), and the "last used" is saved so the next call differs too.
+   We store the INDEX (not the text), so toggling EN/ES keeps the same line.
+   ========================================================================= */
+let lastLineIdx = readLS(K_LASTLINE, {});   // { slot: lastIndexUsed }
+
+function pickIdx(slot, len){
+  if(booking.lineIdx && booking.lineIdx[slot]!=null) return booking.lineIdx[slot]; // stable within this call
+  let i = Math.floor(Math.random()*len);
+  if(len>1 && i===lastLineIdx[slot]) i=(i+1)%len;   // never repeat the previous one
+  booking.lineIdx[slot]=i;
+  lastLineIdx[slot]=i; writeLS(K_LASTLINE, lastLineIdx);
+  return i;
+}
+/* returns the chosen line text for a slot, in the current language */
+function line(slot, variants){
+  const arr = variants[LANG] || variants.en;
+  return arr[pickIdx(slot, arr.length)];
+}
+/* emergency jobs get reassurance instead of cheerful small talk */
+function isUrgent(){
+  return booking.subType==='lockout' || (booking.jobType==='auto' && booking.subType==='lost');
+}
+
+/* =========================================================================
+   4) APP STATE — one booking being built
+   ========================================================================= */
+let stepIndex = 0;
+let booking = freshBooking();
+function freshBooking(){
+  return { id:null, createdAt:null,
+    lineIdx:{},   // which script variant was chosen for each slot this call
+    customer:{ name:"", phone:"", email:"" },
+    jobType:"", subType:"",
+    address:"", parked:"",
+    vehicle:{ year:"", make:"", model:"", vin:"" },
+    date:"", time:"", duration:60,
+    notes:"",
+    upsell:{ offered:null, accepted:null, item:"" },
+    bookedBy:"trainee"
+  };
+}
+
+/* the ordered flow */
+const STEPS = ["greeting","customer","jobtype","subtype","details","schedule","upsell","confirm"];
+
+/* =========================================================================
+   5) RENDERING
+   ========================================================================= */
+const app  = document.getElementById('app');
+const nav  = document.getElementById('nav');
+const backBtn = document.getElementById('backBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+let VIEW = 'home'; // 'home' | 'flow' | 'jobs' | 'done'
+
+function render(){
+  document.querySelectorAll('#langToggle button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.lang===LANG);
+  });
+  if(VIEW==='home')  return renderHome();
+  if(VIEW==='jobs')  return renderJobs();
+  if(VIEW==='done')  return renderDone();
+  if(VIEW==='flow')  return renderFlow();
+}
+
+/* ---------- HOME ---------- */
+function renderHome(){
+  nav.style.display='none';
+  const bookings = readLS(K_BOOKINGS, []);
+  const offered = bookings.filter(b=>b.upsell && b.upsell.offered).length;
+  const rate = bookings.length ? Math.round(offered/bookings.length*100) : 0;
+  app.innerHTML = `
+    <div class="hero">
+      <h1>Turbo Scheduler</h1>
+      <p>${t('home_sub')}</p>
+    </div>
+    <button class="tile" onclick="startFlow()">
+      <span class="big">📅</span>
+      <span><h3>${t('new_booking')}</h3><p>${t('new_booking_sub')}</p></span>
+    </button>
+    <button class="tile" onclick="VIEW='jobs';render()">
+      <span class="big">📋</span>
+      <span><h3>${t('view_jobs')}</h3><p>${bookings.length} ${t('all_jobs').toLowerCase()}</p></span>
+    </button>
+    <button class="tile" onclick="openCalendar()">
+      <span class="big">📅</span>
+      <span><h3>${t('check_sched')}</h3><p>${t('check_sched_sub')}</p></span>
+    </button>
+    <div class="section-h">${t('coaching_progress')}</div>
+    <div class="stats">
+      <div class="stat"><div class="n">${bookings.length}</div><div class="l">${t('stat_jobs')}</div></div>
+      <div class="stat"><div class="n">${offered}</div><div class="l">${t('stat_offered')}</div></div>
+      <div class="stat"><div class="n">${rate}%</div><div class="l">${t('stat_rate')}</div></div>
+    </div>
+    <div class="backup-row">
+      <button class="mini" onclick="exportData()">⬇ ${t('bk_export')}</button>
+      <button class="mini" onclick="document.getElementById('importFile').click()">⬆ ${t('bk_import')}</button>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none"
+           onchange="if(this.files[0]){importData(this.files[0]);} this.value='';">
+    <p class="bk-caption">${t('bk_caption')}</p>`;
+}
+
+/* ---------- JOBS LIST ---------- */
+function renderJobs(){
+  nav.style.display='none';
+  const bookings = readLS(K_BOOKINGS, []).slice().reverse();
+  let rows = bookings.length ? bookings.map(b=>{
+    const when = b.date ? `${b.date} ${fmt12(b.time)}` : '';
+    const veh = b.vehicle && b.vehicle.make ? `${b.vehicle.year} ${b.vehicle.make} ${b.vehicle.model}`.trim() : '';
+    const sub = subLabel(b.jobType, b.subType);
+    return `<div class="job">
+      <div class="top"><span>${when}</span>${b.upsell&&b.upsell.offered?'<span class="pill">✓ offered</span>':''}</div>
+      <h3>${esc(b.customer.name||'—')}</h3>
+      <div class="meta">${sub}${veh?' · '+esc(veh):''}${b.address?' · '+esc(b.address):''}</div>
+      <div class="meta">${esc(b.customer.phone||'')}</div>
+    </div>`;
+  }).join('') : `<div class="empty">No bookings yet.</div>`;
+  app.innerHTML = `
+    <button class="btn ghost" style="margin-bottom:16px" onclick="VIEW='home';render()">← ${t('home')}</button>
+    <div class="section-h">${t('all_jobs')}</div>${rows}`;
+}
+
+/* ---------- DONE ---------- */
+function renderDone(){
+  nav.style.display='none';
+  app.innerHTML = `
+    <div class="done-check">✅</div>
+    <div class="hero"><h1>${t('booked')}</h1><p>${t('booked_sub')}</p></div>
+    <div class="coach"><span class="tag">📞 ${t('say_this')}</span>
+      <div class="line">${line('closing', SCRIPT.closing)}</div></div>
+    <button class="btn primary" style="width:100%;margin-bottom:10px" onclick="startFlow()">${t('another')}</button>
+    <button class="btn ghost" style="width:100%" onclick="VIEW='home';render()">${t('home')}</button>`;
+}
+
+/* ---------- FLOW (the wizard) ---------- */
+function startFlow(){ booking = freshBooking(); stepIndex = 0; VIEW='flow'; render(); }
+
+function renderFlow(){
+  nav.style.display='block';
+  const step = STEPS[stepIndex];
+  const pct = Math.round((stepIndex)/(STEPS.length-1)*100);
+  let html = `<div class="progress"><i style="width:${pct}%"></i></div>`;
+
+  if(step==='greeting') html += stepGreeting();
+  if(step==='customer') html += stepCustomer();
+  if(step==='jobtype')  html += stepJobType();
+  if(step==='subtype')  html += stepSubType();
+  if(step==='details')  html += stepDetails();
+  if(step==='schedule') html += stepSchedule();
+  if(step==='upsell')   html += stepUpsell();
+  if(step==='confirm')  html += stepConfirm();
+
+  app.innerHTML = html;
+  app.querySelectorAll('[data-bind]').forEach(el=>{
+    el.addEventListener('input',()=>setPath(el.dataset.bind, el.value));
+  });
+  backBtn.textContent = t('back');
+  nextBtn.textContent = (step==='confirm') ? t('save') : (step==='greeting' ? t('start') : t('next'));
+  backBtn.onclick = goBack;
+  nextBtn.onclick = goNext;
+}
+
+function coachCard(text){return `<div class="coach"><span class="tag">📞 ${t('say_this')}</span><div class="line">${text}</div></div>`;}
+function tipCard(text){return `<div class="coach tip"><span class="tag">💡 ${t('tip')}</span><div class="line">${text}</div></div>`;}
+
+function stepGreeting(){
+  return coachCard(line('greeting', SCRIPT.greeting)) +
+    `<p class="step-title">${LANG==='es'?'Cuando el cliente conteste, toca empezar.':'When the caller answers, tap start.'}</p>`;
+}
+
+function stepCustomer(){
+  const custs = readLS(K_CUSTOMERS, []);
+  return coachCard(line('ask_info', SCRIPT.ask_info)) +
+    tipCard(TIPS.customer[LANG]) +
+    `<label>${t('name')}</label><input data-bind="customer.name" id="f_name" value="${esc(booking.customer.name)}" placeholder="${t('name')}">
+     <label>${t('phone')}</label><input data-bind="customer.phone" id="f_phone" type="tel" value="${esc(booking.customer.phone)}" placeholder="(405) 555-0199">
+     <label>${t('email')}</label><input data-bind="customer.email" type="email" value="${esc(booking.customer.email)}" placeholder="${t('email')}">
+     ${custs.length? `<label>${t('existing_q')}</label><input id="custSearch" placeholder="${t('search_cust')}" oninput="searchCust(this.value)"><div id="custHits"></div>`:''}`;
+}
+
+function stepJobType(){
+  return tipCard(TIPS.jobtype[LANG]) +
+    `<p class="step-title">${t('jobtype')}</p><div class="choices">
+      ${jobChoice('auto','🚗',t('auto'))}
+      ${jobChoice('res','🏠',t('res'))}
+      ${jobChoice('com','🏢',t('com'))}
+    </div>`;
+}
+function jobChoice(v,emo,label){
+  const sel = booking.jobType===v?'sel':'';
+  return `<button class="choice ${sel}" onclick="pickJobType('${v}')"><span class="emo">${emo}</span>${label}</button>`;
+}
+
+function stepSubType(){
+  const tipKey = booking.jobType==='auto'?'auto':booking.jobType==='res'?'res':'com';
+  const list = SUBTYPES[booking.jobType]||[];
+  const items = list.map(([v,emo,en,es])=>{
+    const sel = booking.subType===v?'sel':'';
+    const label = LANG==='es'?es:en;
+    return `<button class="choice ${sel}" onclick="pickSub('${v}')"><span class="emo">${emo}</span>${label}</button>`;
+  }).join('');
+  const empathy = (booking.subType==='lockout') ? coachCard(line('empathy', SCRIPT.empathy_lockout)) : '';
+  return tipCard(TIPS[tipKey][LANG]) + empathy +
+    `<p class="step-title">${t('subtype')}</p><div class="choices">${items}</div>`;
+}
+
+function stepDetails(){
+  // Tone-matched: cheerful small talk for routine jobs, but keep-it-moving for emergencies.
+  const msg = isUrgent() ? line('details', SCRIPT.details_urgent) : line('details', SCRIPT.smalltalk);
+  let html = coachCard(msg);
+  html += tipCard(TIPS.location[LANG]);
+  if(booking.jobType==='auto'){
+    html += `<div class="row2">
+        <div><label>${t('veh_y')}</label><input data-bind="vehicle.year" inputmode="numeric" value="${esc(booking.vehicle.year)}"></div>
+        <div><label>${t('veh_mk')}</label><input data-bind="vehicle.make" value="${esc(booking.vehicle.make)}"></div>
+      </div>
+      <label>${t('veh_md')}</label><input data-bind="vehicle.model" value="${esc(booking.vehicle.model)}">
+      <label>${t('vin')}</label><input data-bind="vehicle.vin" value="${esc(booking.vehicle.vin)}" placeholder="17 chars">
+      <label>${t('where_parked')}</label><input data-bind="parked" value="${esc(booking.parked)}">`;
+  }
+  html += `<label>${t('addr')}</label><input data-bind="address" id="f_addr" value="${esc(booking.address)}" placeholder="123 Main St, Oklahoma City">`;
+  return html;
+}
+
+function stepSchedule(){
+  return tipCard(TIPS.schedule[LANG]) +
+    `<button class="opencal" onclick="openCalendar()">📅 ${t('open_cal')}</button>` +
+    coachCard(line('reassure', SCRIPT.reassure)) +
+    `<label>${t('date')}</label><input data-bind="date" id="f_date" type="date" value="${esc(booking.date)}">
+     <div class="row2">
+       <div><label>${t('time')}</label><input data-bind="time" id="f_time" type="time" value="${esc(booking.time)}"></div>
+       <div><label>${t('dur')}</label>
+         <select data-bind="duration">
+           <option value="30" ${booking.duration==30?'selected':''}>30 min</option>
+           <option value="60" ${booking.duration==60?'selected':''}>1 hr</option>
+           <option value="90" ${booking.duration==90?'selected':''}>1.5 hr</option>
+           <option value="120" ${booking.duration==120?'selected':''}>2 hr</option>
+         </select></div>
+     </div>`;
+}
+
+function stepUpsell(){
+  const up = line('upsell', UPSELL[booking.jobType] || UPSELL.auto);
+  const oY = booking.upsell.offered===true?'sel':'', oN = booking.upsell.offered===false?'sel':'';
+  const accBlock = booking.upsell.offered===true ? `
+    <p class="step-title" style="margin-top:18px">${t('upsell_acc')}</p>
+    <div class="yn">
+      <button class="yes ${booking.upsell.accepted===true?'sel':''}" onclick="setUpsell('accepted',true)">✓ ${t('acc_yes')}</button>
+      <button class="no ${booking.upsell.accepted===false?'sel':''}" onclick="setUpsell('accepted',false)">✕ ${t('acc_no')}</button>
+    </div>` : '';
+  return coachCard(up) +
+    `<p class="step-title">${t('upsell_q')}</p>
+     <div class="yn">
+       <button class="yes ${oY}" onclick="setUpsell('offered',true)">✓ ${t('yes')}</button>
+       <button class="no ${oN}" onclick="setUpsell('offered',false)">✕ ${t('no')}</button>
+     </div>${accBlock}`;
+}
+
+function stepConfirm(){
+  const veh = booking.vehicle.make ? `${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model}`.trim() : '';
+  const when = booking.date ? `${prettyDate(booking.date)} · ${fmt12(booking.time)}` : '—';
+  const rows = [
+    [t('r_customer'), booking.customer.name],
+    [t('r_phone'), booking.customer.phone],
+    [t('r_job'), subLabel(booking.jobType, booking.subType)],
+    veh?[t('r_vehicle'), veh]:null,
+    [t('r_address'), booking.address || booking.parked || '—'],
+    [t('r_when'), when],
+    [t('r_upsell'), booking.upsell.offered ? (booking.upsell.accepted?t('yes_short')+' ✓':t('yes_short')) : t('no_short')]
+  ].filter(Boolean).map(([k,v])=>`<div class="r"><b>${k}</b><span>${esc(v||'—')}</span></div>`).join('');
+
+  return tipCard(LANG==='es'?'Repite los detalles al cliente antes de colgar.':'Read the details back to the customer before hanging up.') +
+    `<p class="step-title">${t('confirm')}</p>
+     <div class="summary">${rows}</div>
+     <div class="section-h">${t('add_cal')}</div>
+     <div class="cal">
+       <a href="${googleUrl()}" target="_blank" rel="noopener">📆 ${t('g_cal')}</a>
+       <a href="${outlookUrl()}" target="_blank" rel="noopener">📆 ${t('o_cal')}</a>
+       <button onclick="downloadICS()">📆 ${t('ics')}</button>
+     </div>
+     <label>${t('notes')}</label><textarea data-bind="notes">${esc(booking.notes)}</textarea>`;
+}
+
+/* =========================================================================
+   6) FLOW ACTIONS
+   ========================================================================= */
+function setPath(path,val){
+  const parts = path.split('.'); let o = booking;
+  for(let i=0;i<parts.length-1;i++) o=o[parts[i]];
+  o[parts[parts.length-1]] = val;
+}
+function pickJobType(v){ booking.jobType=v; booking.subType=''; render(); }
+function pickSub(v){ booking.subType=v; render(); }
+function setUpsell(field,val){
+  booking.upsell[field]=val;
+  if(field==='offered' && val===false) booking.upsell.accepted=null;
+  render();
+}
+
+function searchCust(q){
+  const hits = document.getElementById('custHits'); if(!hits) return;
+  q=(q||'').toLowerCase().trim();
+  if(!q){ hits.innerHTML=''; return; }
+  // search BOTH individual customers and business shops (Bittings keeps them apart)
+  const all = readLS(K_CUSTOMERS, []).concat(readLS(K_SHOPS, []));
+  const found = all.filter(c=>{
+    const n=(c.customer||'').toLowerCase();   // Bittings stores the name under "customer"
+    const p=(c.phone||'').toLowerCase();
+    return n.includes(q)||p.includes(q);
+  }).slice(0,5);
+  hits.innerHTML = found.length
+    ? found.map(c=>`<div class="cust-hit" onclick='useCust(${JSON.stringify(c).replace(/'/g,"&#39;")})'>
+        <b>${esc(c.customer||'')}</b><span>${esc(c.phone||'')}</span></div>`).join('')
+    : `<div class="cust-hit" style="cursor:default"><span>${t('no_match')}</span></div>`;
+}
+function useCust(c){
+  booking.customer.name  = c.customer || '';   // "customer" holds the name in Bittings
+  booking.customer.phone = c.phone || '';
+  booking.customer.email = c.email || '';
+  if(c.address) booking.address = c.address;
+  render();
+}
+
+function goBack(){
+  if(stepIndex===0){ VIEW='home'; render(); return; }
+  stepIndex--; render();
+}
+function goNext(){
+  const step = STEPS[stepIndex];
+  if(!validateStep(step)) return;
+  if(step==='confirm'){ saveBooking(); return; }
+  stepIndex++; render();
+}
+
+/* required-field validation with red highlight (matches Bittings behavior) */
+function validateStep(step){
+  let ok=true;
+  function bad(id){ const el=document.getElementById(id); if(el){el.classList.add('field-err'); ok=false;} }
+  if(step==='customer'){
+    if(!booking.customer.name.trim()) bad('f_name');
+    if(!booking.customer.phone.trim()) bad('f_phone');
+  }
+  if(step==='jobtype' && !booking.jobType) ok=false;
+  if(step==='subtype' && !booking.subType) ok=false;
+  if(step==='details'){
+    if(!booking.address.trim() && !booking.parked.trim()) bad('f_addr');
+  }
+  if(step==='schedule'){
+    if(!booking.date) bad('f_date');
+    if(!booking.time) bad('f_time');
+  }
+  if(!ok){
+    document.querySelectorAll('.field-err').forEach(el=>el.addEventListener('input',()=>el.classList.remove('field-err'),{once:true}));
+  }
+  return ok;
+}
+
+function saveBooking(){
+  const bookings = readLS(K_BOOKINGS, []);
+  booking.id = 'bk_'+Date.now();
+  booking.createdAt = new Date().toISOString();
+  bookings.push(JSON.parse(JSON.stringify(booking)));
+  writeLS(K_BOOKINGS, bookings);
+  saveCustomerToSharedDB();
+  VIEW='done'; render();
+}
+
+/* -------------------------------------------------------------------------
+   SAVE CUSTOMER TO SHARED DATABASE  — matches Bittings exactly.
+   Verified against bittings.html: a customer record is
+     { customer, contact, phone, email, address, customerType, lastUsed }
+   where the NAME is stored under "customer". Bittings finds an existing
+   record by NAME (case-insensitive) and updates it; otherwise adds a new one
+   and stamps lastUsed (the picker sorts by lastUsed). We mirror that so the
+   scheduler and Bittings agree on what counts as the same customer.
+   Business (commercial) jobs are tagged customerType "business"; everything
+   else "individual".
+   ------------------------------------------------------------------------- */
+function saveCustomerToSharedDB(){
+  const name = (booking.customer.name||'').trim();
+  if(!name) return;
+  const list = getCustomers();
+  const custData = {
+    customer: name,
+    contact: '',
+    phone: (booking.customer.phone||'').trim(),
+    email: (booking.customer.email||'').trim(),
+    address: (booking.address||'').trim(),
+    customerType: (booking.jobType==='com') ? 'business' : 'individual'
+  };
+  const existing = list.find(c => (c.customer||'').toLowerCase() === name.toLowerCase());
+  if(existing){ Object.assign(existing, custData); existing.lastUsed = Date.now(); }
+  else{ list.push(Object.assign({}, custData, {lastUsed: Date.now()})); }
+  saveCustomers(list);
+}
+/* tiny Bittings-compatible helpers (same keys/behaviour as bittings.html) */
+function getCustomers(){ return readLS(K_CUSTOMERS, []); }
+function saveCustomers(arr){ writeLS(K_CUSTOMERS, arr); }
+
+/* =========================================================================
+   7) CALENDAR LINKS  (one-tap add — free, no login)
+   ========================================================================= */
+function eventTimes(){
+  const [y,m,d] = booking.date.split('-').map(Number);
+  const [hh,mm] = (booking.time||'09:00').split(':').map(Number);
+  const start = new Date(y, m-1, d, hh, mm);
+  const end   = new Date(start.getTime() + (booking.duration*60000));
+  return {start,end};
+}
+function eventTitle(){
+  const sub = subLabel(booking.jobType, booking.subType);
+  return `${sub} — ${booking.customer.name||'Customer'}`;
+}
+function eventDetails(){
+  const veh = booking.vehicle.make ? `\nVehicle: ${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model} ${booking.vehicle.vin}` : '';
+  return `Customer: ${booking.customer.name}\nPhone: ${booking.customer.phone}${veh}\n${booking.notes||''}`.trim();
+}
+function eventLocation(){ return booking.address || booking.parked || ''; }
+
+/* Open Google Calendar so he can see what's already booked before picking a time.
+   If a date is already chosen, jump straight to that day's view. */
+function calendarViewUrl(){
+  const base='https://calendar.google.com/calendar/r';
+  if(booking.date){
+    const [y,m,d]=booking.date.split('-').map(Number);
+    return `${base}/day/${y}/${m}/${d}`;
+  }
+  return base;
+}
+function openCalendar(){ window.open(calendarViewUrl(), '_blank', 'noopener'); }
+
+/* =========================================================================
+   7b) BACKUP & RESTORE  (free, no cloud)
+   Export saves all contacts + bookings to a file. Import MERGES a file back
+   in — it only ADDS what's missing (matched by phone / booking id) and never
+   deletes what's already there, so it's safe to run anytime.
+   ========================================================================= */
+function exportData(){
+  const data = {
+    _app:'turbo-scheduler', _version:1, _exported:new Date().toISOString(),
+    customers: readLS(K_CUSTOMERS, []),
+    shops:     readLS(K_SHOPS, []),
+    bookings:  readLS(K_BOOKINGS, [])
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='turbo-scheduler-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+/* merge a list of {customer,...} records by name (case-insensitive), Bittings-style */
+function mergeByName(key, incoming){
+  const list = readLS(key, []);
+  const have = new Set(list.map(c=>(c.customer||'').toLowerCase()).filter(Boolean));
+  let added=0;
+  (incoming||[]).forEach(c=>{
+    const n=(c.customer||'').toLowerCase();
+    if(n && have.has(n)) return;
+    list.push(c); if(n) have.add(n); added++;
+  });
+  writeLS(key, list); return added;
+}
+function importData(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const data=JSON.parse(r.result);
+      let addedC = mergeByName(K_CUSTOMERS, data.customers);
+      addedC    += mergeByName(K_SHOPS, data.shops);
+      // merge bookings by id
+      const bks=readLS(K_BOOKINGS,[]);
+      const haveB=new Set(bks.map(b=>b.id).filter(Boolean));
+      let addedB=0;
+      (data.bookings||[]).forEach(b=>{
+        if(b.id && haveB.has(b.id)) return;
+        bks.push(b); if(b.id) haveB.add(b.id); addedB++;
+      });
+      writeLS(K_BOOKINGS, bks);
+      alert(`${t('bk_restored')} ${addedC} ${t('bk_contacts')}, ${addedB} ${t('bk_bookings')}.`);
+      render();
+    }catch(e){ alert(t('bk_badfile')); }
+  };
+  r.readAsText(file);
+}
+
+function pad(n){return String(n).padStart(2,'0');}
+function fmtCompact(dt){ return `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`; }
+function fmtOutlook(dt){ return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:00`; }
+function googleUrl(){
+  if(!booking.date||!booking.time) return '#';
+  const {start,end}=eventTimes();
+  const p = new URLSearchParams({
+    action:'TEMPLATE', text:eventTitle(),
+    dates:`${fmtCompact(start)}/${fmtCompact(end)}`,
+    details:eventDetails(), location:eventLocation(),
+    ctz:'America/Chicago'
+  });
+  return 'https://calendar.google.com/calendar/render?'+p.toString();
+}
+function outlookUrl(){
+  if(!booking.date||!booking.time) return '#';
+  const {start,end}=eventTimes();
+  const p = new URLSearchParams({
+    path:'/calendar/action/compose', rru:'addevent',
+    subject:eventTitle(), startdt:fmtOutlook(start), enddt:fmtOutlook(end),
+    body:eventDetails(), location:eventLocation()
+  });
+  return 'https://outlook.live.com/calendar/0/deeplink/compose?'+p.toString();
+}
+function downloadICS(){
+  if(!booking.date||!booking.time){ alert(t('err')); return; }
+  const {start,end}=eventTimes();
+  const ics = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Turbo Keysmith//Scheduler//EN','BEGIN:VEVENT',
+    'UID:'+(booking.id||Date.now())+'@turbokeysmith',
+    'DTSTAMP:'+fmtCompact(new Date()),
+    'DTSTART:'+fmtCompact(start),
+    'DTEND:'+fmtCompact(end),
+    'SUMMARY:'+icsEsc(eventTitle()),
+    'DESCRIPTION:'+icsEsc(eventDetails()),
+    'LOCATION:'+icsEsc(eventLocation()),
+    'END:VEVENT','END:VCALENDAR'
+  ].join('\r\n');
+  const blob = new Blob([ics],{type:'text/calendar'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'turbokeysmith-booking.ics';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function icsEsc(s){return String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');}
+
+/* =========================================================================
+   8) SMALL HELPERS
+   ========================================================================= */
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function subLabel(type,sub){
+  const list = SUBTYPES[type]||[]; const row = list.find(r=>r[0]===sub);
+  if(!row) return type||'';
+  return LANG==='es'?row[3]:row[2];
+}
+function fmt12(t24){
+  if(!t24) return '';
+  let [h,m]=t24.split(':').map(Number); const ap=h>=12?'PM':'AM'; h=h%12||12;
+  return `${h}:${pad(m)} ${ap}`;
+}
+function prettyDate(iso){
+  if(!iso) return ''; const [y,m,d]=iso.split('-').map(Number);
+  const dt=new Date(y,m-1,d);
+  return dt.toLocaleDateString(LANG==='es'?'es-US':'en-US',{weekday:'short',month:'short',day:'numeric'});
+}
+
+/* =========================================================================
+   9) BOOT
+   ========================================================================= */
+document.getElementById('langToggle').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  LANG=b.dataset.lang; writeLS(K_LANG, LANG); render();
+});
+
+/* ---- dark mode ----
+   The theme is already set on <html> by the small script in the <head>
+   (so there's no white flash). Here we just sync the button icon and
+   handle taps. Sun = currently dark (tap to go light); moon = the reverse. */
+function syncThemeIcon(){
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  document.getElementById('themeBtn').textContent = dark ? '☀️' : '🌙';
+}
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  const next = dark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  writeLS(K_THEME, next);
+  syncThemeIcon();
+});
+syncThemeIcon();
+
+render();
+</script>
+</body>
+</html>
