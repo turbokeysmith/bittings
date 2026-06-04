@@ -117,18 +117,28 @@
   .tile.active.scheduler .power{color:#f4c96f;border-color:rgba(242,180,58,.4);}
   .tile.active.scheduler .power .dot{background:var(--amber);box-shadow:0 0 8px rgba(242,180,58,.8);}
 
-  /* OFF state */
-  .tile.off{opacity:.55;}
-  .tile.off .badge,.tile.off h2,.tile.off p{filter:grayscale(.8);}
+  /* OFF state — dim ONLY the content; keep the toggle + turn-on button bright */
+  .tile.off .tile-top{opacity:.4;filter:grayscale(.85);}
   .tile.off::before{background:var(--off)!important;}
-  .tile.off .open-btn{
-    background:#2a2e35!important;color:var(--off)!important;
-    pointer-events:none;cursor:not-allowed;
-  }
-  .off-note{display:none;font-size:12.5px;color:var(--off);font-weight:700;
-    text-align:center;padding:14px;border:1px dashed var(--card-edge);border-radius:14px;}
-  .tile.off .off-note{display:block;}
   .tile.off .open-btn{display:none;}
+  /* keep the corner pill fully visible and obviously tappable when off */
+  .tile.off .power{
+    opacity:1;background:rgba(255,255,255,.10);
+    color:var(--ink);border-color:#3b424d;
+  }
+
+  /* big, unmissable "turn back on" button, shown only when off */
+  .reon-btn{display:none;}
+  .tile.off .reon-btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;border:none;border-radius:14px;cursor:pointer;
+    padding:16px;font-size:16px;font-weight:800;letter-spacing:.3px;
+    color:#fff;
+  }
+  .tile.off.bittings .reon-btn{background:linear-gradient(180deg,var(--red),var(--red-deep));}
+  .tile.off.scheduler .reon-btn{background:linear-gradient(180deg,var(--amber),var(--amber-deep));color:#221a05;}
+  .reon-btn:active{transform:scale(.985);}
+  .reon-btn:hover{filter:brightness(1.07);}
 
   footer{margin-top:26px;text-align:center;}
   .share-note{
@@ -167,7 +177,7 @@
           </div>
         </div>
         <a class="open-btn" href="bittings.html">Open Bittings &rarr;</a>
-        <div class="off-note">Turned off. Tap the toggle above to turn it back on.</div>
+        <button class="reon-btn" type="button">&#9211; Turn Bittings back on</button>
       </section>
 
       <!-- SCHEDULER -->
@@ -183,7 +193,7 @@
           </div>
         </div>
         <a class="open-btn" href="scheduler.html">Open Scheduler &rarr;</a>
-        <div class="off-note">Turned off. Tap the toggle above to turn it back on.</div>
+        <button class="reon-btn" type="button">&#9211; Turn Scheduler back on</button>
       </section>
     </div>
 
@@ -204,6 +214,7 @@
     var app = tile.getAttribute('data-app');
     var label = tile.querySelector('.pwr-label');
     var btn = tile.querySelector('.power');
+    var reon = tile.querySelector('.reon-btn');
 
     function paint(){
       var isOff = disabled.indexOf(app) !== -1;
@@ -213,13 +224,16 @@
     }
     paint();
 
-    btn.addEventListener('click', function(e){
-      e.preventDefault(); e.stopPropagation();
+    function toggle(e){
+      if(e){ e.preventDefault(); e.stopPropagation(); }
       var i = disabled.indexOf(app);
       if(i === -1){ disabled.push(app); } else { disabled.splice(i,1); }
       write(disabled);
       paint();
-    });
+    }
+
+    btn.addEventListener('click', toggle);
+    if(reon){ reon.addEventListener('click', toggle); }
   });
 })();
 </script>
