@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#14171b">
+<title>Turbo Keysmith — Cloud Test</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--bg:#14171b;--card:#1f232a;--edge:#2c313a;--ink:#f4f5f7;--dim:#9aa1ac;--red:#c8323c;--red-deep:#8f1f27;--green:#22994a;--amber:#f2b43a;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);min-height:100vh;padding:24px 18px;}
+  .wrap{max-width:560px;margin:0 auto;}
+  .badge{text-align:center;font-size:11px;font-weight:800;letter-spacing:1px;color:var(--amber);
+    border:1px solid rgba(242,180,58,.4);background:rgba(242,180,58,.12);border-radius:999px;padding:6px;margin-bottom:18px;}
+  h1{font-size:20px;margin:0 0 4px;font-weight:800;}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 20px;}
+  label{display:block;font-size:12.5px;color:var(--dim);margin:12px 0 6px;font-weight:600;}
+  input{width:100%;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:12px 14px;color:var(--ink);font-size:15px;outline:none;}
+  .btn{width:100%;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;margin-top:16px;
+    background:linear-gradient(180deg,var(--red),var(--red-deep));color:#fff;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn.ghost{background:transparent;border:1px solid var(--edge);color:var(--dim);}
+  .msg{margin-top:14px;padding:12px;border-radius:10px;font-size:13px;display:none;}
+  .msg.show{display:block;}
+  .msg.err{background:rgba(200,50,60,.14);color:#f0a0a6;border:1px solid rgba(200,50,60,.4);}
+  .msg.ok{background:rgba(34,153,74,.14);color:#4bd07e;border:1px solid rgba(34,153,74,.4);}
+  .hidden{display:none;}
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+  .topbar .who{font-size:13px;color:var(--dim);}
+  .topbar .who b{color:var(--ink);}
+  .topbar .out{margin-left:auto;background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--dim);border-radius:9px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;}
+  .bar{display:flex;gap:10px;margin-bottom:14px;}
+  .add{background:linear-gradient(180deg,var(--red),var(--red-deep));border:none;color:#fff;border-radius:12px;padding:0 18px;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap;}
+  .clist{display:flex;flex-direction:column;gap:10px;}
+  .crow{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;}
+  .crow .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;background:rgba(74,163,255,.16);color:#8ec5ff;}
+  .crow.biz .avatar{background:rgba(242,180,58,.16);color:var(--amber);}
+  .crow .nm{font-weight:700;font-size:15px;}.crow .sub2{font-size:12.5px;color:var(--dim);margin-top:2px;}
+  .crow .tag{margin-left:auto;font-size:10px;font-weight:800;color:var(--dim);border:1px solid var(--edge);border-radius:999px;padding:3px 8px;}
+  .empty{text-align:center;color:var(--dim);padding:30px;font-size:14px;}
+  .typeseg{display:flex;gap:8px;}
+  .typeseg button{flex:1;background:var(--card);border:1px solid var(--edge);color:var(--dim);border-radius:11px;padding:11px;font-weight:700;cursor:pointer;}
+  .typeseg button.on{color:#fff;border-color:var(--red);background:linear-gradient(180deg,rgba(200,50,60,.22),rgba(200,50,60,.06));}
+  .row2{display:flex;gap:10px;margin-top:16px;}
+  .row2 .btn{margin-top:0;}
+  .del{background:transparent;border:1px solid rgba(200,50,60,.5);color:#f0a0a6;flex:0 0 auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="badge">● CLOUD TEST — proving Supabase sync</div>
+
+  <!-- LOGIN -->
+  <div id="loginView">
+    <h1>Sign in</h1>
+    <p class="sub">Use the employee login you created in Supabase.</p>
+    <label>Email</label>
+    <input id="email" type="email" autocomplete="username" placeholder="you@email.com">
+    <label>Password</label>
+    <input id="password" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn" id="loginBtn">Sign in</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <!-- APP -->
+  <div id="appView" class="hidden">
+    <div class="topbar">
+      <span class="who">Signed in as <b id="whoEmail"></b></span>
+      <button class="out" id="logoutBtn">Sign out</button>
+    </div>
+    <div id="listPane">
+      <div class="bar">
+        <input id="search" type="text" placeholder="Search…" style="flex:1;">
+        <button class="add" id="addBtn">+ Add</button>
+      </div>
+      <div id="list" class="clist"></div>
+      <div id="listMsg" class="msg"></div>
+    </div>
+
+    <div id="formPane" class="hidden">
+      <label>Name</label>
+      <input id="fName" type="text" placeholder="Customer or business name">
+      <label>Type</label>
+      <div class="typeseg"><button id="tInd" class="on">Individual</button><button id="tBiz">Business</button></div>
+      <label>Contact (optional)</label><input id="fContact" type="text">
+      <label>Phone</label><input id="fPhone" type="tel">
+      <label>Email</label><input id="fEmail" type="email">
+      <label>Address</label><input id="fAddress" type="text">
+      <div class="row2">
+        <button class="btn del" id="fDelete" style="display:none;flex:0 0 auto;">Delete</button>
+        <button class="btn" id="fSave">Save</button>
+      </div>
+      <button class="btn ghost" id="fCancel">Cancel</button>
+      <div id="formMsg" class="msg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://gcshuhlksjznksspbigl.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ZAbJ-2SEResLrdsLvbgh1A_puY6vDL0";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = id => document.getElementById(id);
+function flash(el, cls, text){ el.className = 'msg show '+cls; el.textContent = text; }
+function clearMsg(el){ el.className = 'msg'; el.textContent=''; }
+
+/* ---- session ---- */
+async function refresh(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){
+    $('loginView').classList.add('hidden');
+    $('appView').classList.remove('hidden');
+    $('whoEmail').textContent = session.user.email;
+    loadCustomers();
+  } else {
+    $('appView').classList.add('hidden');
+    $('loginView').classList.remove('hidden');
+  }
+}
+sb.auth.onAuthStateChange(()=> refresh());
+
+$('loginBtn').onclick = async ()=>{
+  clearMsg($('loginMsg'));
+  $('loginBtn').disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email:$('email').value.trim(), password:$('password').value });
+  $('loginBtn').disabled = false;
+  if(error){ flash($('loginMsg'),'err', error.message); return; }
+  // onAuthStateChange will refresh the view
+};
+$('logoutBtn').onclick = async ()=>{ await sb.auth.signOut(); };
+
+/* ---- customers (cloud) ---- */
+let cache = [];
+async function loadCustomers(){
+  clearMsg($('listMsg'));
+  const { data, error } = await sb.from('customers').select('*').order('last_used',{ascending:false});
+  if(error){ flash($('listMsg'),'err','Could not load: '+error.message+' (did you run the SQL?)'); return; }
+  cache = data || [];
+  renderList();
+}
+function renderList(){
+  const q = $('search').value.trim().toLowerCase();
+  const rows = cache.filter(c=>!q || [c.name,c.contact,c.phone,c.email,c.address].some(v=>(v||'').toLowerCase().includes(q)));
+  const wrap = $('list');
+  if(rows.length===0){ wrap.innerHTML = '<div class="empty">'+(q?'No matches.':'No customers yet. Tap “+ Add”.')+'</div>'; return; }
+  wrap.innerHTML='';
+  rows.forEach(c=>{
+    const biz = c.customer_type==='business';
+    const d = document.createElement('div');
+    d.className='crow'+(biz?' biz':'');
+    const sub=[c.phone,c.email].filter(Boolean).join('  ·  ')||(c.address||'');
+    d.innerHTML='<div class="avatar">'+((c.name||'?').trim()[0]||'?').toUpperCase()+'</div>'+
+      '<div><div class="nm">'+esc(c.name||'(no name)')+'</div>'+(sub?'<div class="sub2">'+esc(sub)+'</div>':'')+'</div>'+
+      '<span class="tag">'+(biz?'BUSINESS':'INDIVIDUAL')+'</span>';
+    d.onclick=()=>openForm(c);
+    wrap.appendChild(d);
+  });
+}
+$('search').addEventListener('input', renderList);
+function esc(s){return (s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+
+let editing = null, ftype='individual';
+function setType(t){ ftype=t; $('tInd').classList.toggle('on',t==='individual'); $('tBiz').classList.toggle('on',t==='business'); }
+$('tInd').onclick=()=>setType('individual'); $('tBiz').onclick=()=>setType('business');
+
+$('addBtn').onclick=()=>openForm(null);
+function openForm(c){
+  editing=c; clearMsg($('formMsg'));
+  $('fName').value=c?c.name:''; $('fContact').value=c?c.contact||'':'';
+  $('fPhone').value=c?c.phone||'':''; $('fEmail').value=c?c.email||'':''; $('fAddress').value=c?c.address||'':'';
+  setType(c&&c.customer_type==='business'?'business':'individual');
+  $('fDelete').style.display=c?'block':'none';
+  $('listPane').classList.add('hidden'); $('formPane').classList.remove('hidden');
+}
+$('fCancel').onclick=()=>{ $('formPane').classList.add('hidden'); $('listPane').classList.remove('hidden'); };
+
+$('fSave').onclick=async ()=>{
+  const name=$('fName').value.trim();
+  if(!name){ flash($('formMsg'),'err','Enter a name.'); return; }
+  $('fSave').disabled=true;
+  const rec={ name, contact:$('fContact').value.trim(), phone:$('fPhone').value.trim(),
+    email:$('fEmail').value.trim(), address:$('fAddress').value.trim(), customer_type:ftype,
+    last_used:new Date().toISOString() };
+  let error;
+  if(editing){
+    const { data:{ user } } = await sb.auth.getUser();
+    rec.updated_by = user ? user.id : null;
+    ({ error } = await sb.from('customers').update(rec).eq('id', editing.id));
+  } else {
+    ({ error } = await sb.from('customers').insert(rec));
+  }
+  $('fSave').disabled=false;
+  if(error){ flash($('formMsg'),'err', error.message); return; }
+  $('formPane').classList.add('hidden'); $('listPane').classList.remove('hidden');
+  loadCustomers();
+};
+$('fDelete').onclick=async ()=>{
+  if(!editing) return;
+  if(!confirm('Delete this customer?')) return;
+  const { error } = await sb.from('customers').delete().eq('id', editing.id);
+  if(error){ flash($('formMsg'),'err', error.message); return; }
+  $('formPane').classList.add('hidden'); $('listPane').classList.remove('hidden');
+  loadCustomers();
+};
+
+refresh();
+</script>
+</body>
+</html>
