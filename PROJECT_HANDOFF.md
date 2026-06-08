@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-08 12:37 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-08 14:37 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -40,22 +40,30 @@ phone 405-870-5397, based at 4201 N MacArthur Blvd, Warr Acres, OK 73122.
 ## 3. Public website (`/site/`) — what was built
 A big SEO expansion so the business ranks for "locksmith in <city>" across the metro.
 
-- **115 total pages**, each with a unique page title, meta description, and H1 (verified — no
+- **102 total pages**, each with a unique page title, meta description, and H1 (verified — no
   duplicates).
-- **40 city/area pages** covering ~40 towns within ~50 miles, organized in tiers:
-  - 4 featured cities (Edmond, Moore, Norman, Midwest City) — each a main page **plus**
-    automotive/residential/commercial sub-pages.
-  - 11 inner-metro cities (Oklahoma City, Bethany, Warr Acres, The Village, Nichols Hills,
-    Yukon, Del City, Mustang, Piedmont, Spencer, Nicoma Park) — main + 3 sub-pages each.
-  - 7 surrounding cities (Choctaw, Jones, Harrah, Newcastle, El Reno, Guthrie, Tuttle) —
-    main + 3 sub-pages each.
-  - 17 outer/edge towns — **one combined page each** (deliberately, to avoid thin "doorway"
-    pages that hurt SEO).
-- **Service Areas hub** at `/site/service-areas/` linking every city; linked from the footer of
-  every page (kept out of the top menu on purpose).
-- **`sitemap.xml`** (115 URLs) and **`robots.txt`**.
-- **Schema.org `areaServed`** lists all 39 cities on every page (helps Google understand
-  coverage).
+- **25 city/area pages** covering the metro within **a ~30-mile radius** of the Warr Acres base
+  (Blanchard is the farthest city we keep). They're grouped by distance and ordered
+  closest→farthest:
+  - **Home turf — minutes away** (5): Warr Acres, Bethany, The Village, Nichols Hills,
+    Oklahoma City.
+  - **Inner metro** (7): Yukon, Piedmont, Del City, Mustang, Midwest City, Edmond, Spencer.
+  - **Surrounding metro** (6): Moore, Nicoma Park, Jones, Choctaw, Newcastle, Tuttle.
+  - **Outer edge of our area** (7): Norman, Harrah, El Reno, Guthrie, Goldsby, Noble, Blanchard.
+  - **22 of the 25** get a main page **plus** automotive/residential/commercial sub-pages;
+    the 3 farthest small towns (Goldsby, Noble, Blanchard) get **one combined page each**
+    (avoids thin "doorway" pages that hurt SEO).
+  - *(Trimmed on 2026-06-08 from a wider ~40-city/~50-mile footprint. 14 farther towns —
+    McLoud, Purcell, Crescent, Kingfisher, Lexington, Shawnee, Chickasha, Tecumseh, Chandler,
+    Stroud, Prague, Cushing, Stillwater, Pauls Valley — were removed: pages, sub-pages, sitemap,
+    and schema entries all gone, no dead links.)*
+- **Service Areas hub** at `/site/service-areas/` lists all 25 by distance group in proximity
+  order; linked from the footer of every page (kept out of the top menu on purpose).
+- **`sitemap.xml`** (102 URLs) and **`robots.txt`**.
+- **Schema.org `areaServed`** lists all **25 cities** (closest→farthest) on every page.
+- **Spanish:** the same 25-city structure/order shows in Spanish via the language toggle (it's
+  one set of pages with a toggle, not a separate `/es/` tree), including translated group
+  headings.
 - **Contact form** at `/site/contact/` (name, phone, email, address, service needed) that saves
   a lead to the Customers list. See "Stubbed" notes.
 - **Spanish toggle (🌐 EN/ES)** in the header of every public page (`/site/assets/i18n.js`).
@@ -211,6 +219,12 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-08
+- **Service area tightened to ~30 miles (14:37):** removed 14 farther towns (McLoud, Purcell,
+  Crescent, Kingfisher, Lexington, Shawnee, Chickasha, Tecumseh, Chandler, Stroud, Prague,
+  Cushing, Stillwater, Pauls Valley) and their pages/sub-pages. Kept 25 cities, re-grouped by
+  distance into 4 bands (Home turf / Inner metro / Surrounding metro / Outer edge) and ordered
+  closest→farthest. Regenerated pages, hub, `sitemap.xml`, `robots.txt`, and `areaServed`; added
+  the contact page to the sitemap; Spanish group headings added. No dead links.
 - **Docs:** added this `PROJECT_HANDOFF.md`, the technical `app/STRUCTURE_NOTES.md`, and a
   `CLAUDE.md` rule to keep both current after every major change; added this changelog +
   "Last updated" stamp.
