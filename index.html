@@ -109,6 +109,17 @@
   .crow.part .sub.reorder{color:var(--amber);font-weight:700;margin-top:2px;}
   .form textarea{width:100%;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:12px 14px;
     color:var(--ink);font-size:15px;outline:none;min-height:70px;resize:vertical;font-family:inherit;}
+
+  /* ---- Payments shell ---- */
+  .pay-banner{background:rgba(242,180,58,.12);border:1px solid rgba(242,180,58,.4);color:#f2d18a;border-radius:12px;
+    padding:12px 14px;font-size:13px;font-weight:600;margin-bottom:16px;line-height:1.45;}
+  .amountwrap{display:flex;align-items:center;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:0 14px;}
+  .amountwrap span{font-size:22px;font-weight:800;color:var(--dim);}
+  .amountwrap input{border:none;background:transparent;font-size:24px;font-weight:800;padding:12px 8px;color:var(--ink);
+    outline:none;width:100%;font-family:inherit;}
+  .seg.paymethods button{font-size:12.5px;padding:11px 6px;}
+  .pay-recent-h{font-weight:800;font-size:13px;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);margin:24px 0 10px;}
+  .btn.save:disabled{opacity:.6;cursor:not-allowed;}
 </style>
 </head>
 <body>
@@ -181,12 +192,29 @@
   </div>
 
   <div class="view" id="view-payments">
-    <div class="section-note">
-      <strong style="color:var(--ink);">Payments app</strong><br><br>
-      Your counter + field payment app lives on its own Netlify site (it needs the
-      secure server piece). Once it's deployed, give me the link and I'll wire this
-      tile to open it directly.
+    <div class="pay-banner">💳 Demo shell — live card processing turns on once a payment
+      processor is connected. Nothing is charged here yet.</div>
+    <div class="form">
+      <label>Amount</label>
+      <div class="amountwrap"><span>$</span><input id="payAmount" type="number" inputmode="decimal" placeholder="0.00" aria-label="Payment amount in dollars"></div>
+      <label for="payCustomer">Customer</label>
+      <input id="payCustomer" type="text" list="payCustList" placeholder="Search or type a name" autocomplete="off">
+      <datalist id="payCustList"></datalist>
+      <label for="payDesc">Description</label>
+      <input id="payDesc" type="text" placeholder="e.g. Car key replacement — 2018 F-150">
+      <label>Payment method</label>
+      <div class="seg paymethods" id="payMethods" role="group" aria-label="Payment method">
+        <button type="button" class="on" data-pm="card-present">Tap / insert</button>
+        <button type="button" data-pm="manual">Manual card</button>
+        <button type="button" data-pm="link">Send link</button>
+      </div>
+      <div class="actions">
+        <button class="btn save" id="payCharge">Charge $0.00</button>
+      </div>
+      <p class="note" id="payNote">Wiring stubbed — connect Stripe or Square to take real payments.</p>
     </div>
+    <div class="pay-recent-h">Recent payments</div>
+    <div class="empty">No payments yet. They'll show here once processing is live.</div>
   </div>
 
   <div class="view" id="view-inventory">
@@ -251,7 +279,7 @@ function show(name){
 document.getElementById('backBtn').onclick = function(){ show(this.dataset.to || 'home'); };
 
 document.querySelectorAll('[data-go]').forEach(b=>{
-  b.onclick = ()=>{ const t=b.dataset.go; if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } show(t); };
+  b.onclick = ()=>{ const t=b.dataset.go; if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } if(t==='payments'){ renderPayments(); } show(t); };
 });
 document.querySelectorAll('[data-open]').forEach(b=>{
   b.onclick = ()=>{ location.href = b.dataset.open; };
@@ -467,6 +495,41 @@ document.getElementById('pDelete').onclick = ()=>{
   TKS.Inventory.remove(editPartId);
   renderInventory();
   show('inventory');
+};
+
+/* ============================ PAYMENTS (UI shell) ============================
+   Visual shell only — live card processing is STUBBED. The Charge button does
+   not move money; it explains what will happen once a processor is connected.
+   The customer picker reads the SAME shared Customers list. */
+let payMethod = 'card-present';
+function money2(n){ n=parseFloat(n); return isNaN(n)?'0.00':n.toFixed(2); }
+
+function renderPayments(){
+  // populate the shared-customer datalist
+  const dl = document.getElementById('payCustList');
+  dl.innerHTML = TKS.Customers.all()
+    .map(c=>'<option value="'+esc((c.customer||'')+(c.phone?(' · '+c.phone):''))+'"></option>').join('');
+  updateChargeLabel();
+}
+function updateChargeLabel(){
+  const amt = money2(document.getElementById('payAmount').value);
+  document.getElementById('payCharge').textContent = 'Charge $'+amt;
+}
+document.getElementById('payAmount').addEventListener('input', updateChargeLabel);
+
+document.getElementById('payMethods').addEventListener('click', (e)=>{
+  const b = e.target.closest('button[data-pm]'); if(!b) return;
+  payMethod = b.dataset.pm;
+  document.querySelectorAll('#payMethods button').forEach(x=>x.classList.toggle('on', x===b));
+});
+
+document.getElementById('payCharge').onclick = ()=>{
+  const amt = money2(document.getElementById('payAmount').value);
+  const note = document.getElementById('payNote');
+  const labels = {'card-present':'tap/insert card reader','manual':'manual card entry','link':'a texted payment link'};
+  // STUB: no real charge. >>> CLOUD/PROCESSOR: call Stripe/Square here. <<<
+  note.innerHTML = '<strong style="color:var(--amber)">Demo only — not charged.</strong> '+
+    'When connected, this would take <strong>$'+amt+'</strong> via '+labels[payMethod]+'.';
 };
 </script>
 </body>
