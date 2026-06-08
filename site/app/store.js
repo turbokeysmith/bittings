@@ -1,8 +1,7 @@
 /* ============================================================================
    Turbo Keysmith — shared front-end data layer  (window.TKS)
    NOTE: public-site copy of /app/store.js (kept in sync). Source of truth: /app/store.js.
-   Today the public form and the staff app each use their own localStorage unless
-   served from the same origin — the real shared list arrives with the cloud DB.
+   The public site stays on localStorage (no cloud-config / no connectCloud here).
    ----------------------------------------------------------------------------
    ONE place that every screen (Customers, Receipts, Scheduler, Payments,
    Inventory, and the public Contact form) talks to for data. Today it reads
@@ -129,8 +128,9 @@
   };
 
   function makeCloudAdapter(sb) {
-    var cache = {};   // logicalKey -> array (the synchronous view screens read)
-    var shadow = {};  // logicalKey -> last-synced snapshot (to diff on write)
+    var cache = {};       // logicalKey -> array (the synchronous view screens read)
+    var shadow = {};      // logicalKey -> last-synced snapshot (to diff on write)
+    var localKeys = {};   // logicalKey -> true  (table missing / failed: use localStorage instead)
 
     function snapshot(arr) { return JSON.parse(JSON.stringify(arr || [])); }
 
@@ -147,9 +147,22 @@
       });
     }
 
+    // Resilient: hydrate every table independently. If a table is missing or
+    // errors (e.g. you haven't run app_tables_setup.sql yet), THAT key quietly
+    // falls back to localStorage while the others sync. Nothing throws.
     function hydrateAll() {
-      return Promise.all(Object.keys(CLOUD_MAP).map(hydrateKey));
+      var keys = Object.keys(CLOUD_MAP);
+      return Promise.all(keys.map(function (key) {
+        return hydrateKey(key).then(function () { return { key: key, ok: true }; })
+          .catch(function (e) {
+            localKeys[key] = true;            // this table isn't ready -> stay local for it
+            if (global.console) console.warn('[TKS cloud] "' + key + '" staying local:', e.message || e);
+            return { key: key, ok: false };
+          });
+      }));
     }
+
+    function isLocal(key) { return !!localKeys[key]; }
 
     // diff cache vs shadow and push inserts / updates / deletes
     function flush(key) {
@@ -195,8 +208,14 @@
     return {
       name: 'cloud',
       hydrate: hydrateAll,
-      listRaw: function (key) { return cache[key] || []; },
-      saveRaw: function (key, arr) { cache[key] = arr; scheduleFlush(key); return true; }
+      isLocal: isLocal,
+      // reads/writes for a table that didn't hydrate go to localStorage instead,
+      // so the app keeps working table-by-table as you bring the cloud online.
+      listRaw: function (key) { return isLocal(key) ? LocalAdapter.listRaw(key) : (cache[key] || []); },
+      saveRaw: function (key, arr) {
+        if (isLocal(key)) return LocalAdapter.saveRaw(key, arr);
+        cache[key] = arr; scheduleFlush(key); return true;
+      }
     };
   }
 
@@ -338,6 +357,16 @@
     KEYS: KEYS, uid: uid, read: read, write: write,
     adapter: function () { return ADAPTER.name; },
     Customers: Customers, Inventory: Inventory, Bookings: Bookings,
+
+    // Generic passthroughs so pages that keep their own array logic
+    // (e.g. the Customers/Shops tile) still flow through the active adapter.
+    list: function (key) { return ADAPTER.listRaw(key); },
+    saveList: function (key, arr) { return ADAPTER.saveRaw(key, arr); },
+
+    // Is a given logical key actually backed by the cloud right now?
+    isCloud: function (key) {
+      return ADAPTER.name === 'cloud' && !(ADAPTER.isLocal && ADAPTER.isLocal(key));
+    },
 
     // Register a callback to re-render after the cloud finishes hydrating.
     onChange: function (fn) { if (typeof fn === 'function') changeHandlers.push(fn); },
