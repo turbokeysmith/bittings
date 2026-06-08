@@ -13,32 +13,52 @@
 export const CITIES = [
   // ---------- Featured pre-existing metro cities (tier 0, combined) ----------
   {
-    slug:'edmond', name:'Edmond', tier:0, hasSub:false,
+    slug:'edmond', name:'Edmond', tier:0, hasSub:true,
     metaTitle:'Edmond Locksmith OK | Car Keys, Home & Business | Turbo Keysmith',
     metaDesc:'Mobile locksmith in Edmond, OK. Car key replacement, home rekeys, smart locks & 24-hour lockout help near UCO, Downtown Edmond and the I-35 corridor. Call 405-870-5397.',
     h1:'Edmond’s Mobile Locksmith — Car, Home & Business',
-    intro:'Edmond blends busy college life around the University of Central Oklahoma with established neighborhoods and fast-growing subdivisions out toward I-35. We cover all of it — car keys and fobs cut on-site, rekeys and smart locks for new and long-time homeowners, business locks downtown, and 24-hour lockout help — from a licensed mobile van that comes to you.'
+    intro:'Edmond blends busy college life around the University of Central Oklahoma with established neighborhoods and fast-growing subdivisions out toward I-35. We cover all of it — car keys and fobs cut on-site, rekeys and smart locks for new and long-time homeowners, business locks downtown, and 24-hour lockout help — from a licensed mobile van that comes to you.',
+    sub:{
+      auto:'Car key & fob replacement for Edmond commuters and UCO students.',
+      res:'Rekeys & smart locks for Edmond’s new and established homes.',
+      comm:'Business locks & master keys for Edmond offices and shops.'
+    }
   },
   {
-    slug:'moore', name:'Moore', tier:0, hasSub:false,
+    slug:'moore', name:'Moore', tier:0, hasSub:true,
     metaTitle:'Moore Locksmith OK | Car Keys, Rekeys & 24-Hour Lockouts',
     metaDesc:'Mobile locksmith in Moore, OK. Car key replacement, home rekeys, smart locks & fast lockout help along the I-35 corridor and Old Town Moore. Call 405-870-5397.',
     h1:'Moore’s Mobile Locksmith — We Come to You',
-    intro:'Right between Oklahoma City and Norman on I-35, Moore is full of busy families and newer homes built and rebuilt over the years. We rekey homes after a move or closing, install smart locks and fresh deadbolts, replace lost car keys on-site, and answer lockout calls fast — flat-rate, day or night.'
+    intro:'Right between Oklahoma City and Norman on I-35, Moore is full of busy families and newer homes built and rebuilt over the years. We rekey homes after a move or closing, install smart locks and fresh deadbolts, replace lost car keys on-site, and answer lockout calls fast — flat-rate, day or night.',
+    sub:{
+      auto:'Car key & fob replacement for Moore’s I-35 commuters.',
+      res:'Rekeys, deadbolts & smart locks for Moore family homes.',
+      comm:'Business locks for Moore’s retail along the I-35 corridor.'
+    }
   },
   {
-    slug:'norman', name:'Norman', tier:0, hasSub:false,
+    slug:'norman', name:'Norman', tier:0, hasSub:true,
     metaTitle:'Norman Locksmith OK | Car Keys, OU Rentals & Business Locks',
     metaDesc:'Mobile locksmith in Norman, OK. Car key replacement, student-rental rekeys, smart locks & business locks near OU and Campus Corner. Call 405-870-5397.',
     h1:'Norman’s Mobile Locksmith — Home of OU',
-    intro:'Home to the University of Oklahoma, Norman runs on students, renters, and long-time residents alike. We rekey rentals between tenants, replace car keys and fobs on-site for commuters, install smart locks, and secure the shops around Campus Corner and along Main Street — all from a licensed mobile locksmith who comes to you.'
+    intro:'Home to the University of Oklahoma, Norman runs on students, renters, and long-time residents alike. We rekey rentals between tenants, replace car keys and fobs on-site for commuters, install smart locks, and secure the shops around Campus Corner and along Main Street — all from a licensed mobile locksmith who comes to you.',
+    sub:{
+      auto:'Car key & fob replacement for Norman drivers and OU students.',
+      res:'Rekeys & smart locks for Norman homes and OU-area rentals.',
+      comm:'Business locks & master keys near Campus Corner and Main Street.'
+    }
   },
   {
-    slug:'midwest-city', name:'Midwest City', tier:0, hasSub:false,
+    slug:'midwest-city', name:'Midwest City', tier:0, hasSub:true,
     metaTitle:'Midwest City Locksmith OK | Tinker AFB | Car Keys & Lockouts',
     metaDesc:'Mobile locksmith in Midwest City, OK near Tinker AFB. Military-friendly car key replacement, home rekeys & 24-hour lockout help. Call 405-870-5397.',
     h1:'Midwest City Locksmith — Serving Tinker & Beyond',
-    intro:'Built around Tinker Air Force Base, Midwest City is home to military families, commuters, and the busy retail along SE 29th and the Town Center. We replace car keys on-site, rekey homes between moves and deployments, install fresh deadbolts and smart locks, and answer lockouts fast — from a licensed local van.'
+    intro:'Built around Tinker Air Force Base, Midwest City is home to military families, commuters, and the busy retail along SE 29th and the Town Center. We replace car keys on-site, rekey homes between moves and deployments, install fresh deadbolts and smart locks, and answer lockouts fast — from a licensed local van.',
+    sub:{
+      auto:'Car key & fob replacement for Midwest City and Tinker commuters.',
+      res:'Rekeys & deadbolts for Midwest City homes between moves.',
+      comm:'Business locks for SE 29th and the Town Center.'
+    }
   },
 
   // ---------- TIER 1 — inner metro (main + 3 sub-pages) ----------
