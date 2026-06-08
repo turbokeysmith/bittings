@@ -1,0 +1,320 @@
+// ============================================================================
+// Spanish (/es/) DRAFT content — machine-translation quality, pending proofreading.
+// The proofreader edits THIS file (glossary + strings + per-city text) and re-runs
+// `node _build/generate.mjs`; changes apply across every /es/ page.
+// ============================================================================
+
+// Key locksmith terms — keep these consistent everywhere. Fix here once, apply everywhere.
+export const GLOSSARY = [
+  ['locksmith', 'cerrajero'],
+  ['mobile locksmith', 'cerrajero móvil'],
+  ['car key replacement', 'reemplazo de llaves de auto'],
+  ['key fob / remote', 'control remoto'],
+  ['transponder key', 'llave con transpondedor'],
+  ['push-to-start', 'botón de encendido (push-to-start)'],
+  ['key duplication', 'duplicado de llaves'],
+  ['spare key', 'llave de repuesto'],
+  ['rekey', 'recodificar (cerraduras)'],
+  ['deadbolt', 'cerrojo'],
+  ['lock installation', 'instalación de cerraduras'],
+  ['lock repair', 'reparación de cerraduras'],
+  ['smart lock', 'cerradura inteligente'],
+  ['master key system', 'sistema de llave maestra'],
+  ['high-security lock', 'cerradura de alta seguridad'],
+  ['ignition (cylinder)', 'cilindro de encendido'],
+  ['lockout (situation)', 'quedarse afuera / bloqueo'],
+  ['lockout service', 'servicio de apertura'],
+  ['car lockout', 'apertura de auto'],
+  ['home lockout', 'apertura de casa'],
+  ['24-hour', '24 horas'],
+  ['licensed', 'con licencia'],
+  ['flat-rate', 'tarifa fija'],
+  ['emergency', 'emergencia'],
+  ['NASTF-authorized', 'autorizado por NASTF']
+];
+
+// Shared UI strings (chrome, sections, buttons)
+export const U = {
+  nav: { home:'Inicio', automotive:'Automotriz', residential:'Residencial', commercial:'Comercial',
+         emergency:'Emergencia', faq:'Preguntas frecuentes', payNow:'Pagar', blog:'Blog',
+         certifications:'Certificaciones', contact:'Contacto' },
+  trust: [['⭐','5.0 ★','250+ reseñas de Google'], ['🛡️','Con licencia','Oklahoma #AC441081'],
+          ['🕒','24 horas','Lunes a sábado'], ['🚐','Móvil','Vamos a usted']],
+  footer: { tagline:'Tu cerrajero móvil de confianza — siempre ahí cuando lo necesitas.',
+            services:'Servicios', company:'Empresa', areas:'Zonas de servicio',
+            allAreas:'Todas las zonas →', staff:'Acceso de personal',
+            copyright:'Derechos de autor © 2026 Turbo KeySmith — Todos los derechos reservados. · Con licencia OK #AC441081' },
+  mobilebar: { call:'Llamar', text:'Texto', wa:'WhatsApp' },
+  banner: 'BORRADOR — pendiente de revisión · DRAFT — pending proofreading',
+  hablas: '¿Hablas español? 💬 Envíanos un texto o WhatsApp',
+  howWorks: { title:'Cómo funciona', sub:'Tres pasos simples — sin estrés.',
+    s1:['Llama','Llama o envía un texto al 405-870-5397. Cuéntanos qué pasa y dónde estás.'],
+    s2t:'Vamos a ti', s2:'Como cerrajero móvil, llevamos el taller a tu puerta en {city}.',
+    s3:['De vuelta en marcha','Llaves cortadas, cerraduras arregladas — y puedes pagar en el momento.'] },
+  work: { title:'Nuestro trabajo', sub:'Agrega tus propias fotos de {label} en estos espacios marcados.',
+    before:'ANTES', after:'DESPUÉS', photo:'FOTO', add:'Agrega tu foto', onjob:'En el trabajo' },
+  reviewSlot: '⭐ ESPACIO PARA RESEÑA LOCAL — {label}',
+  reviewSlotSub: 'Pega aquí una reseña real de Google de un cliente de {label}, o déjalo por ahora.',
+  citySvcHead:'Servicios de cerrajería en {city}', citySvcSub:'Autos, casas y negocios — toca un servicio o solo llama.',
+  needHead:'¿Necesitas un cerrajero en {city}?', needSub:'Con licencia OK #AC441081 · calificación 5.0★ · móvil — vamos a ti.',
+  callCity:'📞 Llama a tu cerrajero en {city}: 405-870-5397', seeAll:'← Ver todas las zonas de servicio de Turbo Keysmith',
+  backCity:'← Volver a los servicios de cerrajería en {city}', moreFor:'Más para {city}:', emergency24:'emergencia 24 horas',
+  whatCustomers:'Lo que dicen los clientes de {city}', realReviews:'Reseñas reales de nuestro perfil de Google Business.',
+  cardCta:{automotive:'Ver automotriz', residential:'Ver residencial', commercial:'Ver comercial', emergency:'Ver emergencia'},
+  cardDesc:{ autoSub:c=>`Reemplazo de llaves, programación de controles y apertura de autos en ${c}.`,
+             resSub:c=>`Recodificación, instalación de cerraduras y cerraduras inteligentes para casas en ${c}.`,
+             commSub:c=>`Llaves maestras, alta seguridad y cerraduras de negocio en ${c}.`,
+             emerSub:c=>`Apertura 24 horas y reemplazo de llaves perdidas en ${c}.` }
+};
+
+// Service section templates (per-city sub-pages). {city} and the city's hook are woven in.
+export const SVC = {
+  automotive: {
+    h1:c=>`Reemplazo de Llaves de Auto y Cerrajero Automotriz en ${c}, OK`,
+    title:c=>`Reemplazo de Llaves de Auto en ${c}, OK | Cerrajero Automotriz Móvil`,
+    desc:(c,h)=>`${h} Cerrajero automotriz móvil en ${c}, OK — llaves de auto, programación de controles, aperturas. Llama 405-870-5397.`,
+    lead:(c,h)=>`${h} Turbo Keysmith es un cerrajero automotriz móvil que va a ti en cualquier parte de ${c} — sin necesidad de grúa. Cortamos y programamos llaves de repuesto, llaves inteligentes y controles remotos para casi todas las marcas y modelos, en tu entrada o estacionamiento. Como cerrajero autorizado por NASTF con herramientas de programación a nivel de concesionario, manejamos los sistemas modernos de transpondedor y botón de encendido (push-to-start) que la mayoría de los talleres mandan al concesionario — normalmente más rápido y por menos.`,
+    lead2:c=>`Nuestra camioneta está equipada para reemplazar llaves perdidas, reparar o reemplazar encendidos que fallan, y devolverte al volante tras un bloqueo sin daño a tu vehículo. Tarifas fijas y honestas, cotizadas por adelantado, cada vez que salimos a ${c}.`,
+    cta:c=>`📞 Llama a tu cerrajero automotriz en ${c}: 405-870-5397`,
+    sections:[
+      ['Reemplazo y Duplicado de Llaves de Auto','Llaves nuevas y de repuesto para todas las marcas y modelos, cortadas y programadas en sitio.'],
+      ['Programación de Llaves con Transpondedor y Controles','Programación a nivel de concesionario para llaves inteligentes, controles y botones de encendido (push-to-start).'],
+      ['Servicio de Apertura de Autos','¿Dejaste las llaves dentro del auto? Apertura rápida y sin daños, 24 horas de lunes a sábado.'],
+      ['Reparación y Reemplazo de Encendido','¿Encendido desgastado o atascado? Lo diagnosticamos, reparamos o reemplazamos para que arranques.']]
+  },
+  residential: {
+    h1:c=>`Cerrajero Residencial en ${c}, OK`,
+    title:c=>`Cerrajero Residencial en ${c}, OK | Recodificación y Cerraduras Inteligentes`,
+    desc:(c,h)=>`${h} Recodificación, cerrojos, cerraduras inteligentes y ayuda por bloqueo en ${c}, OK. Llama 405-870-5397.`,
+    lead:(c,h)=>`${h} Turbo Keysmith mantiene seguras las casas de ${c} con servicio de cerrajería residencial móvil que va a tu puerta. Recodificamos cerraduras para que las llaves viejas dejen de funcionar, instalamos y reparamos cerrojos y herrajes de puertas, configuramos cerraduras inteligentes y te abrimos rápido cuando te quedas afuera — a cualquier hora, con precios fijos justos y sin dejar desorden.`,
+    lead2:c=>`¿Te acabas de mudar a una casa en ${c} o se fue un compañero de cuarto? Recodificar es la forma rápida y económica de asegurar que solo las personas de tu confianza puedan abrir tus puertas.`,
+    cta:c=>`📞 Llama a tu cerrajero residencial en ${c}: 405-870-5397`,
+    sections:[
+      ['Recodificación de Cerraduras','¿Te mudaste o perdiste una llave? Recodificamos tus cerraduras para que solo funcionen tus llaves — sin reemplazo completo.'],
+      ['Instalación y Reparación de Cerraduras','Cerrojos nuevos, manijas y herrajes de puerta instalados o reparados correctamente.'],
+      ['Instalación de Cerraduras Inteligentes','Entrada sin llave y cerraduras controladas por celular, instaladas y configuradas para ti.'],
+      ['Servicio de Apertura de Casa','¿Te quedaste afuera de casa? Apertura rápida y sin daños, 24 horas de lunes a sábado.']]
+  },
+  commercial: {
+    h1:c=>`Cerrajero Comercial para Negocios en ${c}`,
+    title:c=>`Cerrajero Comercial en ${c}, OK | Llaves Maestras y Cerraduras`,
+    desc:(c,h)=>`${h} Llaves maestras, cerraduras de alta seguridad y apertura de negocios en ${c}, OK. Llama 405-870-5397.`,
+    lead:(c,h)=>`${h} Turbo Keysmith ayuda a los negocios de ${c} a mantenerse protegidos con servicio de cerrajería comercial móvil — instalación de cerraduras de alta seguridad, sistemas de llave maestra que ponen las puertas correctas en las manos correctas, reparación de cerraduras y respuesta rápida a bloqueos para que una puerta atascada nunca te cueste un día de trabajo. Con licencia, local y claros con los precios, adaptamos cada trabajo a cómo funciona realmente tu negocio.`,
+    lead2:c=>`Ya sea que manejes una sola tienda en ${c} o varias ubicaciones, crearemos un plan de llaves simple de manejar y difícil de vencer.`,
+    cta:c=>`📞 Llama a tu cerrajero comercial en ${c}: 405-870-5397`,
+    sections:[
+      ['Instalación de Cerraduras de Alta Seguridad','Cerraduras de grado comercial que resisten el uso, el clima y los intentos de robo.'],
+      ['Sistemas de Llave Maestra','Un sistema organizado para que las personas correctas abran las puertas correctas — y nadie más.'],
+      ['Servicio de Apertura Comercial','¿Te quedaste afuera de la oficina o el local? Respuesta rápida para que vuelvas al trabajo.'],
+      ['Reparación de Cerraduras Comerciales','Herrajes atascados, desgastados o dañados, reparados o reemplazados en sitio.']]
+  }
+};
+
+// Metro service pages (/es/automotive, /es/residential, /es/commercial, /es/emergency)
+export const METRO = {
+  automotive:{ slug:'automotive', ...svcMetro('automotive') },
+  residential:{ slug:'residential', ...svcMetro('residential') },
+  commercial:{ slug:'commercial', ...svcMetro('commercial') },
+  emergency:{ slug:'emergency',
+    title:'Cerrajero de Emergencia 24 Horas en Oklahoma City | Turbo Keysmith',
+    desc:'Cerrajero de emergencia móvil en el área de OKC, 24 horas de lunes a sábado. Aperturas de auto, casa y negocio, llaves perdidas. Llama 405-870-5397.',
+    h1:'Cerrajero de Emergencia 24 Horas en Oklahoma City',
+    leads:[
+      'Las emergencias no respetan horario — y nosotros tampoco. Turbo Keysmith atiende llamadas de cerrajería de emergencia en toda el área de OKC, abierto 24 horas de lunes a sábado. ¿Te quedaste afuera de tu casa, auto o negocio a media noche? ¿Perdiste tu única llave? ¿Necesitas asegurar una puerta rápido tras un robo? Nuestro cerrajero móvil va a ti rápido, te abre de forma segura sin daño innecesario, y cobra tarifas fijas honestas — incluso a las 3 a. m.',
+      'Llama y hablarás con un cerrajero local de verdad, no con un centro de llamadas. Te decimos el precio por adelantado y salimos hacia ti.'],
+    sections:[
+      ['Servicio de Apertura 24/7','Casa, auto o negocio — apertura rápida y sin daños cuando te quedas afuera.'],
+      ['Reemplazo de Llaves Perdidas','Llaves nuevas para casas, negocios y vehículos, hechas en sitio para que no te quedes varado.'],
+      ['Reparación de Cerraduras de Emergencia','¿Cerradura rota o fallando? Restauramos tu seguridad en el momento.'],
+      ['Reparación tras Robo','¿Sufriste un robo? Aseguramos tus puertas rápido y ayudamos a prevenir el siguiente.']],
+    cta:'📞 Llama a tu cerrajero 24 horas en OKC: 405-870-5397' }
+};
+function svcMetro(kind){
+  const M = 'el área de Oklahoma City';
+  const s = SVC[kind];
+  return {
+    title:s.title(M).replace(', OK',''),
+    desc:s.desc(M,'').trim(),
+    h1:s.h1(M),
+    leads:[s.lead(M,'').trim(), s.lead2(M)],
+    sections:s.sections,
+    cta:s.cta(M)
+  };
+}
+
+// Homepage (/es/index.html)
+export const HOME = {
+  title:'Cerrajero en Oklahoma City | Turbo Keysmith — Móvil y 24 Horas',
+  desc:'Turbo Keysmith es un cerrajero móvil con licencia que sirve el área de OKC. Reemplazo de llaves de auto, cerraduras de casa y negocio, y apertura 24 horas. Llama 405-870-5397.',
+  h1:'Tu Cerrajero Móvil de Confianza en el Área de Oklahoma City',
+  lead:'¿Te quedaste afuera, perdiste tu única llave del auto o necesitas recodificar tus cerraduras? Turbo Keysmith va a ti — rápido, amable y con licencia completa (OK Lic. #AC441081). Un cerrajero móvil local y familiar que cubre OKC, Edmond, Moore, Norman, Yukon, Midwest City y el área metropolitana.',
+  callBtn:'📞 Llama ahora — 405-870-5397',
+  servicesHead:'Servicios de cerrajería en toda el área de OKC',
+  servicesSub:'Desde llaves de auto a nivel de concesionario hasta recodificaciones de casa y sistemas de llave maestra — toca un servicio para saber más.',
+  areaHead:'Servimos el área metropolitana de Oklahoma City',
+  areaSub:'Cerrajero móvil que cubre OKC y las ciudades cercanas — vamos a ti.',
+  contactHead:'Mejor aún, ¡ven a vernos en persona!',
+  contactSub:'Estamos en contacto en cada paso hasta terminar el trabajo. ¿Preguntas, pedidos especiales o una cotización gratis? Solo contáctanos — ¡estamos para ayudar!',
+  infoCall:'Llama o envía un texto', infoAddr:'Dirección', infoHours:'Horario', infoArea:'Zona de servicio',
+  hoursVal:'24 horas, lun–sáb<br>Domingo hasta las 5:00 a. m.', areaVal:'Área metro de Oklahoma City y alrededores',
+  sendMsg:'✉️ Envíanos un mensaje'
+};
+
+// Hub (/es/service-areas/)
+export const HUB = {
+  title:'Zonas de Servicio | Turbo Keysmith — Cerrajero Móvil en el Área de OKC',
+  desc:'Turbo Keysmith es un cerrajero móvil que sirve Oklahoma City y 24 ciudades cercanas dentro de ~30 millas — Edmond, Norman, Yukon, Moore, Guthrie y más. Encuentra tu ciudad. Llama 405-870-5397.',
+  h1:'Dónde Trabajamos — Zonas de Servicio del Cerrajero Móvil',
+  intro:'Turbo Keysmith tiene su base en 4201 N MacArthur Blvd en Warr Acres y va a ti por toda el área metropolitana de Oklahoma City. Encuentra tu ciudad abajo — cada zona recibe el mismo servicio móvil, con licencia (OK #AC441081) y de tarifa fija. ¿No ves tu pueblo? Llámanos de todos modos — si estás cerca del área metro, probablemente te cubrimos.',
+  mapHead:'Servimos el área metropolitana de Oklahoma City', mapSub:'Cerrajero móvil que cubre OKC y las ciudades cercanas — vamos a ti.',
+  cityCta:'{city} cerrajero →'
+};
+
+// Group labels (mirror English distance bands)
+export const GROUP_LABELS = {
+  0:'A minutos de nosotros', 1:'Zona metro interior', 2:'Zona metro circundante', 3:'El borde de nuestra zona'
+};
+
+// Contact form (/es/contact/)
+export const CONTACT = {
+  title:'Contacta a Turbo Keysmith | Solicita un Cerrajero — Área de OKC',
+  desc:'Contacta a Turbo Keysmith para una cotización rápida o servicio. Dinos qué necesitas — llaves de auto, cerraduras de casa o negocio, o una apertura — y te responderemos. Llama 405-870-5397.',
+  h1:'Solicita un Cerrajero',
+  lead:'Cuéntanos qué pasa y cómo contactarte — te responderemos enseguida.',
+  fName:'Nombre', fPhone:'Teléfono', fEmail:'Correo electrónico', fAddress:'Dirección',
+  fService:'Servicio que necesitas', fNotes:'Detalles (opcional)',
+  choose:'Elige una opción…',
+  options:['Reemplazo de llave / control de auto','Auto bloqueado','Recodificar / instalar cerradura de casa',
+           'Casa bloqueada','Cerraduras de negocio / comercial','Emergencia / 24 horas','Otra cosa'],
+  phName:'Tu nombre', phNotes:'Año/marca/modelo del auto, qué pasó, dónde estás…',
+  send:'Enviar solicitud', successH:'¡Listo — gracias!',
+  successP:'Tu solicitud se guardó y te contactaremos pronto. Si es urgente, llámanos ahora.',
+  validate:'Por favor agrega tu nombre, teléfono y el servicio que necesitas.',
+  noteTalk:'¿Prefieres hablar? Llama o envía un texto al 405-870-5397 — 24 horas, lunes a sábado. 4201 N MacArthur Blvd, Warr Acres, OK 73122.'
+};
+
+// Per-city Spanish text, keyed by slug. Structure (tier/hasSub/order) comes from cities.mjs.
+export const CITIES_ES = {
+  'warr-acres':{ metaTitle:'Cerrajero en Warr Acres | Nuestra Base — Respuesta Más Rápida',
+    metaDesc:'Turbo Keysmith tiene su base en Warr Acres, OK. La respuesta local más rápida para llaves de auto, recodificaciones, cerraduras de negocio y aperturas 24 horas en el corredor de MacArthur. Llama 405-870-5397.',
+    h1:'Cerrajero en Warr Acres — Este Es Nuestro Vecindario',
+    intro:'Warr Acres es nuestro hogar, así que cuando llamas desde aquí recibes la respuesta más rápida que ofrecemos. Cuidamos las casas del noroeste de Oklahoma City y los negocios pequeños del corredor de MacArthur — llaves de auto, recodificaciones, reparación de cerraduras, aperturas — de día o de noche, con precios fijos honestos de un vecino con licencia.',
+    sub:{auto:'La ayuda más rápida con llaves y controles en nuestro territorio.',res:'Recodificación y reparación de cerraduras para casas de Warr Acres.',comm:'Cerraduras de negocio en MacArthur Blvd.'} },
+  'bethany':{ metaTitle:'Cerrajero en Bethany | Llaves de Auto, Recodificación y Aperturas | Turbo Keysmith',
+    metaDesc:'Cerrajero móvil rápido en Bethany, OK — justo al lado de nuestra base. Recodificaciones, cerrojos, reemplazo de llaves de auto y apertura cerca de NW 39th y SNU. Llama 405-870-5397.',
+    h1:'Tu Cerrajero Local en Bethany — A Minutos de Distancia',
+    intro:'Bethany está justo al lado de nuestra base en Warr Acres, así que obtienes algunos de nuestros tiempos de respuesta más rápidos del área metro. Atendemos las muchas casas establecidas a lo largo de la NW 39th Expressway y cerca de Southern Nazarene University — recodificaciones tras una mudanza, mejoras de cerrojos, aperturas — además de llaves de auto y cerraduras de negocios pequeños.',
+    sub:{auto:'Servicio rápido de llaves y controles para quienes viajan en Bethany.',res:'Recodificación y cerrojos para las casas establecidas de Bethany.',comm:'Cerraduras y llaves maestras para negocios de NW 39th.'} },
+  'the-village':{ metaTitle:'Cerrajero en The Village OK | Recodificación, Cerraduras Inteligentes y Aperturas',
+    metaDesc:'Cerrajero móvil para The Village, OK. Recodificaciones, mejoras de cerrojos, cerraduras inteligentes y apertura para casas de mediados de siglo del centro-norte. Llama 405-870-5397.',
+    h1:'Servicios de Cerrajería en The Village',
+    intro:'The Village es un vecindario unido del centro-norte lleno de casas bien cuidadas de mediados de siglo, y conocemos bien sus herrajes de puerta. Recodificamos cerraduras tras una mudanza, mejoramos cerrojos cansados, instalamos cerraduras inteligentes y te abrimos rápido cuando te quedas afuera.',
+    sub:{auto:'Reemplazo de llaves y controles en tu puerta.',res:'Recodificación y cerraduras inteligentes para casas de The Village.',comm:'Cerraduras para tiendas y oficinas de la zona de The Village.'} },
+  'nichols-hills':{ metaTitle:'Cerrajero en Nichols Hills | Alta Seguridad y Cerraduras Inteligentes',
+    metaDesc:'Cerrajero móvil discreto y con licencia para Nichols Hills, OK. Cerraduras de alta seguridad, instalación de cerraduras inteligentes, recodificaciones y aperturas para casas de alto nivel. Llama 405-870-5397.',
+    h1:'Cerrajero de Confianza para las Casas de Nichols Hills',
+    intro:'Los dueños de casa de Nichols Hills esperan seguridad bien hecha y con discreción — y así trabajamos. Como cerrajero con licencia y asegurado (OK #AC441081), instalamos cerraduras de alta seguridad e inteligentes, hacemos recodificaciones y mejoras, y respondemos rápido a aperturas, con el profesionalismo que el vecindario espera.',
+    sub:{auto:'Servicio de llaves y controles en sitio para vehículos de lujo.',res:'Cerraduras de alta seguridad e inteligentes para casas finas.',comm:'Control de acceso y llaves maestras para oficinas.'} },
+  'oklahoma-city':{ metaTitle:'Cerrajero en Oklahoma City, OK | Turbo Keysmith — Móvil y 24 Horas',
+    metaDesc:'Cerrajero móvil que sirve toda Oklahoma City — Downtown, Bricktown, Midtown y más. Llaves de auto, cerraduras de casa y negocio, aperturas 24 horas. Llama 405-870-5397.',
+    h1:'Cerrajero Móvil que Sirve Toda Oklahoma City',
+    intro:'Turbo Keysmith cubre toda la ciudad — desde Downtown y Bricktown hasta Capitol Hill y los suburbios del lejano noroeste y suroeste — con una camioneta totalmente equipada que va a ti. Reemplazo de llaves de auto, recodificaciones de casa, seguridad de negocios y apertura 24 horas, todo de un cerrajero local con licencia (OK #AC441081). Sin grúa, sin ir al taller, tarifas fijas justas.',
+    sub:{auto:'Programación de llaves y controles en sitio para todas las marcas, en cualquier parte de la ciudad.',res:'Recodificaciones, instalación y cerraduras inteligentes para casas de OKC.',comm:'Llaves maestras y cerraduras de alta seguridad para negocios de OKC.'} },
+  'yukon':{ metaTitle:'Cerrajero en Yukon OK | Llaves de Auto, Casa y Negocio | Turbo Keysmith',
+    metaDesc:'Cerrajero móvil en Yukon, OK. Reemplazo de llaves de auto, recodificaciones de casa y cerraduras de negocio cerca de la Ruta 66 y Garth Brooks Blvd. Aperturas 24 horas. Llama 405-870-5397.',
+    h1:'El Cerrajero Móvil de Yukon — Auto, Casa y Negocio',
+    intro:'Desde la histórica calle principal de la Ruta 66 hasta el concurrido comercio a lo largo de Garth Brooks Boulevard, Yukon sigue creciendo — y nosotros mantenemos cubiertos a sus conductores, dueños de casa y comerciantes. Llaves y controles de auto perdidos cortados en sitio, recodificaciones de casa y cerraduras comerciales, todo desde una camioneta móvil que va a ti por toda esta comunidad del oeste del área metro.',
+    sub:{auto:'Programación de llaves y controles para quienes viajan en Yukon.',res:'Recodificación y cerraduras inteligentes para los vecindarios en crecimiento de Yukon.',comm:'Cerraduras de negocio para el comercio de Garth Brooks Blvd.'} },
+  'piedmont':{ metaTitle:'Cerrajero en Piedmont OK | Vamos a Ti | Llaves de Auto y Recodificación',
+    metaDesc:'Cerrajero móvil que sirve Piedmont, OK y sus casas en terrenos amplios. Llaves de auto, recodificaciones y apertura — vamos hasta ti. Llama 405-870-5397.',
+    h1:'Cerrajero en Piedmont — Salimos Hasta Ti',
+    intro:'Las casas de Piedmont están repartidas por mucho campo del noroeste, y eso no es problema para un cerrajero móvil — vamos a ti, sin importar qué tan larga sea la entrada. Llaves de auto perdidas, recodificaciones de casa y aperturas, atendidas en sitio con tarifas fijas honestas.',
+    sub:{auto:'Reemplazo de llaves y controles en sitio, por lejos que estés.',res:'Recodificación y cerraduras para casas en terrenos de Piedmont.',comm:'Cerraduras para negocios y tiendas de Piedmont.'} },
+  'del-city':{ metaTitle:'Cerrajero en Del City | Descuento Militar | Llaves de Auto y Aperturas',
+    metaDesc:'Cerrajero móvil en Del City, OK cerca de Tinker AFB. Descuento militar, reemplazo de llaves de auto, recodificaciones y apertura 24 horas. Llama 405-870-5397.',
+    h1:'Cerrajero en Del City — Orgullosos de Servir a Nuestras Familias Militares',
+    intro:'Justo al lado de la Base de la Fuerza Aérea Tinker, Del City es hogar de muchas familias militares — y se lo agradecemos con un descuento militar en nuestros servicios. Reemplazamos llaves de auto perdidas para quienes viajan, recodificamos las casas establecidas de la zona y respondemos rápido a aperturas, todo desde una camioneta local con licencia.',
+    sub:{auto:'Reemplazo de llaves y controles para quienes viajan cerca de Tinker.',res:'Recodificación y cerrojos para casas de Del City.',comm:'Cerraduras y llaves maestras para negocios locales.'} },
+  'mustang':{ metaTitle:'Cerrajero en Mustang OK | Llaves de Auto, Cerraduras Inteligentes y Recodificación',
+    metaDesc:'Cerrajero móvil en Mustang, OK. Reemplazo de llaves de auto, cerraduras inteligentes y recodificaciones de casas nuevas para esta comunidad del suroeste en rápido crecimiento. Aperturas 24 horas. Llama 405-870-5397.',
+    h1:'Cerrajero para los Vecindarios en Crecimiento de Mustang',
+    intro:'Mustang es uno de los suburbios de más rápido crecimiento del área metro, lleno de casas más nuevas y familias ocupadas — justo el trabajo que nos encanta. Recodificamos casas recién compradas para que las llaves del constructor dejen de funcionar, instalamos cerraduras inteligentes, reemplazamos llaves de auto en sitio y vamos a ti rápido cuando te quedas afuera.',
+    sub:{auto:'Servicio de llaves y controles para las familias de Mustang.',res:'Recodificaciones de casas nuevas y cerraduras inteligentes.',comm:'Cerraduras para las zonas comerciales en crecimiento de Mustang.'} },
+  'midwest-city':{ metaTitle:'Cerrajero en Midwest City OK | Tinker AFB | Llaves de Auto y Aperturas',
+    metaDesc:'Cerrajero móvil en Midwest City, OK cerca de Tinker AFB. Reemplazo de llaves de auto amigable con militares, recodificaciones y apertura 24 horas. Llama 405-870-5397.',
+    h1:'Cerrajero en Midwest City — Sirviendo a Tinker y Más Allá',
+    intro:'Construida alrededor de la Base de la Fuerza Aérea Tinker, Midwest City es hogar de familias militares, personas que viajan al trabajo y el concurrido comercio de la SE 29th y el Town Center. Reemplazamos llaves de auto en sitio, recodificamos casas entre mudanzas y despliegues, instalamos cerrojos nuevos y cerraduras inteligentes, y respondemos rápido a aperturas — desde una camioneta local con licencia.',
+    sub:{auto:'Reemplazo de llaves y controles para Midwest City y quienes viajan a Tinker.',res:'Recodificación y cerrojos para casas de Midwest City entre mudanzas.',comm:'Cerraduras de negocio para SE 29th y el Town Center.'} },
+  'edmond':{ metaTitle:'Cerrajero en Edmond OK | Llaves de Auto, Casa y Negocio | Turbo Keysmith',
+    metaDesc:'Cerrajero móvil en Edmond, OK. Reemplazo de llaves de auto, recodificaciones de casa, cerraduras inteligentes y apertura 24 horas cerca de UCO, Downtown Edmond y el corredor I-35. Llama 405-870-5397.',
+    h1:'El Cerrajero Móvil de Edmond — Auto, Casa y Negocio',
+    intro:'Edmond combina la vida universitaria alrededor de la University of Central Oklahoma con vecindarios establecidos y subdivisiones de rápido crecimiento hacia la I-35. Cubrimos todo — llaves y controles de auto cortados en sitio, recodificaciones y cerraduras inteligentes para dueños nuevos y de toda la vida, cerraduras de negocio en el centro y apertura 24 horas — desde una camioneta móvil con licencia que va a ti.',
+    sub:{auto:'Reemplazo de llaves y controles para quienes viajan en Edmond y estudiantes de UCO.',res:'Recodificación y cerraduras inteligentes para casas nuevas y establecidas de Edmond.',comm:'Cerraduras y llaves maestras para oficinas y tiendas de Edmond.'} },
+  'spencer':{ metaTitle:'Cerrajero en Spencer OK | Llaves de Auto Móviles y Aperturas',
+    metaDesc:'Cerrajero móvil en Spencer, OK. Reemplazo rápido de llaves de auto, recodificaciones de casa y apertura a lo largo del corredor de la NE 23rd. Llama 405-870-5397.',
+    h1:'Cerrajero Móvil en Spencer',
+    intro:'Spencer recibe servicio de cerrajería móvil rápido y amable de un equipo local con licencia. Ya sea que hayas dejado las llaves dentro del auto en la NE 23rd, necesites recodificar una casa o hayas perdido tu única llave, vamos a ti y lo resolvemos.',
+    sub:{auto:'Reemplazo de llaves y controles en tu ubicación.',res:'Recodificaciones y aperturas para casas de Spencer.',comm:'Cerraduras para negocios de la zona de Spencer.'} },
+  'moore':{ metaTitle:'Cerrajero en Moore OK | Llaves de Auto, Recodificación y Aperturas 24 Horas',
+    metaDesc:'Cerrajero móvil en Moore, OK. Reemplazo de llaves de auto, recodificaciones de casa, cerraduras inteligentes y apertura rápida a lo largo del corredor I-35 y Old Town Moore. Llama 405-870-5397.',
+    h1:'El Cerrajero Móvil de Moore — Vamos a Ti',
+    intro:'Justo entre Oklahoma City y Norman sobre la I-35, Moore está lleno de familias ocupadas y casas más nuevas construidas y reconstruidas con los años. Recodificamos casas tras una mudanza o cierre, instalamos cerraduras inteligentes y cerrojos nuevos, reemplazamos llaves de auto perdidas en sitio y respondemos rápido a aperturas — tarifa fija, de día o de noche.',
+    sub:{auto:'Reemplazo de llaves y controles para quienes viajan por la I-35 en Moore.',res:'Recodificaciones, cerrojos y cerraduras inteligentes para casas de familia en Moore.',comm:'Cerraduras de negocio para el comercio de Moore en el corredor I-35.'} },
+  'nicoma-park':{ metaTitle:'Cerrajero en Nicoma Park OK | Recodificación, Llaves de Auto y Aperturas',
+    metaDesc:'Cerrajero móvil en Nicoma Park, OK. Recodificaciones, reemplazo de llaves de auto y apertura 24 horas para esta comunidad del noreste cerca de Choctaw. Llama 405-870-5397.',
+    h1:'Servicios de Cerrajería en Nicoma Park',
+    intro:'Junto a Choctaw en el lado este del área metro, las casas más antiguas de Nicoma Park a menudo necesitan una recodificación o una renovación de cerraduras — y con gusto ayudamos. Llaves de auto, recodificaciones, reparación de cerraduras y servicio rápido de apertura, todo móvil y de tarifa fija.',
+    sub:{auto:'Servicio de llaves y controles en tu puerta.',res:'Recodificación y reparación de cerraduras para casas más antiguas.',comm:'Cerraduras para negocios locales.'} },
+  'jones':{ metaTitle:'Cerrajero en Jones OK | Llaves de Auto Móviles y Cerraduras de Casa',
+    metaDesc:'Cerrajero móvil que sirve Jones, OK. Reemplazo de llaves de auto, recodificaciones y apertura para esta pequeña comunidad del noreste. Vamos a ti. Llama 405-870-5397.',
+    h1:'Cerrajero Móvil para Jones, Oklahoma',
+    intro:'Jones conserva su ambiente de pueblo pequeño y campestre, y un cerrajero móvil le queda perfecto — llevamos el taller a tu entrada. Llaves de auto perdidas, recodificaciones de casa y aperturas atendidas en sitio, sin necesidad de ir a la ciudad.',
+    sub:{auto:'Servicio de llaves y controles en sitio.',res:'Recodificaciones y aperturas para casas de Jones.',comm:'Cerraduras para negocios y granjas de la zona de Jones.'} },
+  'choctaw':{ metaTitle:'Cerrajero en Choctaw OK | Llaves de Auto, Casa y Negocio',
+    metaDesc:'Cerrajero móvil en Choctaw, OK. Reemplazo de llaves de auto, recodificaciones de casa y cerraduras de negocio para el lado este del área metro. Aperturas 24 horas. Llama 405-870-5397.',
+    h1:'Cerrajero que Sirve Choctaw, Oklahoma',
+    intro:'El encanto del “pueblo histórico más grande” de Choctaw viene con una mezcla de casas de toda la vida y vecindarios nuevos en crecimiento cerca de Choctaw Creek Park. Los cubrimos todos — llaves de auto cortadas en sitio, recodificaciones de casa, cerraduras de negocio y ayuda rápida por bloqueo desde una camioneta móvil con licencia.',
+    sub:{auto:'Reemplazo de llaves y controles para conductores de Choctaw.',res:'Recodificación y cerraduras inteligentes para casas de Choctaw.',comm:'Cerraduras de negocio y llaves maestras.'} },
+  'newcastle':{ metaTitle:'Cerrajero en Newcastle OK | Llaves de Auto, Casa y Negocio',
+    metaDesc:'Cerrajero móvil en Newcastle, OK. Reemplazo de llaves de auto, recodificaciones de casa y cerraduras comerciales para esta comunidad del suroeste en crecimiento. Llama 405-870-5397.',
+    h1:'El Cerrajero Móvil de Newcastle',
+    intro:'Justo al cruzar el río Canadian y creciendo rápido, Newcastle recibe servicio móvil completo — desde llaves de auto para el viaje por la I-44 hasta recodificaciones de casa en sus nuevas subdivisiones y cerraduras para negocios cerca del casino. Vamos a ti, tarifa fija.',
+    sub:{auto:'Reemplazo de llaves y controles en sitio.',res:'Recodificaciones de casas nuevas y cerraduras inteligentes.',comm:'Cerraduras de negocio y de llave maestra.'} },
+  'norman':{ metaTitle:'Cerrajero en Norman OK | Llaves de Auto, Rentas de OU y Cerraduras de Negocio',
+    metaDesc:'Cerrajero móvil en Norman, OK. Reemplazo de llaves de auto, recodificación de rentas estudiantiles, cerraduras inteligentes y cerraduras de negocio cerca de OU y Campus Corner. Llama 405-870-5397.',
+    h1:'El Cerrajero Móvil de Norman — Hogar de OU',
+    intro:'Hogar de la University of Oklahoma, Norman funciona con estudiantes, inquilinos y residentes de toda la vida por igual. Recodificamos rentas entre inquilinos, reemplazamos llaves y controles de auto en sitio para quienes viajan, instalamos cerraduras inteligentes y aseguramos las tiendas alrededor de Campus Corner y a lo largo de Main Street — todo de un cerrajero móvil con licencia que va a ti.',
+    sub:{auto:'Reemplazo de llaves y controles para conductores de Norman y estudiantes de OU.',res:'Recodificación y cerraduras inteligentes para casas de Norman y rentas cerca de OU.',comm:'Cerraduras y llaves maestras cerca de Campus Corner y Main Street.'} },
+  'harrah':{ metaTitle:'Cerrajero en Harrah OK | Llaves de Auto, Recodificación y Aperturas',
+    metaDesc:'Cerrajero móvil en Harrah, OK. Reemplazo de llaves de auto para quienes viajan, recodificaciones de casa y apertura 24 horas en el lejano lado este del área metro. Llama 405-870-5397.',
+    h1:'Servicios de Cerrajería en Harrah',
+    intro:'En el lejano borde este del área metro, quienes viajan y los dueños de casa de Harrah aún reciben servicio de cerrajería móvil completo. Cortamos y programamos llaves de auto en sitio, recodificamos casas tras una mudanza y respondemos a aperturas — hacemos el viaje para que tú no tengas que hacerlo.',
+    sub:{auto:'Llaves y controles para quienes viajan en Harrah.',res:'Recodificaciones y cerraduras para casas de Harrah.',comm:'Cerraduras de negocio para la zona.'} },
+  'el-reno':{ metaTitle:'Cerrajero en El Reno OK | Llaves de Auto, Casa y Negocio',
+    metaDesc:'Cerrajero móvil en El Reno, OK. Reemplazo de llaves de auto, recodificaciones de casa y cerraduras de negocio del centro a lo largo de la Ruta 66 y la I-40. Llama 405-870-5397.',
+    h1:'Cerrajero que Sirve El Reno, Oklahoma',
+    intro:'Hogar de la hamburguesa con cebolla frita y un orgulloso pueblo de la Ruta 66, El Reno es la sede del condado de Canadian con un centro activo. Reemplazamos llaves de auto en sitio para quienes viajan por la I-40, recodificamos casas y aseguramos las tiendas y oficinas alrededor de Main Street.',
+    sub:{auto:'Servicio de llaves y controles para conductores de El Reno.',res:'Recodificación y reparación de cerraduras para casas de El Reno.',comm:'Cerraduras de negocio del centro y llaves maestras.'} },
+  'guthrie':{ metaTitle:'Cerrajero en Guthrie OK | Casas Históricas, Llaves de Auto y Cerraduras',
+    metaDesc:'Cerrajero móvil en Guthrie, OK. Reparación y recodificación de cerraduras para casas históricas, reemplazo de llaves de auto y cerraduras de negocio en el centro. Llama 405-870-5397.',
+    h1:'Cerrajero para las Casas y Negocios Históricos de Guthrie',
+    intro:'Primera capital de Oklahoma, Guthrie es famosa por su centro victoriano y sus casas históricas — que a menudo tienen cerraduras antiguas y con carácter que necesitan una mano cuidadosa. Las reparamos y recodificamos, reemplazamos llaves de auto en sitio y aseguramos las tiendas históricas del centro.',
+    sub:{auto:'Reemplazo de llaves y controles para conductores de Guthrie.',res:'Recodificación y reparación de cerraduras para casas históricas.',comm:'Cerraduras para los negocios históricos del centro.'} },
+  'tuttle':{ metaTitle:'Cerrajero en Tuttle OK | Llaves de Auto Móviles, Recodificación y Aperturas',
+    metaDesc:'Cerrajero móvil que sirve Tuttle, OK. Reemplazo de llaves de auto, recodificaciones de casa y apertura para este pueblo del suroeste en crecimiento. Vamos a ti. Llama 405-870-5397.',
+    h1:'Cerrajero Móvil en Tuttle, Oklahoma',
+    intro:'El ritmo de pueblo pequeño de Tuttle y sus casas nuevas en crecimiento están cubiertos por nuestra camioneta móvil. Cortamos y programamos llaves de auto en el momento, recodificamos casas tras un cierre y respondemos a aperturas por toda esta comunidad del suroeste — tarifas fijas, sin ir al taller.',
+    sub:{auto:'Servicio de llaves y controles en sitio.',res:'Recodificaciones de casas nuevas y cerraduras inteligentes.',comm:'Cerraduras para negocios de Tuttle.'} },
+  'goldsby':{ metaTitle:'Cerrajero en Goldsby OK | Llaves de Auto Móviles y Cerraduras de Casa',
+    metaDesc:'Cerrajero móvil que sirve Goldsby, OK cerca de Riverwind. Reemplazo de llaves de auto, recodificaciones y apertura — vamos a ti. Llama 405-870-5397.',
+    h1:'Cerrajero Móvil que Sirve Goldsby',
+    intro:'Cerca de Riverwind, las casas y los viajeros de Goldsby reciben servicio móvil completo — llaves de auto perdidas hechas en sitio, recodificaciones de casa y ayuda por bloqueo. Llevamos el taller a ti, con precios fijos honestos.' },
+  'noble':{ metaTitle:'Cerrajero en Noble OK | Llaves de Auto, Recodificación y Aperturas',
+    metaDesc:'Cerrajero móvil en Noble, OK, la Capital de la Rosa de Roca. Reemplazo de llaves de auto, recodificaciones de casa y apertura 24 horas cerca de Norman. Llama 405-870-5397.',
+    h1:'Cerrajero Móvil para Noble, Oklahoma',
+    intro:'Noble — la Capital de la Rosa de Roca justo al sur de Norman — recibe llaves de auto, recodificaciones de casa, cerraduras de negocio y ayuda rápida por bloqueo, todo en sitio. Una llamada lleva un cerrajero móvil con licencia a tu puerta, tarifa fija y amable.' },
+  'blanchard':{ metaTitle:'Cerrajero en Blanchard OK | Llaves de Auto, Casa y Negocio',
+    metaDesc:'Cerrajero móvil que sirve Blanchard, OK. Reemplazo de llaves de auto, recodificaciones de casa, cerraduras de negocio y apertura — vamos hasta ti. Llama 405-870-5397.',
+    h1:'Cerrajero Móvil que Sirve Blanchard',
+    intro:'Esta comunidad dormitorio en crecimiento del suroeste recibe servicio de cerrajería móvil completo de un equipo local con licencia — llaves de auto cortadas y programadas en sitio, recodificaciones de casa, cerraduras de negocio y ayuda por bloqueo. Hacemos el viaje a Blanchard para que tú no tengas que ir a la ciudad.' }
+};

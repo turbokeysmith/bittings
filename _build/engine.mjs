@@ -57,16 +57,23 @@ export function schema() {
 }
 
 // ---- <head> ----
-export function head({title, desc, canonical, depth}) {
-  const r = rel(depth);
+// opts: { title, desc, canonical, depth, lang='en', noindex=false,
+//         assetRel (override for /es/ where assets are above the lang root),
+//         alts=[{hreflang, href}] }  — alts renders reciprocal hreflang links.
+export function head({title, desc, canonical, depth, lang='en', noindex=false, assetRel, alts}) {
+  const r = assetRel !== undefined ? assetRel : rel(depth);
+  const robots = noindex ? `\n<meta name="robots" content="noindex,nofollow">` : '';
+  const hreflang = (alts && alts.length)
+    ? '\n' + alts.map(a => `<link rel="alternate" hreflang="${a.hreflang}" href="${a.href}">`).join('\n')
+    : '';
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">${robots}
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}">
-<link rel="canonical" href="${canonical}">
+<link rel="canonical" href="${canonical}">${hreflang}
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:type" content="website">
