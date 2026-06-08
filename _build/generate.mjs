@@ -269,6 +269,8 @@ ${body}
 function renderRobots() {
   return `User-agent: *
 Allow: /
+# internal planning/copy docs — not for indexing
+Disallow: /*.md$
 
 Sitemap: ${SITE}/sitemap.xml
 `;
