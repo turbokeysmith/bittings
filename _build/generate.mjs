@@ -210,12 +210,13 @@ function renderHub() {
   const canonical = `${SITE}/service-areas`;
   const h = head({
     title:'Service Areas | Turbo Keysmith — Mobile Locksmith Across the OKC Metro',
-    desc:'Turbo Keysmith is a mobile locksmith serving Oklahoma City and 35+ surrounding cities — Edmond, Norman, Yukon, Moore, Guthrie and more. Find your city. Call 405-870-5397.',
+    desc:'Turbo Keysmith is a mobile locksmith serving Oklahoma City and 24 nearby cities within about 30 miles — Edmond, Norman, Yukon, Moore, Guthrie and more. Find your city. Call 405-870-5397.',
     canonical, depth:1
   });
+  // Groups are distance bands (0 = closest). Within a group, keep the data-file
+  // order, which is closest -> farthest from the Warr Acres base (do NOT alphabetize).
   const groups = [0,1,2,3,4].filter(t => TIERS.includes(t)).map(t => {
     const list = built.filter(c => c.tier === t)
-      .sort((a,b) => a.name.localeCompare(b.name))
       .map(c => `      <a class="scard" href="../${c.slug}/"><h3>${esc(c.name)}</h3><span class="more">${esc(c.name)} locksmith →</span></a>`)
       .join('\n');
     if (!list) return '';
@@ -254,7 +255,7 @@ function renderSitemap() {
   const urls = [];
   const add = (path) => urls.push(`${SITE}/${path}`.replace(/\/$/, '/') );
   // core pages
-  ['','automotive/','residential/','commercial/','emergency/','faq/','blog/','certifications/','pay-now/','service-areas/']
+  ['','automotive/','residential/','commercial/','emergency/','faq/','blog/','certifications/','pay-now/','service-areas/','contact/']
     .forEach(p => urls.push(`${SITE}/${p}`));
   built.forEach(c => {
     urls.push(`${SITE}/${c.slug}/`);

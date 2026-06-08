@@ -33,7 +33,12 @@
     'How It Works':'Cómo funciona','Our Work':'Nuestro trabajo',
     'Serving the Oklahoma City Metro':'Servimos el área de Oklahoma City',
     "Three simple steps — no stress.":'Tres pasos simples — sin estrés.',
-    'Call':'Llamar','We come to you ':'Vamos a usted','Back in business':'De vuelta en marcha'
+    'Call':'Llamar','We come to you ':'Vamos a usted','Back in business':'De vuelta en marcha',
+    // Service Areas hub — distance-group headings (mirror the EN structure/order)
+    'Home turf — minutes away':'A minutos de nosotros',
+    'Inner metro':'Zona metro interior',
+    'Surrounding metro':'Zona metro circundante',
+    'Outer edge of our area':'El borde de nuestra zona'
   };
 
   var lang = 'en';

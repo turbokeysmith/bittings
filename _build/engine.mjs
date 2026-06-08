@@ -12,13 +12,12 @@ export const SITE = 'https://turbokeysmith.com';
 // Master service-area list (every city the business serves).
 // Used verbatim in every page's schema.org areaServed, regardless of
 // which city pages have been generated yet. ADD new cities here too.
+// 25 cities within a ~30-mile radius of Warr Acres, ordered closest -> farthest.
 export const AREA_SERVED = [
-  'Oklahoma City','Warr Acres','Bethany','The Village','Nichols Hills','Yukon',
-  'Del City','Mustang','Piedmont','Spencer','Nicoma Park','Edmond','Moore',
-  'Norman','Midwest City','Choctaw','Jones','Harrah','Newcastle','El Reno',
-  'Guthrie','Tuttle','Blanchard','Noble','Goldsby','Purcell','Shawnee','McLoud',
-  'Chickasha','Kingfisher','Crescent','Lexington','Stillwater','Chandler',
-  'Stroud','Prague','Cushing','Tecumseh','Pauls Valley'
+  'Warr Acres','Bethany','The Village','Nichols Hills','Oklahoma City',
+  'Yukon','Piedmont','Del City','Mustang','Midwest City','Edmond','Spencer',
+  'Moore','Nicoma Park','Jones','Choctaw','Newcastle','Tuttle',
+  'Norman','Harrah','El Reno','Guthrie','Goldsby','Noble','Blanchard'
 ];
 
 // relative prefix to site root for a page nested `depth` folders deep
