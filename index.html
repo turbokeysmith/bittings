@@ -83,6 +83,31 @@
   .btn.del{background:transparent;border:1px solid rgba(200,50,60,.5);color:#f0a0a6;flex:0 0 auto;padding:15px 18px;}
   .note{font-size:12px;color:var(--dim);text-align:center;margin-top:18px;line-height:1.5;}
   .section-note{background:var(--card);border:1px dashed var(--edge);border-radius:14px;padding:22px;text-align:center;color:var(--dim);font-size:14px;line-height:1.6;}
+
+  /* ---- shared two-column form row ---- */
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  /* ---- Inventory ---- */
+  .invsummary{display:flex;gap:10px;margin-bottom:14px;}
+  .invsummary .chip{flex:1;background:var(--card);border:1px solid var(--edge);border-radius:12px;
+    padding:10px 12px;text-align:center;font-size:12.5px;color:var(--dim);font-weight:700;}
+  .invsummary .chip b{display:block;font-size:18px;color:var(--ink);font-weight:800;}
+  .invsummary .chip.low b{color:var(--amber);}
+  .crow.part{align-items:center;}
+  .crow.part .pinfo{flex:1;min-width:0;}
+  .crow.part .pinfo .nm{display:flex;align-items:center;gap:8px;}
+  .lowbadge{font-size:9.5px;font-weight:800;letter-spacing:.5px;color:#1b1f25;background:var(--amber);
+    border-radius:999px;padding:2px 7px;}
+  .pq{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+  .qbtn{width:34px;height:34px;border-radius:9px;border:1px solid var(--edge);background:rgba(255,255,255,.05);
+    color:var(--ink);font-size:19px;font-weight:800;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;}
+  .qbtn:active{transform:scale(.94);}
+  .qbtn.plus{border-color:rgba(34,153,74,.5);color:#7fd49b;}
+  .qbtn.minus{border-color:rgba(200,50,60,.5);color:#f0a0a6;}
+  .qn{min-width:30px;text-align:center;font-weight:800;font-size:17px;}
+  .crow.part.islow{border-color:rgba(242,180,58,.45);}
+  .form textarea{width:100%;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:12px 14px;
+    color:var(--ink);font-size:15px;outline:none;min-height:70px;resize:vertical;font-family:inherit;}
 </style>
 </head>
 <body>
@@ -108,8 +133,7 @@
         <div class="ic">💳</div><h2>Payments</h2><p>Take a card, counter or field.</p>
       </button>
       <button class="tile t-inventory" data-go="inventory">
-        <span class="soon">SOON</span>
-        <div class="ic">📦</div><h2>Inventory</h2><p>Parts &amp; stock. Coming next.</p>
+        <div class="ic">📦</div><h2>Inventory</h2><p>Parts, stock &amp; low-stock alerts.</p>
       </button>
     </div>
     <p class="note">Customers are shared across everything on this device. Cross-device
@@ -165,14 +189,44 @@
   </div>
 
   <div class="view" id="view-inventory">
-    <div class="section-note">
-      <strong style="color:var(--ink);">Inventory — coming next</strong><br><br>
-      Parts, stock counts, and low-stock reorder prompts will live here. We'll build
-      it once the cloud login is in, so stock counts stay in sync across your devices.
+    <div class="bar">
+      <input class="search" id="invSearch" type="text" placeholder="Search part, SKU, category…">
+      <button class="add" id="invAdd">+ Add</button>
+    </div>
+    <div class="invsummary" id="invSummary"></div>
+    <div class="clist" id="invList"></div>
+    <p class="note">Stock is saved on this device. Cross-device sync arrives with the cloud login.</p>
+  </div>
+
+  <div class="view" id="view-part">
+    <div class="form">
+      <label>Part name</label>
+      <input id="pName" type="text" placeholder="e.g. Ford HU101 key blank">
+      <label>SKU / part #</label>
+      <input id="pSku" type="text" placeholder="Optional">
+      <div class="row2">
+        <div><label>Qty on hand</label><input id="pQty" type="number" inputmode="numeric" placeholder="0"></div>
+        <div><label>Low-stock at</label><input id="pLowAt" type="number" inputmode="numeric" placeholder="e.g. 3"></div>
+      </div>
+      <label>Category</label>
+      <input id="pCategory" type="text" placeholder="Key blanks, fobs, tools…">
+      <div class="row2">
+        <div><label>Unit cost ($)</label><input id="pCost" type="number" inputmode="decimal" placeholder="0.00"></div>
+        <div><label>Location</label><input id="pLocation" type="text" placeholder="Van A · bin 3"></div>
+      </div>
+      <label>Notes</label>
+      <textarea id="pNotes" placeholder="Supplier, fitment, reorder link…"></textarea>
+      <div class="actions">
+        <button class="btn del" id="pDelete" style="display:none;">Delete</button>
+        <button class="btn save" id="pSave">Save part</button>
+      </div>
+      <p class="note" id="partNote"></p>
     </div>
   </div>
 </div>
 
+<!-- Shared data layer (localStorage today; single cloud-swap point inside) -->
+<script src="app/store.js"></script>
 <script>
 function readLS(k,f){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):f; }catch(e){ return f; } }
 function writeLS(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
@@ -181,18 +235,18 @@ function saveCustomers(a){ writeLS("tks_customers", a); }
 function getShops(){ return readLS("tks_shops", []); }
 function saveShops(a){ writeLS("tks_shops", a); }
 
-const views = ['home','customers','form','payments','inventory'];
+const views = ['home','customers','form','payments','inventory','part'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
   back.style.display = (name==='home') ? 'none' : 'block';
-  back.dataset.to = (name==='form') ? 'customers' : 'home';
+  back.dataset.to = (name==='form') ? 'customers' : (name==='part' ? 'inventory' : 'home');
   window.scrollTo(0,0);
 }
 document.getElementById('backBtn').onclick = function(){ show(this.dataset.to || 'home'); };
 
 document.querySelectorAll('[data-go]').forEach(b=>{
-  b.onclick = ()=>{ const t=b.dataset.go; if(t==='customers'){ renderCustomers(); } show(t); };
+  b.onclick = ()=>{ const t=b.dataset.go; if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } show(t); };
 });
 document.querySelectorAll('[data-open]').forEach(b=>{
   b.onclick = ()=>{ location.href = b.dataset.open; };
@@ -304,6 +358,103 @@ document.getElementById('fDelete').onclick = ()=>{
   saveCurrent(list);
   renderCustomers();
   show('customers');
+};
+
+/* ============================ INVENTORY ============================
+   All reads/writes go through the shared TKS.Inventory data layer
+   (app/store.js), so switching to the cloud later is a one-line change. */
+const invSearchEl = document.getElementById('invSearch');
+invSearchEl.addEventListener('input', renderInventory);
+document.getElementById('invAdd').onclick = ()=> openPart(null);
+
+function money(n){ n=parseFloat(n); return isNaN(n)?'':'$'+n.toFixed(2); }
+
+function renderInventory(){
+  const q = invSearchEl.value.trim();
+  const all = TKS.Inventory.all();
+  const list = TKS.Inventory.search(q).slice().sort((a,b)=>{
+    // low-stock first, then name
+    const la = TKS.Inventory.isLow(a)?0:1, lb = TKS.Inventory.isLow(b)?0:1;
+    if(la!==lb) return la-lb;
+    return (a.name||'').toLowerCase().localeCompare((b.name||'').toLowerCase());
+  });
+  // summary chips
+  const low = TKS.Inventory.lowCount();
+  document.getElementById('invSummary').innerHTML =
+    '<div class="chip"><b>'+all.length+'</b>parts</div>'+
+    '<div class="chip'+(low?' low':'')+'"><b>'+low+'</b>low / out</div>';
+
+  const wrap = document.getElementById('invList');
+  if(list.length===0){
+    wrap.innerHTML = '<div class="empty">'+(q?'No matching parts.':'No parts yet.<br>Tap “+ Add” to add your first part.')+'</div>';
+    return;
+  }
+  wrap.innerHTML = '';
+  list.forEach(p=>{
+    const isLow = TKS.Inventory.isLow(p);
+    const row = document.createElement('div');
+    row.className = 'crow part' + (isLow?' islow':'');
+    const sub = [p.sku, p.category, p.location].filter(Boolean).join('  ·  ') || '—';
+    row.innerHTML =
+      '<div class="pq">'+
+        '<button class="qbtn minus" aria-label="Decrease">−</button>'+
+        '<span class="qn">'+(parseInt(p.qty,10)||0)+'</span>'+
+        '<button class="qbtn plus" aria-label="Increase">+</button>'+
+      '</div>'+
+      '<div class="pinfo"><div class="nm">'+esc(p.name||'(unnamed part)')+
+        (isLow?' <span class="lowbadge">'+((parseInt(p.qty,10)||0)===0?'OUT':'LOW')+'</span>':'')+'</div>'+
+        '<div class="sub">'+esc(sub)+'</div></div>'+
+      (p.cost?'<span class="tag">'+money(p.cost)+'</span>':'');
+    row.querySelector('.minus').onclick = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id,-1); renderInventory(); };
+    row.querySelector('.plus').onclick  = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id, 1); renderInventory(); };
+    row.querySelector('.pinfo').onclick = ()=> openPart(p.id);
+    wrap.appendChild(row);
+  });
+}
+
+let editPartId = null;
+function openPart(id){
+  editPartId = id;
+  const p = id ? TKS.Inventory.get(id) : {};
+  document.getElementById('pName').value = p.name || '';
+  document.getElementById('pSku').value = p.sku || '';
+  document.getElementById('pQty').value = (p.qty!=null? p.qty : '');
+  document.getElementById('pLowAt').value = (p.lowAt!=null? p.lowAt : '');
+  document.getElementById('pCategory').value = p.category || '';
+  document.getElementById('pCost').value = (p.cost!=null? p.cost : '');
+  document.getElementById('pLocation').value = p.location || '';
+  document.getElementById('pNotes').value = p.notes || '';
+  document.getElementById('pDelete').style.display = id ? 'block' : 'none';
+  document.getElementById('partNote').textContent = id ? '' : 'New part. Saved on this device.';
+  show('part');
+  document.getElementById('pName').focus();
+}
+
+document.getElementById('pSave').onclick = ()=>{
+  const name = document.getElementById('pName').value.trim();
+  if(!name){ document.getElementById('partNote').textContent = 'Please enter a part name.'; return; }
+  const part = {
+    name: name,
+    sku: document.getElementById('pSku').value.trim(),
+    qty: parseInt(document.getElementById('pQty').value,10) || 0,
+    lowAt: parseInt(document.getElementById('pLowAt').value,10) || 0,
+    category: document.getElementById('pCategory').value.trim(),
+    cost: document.getElementById('pCost').value.trim() ? parseFloat(document.getElementById('pCost').value) : '',
+    location: document.getElementById('pLocation').value.trim(),
+    notes: document.getElementById('pNotes').value.trim()
+  };
+  if(editPartId) part.id = editPartId;
+  TKS.Inventory.save(part);
+  renderInventory();
+  show('inventory');
+};
+
+document.getElementById('pDelete').onclick = ()=>{
+  if(!editPartId) return;
+  if(!confirm('Delete this part? This can’t be undone.')) return;
+  TKS.Inventory.remove(editPartId);
+  renderInventory();
+  show('inventory');
 };
 </script>
 </body>
