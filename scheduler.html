@@ -236,6 +236,33 @@ textarea{min-height:70px;resize:vertical;}
 .cust-hit b{display:block;}
 .cust-hit span{font-size:14px;color:var(--ink-soft);}
 .done-check{font-size:54px;text-align:center;margin:18px 0 6px;}
+
+/* ---- Day view (in-app calendar) ---- */
+.daybar{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.daybar .navd{width:42px;height:42px;border-radius:11px;border:1.5px solid var(--line);background:var(--card);
+  color:var(--ink);font-size:20px;font-weight:800;cursor:pointer;flex:0 0 auto;}
+.daybar input[type=date]{flex:1;background:var(--card);border:1.5px solid var(--line);border-radius:11px;
+  padding:11px 12px;color:var(--ink);font-size:15px;font-family:inherit;}
+.daysum{font-size:13px;color:var(--ink-soft);margin:0 2px 12px;}
+.slot{display:flex;gap:12px;align-items:stretch;border-top:1px solid var(--line);padding:10px 2px;}
+.slot .hr{flex:0 0 64px;font-weight:700;font-size:13px;color:var(--ink-soft);padding-top:4px;}
+.slot .cell{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;}
+.slot.free .cell{justify-content:center;}
+.book-card{background:var(--card);border:1.5px solid var(--line);border-left:4px solid var(--gold,#f2b43a);
+  border-radius:12px;padding:10px 12px;cursor:pointer;}
+.book-card.urgent{border-left-color:var(--coach-tag,#c8323c);}
+.book-card b{font-size:15px;}
+.book-card .m{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+.slot .addbtn{align-self:flex-start;background:transparent;border:1.5px dashed var(--line);color:var(--ink-soft);
+  border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer;}
+.slot .addbtn:hover{color:var(--ink);}
+.gcal-stub{margin-top:18px;background:var(--card);border:1.5px dashed var(--line);border-radius:12px;
+  padding:14px 16px;font-size:13px;color:var(--ink-soft);line-height:1.5;}
+.gcal-stub b{color:var(--ink);}
+.gcal-stub .tagph{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.5px;background:var(--gold-soft);
+  color:var(--coach-tag);border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle;}
+.gcal-stub button{margin-top:10px;background:transparent;border:1.5px solid var(--line);color:var(--ink);
+  border-radius:10px;padding:9px 13px;font-weight:700;font-size:13px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -599,6 +626,7 @@ function render(){
     b.classList.toggle('active', b.dataset.lang===LANG);
   });
   if(VIEW==='home')  return renderHome();
+  if(VIEW==='day')   return renderDay();
   if(VIEW==='jobs')  return renderJobs();
   if(VIEW==='done')  return renderDone();
   if(VIEW==='flow')  return renderFlow();
@@ -611,6 +639,7 @@ function renderHome(){
   const offered = bookings.filter(b=>b.upsell && b.upsell.offered).length;
   const rate = bookings.length ? Math.round(offered/bookings.length*100) : 0;
   app.innerHTML = `
+    <a href="index.html" style="display:inline-block;margin-bottom:12px;color:var(--ink-soft);font-weight:700;font-size:14px;text-decoration:none">‹ ${LANG==='es'?'Aplicaciones':'All apps'}</a>
     <div class="hero">
       <h1>Turbo Scheduler</h1>
       <p>${t('home_sub')}</p>
@@ -623,9 +652,9 @@ function renderHome(){
       <span class="big">📋</span>
       <span><h3>${t('view_jobs')}</h3><p>${bookings.length} ${t('all_jobs').toLowerCase()}</p></span>
     </button>
-    <button class="tile" onclick="openCalendar()">
-      <span class="big">📅</span>
-      <span><h3>${t('check_sched')}</h3><p>${t('check_sched_sub')}</p></span>
+    <button class="tile" onclick="VIEW='day';render()">
+      <span class="big">📆</span>
+      <span><h3>${LANG==='es'?'Vista del día':'Day view'}</h3><p>${LANG==='es'?'Mira los trabajos y los horarios libres':"See a day's jobs and open time slots"}</p></span>
     </button>
     <div class="section-h">${t('coaching_progress')}</div>
     <div class="stats">
@@ -643,6 +672,62 @@ function renderHome(){
 }
 
 /* ---------- JOBS LIST ---------- */
+/* =========================================================================
+   Day view — in-app calendar for the front desk.
+   Reads the SAME local bookings (tks_bookings) the intake flow writes, shows
+   them on an hour-by-hour grid, and lets you tap an open slot to start a new
+   booking pre-filled with that date + time. No Google account required.
+   ========================================================================= */
+const DAY_START = 7, DAY_END = 20;            // 7 AM … 8 PM rows
+function todayISO(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+function addDaysISO(iso,n){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+let DAY = todayISO();
+function shiftDay(n){ DAY = addDaysISO(DAY,n); render(); }
+function setDay(v){ if(v){ DAY=v; render(); } }
+function startFlowAt(date,time){ startFlow(); booking.date=date; booking.time=time; }
+
+function renderDay(){
+  if(nav) nav.style.display='none';
+  const all = readLS(K_BOOKINGS, []).filter(b=>(b.date||'')===DAY)
+                .sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  let rows='';
+  for(let h=DAY_START; h<=DAY_END; h++){
+    const hh = String(h).padStart(2,'0');
+    const inSlot = all.filter(b=>{ const t=(b.time||''); const bh=parseInt(t.slice(0,2),10); return bh===h; });
+    const label = fmt12(hh+':00');
+    let cell='';
+    if(inSlot.length){
+      cell = inSlot.map(b=>{
+        const nm = (b.customer && b.customer.name) ? b.customer.name : (b.customer && b.customer.customer) || '—';
+        const job = subLabel ? subLabel(b.jobType, b.subType) : (b.jobType||'');
+        const urgent = (typeof isUrgent==='function' && isUrgent(b)) ? ' urgent' : '';
+        return `<div class="book-card${urgent}" onclick="VIEW='jobs';render()">
+          <b>${esc(fmt12(b.time))} · ${esc(nm)}</b>
+          <div class="m">${esc(job||'')}${b.address?' · '+esc(b.address):''}</div></div>`;
+      }).join('');
+    }
+    cell += `<button class="addbtn" onclick="startFlowAt('${DAY}','${hh}:00')">+ ${LANG==='es'?'Agendar':'Book'} ${esc(label)}</button>`;
+    rows += `<div class="slot ${inSlot.length?'busy':'free'}"><div class="hr">${esc(label)}</div><div class="cell">${cell}</div></div>`;
+  }
+  const count = all.length;
+  app.innerHTML = `
+    <button class="btn ghost" style="margin-bottom:14px" onclick="VIEW='home';render()">← ${t('home')}</button>
+    <div class="daybar">
+      <button class="navd" onclick="shiftDay(-1)" aria-label="Previous day">‹</button>
+      <input type="date" value="${DAY}" onchange="setDay(this.value)">
+      <button class="navd" onclick="shiftDay(1)" aria-label="Next day">›</button>
+    </div>
+    <div class="daysum">${esc(prettyDate(DAY))} · ${count} ${count===1?(LANG==='es'?'trabajo':'job'):(LANG==='es'?'trabajos':'jobs')} ${LANG==='es'?'agendados':'booked'}</div>
+    ${rows}
+    <div class="gcal-stub">
+      <b>${LANG==='es'?'Google Calendar':'Google Calendar'}</b><span class="tagph">${LANG==='es'?'NO CONECTADO':'NOT CONNECTED'}</span><br>
+      ${LANG==='es'
+        ? 'La sincronización en dos sentidos con Google Calendar aún no está conectada. Por ahora puedes abrir Google Calendar en otra pestaña. Conectar la cuenta real es una decisión pendiente.'
+        : 'Two-way sync with Google Calendar isn’t wired up yet. For now you can open Google Calendar in a new tab. Connecting the real account is a pending decision (needs credentials).'}
+      <br><button onclick="openCalendar()">📅 ${LANG==='es'?'Abrir Google Calendar':'Open Google Calendar'}</button>
+    </div>`;
+}
+
 function renderJobs(){
   nav.style.display='none';
   const bookings = readLS(K_BOOKINGS, []).slice().reverse();
