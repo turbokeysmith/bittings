@@ -3,239 +3,308 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#16181c">
-<title>Turbo Keysmith — Shop Tools</title>
+<meta name="theme-color" content="#14171b">
+<title>Turbo Keysmith</title>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="bittings_logo.png">
 <style>
   :root{
-    --bg:#16181c;
-    --bg2:#1c1f24;
-    --card:#1f232a;
-    --card-edge:#2c313a;
-    --ink:#f4f5f7;
-    --ink-dim:#9aa1ac;
-    --red:#c8323c;
-    --red-deep:#8f1f27;
-    --amber:#f2b43a;
-    --amber-deep:#a9760f;
-    --off:#5a616c;
+    --bg:#14171b; --bg2:#1b1f25; --card:#1f232a; --edge:#2c313a; --ink:#f4f5f7; --dim:#9aa1ac;
+    --red:#c8323c; --red-deep:#8f1f27; --amber:#f2b43a; --green:#22994a; --off:#5a616c;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:
-      radial-gradient(1200px 600px at 50% -10%, #23272f 0%, rgba(35,39,47,0) 60%),
-      linear-gradient(180deg,var(--bg) 0%, var(--bg2) 100%);
-    background-attachment:fixed;
-    color:var(--ink);
-    min-height:100vh;
-    min-height:100dvh;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    padding:
-      calc(28px + env(safe-area-inset-top))
-      20px
-      calc(28px + env(safe-area-inset-bottom));
-  }
-  /* faint workshop grid texture */
-  body::before{
-    content:"";position:fixed;inset:0;pointer-events:none;opacity:.05;
-    background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);
-    background-size:46px 46px;
-    mask-image:radial-gradient(circle at 50% 28%, #000 0%, transparent 75%);
-    -webkit-mask-image:radial-gradient(circle at 50% 28%, #000 0%, transparent 75%);
-  }
-  .wrap{width:100%;max-width:560px;position:relative;z-index:1;animation:rise .5s ease both;}
-  @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1100px 520px at 50% -10%,#23272f 0%,rgba(35,39,47,0) 60%),linear-gradient(180deg,var(--bg),var(--bg2));
+    background-attachment:fixed;color:var(--ink);min-height:100vh;min-height:100dvh;
+    padding:calc(22px + env(safe-area-inset-top)) 18px calc(22px + env(safe-area-inset-bottom));}
+  .wrap{max-width:620px;margin:0 auto;}
 
-  header{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:30px;}
-  .logo{
-    width:74px;height:74px;border-radius:18px;display:block;margin-bottom:14px;
-    box-shadow:0 8px 24px rgba(0,0,0,.45);
-  }
-  .brand{font-size:26px;font-weight:800;letter-spacing:.4px;margin:0;}
-  .brand .red{color:var(--red);}
-  .tag{margin:6px 0 0;font-size:14px;color:var(--ink-dim);letter-spacing:.3px;}
+  header.app{display:flex;align-items:center;gap:12px;margin-bottom:22px;}
+  header.app img{width:42px;height:42px;border-radius:11px;}
+  header.app h1{margin:0;font-size:20px;font-weight:800;}
+  header.app h1 .red{color:var(--red);}
+  header.app .back{margin-left:auto;background:rgba(255,255,255,.06);border:1px solid var(--edge);
+    color:var(--dim);border-radius:10px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;display:none;}
 
-  .tiles{display:flex;flex-direction:column;gap:18px;}
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .tile{background:linear-gradient(180deg,var(--card),#181b21);border:1px solid var(--edge);border-radius:18px;
+    padding:18px;cursor:pointer;position:relative;overflow:hidden;transition:transform .12s ease,border-color .2s ease;text-align:left;}
+  .tile:hover{border-color:#3a414c;}
+  .tile:active{transform:scale(.98);}
+  .tile::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;}
+  .tile.t-customers::before{background:linear-gradient(180deg,#4aa3ff,#1f6fd0);}
+  .tile.t-receipts::before{background:linear-gradient(180deg,var(--red),var(--red-deep));}
+  .tile.t-scheduler::before{background:linear-gradient(180deg,var(--amber),#a9760f);}
+  .tile.t-payments::before{background:linear-gradient(180deg,var(--green),#156632);}
+  .tile.t-inventory::before{background:linear-gradient(180deg,#9b6bd6,#5e3a91);}
+  .tile .ic{font-size:26px;line-height:1;margin-bottom:10px;}
+  .tile h2{margin:0;font-size:17px;font-weight:800;}
+  .tile p{margin:3px 0 0;font-size:12.5px;color:var(--dim);line-height:1.35;}
+  .tile .soon{position:absolute;top:12px;right:12px;font-size:10px;font-weight:800;letter-spacing:.5px;
+    color:var(--off);border:1px solid var(--edge);border-radius:999px;padding:3px 8px;}
 
-  .tile{
-    position:relative;
-    background:linear-gradient(180deg,var(--card) 0%, #181b21 100%);
-    border:1px solid var(--card-edge);
-    border-radius:20px;
-    padding:22px 22px 20px;
-    overflow:hidden;
-    transition:transform .15s ease, border-color .2s ease, opacity .2s ease;
-  }
-  .tile::before{ /* color spine */
-    content:"";position:absolute;left:0;top:0;bottom:0;width:6px;
-  }
-  .tile.bittings::before{background:linear-gradient(180deg,var(--red),var(--red-deep));}
-  .tile.scheduler::before{background:linear-gradient(180deg,var(--amber),var(--amber-deep));}
+  .view{display:none;}
+  .view.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
-  .tile-top{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
-  .badge{
-    width:54px;height:54px;border-radius:14px;flex:0 0 auto;
-    display:flex;align-items:center;justify-content:center;
-    font-size:28px;line-height:1;
-  }
-  .tile.bittings .badge{background:rgba(200,50,60,.14);border:1px solid rgba(200,50,60,.4);}
-  .tile.scheduler .badge{background:rgba(242,180,58,.14);border:1px solid rgba(242,180,58,.4);}
-  .badge img{width:38px;height:38px;border-radius:9px;}
+  .bar{display:flex;gap:10px;margin-bottom:14px;}
+  .search{flex:1;background:var(--card);border:1px solid var(--edge);border-radius:12px;padding:12px 14px;
+    color:var(--ink);font-size:15px;outline:none;}
+  .add{background:linear-gradient(180deg,var(--red),var(--red-deep));border:none;color:#fff;border-radius:12px;
+    padding:0 18px;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap;}
+  .seg{display:flex;gap:8px;margin-bottom:14px;}
+  .seg button{flex:1;background:var(--card);border:1px solid var(--edge);color:var(--dim);border-radius:10px;
+    padding:10px;font-weight:700;font-size:13px;cursor:pointer;}
+  .seg button.on{color:#fff;border-color:var(--red);background:linear-gradient(180deg,rgba(200,50,60,.22),rgba(200,50,60,.06));}
 
-  .tile h2{margin:0;font-size:21px;font-weight:800;letter-spacing:.3px;}
-  .tile p{margin:3px 0 0;font-size:13.5px;color:var(--ink-dim);line-height:1.35;}
+  .clist{display:flex;flex-direction:column;gap:10px;}
+  .crow{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;}
+  .crow:hover{border-color:#3a414c;}
+  .crow .avatar{width:38px;height:38px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    font-weight:800;background:rgba(74,163,255,.16);color:#8ec5ff;font-size:15px;}
+  .crow.biz .avatar{background:rgba(242,180,58,.16);color:var(--amber);}
+  .crow .nm{font-weight:700;font-size:15px;}
+  .crow .sub{font-size:12.5px;color:var(--dim);margin-top:2px;}
+  .crow .tag{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.4px;color:var(--dim);
+    border:1px solid var(--edge);border-radius:999px;padding:3px 8px;}
+  .empty{text-align:center;color:var(--dim);padding:40px 10px;font-size:14px;line-height:1.5;}
 
-  .open-btn{
-    display:flex;align-items:center;justify-content:center;gap:8px;
-    width:100%;border:none;border-radius:14px;
-    padding:16px;font-size:17px;font-weight:800;letter-spacing:.4px;
-    color:#fff;cursor:pointer;text-decoration:none;
-    transition:filter .15s ease, transform .1s ease;
-  }
-  .tile.bittings .open-btn{background:linear-gradient(180deg,var(--red),var(--red-deep));}
-  .tile.scheduler .open-btn{background:linear-gradient(180deg,var(--amber),var(--amber-deep));color:#221a05;}
-  .open-btn:active{transform:scale(.985);}
-  .open-btn:hover{filter:brightness(1.07);}
-
-  /* power toggle */
-  .power{
-    position:absolute;top:14px;right:14px;
-    display:flex;align-items:center;gap:7px;
-    background:rgba(255,255,255,.06);border:1px solid var(--card-edge);
-    color:var(--ink-dim);border-radius:999px;padding:6px 11px 6px 9px;
-    font-size:12px;font-weight:700;letter-spacing:.5px;cursor:pointer;
-    transition:background .2s ease,color .2s ease,border-color .2s ease;
-  }
-  .power .dot{width:9px;height:9px;border-radius:50%;background:var(--off);box-shadow:0 0 0 0 rgba(0,0,0,0);transition:background .2s ease,box-shadow .2s ease;}
-  .tile.active.bittings .power{color:#f0a0a6;border-color:rgba(200,50,60,.4);}
-  .tile.active.bittings .power .dot{background:var(--red);box-shadow:0 0 8px rgba(200,50,60,.8);}
-  .tile.active.scheduler .power{color:#f4c96f;border-color:rgba(242,180,58,.4);}
-  .tile.active.scheduler .power .dot{background:var(--amber);box-shadow:0 0 8px rgba(242,180,58,.8);}
-
-  /* OFF state — dim ONLY the content; keep the toggle + turn-on button bright */
-  .tile.off .tile-top{opacity:.4;filter:grayscale(.85);}
-  .tile.off::before{background:var(--off)!important;}
-  .tile.off .open-btn{display:none;}
-  /* keep the corner pill fully visible and obviously tappable when off */
-  .tile.off .power{
-    opacity:1;background:rgba(255,255,255,.10);
-    color:var(--ink);border-color:#3b424d;
-  }
-
-  /* big, unmissable "turn back on" button, shown only when off */
-  .reon-btn{display:none;}
-  .tile.off .reon-btn{
-    display:flex;align-items:center;justify-content:center;gap:8px;
-    width:100%;border:none;border-radius:14px;cursor:pointer;
-    padding:16px;font-size:16px;font-weight:800;letter-spacing:.3px;
-    color:#fff;
-  }
-  .tile.off.bittings .reon-btn{background:linear-gradient(180deg,var(--red),var(--red-deep));}
-  .tile.off.scheduler .reon-btn{background:linear-gradient(180deg,var(--amber),var(--amber-deep));color:#221a05;}
-  .reon-btn:active{transform:scale(.985);}
-  .reon-btn:hover{filter:brightness(1.07);}
-
-  footer{margin-top:26px;text-align:center;}
-  .share-note{
-    font-size:12.5px;color:var(--ink-dim);line-height:1.5;
-    display:inline-flex;align-items:center;gap:7px;
-    background:rgba(255,255,255,.04);border:1px solid var(--card-edge);
-    border-radius:12px;padding:10px 14px;
-  }
-  .share-note .ic{color:#22994a;font-size:14px;}
-
-  @media (min-width:620px){
-    .tiles{flex-direction:row;}
-    .tile{flex:1;}
-  }
+  .form label{display:block;font-size:12.5px;color:var(--dim);margin:14px 0 6px;font-weight:600;}
+  .form input{width:100%;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:12px 14px;
+    color:var(--ink);font-size:15px;outline:none;}
+  .typeseg{display:flex;gap:8px;}
+  .typeseg button{flex:1;background:var(--card);border:1px solid var(--edge);color:var(--dim);border-radius:11px;
+    padding:12px;font-weight:700;font-size:14px;cursor:pointer;}
+  .typeseg button.on{color:#fff;border-color:var(--red);background:linear-gradient(180deg,rgba(200,50,60,.22),rgba(200,50,60,.06));}
+  .actions{display:flex;gap:10px;margin-top:22px;}
+  .btn{flex:1;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;}
+  .btn.save{background:linear-gradient(180deg,var(--red),var(--red-deep));color:#fff;}
+  .btn.del{background:transparent;border:1px solid rgba(200,50,60,.5);color:#f0a0a6;flex:0 0 auto;padding:15px 18px;}
+  .note{font-size:12px;color:var(--dim);text-align:center;margin-top:18px;line-height:1.5;}
+  .section-note{background:var(--card);border:1px dashed var(--edge);border-radius:14px;padding:22px;text-align:center;color:var(--dim);font-size:14px;line-height:1.6;}
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <img class="logo" src="bittings_logo.png" alt="Turbo Keysmith">
-      <h1 class="brand">Turbo <span class="red">Keysmith</span></h1>
-      <p class="tag">Shop tools — pick one to open</p>
-    </header>
+<div class="wrap">
+  <header class="app">
+    <img src="bittings_logo.png" alt="">
+    <h1>Turbo <span class="red">Keysmith</span></h1>
+    <button class="back" id="backBtn">‹ Home</button>
+  </header>
 
+  <div class="view active" id="view-home">
     <div class="tiles">
-      <!-- BITTINGS -->
-      <section class="tile bittings active" data-app="bittings">
-        <button class="power" type="button" aria-label="Turn Bittings on or off">
-          <span class="dot"></span><span class="pwr-label">ON</span>
-        </button>
-        <div class="tile-top">
-          <div class="badge"><img src="bittings_logo.png" alt=""></div>
-          <div>
-            <h2>Bittings</h2>
-            <p>Receipts, invoices &amp; NASTF paperwork.</p>
-          </div>
-        </div>
-        <a class="open-btn" href="bittings.html">Open Bittings &rarr;</a>
-        <button class="reon-btn" type="button">&#9211; Turn Bittings back on</button>
-      </section>
-
-      <!-- SCHEDULER -->
-      <section class="tile scheduler active" data-app="scheduler">
-        <button class="power" type="button" aria-label="Turn Scheduler on or off">
-          <span class="dot"></span><span class="pwr-label">ON</span>
-        </button>
-        <div class="tile-top">
-          <div class="badge">🗓️</div>
-          <div>
-            <h2>Scheduler</h2>
-            <p>Front-desk booking &amp; call guide.</p>
-          </div>
-        </div>
-        <a class="open-btn" href="scheduler.html">Open Scheduler &rarr;</a>
-        <button class="reon-btn" type="button">&#9211; Turn Scheduler back on</button>
-      </section>
+      <button class="tile t-customers" data-go="customers">
+        <div class="ic">👤</div><h2>Customers</h2><p>Add or edit anyone, anytime.</p>
+      </button>
+      <button class="tile t-receipts" data-open="bittings.html">
+        <div class="ic">🧾</div><h2>Receipts</h2><p>Invoices &amp; NASTF paperwork.</p>
+      </button>
+      <button class="tile t-scheduler" data-open="scheduler.html">
+        <div class="ic">🗓️</div><h2>Scheduler</h2><p>Front-desk booking &amp; intake.</p>
+      </button>
+      <button class="tile t-payments" data-go="payments">
+        <div class="ic">💳</div><h2>Payments</h2><p>Take a card, counter or field.</p>
+      </button>
+      <button class="tile t-inventory" data-go="inventory">
+        <span class="soon">SOON</span>
+        <div class="ic">📦</div><h2>Inventory</h2><p>Parts &amp; stock. Coming next.</p>
+      </button>
     </div>
-
-    <footer>
-      <span class="share-note"><span class="ic">&#10003;</span> Both apps share the same contact list on this device.</span>
-    </footer>
+    <p class="note">Customers are shared across everything on this device. Cross-device
+    sync arrives when we connect the cloud login.</p>
   </div>
 
+  <div class="view" id="view-customers">
+    <div class="bar">
+      <input class="search" id="custSearch" type="text" placeholder="Search name, phone, email…">
+      <button class="add" id="custAdd">+ Add</button>
+    </div>
+    <div class="seg">
+      <button id="segPeople" class="on">People &amp; Businesses</button>
+      <button id="segShops">Contracting (NASTF)</button>
+    </div>
+    <div class="clist" id="custList"></div>
+  </div>
+
+  <div class="view" id="view-form">
+    <div class="form">
+      <label>Name</label>
+      <input id="fName" type="text" placeholder="Customer or business name">
+      <div id="typeWrap">
+        <label>Type</label>
+        <div class="typeseg">
+          <button id="tIndividual" class="on">Individual</button>
+          <button id="tBusiness">Business</button>
+        </div>
+      </div>
+      <label id="lblContact">Contact person (optional)</label>
+      <input id="fContact" type="text" placeholder="Who to ask for">
+      <label>Phone</label>
+      <input id="fPhone" type="tel" placeholder="(405) 555-0123">
+      <label>Email</label>
+      <input id="fEmail" type="email" placeholder="name@email.com">
+      <label>Address</label>
+      <input id="fAddress" type="text" placeholder="Street, city">
+      <div class="actions">
+        <button class="btn del" id="fDelete" style="display:none;">Delete</button>
+        <button class="btn save" id="fSave">Save customer</button>
+      </div>
+      <p class="note" id="formNote"></p>
+    </div>
+  </div>
+
+  <div class="view" id="view-payments">
+    <div class="section-note">
+      <strong style="color:var(--ink);">Payments app</strong><br><br>
+      Your counter + field payment app lives on its own Netlify site (it needs the
+      secure server piece). Once it's deployed, give me the link and I'll wire this
+      tile to open it directly.
+    </div>
+  </div>
+
+  <div class="view" id="view-inventory">
+    <div class="section-note">
+      <strong style="color:var(--ink);">Inventory — coming next</strong><br><br>
+      Parts, stock counts, and low-stock reorder prompts will live here. We'll build
+      it once the cloud login is in, so stock counts stay in sync across your devices.
+    </div>
+  </div>
+</div>
+
 <script>
-(function(){
-  var KEY='tks_launcher_disabled';
-  function read(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } }
-  function write(a){ try{ localStorage.setItem(KEY, JSON.stringify(a)); }catch(e){} }
+function readLS(k,f){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):f; }catch(e){ return f; } }
+function writeLS(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function getCustomers(){ return readLS("tks_customers", []); }
+function saveCustomers(a){ writeLS("tks_customers", a); }
+function getShops(){ return readLS("tks_shops", []); }
+function saveShops(a){ writeLS("tks_shops", a); }
 
-  var disabled = read();
+const views = ['home','customers','form','payments','inventory'];
+function show(name){
+  views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
+  const back = document.getElementById('backBtn');
+  back.style.display = (name==='home') ? 'none' : 'block';
+  back.dataset.to = (name==='form') ? 'customers' : 'home';
+  window.scrollTo(0,0);
+}
+document.getElementById('backBtn').onclick = function(){ show(this.dataset.to || 'home'); };
 
-  document.querySelectorAll('.tile').forEach(function(tile){
-    var app = tile.getAttribute('data-app');
-    var label = tile.querySelector('.pwr-label');
-    var btn = tile.querySelector('.power');
-    var reon = tile.querySelector('.reon-btn');
+document.querySelectorAll('[data-go]').forEach(b=>{
+  b.onclick = ()=>{ const t=b.dataset.go; if(t==='customers'){ renderCustomers(); } show(t); };
+});
+document.querySelectorAll('[data-open]').forEach(b=>{
+  b.onclick = ()=>{ location.href = b.dataset.open; };
+});
 
-    function paint(){
-      var isOff = disabled.indexOf(app) !== -1;
-      tile.classList.toggle('off', isOff);
-      tile.classList.toggle('active', !isOff);
-      label.textContent = isOff ? 'OFF' : 'ON';
-    }
-    paint();
+let mode = 'people';
+const segPeople = document.getElementById('segPeople');
+const segShops  = document.getElementById('segShops');
+segPeople.onclick = ()=>{ mode='people'; segPeople.classList.add('on'); segShops.classList.remove('on'); renderCustomers(); };
+segShops.onclick  = ()=>{ mode='shops';  segShops.classList.add('on');  segPeople.classList.remove('on'); renderCustomers(); };
+document.getElementById('custSearch').addEventListener('input', renderCustomers);
 
-    function toggle(e){
-      if(e){ e.preventDefault(); e.stopPropagation(); }
-      var i = disabled.indexOf(app);
-      if(i === -1){ disabled.push(app); } else { disabled.splice(i,1); }
-      write(disabled);
-      paint();
-    }
+function currentList(){ return mode==='shops' ? getShops() : getCustomers(); }
+function saveCurrent(a){ mode==='shops' ? saveShops(a) : saveCustomers(a); }
 
-    btn.addEventListener('click', toggle);
-    if(reon){ reon.addEventListener('click', toggle); }
+function renderCustomers(){
+  const q = document.getElementById('custSearch').value.trim().toLowerCase();
+  const store = currentList();
+  const list = store.slice().sort((a,b)=>(b.lastUsed||0)-(a.lastUsed||0));
+  const wrap = document.getElementById('custList');
+  const filtered = list.filter(c=>{
+    if(!q) return true;
+    return [c.customer,c.contact,c.phone,c.email,c.address].some(v=>(v||'').toLowerCase().includes(q));
   });
-})();
+  if(filtered.length===0){
+    wrap.innerHTML = '<div class="empty">'+(q?'No matches.':'No customers yet.<br>Tap “+ Add” to create one.')+'</div>';
+    return;
+  }
+  wrap.innerHTML = '';
+  filtered.forEach(c=>{
+    const idx = store.indexOf(c);
+    const isBiz = mode==='shops' || c.customerType==='business';
+    const row = document.createElement('div');
+    row.className = 'crow' + (isBiz?' biz':'');
+    const name = c.customer || '(no name)';
+    const sub = [c.phone, c.email].filter(Boolean).join('  ·  ') || (c.address||'');
+    row.innerHTML =
+      '<div class="avatar">'+(name.trim()[0]||'?').toUpperCase()+'</div>'+
+      '<div><div class="nm">'+esc(name)+'</div>'+(sub?'<div class="sub">'+esc(sub)+'</div>':'')+'</div>'+
+      '<span class="tag">'+(mode==='shops'?'CONTRACTING':(isBiz?'BUSINESS':'INDIVIDUAL'))+'</span>';
+    row.onclick = ()=> openForm(idx);
+    wrap.appendChild(row);
+  });
+}
+function esc(s){ return (s||'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+let editIndex = -1;
+let formType = 'individual';
+document.getElementById('custAdd').onclick = ()=> openForm(-1);
+
+function setType(t){
+  formType = t;
+  document.getElementById('tIndividual').classList.toggle('on', t==='individual');
+  document.getElementById('tBusiness').classList.toggle('on', t==='business');
+}
+document.getElementById('tIndividual').onclick = ()=> setType('individual');
+document.getElementById('tBusiness').onclick = ()=> setType('business');
+
+function openForm(idx){
+  editIndex = idx;
+  const isShop = mode==='shops';
+  document.getElementById('typeWrap').style.display = isShop ? 'none' : 'block';
+  const c = idx>=0 ? currentList()[idx] : {};
+  document.getElementById('fName').value = c.customer || '';
+  document.getElementById('fContact').value = c.contact || '';
+  document.getElementById('fPhone').value = c.phone || '';
+  document.getElementById('fEmail').value = c.email || '';
+  document.getElementById('fAddress').value = c.address || '';
+  setType(c.customerType === 'business' ? 'business' : 'individual');
+  document.getElementById('fDelete').style.display = idx>=0 ? 'block' : 'none';
+  document.getElementById('formNote').textContent = idx>=0 ? '' :
+    (isShop ? 'New Contracting (NASTF) account.' : 'New customer. Shared with Receipts automatically.');
+  show('form');
+  document.getElementById('fName').focus();
+}
+
+document.getElementById('fSave').onclick = ()=>{
+  const name = document.getElementById('fName').value.trim();
+  if(!name){ document.getElementById('formNote').textContent = 'Please enter a name.'; return; }
+  const isShop = mode==='shops';
+  const data = {
+    customer: name,
+    contact: document.getElementById('fContact').value.trim(),
+    phone: document.getElementById('fPhone').value.trim(),
+    email: document.getElementById('fEmail').value.trim(),
+    address: document.getElementById('fAddress').value.trim()
+  };
+  if(!isShop) data.customerType = formType;
+
+  const list = currentList();
+  if(editIndex>=0){
+    Object.assign(list[editIndex], data);
+    list[editIndex].lastUsed = Date.now();
+  } else {
+    const existing = list.find(c=>(c.customer||'').toLowerCase()===name.toLowerCase());
+    if(existing){ Object.assign(existing, data); existing.lastUsed = Date.now(); }
+    else { list.push(Object.assign({}, data, {lastUsed: Date.now()})); }
+  }
+  saveCurrent(list);
+  renderCustomers();
+  show('customers');
+};
+
+document.getElementById('fDelete').onclick = ()=>{
+  if(editIndex<0) return;
+  if(!confirm('Delete this '+(mode==='shops'?'account':'customer')+'? This can’t be undone.')) return;
+  const list = currentList();
+  list.splice(editIndex,1);
+  saveCurrent(list);
+  renderCustomers();
+  show('customers');
+};
 </script>
 </body>
 </html>
