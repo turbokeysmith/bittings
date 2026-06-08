@@ -14,6 +14,7 @@ import {
   head, header, trust, footer, mobilebar, reviewSlot, photoSlots
 } from './engine.mjs';
 import { CITIES, TIER_LABELS } from './cities.mjs';
+import { GLOSSARY, U, SVC, METRO, HOME, HUB, GROUP_LABELS, CONTACT, CITIES_ES } from './es.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SITE_DIR = join(__dirname, '..', 'site');
@@ -24,6 +25,13 @@ const TIERS = arg ? arg.split(',').map(s => Number(s.trim())) : [0,1,2,3,4];
 const built = CITIES.filter(c => TIERS.includes(c.tier));
 
 const tel = `tel:${PHONE_E164}`;
+
+// reciprocal hreflang alternates (EN canonical + ES draft + x-default)
+const altPair = (enPath, esPath) => [
+  { hreflang:'en', href:`${SITE}${enPath}` },
+  { hreflang:'es', href:`${SITE}${esPath}` },
+  { hreflang:'x-default', href:`${SITE}${enPath}` }
+];
 const ANNOTATE = `<!-- Local facts (landmarks/highways/distances) are best-effort from general
      OKC-metro knowledge; verify before relying. Review & photo slots are labeled
      placeholders — not shown as live testimonials until a real one is pasted in. -->`;
@@ -77,7 +85,8 @@ function cityServiceCards(c) {
 function renderCity(c) {
   const r = rel(1);
   const canonical = `${SITE}/${c.slug}`;
-  const h = head({ title:c.metaTitle, desc:c.metaDesc, canonical, depth:1 });
+  const h = head({ title:c.metaTitle, desc:c.metaDesc, canonical, depth:1,
+                   alts: altPair('/'+c.slug, '/es/'+c.slug) });
   const subNote = c.hasSub
     ? `<p>Browse our ${c.name} <a href="automotive/">automotive</a>, <a href="residential/">residential</a>, and <a href="commercial/">commercial</a> locksmith services below, or just call — we come to you.</p>`
     : '';
@@ -166,7 +175,8 @@ function renderSub(c, svc) {
   const hook = hookMap[svc];
   const r = rel(2);
   const canonical = `${SITE}/${c.slug}/${svc}`;
-  const h = head({ title: def.title(c.name), desc: def.desc(c.name, hook), canonical, depth:2 });
+  const h = head({ title: def.title(c.name), desc: def.desc(c.name, hook), canonical, depth:2,
+                   alts: altPair(`/${c.slug}/${svc}`, `/es/${c.slug}/${svc}`) });
   const siblings = ['automotive','residential','commercial'].filter(s => s !== svc);
   const sibLinks = siblings.map(s => `<a href="../${s}/">${s[0].toUpperCase()+s.slice(1)} in ${esc(c.name)}</a>`).join(' · ');
   const sectionHtml = def.sections.map(([t,p]) => `  <h2>${esc(t)}</h2>\n  <p>${esc(p)}</p>`).join('\n');
@@ -211,7 +221,7 @@ function renderHub() {
   const h = head({
     title:'Service Areas | Turbo Keysmith — Mobile Locksmith Across the OKC Metro',
     desc:'Turbo Keysmith is a mobile locksmith serving Oklahoma City and 24 nearby cities within about 30 miles — Edmond, Norman, Yukon, Moore, Guthrie and more. Find your city. Call 405-870-5397.',
-    canonical, depth:1
+    canonical, depth:1, alts: altPair('/service-areas', '/es/service-areas')
   });
   // Groups are distance bands (0 = closest). Within a group, keep the data-file
   // order, which is closest -> farthest from the Warr Acres base (do NOT alphabetize).
@@ -273,6 +283,8 @@ function renderRobots() {
 Allow: /
 # internal planning/copy docs — not for indexing
 Disallow: /*.md$
+# Spanish pages are an unpublished DRAFT (also noindex). Keep crawlers out until approved.
+Disallow: /es/
 
 Sitemap: ${SITE}/sitemap.xml
 `;
@@ -309,6 +321,409 @@ function patchHandPages() {
   }
 }
 
+// ============================================================
+//  /es/  — Spanish DRAFT tree (noindex, out of sitemap, hreflang, draft banner)
+// ============================================================
+const esBanner = () => `<div style="background:var(--amber);color:var(--amber-ink);text-align:center;font-weight:800;font-size:13px;padding:8px 14px;letter-spacing:.2px">${esc(U.banner)}</div>`;
+const esHablas = () => `<div style="text-align:center;padding:12px 18px;background:var(--surface)"><a class="btn btn-call" href="https://wa.me/14058705397">${esc(U.hablas)}</a></div>`;
+const tt = (s, city) => esc(s.replace(/\{city\}/g, city).replace(/\{label\}/g, city));
+
+function esHeadCommon({ title, desc, enPath, esPath, esDepth }) {
+  return head({ title, desc, canonical:`${SITE}${esPath}`, lang:'es', noindex:true,
+    assetRel:'../'.repeat(esDepth), alts: altPair(enPath, esPath) });
+}
+function esHeader(d) {
+  const a = '../'.repeat(d), e = '../'.repeat(d-1);
+  const N = U.nav;
+  return `<header class="site">
+  <div class="bar">
+    <a class="brand" href="${e}index.html"><img src="${a}assets/logo.png" alt="Turbo Keysmith logo"><b>Turbo Keysmith</b></a>
+    <nav class="main">
+      <a href="${e}index.html">${esc(N.home)}</a>
+      <a href="${e}automotive/">${esc(N.automotive)}</a>
+      <a href="${e}residential/">${esc(N.residential)}</a>
+      <a href="${e}commercial/">${esc(N.commercial)}</a>
+      <a href="${e}emergency/">${esc(N.emergency)}</a>
+      <a href="${a}faq/">${esc(N.faq)}</a>
+      <a href="${a}pay-now/">${esc(N.payNow)}</a>
+    </nav>
+    <a class="head-call" href="tel:${PHONE_E164}"><span class="btn btn-call">📞 ${PHONE_DISPLAY}</span></a>
+    <button class="navtoggle" aria-label="Menú" onclick="document.getElementById('m').classList.toggle('open')">☰</button>
+  </div>
+  <nav class="mobile" id="m">
+    <a href="${e}index.html">${esc(N.home)}</a>
+    <a href="${e}automotive/">${esc(N.automotive)}</a>
+    <a href="${e}residential/">${esc(N.residential)}</a>
+    <a href="${e}commercial/">${esc(N.commercial)}</a>
+    <a href="${e}emergency/">${esc(N.emergency)}</a>
+    <a href="${a}blog/">${esc(N.blog)}</a>
+    <a href="${a}certifications/">${esc(N.certifications)}</a>
+    <a href="${a}faq/">${esc(N.faq)}</a>
+    <a href="${a}pay-now/">${esc(N.payNow)}</a>
+  </nav>
+</header>`;
+}
+function esTrust() {
+  return `<div class="trust"><div class="wrap">
+${U.trust.map(([ic,b,s]) => `  <div class="item"><span class="ic">${ic}</span><span class="big">${esc(b)}</span><span>${esc(s)}</span></div>`).join('\n')}
+</div></div>`;
+}
+function esFooter(d) {
+  const a = '../'.repeat(d), e = '../'.repeat(d-1), F = U.footer, N = U.nav;
+  return `<footer class="site"><div class="wrap">
+  <div class="cols">
+    <div><h4>Turbo Keysmith</h4>
+      <p style="color:#c2cad3;margin:0 0 10px">${esc(F.tagline)}<br>4201 N MacArthur Blvd, Warr Acres, OK 73122</p>
+      <a href="tel:${PHONE_E164}"><strong style="color:#fff">${PHONE_DISPLAY}</strong></a></div>
+    <div><h4>${esc(F.services)}</h4>
+      <a href="${e}automotive/">${esc(N.automotive)}</a><a href="${e}residential/">${esc(N.residential)}</a>
+      <a href="${e}commercial/">${esc(N.commercial)}</a><a href="${e}emergency/">${esc(N.emergency)}</a></div>
+    <div><h4>${esc(F.company)}</h4>
+      <a href="${a}blog/">${esc(N.blog)}</a><a href="${a}certifications/">${esc(N.certifications)}</a>
+      <a href="${a}faq/">${esc(N.faq)}</a><a href="${e}contact/">${esc(N.contact)}</a></div>
+    <div><h4>${esc(F.areas)}</h4>
+      <a href="${e}service-areas/"><strong style="color:#fff">${esc(F.allAreas)}</strong></a>
+      <a href="${e}oklahoma-city/">Oklahoma City</a><a href="${e}edmond/">Edmond</a>
+      <a href="${e}norman/">Norman</a><a href="${e}yukon/">Yukon</a></div>
+  </div>
+  <div class="social" style="margin-top:22px">
+    <a href="https://www.facebook.com/247826765080233">Facebook</a><a href="https://www.instagram.com/turbokeysmith/">Instagram</a>
+    <a href="https://www.tiktok.com/@turbokeysmith">TikTok</a><a href="https://www.youtube.com/@TurboKeysmith">YouTube</a>
+  </div>
+  <div class="legal"><span>${esc(F.copyright)}</span>
+    <a class="staff-login" href="${a}../cloud-test.html" rel="nofollow">${esc(F.staff)}</a></div>
+</div></footer>`;
+}
+function esMobilebar() {
+  return `<nav class="mobilebar">
+  <a class="call" href="tel:${PHONE_E164}"><span class="ic">📞</span>${esc(U.mobilebar.call)}</a>
+  <a class="text" href="sms:${PHONE_E164}"><span class="ic">💬</span>${esc(U.mobilebar.text)}</a>
+  <a class="wa" href="https://wa.me/14058705397"><span class="ic">🟢</span>${esc(U.mobilebar.wa)}</a>
+</nav>`;
+}
+function esWrap(h, d, body) {
+  return `${h}
+<body>
+${esBanner()}
+${esHeader(d)}
+${esHablas()}
+${esTrust()}
+${body}
+${esFooter(d)}
+${esMobilebar()}
+</body></html>
+`;
+}
+const esReviewSlot = (label) => `<div class="widget-slot"><b>${tt(U.reviewSlot, label)}</b>
+    <small>${tt(U.reviewSlotSub, label)}</small></div>`;
+function esPhotoSlots(label) {
+  const W = U.work;
+  return `<section class="surface"><div class="wrap">
+  <div class="sec-head"><h2>${esc(W.title)}</h2><p>${tt(W.sub, label)}</p></div>
+  <div class="ba">
+    <div><div class="tag">${esc(W.before)} → ${esc(W.after)}</div><div class="pair">
+      <div class="photo-slot"><span>📷 ${esc(W.before)}<small>${esc(W.add)}</small></span></div>
+      <div class="photo-slot"><span>📷 ${esc(W.after)}<small>${esc(W.add)}</small></span></div></div></div>
+    <div><div class="tag">${esc(W.onjob)}</div><div class="pair">
+      <div class="photo-slot"><span>📷 ${esc(W.photo)}<small>${esc(W.add)}</small></span></div>
+      <div class="photo-slot"><span>📷 ${esc(W.photo)}<small>${esc(W.add)}</small></span></div></div></div>
+  </div>
+</div></section>`;
+}
+function esSteps(city) {
+  const H = U.howWorks;
+  return `<section><div class="wrap">
+  <div class="sec-head"><h2>${esc(H.title)}</h2><p>${esc(H.sub)}</p></div>
+  <div class="steps">
+    <div class="step"><div class="num">1</div><h3>${esc(H.s1[0])}</h3><p>${esc(H.s1[1])}</p></div>
+    <div class="step"><div class="num">2</div><h3>${esc(H.s2t)}</h3><p>${tt(H.s2, city)}</p></div>
+    <div class="step"><div class="num">3</div><h3>${esc(H.s3[0])}</h3><p>${esc(H.s3[1])}</p></div>
+  </div>
+</div></section>`;
+}
+function esServiceCards(c, d) {
+  const e = '../'.repeat(d-1), N = U.nav, C = U.cardCta;
+  const card = (href, icon, key, desc) => `    <a class="scard" href="${href}">
+      <div class="icon">${icon}</div><h3>${esc(N[key])}</h3>
+      <p>${esc(desc)}</p>
+      <span class="more">${esc(C[key])} →</span>
+    </a>`;
+  if (c.hasSub) {
+    return [
+      card(`automotive/`, '🚗', 'automotive', c.es.sub.auto),
+      card(`residential/`, '🏠', 'residential', c.es.sub.res),
+      card(`commercial/`, '🏢', 'commercial', c.es.sub.comm),
+      card(`${e}emergency/`, '🚨', 'emergency', U.cardDesc.emerSub(c.name))
+    ].join('\n');
+  }
+  return [
+    card(`${e}automotive/`, '🚗', 'automotive', U.cardDesc.autoSub(c.name)),
+    card(`${e}residential/`, '🏠', 'residential', U.cardDesc.resSub(c.name)),
+    card(`${e}commercial/`, '🏢', 'commercial', U.cardDesc.commSub(c.name)),
+    card(`${e}emergency/`, '🚨', 'emergency', U.cardDesc.emerSub(c.name))
+  ].join('\n');
+}
+function esCity(c) {
+  const d = 2, e = '../', E = c.es;
+  const h = esHeadCommon({ title:E.metaTitle, desc:E.metaDesc, enPath:'/'+c.slug, esPath:'/es/'+c.slug, esDepth:d });
+  const subNote = c.hasSub
+    ? `<p>Explora nuestros servicios de cerrajería en ${esc(c.name)} — <a href="automotive/">automotriz</a>, <a href="residential/">residencial</a> y <a href="commercial/">comercial</a> — abajo, o solo llama. Vamos a ti.</p>`
+    : '';
+  const body = `${ANNOTATE}
+<section><div class="wrap"><div class="prose">
+  <p style="font-size:13px;color:var(--dim);margin:0 0 6px"><a href="${e}service-areas/">${esc(U.footer.areas)}</a> › ${esc(c.name)}</p>
+  <h1>${esc(E.h1)}</h1>
+  <p>${esc(E.intro)}</p>
+  ${subNote}
+  <p style="text-align:center;margin:24px 0 0"><a class="btn btn-call btn-lg" href="${tel}">${tt(U.callCity, c.name)}</a></p>
+</div></div></section>
+
+<section class="surface"><div class="wrap">
+  <div class="sec-head"><h2>${tt(U.citySvcHead, c.name)}</h2><p>${esc(U.citySvcSub)}</p></div>
+  <div class="cards">
+${esServiceCards(c, d)}
+  </div>
+</div></section>
+
+${esSteps(c.name)}
+
+<section class="surface"><div class="wrap">
+  <div class="sec-head"><h2>${tt(U.whatCustomers, c.name)}</h2><p>${esc(U.realReviews)}</p></div>
+  ${esReviewSlot(c.name)}
+</div></section>
+
+${esPhotoSlots(c.name)}
+
+<section><div class="wrap">
+  <div class="sec-head"><h2>${tt(U.needHead, c.name)}</h2><p>${esc(U.needSub)}</p></div>
+  <p style="text-align:center;margin:0"><a class="btn btn-call btn-lg" href="${tel}">📞 ${PHONE_DISPLAY}</a></p>
+  <p style="text-align:center;margin:16px 0 0"><a href="${e}service-areas/">${esc(U.seeAll)}</a></p>
+</div></section>`;
+  return esWrap(h, d, body);
+}
+function esSub(c, svc) {
+  const d = 3, e = '../'.repeat(d-1), def = SVC[svc];
+  const hook = { automotive:c.es.sub.auto, residential:c.es.sub.res, commercial:c.es.sub.comm }[svc];
+  const h = esHeadCommon({ title:def.title(c.name), desc:def.desc(c.name, hook), enPath:`/${c.slug}/${svc}`, esPath:`/es/${c.slug}/${svc}`, esDepth:d });
+  const sibs = ['automotive','residential','commercial'].filter(s => s !== svc)
+    .map(s => `<a href="../${s}/">${esc(U.nav[s])} en ${esc(c.name)}</a>`).join(' · ');
+  const sect = def.sections.map(([t,p]) => `  <h2>${esc(t)}</h2>\n  <p>${esc(p)}</p>`).join('\n');
+  const body = `${ANNOTATE}
+<section><div class="wrap"><div class="prose">
+  <p style="font-size:13px;color:var(--dim);margin:0 0 6px"><a href="${e}service-areas/">${esc(U.footer.areas)}</a> › <a href="../">${esc(c.name)}</a> › ${esc(U.nav[svc])}</p>
+  <h1>${esc(def.h1(c.name))}</h1>
+  <p>${esc(def.lead(c.name, hook))}</p>
+  <p>${esc(def.lead2(c.name))}</p>
+${sect}
+  <p style="margin-top:20px">${tt(U.moreFor, c.name)} ${sibs} · <a href="${e}emergency/">${esc(U.emergency24)}</a></p>
+  <p style="text-align:center;margin:24px 0 0"><a class="btn btn-call btn-lg" href="${tel}">${esc(def.cta(c.name))}</a></p>
+  <p style="text-align:center;margin:14px 0 0"><a href="../">${tt(U.backCity, c.name)}</a></p>
+</div></div></section>
+
+<section class="surface"><div class="wrap">
+  <div class="sec-head"><h2>${tt(U.whatCustomers, c.name)}</h2></div>
+  ${esReviewSlot(c.name + ' ' + U.nav[svc].toLowerCase())}
+</div></section>
+
+${esPhotoSlots(c.name + ' ' + U.nav[svc].toLowerCase())}`;
+  return esWrap(h, d, body);
+}
+function esHub(esBuilt) {
+  const d = 2;
+  const h = esHeadCommon({ title:HUB.title, desc:HUB.desc, enPath:'/service-areas', esPath:'/es/service-areas', esDepth:d });
+  const groups = [0,1,2,3].map(t => {
+    const list = esBuilt.filter(c => c.tier === t)
+      .map(c => `      <a class="scard" href="../${c.slug}/"><h3>${esc(c.name)}</h3><span class="more">${tt(HUB.cityCta, c.name)}</span></a>`).join('\n');
+    if (!list) return '';
+    return `  <div class="sec-head" style="margin-top:8px"><h2>${esc(GROUP_LABELS[t])}</h2></div>
+  <div class="cards">
+${list}
+  </div>`;
+  }).filter(Boolean).join('\n\n');
+  const body = `${ANNOTATE}
+<section><div class="wrap"><div class="prose" style="text-align:center">
+  <h1>${esc(HUB.h1)}</h1>
+  <p>${esc(HUB.intro)}</p>
+  <p style="margin:20px 0 0"><a class="btn btn-call btn-lg" href="${tel}">📞 ${PHONE_DISPLAY}</a></p>
+</div></div></section>
+<section class="surface"><div class="wrap">
+${groups}
+</div></section>
+<section><div class="wrap">
+  <div class="sec-head"><h2>${esc(HUB.mapHead)}</h2><p>${esc(HUB.mapSub)}</p></div>
+  <div class="mapbox"><iframe title="Turbo Keysmith — Oklahoma City" loading="lazy" src="https://www.google.com/maps?q=Warr+Acres,+Oklahoma&z=9&output=embed"></iframe></div>
+</div></section>`;
+  return esWrap(h, d, body);
+}
+function esService(key) {
+  const d = 2, m = METRO[key];
+  const h = esHeadCommon({ title:m.title, desc:m.desc, enPath:'/'+m.slug, esPath:'/es/'+m.slug, esDepth:d });
+  const leads = m.leads.map(p => `  <p>${esc(p)}</p>`).join('\n');
+  const sect = m.sections.map(([t,p]) => `  <h2>${esc(t)}</h2>\n  <p>${esc(p)}</p>`).join('\n');
+  const body = `${ANNOTATE}
+<section><div class="wrap"><div class="prose">
+  <h1>${esc(m.h1)}</h1>
+${leads}
+${sect}
+  <p style="text-align:center;margin:26px 0 0"><a class="btn btn-call btn-lg" href="${tel}">${esc(m.cta)}</a></p>
+</div></div></section>
+${esPhotoSlots(U.nav[key] || key)}`;
+  return esWrap(h, d, body);
+}
+function esHome() {
+  const d = 1, m = METRO;
+  const h = esHeadCommon({ title:HOME.title, desc:HOME.desc, enPath:'/', esPath:'/es/', esDepth:d });
+  const N = U.nav, C = U.cardCta;
+  const card = (href, icon, key, desc) => `    <a class="scard" href="${href}"><div class="icon">${icon}</div><h3>${esc(N[key])}</h3><p>${esc(desc)}</p><span class="more">${esc(C[key])} →</span></a>`;
+  const body = `<div class="hero"><div class="wrap">
+  <h1>${esc(HOME.h1)}</h1>
+  <p class="lead">${esc(HOME.lead)}</p>
+  <div class="btnrow">
+    <a class="btn btn-call btn-lg" href="tel:${PHONE_E164}">${esc(HOME.callBtn)}</a>
+    <a class="btn btn-ghost btn-lg" href="https://wa.me/14058705397">💬 WhatsApp</a>
+  </div>
+</div></div>
+
+<section><div class="wrap">
+  <div class="sec-head"><h2>${esc(HOME.servicesHead)}</h2><p>${esc(HOME.servicesSub)}</p></div>
+  <div class="cards">
+${card('automotive/', '🚗', 'automotive', U.cardDesc.autoSub('OKC'))}
+${card('residential/', '🏠', 'residential', U.cardDesc.resSub('OKC'))}
+${card('commercial/', '🏢', 'commercial', U.cardDesc.commSub('OKC'))}
+${card('emergency/', '🚨', 'emergency', U.cardDesc.emerSub('OKC'))}
+  </div>
+</div></section>
+
+${esSteps('OKC')}
+
+<section class="surface"><div class="wrap">
+  <div class="sec-head"><h2>${esc(HOME.areaHead)}</h2><p>${esc(HOME.areaSub)}</p></div>
+  <div class="mapbox"><iframe title="Oklahoma City" loading="lazy" src="https://www.google.com/maps?q=Warr+Acres,+Oklahoma&z=10&output=embed"></iframe></div>
+  <p style="text-align:center;margin:20px 0 0"><a href="service-areas/">${esc(U.footer.allAreas)}</a></p>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head"><h2>${esc(HOME.contactHead)}</h2><p>${esc(HOME.contactSub)}</p></div>
+  <div class="info-grid">
+    <div class="card"><b>${esc(HOME.infoCall)}</b><a href="tel:${PHONE_E164}">405-870-5397</a></div>
+    <div class="card"><b>${esc(HOME.infoAddr)}</b>4201 N MacArthur Blvd,<br>Warr Acres, OK 73122</div>
+    <div class="card"><b>${esc(HOME.infoHours)}</b>${HOME.hoursVal}</div>
+    <div class="card"><b>${esc(HOME.infoArea)}</b>${esc(HOME.areaVal)}</div>
+  </div>
+  <p style="text-align:center;margin:24px 0 0"><a class="btn btn-red btn-lg" href="contact/">${esc(HOME.sendMsg)}</a></p>
+</div></section>`;
+  return esWrap(h, d, body);
+}
+function esContact() {
+  const d = 2, a = '../'.repeat(d), C = CONTACT;
+  const h = esHeadCommon({ title:C.title, desc:C.desc, enPath:'/contact', esPath:'/es/contact', esDepth:d });
+  const opts = C.options.map(o => `      <option>${esc(o)}</option>`).join('\n');
+  const body = `<section><div class="wrap">
+  <div class="sec-head"><h1>${esc(C.h1)}</h1><p>${esc(C.lead)} <a href="tel:${PHONE_E164}">405-870-5397</a>.</p></div>
+  <form class="cform" id="contactForm" novalidate>
+    <label for="cName">${esc(C.fName)} <span class="req">*</span></label>
+    <input id="cName" type="text" autocomplete="name" placeholder="${esc(C.phName)}" required>
+    <label for="cPhone">${esc(C.fPhone)} <span class="req">*</span></label>
+    <input id="cPhone" type="tel" autocomplete="tel" placeholder="(405) 555-0123" required>
+    <label for="cEmail">${esc(C.fEmail)}</label>
+    <input id="cEmail" type="email" autocomplete="email" placeholder="nombre@correo.com">
+    <label for="cAddress">${esc(C.fAddress)}</label>
+    <input id="cAddress" type="text" autocomplete="street-address" placeholder="Calle, ciudad">
+    <label for="cService">${esc(C.fService)} <span class="req">*</span></label>
+    <select id="cService" required>
+      <option value="">${esc(C.choose)}</option>
+${opts}
+    </select>
+    <label for="cNotes">${esc(C.fNotes)}</label>
+    <textarea id="cNotes" placeholder="${esc(C.phNotes)}"></textarea>
+    <div class="submitrow"><button class="btn btn-call btn-lg" type="submit">${esc(C.send)}</button></div>
+    <p class="msg" id="cMsg" role="alert" aria-live="assertive"></p>
+  </form>
+  <div class="cf-success" id="cSuccess" role="status" aria-live="polite">
+    <div class="big" aria-hidden="true">✅</div>
+    <h2>${esc(C.successH)}</h2><p>${esc(C.successP)}</p>
+    <a class="btn btn-call btn-lg" href="tel:${PHONE_E164}">📞 405-870-5397</a>
+  </div>
+  <p class="cf-note">${esc(C.noteTalk)}</p>
+</div></section>
+<style>
+  .cform{max-width:600px;margin:0 auto;background:#fff;border:1px solid var(--edge);border-radius:var(--r);box-shadow:var(--shadow);padding:26px;}
+  .cform label{display:block;font-weight:700;font-size:14px;margin:14px 0 6px;color:var(--ink);}
+  .cform .req{color:var(--red);}
+  .cform input,.cform select,.cform textarea{width:100%;border:1px solid var(--edge);border-radius:11px;padding:13px 14px;font-size:16px;font-family:inherit;color:var(--ink);background:#fff;outline:none;}
+  .cform textarea{min-height:90px;resize:vertical;}
+  .cform .err{border-color:var(--red)!important;}
+  .cform .msg{margin-top:16px;font-weight:600;} .cform .msg.bad{color:var(--red);}
+  .cform .submitrow{margin-top:22px;} .cform .btn{width:100%;}
+  .cf-note{max-width:600px;margin:14px auto 0;font-size:13px;color:var(--dim);text-align:center;}
+  .cf-success{max-width:600px;margin:0 auto;background:#fff;border:1px solid var(--edge);border-radius:var(--r);box-shadow:var(--shadow);padding:34px 26px;text-align:center;display:none;}
+  .cf-success .big{font-size:46px;}
+</style>
+<script src="${a}app/store.js"></script>
+<script>
+(function(){var f=document.getElementById('contactForm'),m=document.getElementById('cMsg');
+function g(i){return document.getElementById(i);}
+f.addEventListener('submit',function(e){e.preventDefault();m.textContent='';m.className='msg';
+var bad=[];['cName','cPhone','cService'].forEach(function(i){g(i).classList.remove('err');});
+if(!g('cName').value.trim()){g('cName').classList.add('err');bad.push('cName');}
+if(!g('cPhone').value.trim()){g('cPhone').classList.add('err');bad.push('cPhone');}
+if(!g('cService').value){g('cService').classList.add('err');bad.push('cService');}
+if(bad.length){m.textContent=${JSON.stringify(C.validate)};m.className='msg bad';g(bad[0]).focus();return;}
+try{TKS.Customers.addLead({customer:g('cName').value.trim(),phone:g('cPhone').value.trim(),email:g('cEmail').value.trim(),address:g('cAddress').value.trim(),serviceNeeded:g('cService').value,notes:g('cNotes').value.trim(),lang:'es'});}catch(err){}
+f.style.display='none';g('cSuccess').style.display='block';window.scrollTo({top:0,behavior:'smooth'});});})();
+</script>`;
+  return esWrap(h, d, body);
+}
+function esGlossaryMd() {
+  const rows = GLOSSARY.map(([en, es]) => `| ${en} | ${es} |`).join('\n');
+  return `# Turbo Keysmith — Spanish glossary (DRAFT)
+
+These are the chosen Spanish translations for key locksmith terms. To change one,
+edit it in \`_build/es.mjs\` (the GLOSSARY array and the templates that use it),
+then re-run \`node _build/generate.mjs\` — it updates every /es/ page at once.
+
+| English | Español (chosen) |
+|---|---|
+${rows}
+`;
+}
+
+// English hand pages that have an /es/ twin get reciprocal hreflang (idempotent).
+function patchEnHreflang() {
+  const map = [
+    ['index.html','/','/es/'], ['automotive/index.html','/automotive','/es/automotive'],
+    ['residential/index.html','/residential','/es/residential'], ['commercial/index.html','/commercial','/es/commercial'],
+    ['emergency/index.html','/emergency','/es/emergency'], ['contact/index.html','/contact','/es/contact']
+  ];
+  for (const [rp, en, es] of map) {
+    const full = join(SITE_DIR, rp);
+    if (!existsSync(full)) continue;
+    let html = readFileSync(full, 'utf8');
+    if (/rel="alternate" hreflang=/.test(html)) continue;
+    const block = `\n<link rel="alternate" hreflang="en" href="${SITE}${en}">\n<link rel="alternate" hreflang="es" href="${SITE}${es}">\n<link rel="alternate" hreflang="x-default" href="${SITE}${en}">`;
+    html = html.replace(/(<link rel="canonical"[^>]*>)/, `$1${block}`);
+    writeFileSync(full, html, 'utf8');
+    console.log('  hreflang:', rp);
+  }
+}
+
+function buildEs() {
+  const esBuilt = built.map(c => ({ ...c, es: CITIES_ES[c.slug] }));
+  const missing = esBuilt.filter(c => !c.es).map(c => c.slug);
+  if (missing.length) throw new Error('Missing ES translation for: ' + missing.join(', '));
+  let n = 0;
+  write('es/index.html', esHome()); n++;
+  for (const key of ['automotive','residential','commercial','emergency']) { write(`es/${key}/index.html`, esService(key)); n++; }
+  write('es/service-areas/index.html', esHub(esBuilt)); n++;
+  write('es/contact/index.html', esContact()); n++;
+  for (const c of esBuilt) {
+    write(`es/${c.slug}/index.html`, esCity(c)); n++;
+    if (c.hasSub) for (const svc of ['automotive','residential','commercial']) { write(`es/${c.slug}/${svc}/index.html`, esSub(c, svc)); n++; }
+  }
+  write('es/GLOSSARY.md', esGlossaryMd());
+  return n;
+}
+
 // ---------- run ----------
 console.log(`Building tiers [${TIERS.join(',')}] — ${built.length} cities`);
 let count = 0;
@@ -324,6 +739,9 @@ write('service-areas/index.html', renderHub());
 write('sitemap.xml', renderSitemap());
 write('robots.txt', renderRobots());
 console.log(`Wrote ${count} city pages + hub + sitemap + robots`);
+const esN = buildEs();
+console.log(`Wrote ${esN} Spanish DRAFT pages under /es/ (noindex, not in sitemap) + glossary`);
 console.log('Patching hand-maintained pages…');
 patchHandPages();
+patchEnHreflang();
 console.log('Done.');

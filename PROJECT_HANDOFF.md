@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-08 14:37 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-08 15:49 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -40,8 +40,8 @@ phone 405-870-5397, based at 4201 N MacArthur Blvd, Warr Acres, OK 73122.
 ## 3. Public website (`/site/`) — what was built
 A big SEO expansion so the business ranks for "locksmith in <city>" across the metro.
 
-- **102 total pages**, each with a unique page title, meta description, and H1 (verified — no
-  duplicates).
+- **102 live English pages** (plus 98 unpublished Spanish draft pages — see the Spanish item
+  below), each with a unique page title, meta description, and H1 (verified — no duplicates).
 - **25 city/area pages** covering the metro within **a ~30-mile radius** of the Warr Acres base
   (Blanchard is the farthest city we keep). They're grouped by distance and ordered
   closest→farthest:
@@ -61,9 +61,23 @@ A big SEO expansion so the business ranks for "locksmith in <city>" across the m
   order; linked from the footer of every page (kept out of the top menu on purpose).
 - **`sitemap.xml`** (102 URLs) and **`robots.txt`**.
 - **Schema.org `areaServed`** lists all **25 cities** (closest→farthest) on every page.
-- **Spanish:** the same 25-city structure/order shows in Spanish via the language toggle (it's
-  one set of pages with a toggle, not a separate `/es/` tree), including translated group
-  headings.
+- **Spanish `/es/` site — full DRAFT, UNPUBLISHED (98 pages).** A complete Spanish mirror of the
+  25-city structure lives under `/site/es/` (Spanish homepage, 25 city pages + 66 sub-pages, the
+  service-areas hub, contact form, and the 4 metro service pages). It is a **machine-translation
+  draft pending proofreading** and is intentionally held back:
+  - Every `/es/` page shows a visible **"BORRADOR — pendiente de revisión / DRAFT — pending
+    proofreading"** banner.
+  - Every `/es/` page is **`noindex`**, kept **out of `sitemap.xml`**, and **blocked in
+    `robots.txt`** (`Disallow: /es/`) — so search engines won't show it until you approve.
+  - **hreflang** tags link each English page to its Spanish twin and back (reciprocal +
+    x-default), ready for when a page is approved (just remove its `noindex`).
+  - A **"¿Hablas español? Text/WhatsApp"** button is on every `/es/` page.
+  - A **glossary** of key locksmith terms (key fob, rekey, deadbolt, transponder, lockout, …)
+    with the chosen Spanish translations is at `/site/es/GLOSSARY.md`. The proofreader fixes a
+    term there / in `_build/es.mjs` once and re-runs `node _build/generate.mjs` to apply it
+    everywhere.
+  - *(Separate from the older client-side 🌐 EN/ES toggle on the English pages, which only
+    translates the shared chrome. When `/es/` is approved, repoint that toggle at `/es/`.)*
 - **Contact form** at `/site/contact/` (name, phone, email, address, service needed) that saves
   a lead to the Customers list. See "Stubbed" notes.
 - **Spanish toggle (🌐 EN/ES)** in the header of every public page (`/site/assets/i18n.js`).
@@ -180,10 +194,12 @@ site/                   The public website (115 pages)
   site/service-areas/   Service-area hub
   site/<city>/          City pages (+ /automotive /residential /commercial sub-pages)
   site/assets/styles.css  Website design system
-  site/assets/i18n.js     Spanish/English toggle
+  site/assets/i18n.js     Spanish/English chrome toggle (older, client-side)
   site/sitemap.xml, site/robots.txt
   site/app/store.js     Copy of the data layer for the contact form
+  site/es/              Spanish DRAFT site (noindex, unpublished); site/es/GLOSSARY.md = term list
 _build/                 Developer-only generator for the city pages
+  _build/es.mjs         Spanish source: glossary, UI strings, and per-city translations (edit here)
 PROJECT_HANDOFF.md      This file
 ```
 
@@ -219,6 +235,12 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-08
+- **Spanish `/es/` site built as an unpublished DRAFT (15:49):** 98 machine-translated pages
+  mirroring the 25-city English structure (home, cities + sub-pages, hub, contact, metro service
+  pages). Every page is `noindex`, excluded from the sitemap, blocked in `robots.txt`, carries a
+  visible DRAFT banner and a "¿Hablas español?" Text/WhatsApp button, and has reciprocal hreflang
+  with its English twin. Added a locksmith-term glossary (`/site/es/GLOSSARY.md`) and the Spanish
+  source in `_build/es.mjs` so the proofreader fixes terms once and regenerates.
 - **Service area tightened to ~30 miles (14:37):** removed 14 farther towns (McLoud, Purcell,
   Crescent, Kingfisher, Lexington, Shawnee, Chickasha, Tecumseh, Chandler, Stroud, Prague,
   Cushing, Stillwater, Pauls Valley) and their pages/sub-pages. Kept 25 cities, re-grouped by
