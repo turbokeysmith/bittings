@@ -76,8 +76,8 @@
 
 <section><div class="wrap">
   <div class="sec-head">
-    <h1>Request a Locksmith</h1>
-    <p>Tell us what's going on and how to reach you — we'll get right back to you. Need help now?
+    <h1 data-i18n="Solicita un cerrajero">Request a Locksmith</h1>
+    <p data-i18n-html="Cuéntanos qué pasa y cómo contactarte — te responderemos enseguida. ¿Necesitas ayuda ya? <a href=&quot;tel:+14058705397&quot;>Llama al 405-870-5397</a>.">Tell us what's going on and how to reach you — we'll get right back to you. Need help now?
     <a href="tel:+14058705397">Call 405-870-5397</a>.</p>
   </div>
 
@@ -85,47 +85,47 @@
        localStorage via TKS.Customers.addLead(). No data is sent anywhere yet.
        Wiring it to the cloud (and email/SMS alerts) is a CLOUD DECISION — see notes. -->
   <form class="cform" id="contactForm" novalidate>
-    <label for="cName">Name <span class="req">*</span></label>
-    <input id="cName" name="name" type="text" autocomplete="name" placeholder="Your name">
+    <label for="cName" data-i18n-html="Nombre <span class=&quot;req&quot;>*</span>">Name <span class="req">*</span></label>
+    <input id="cName" name="name" type="text" autocomplete="name" placeholder="Your name" data-i18n-ph="Tu nombre" required>
 
-    <label for="cPhone">Phone <span class="req">*</span></label>
-    <input id="cPhone" name="phone" type="tel" autocomplete="tel" placeholder="(405) 555-0123">
+    <label for="cPhone" data-i18n-html="Teléfono <span class=&quot;req&quot;>*</span>">Phone <span class="req">*</span></label>
+    <input id="cPhone" name="phone" type="tel" autocomplete="tel" placeholder="(405) 555-0123" required>
 
-    <label for="cEmail">Email</label>
-    <input id="cEmail" name="email" type="email" autocomplete="email" placeholder="name@email.com">
+    <label for="cEmail" data-i18n="Correo electrónico">Email</label>
+    <input id="cEmail" name="email" type="email" autocomplete="email" placeholder="name@email.com" data-i18n-ph="nombre@correo.com">
 
-    <label for="cAddress">Address</label>
-    <input id="cAddress" name="address" type="text" autocomplete="street-address" placeholder="Street, city">
+    <label for="cAddress" data-i18n="Dirección">Address</label>
+    <input id="cAddress" name="address" type="text" autocomplete="street-address" placeholder="Street, city" data-i18n-ph="Calle, ciudad">
 
-    <label for="cService">Service needed <span class="req">*</span></label>
-    <select id="cService" name="service">
-      <option value="">Choose one…</option>
-      <option>Car key replacement / fob</option>
-      <option>Car lockout</option>
-      <option>Home rekey / lock install</option>
-      <option>Home lockout</option>
-      <option>Business / commercial locks</option>
-      <option>Emergency / 24-hour</option>
-      <option>Something else</option>
+    <label for="cService" data-i18n-html="Servicio que necesitas <span class=&quot;req&quot;>*</span>">Service needed <span class="req">*</span></label>
+    <select id="cService" name="service" required>
+      <option value="" data-i18n="Elige una opción…">Choose one…</option>
+      <option data-i18n="Reemplazo de llave / control de auto">Car key replacement / fob</option>
+      <option data-i18n="Auto bloqueado">Car lockout</option>
+      <option data-i18n="Recodificar / instalar cerradura de casa">Home rekey / lock install</option>
+      <option data-i18n="Casa bloqueada">Home lockout</option>
+      <option data-i18n="Cerraduras de negocio / comercial">Business / commercial locks</option>
+      <option data-i18n="Emergencia / 24 horas">Emergency / 24-hour</option>
+      <option data-i18n="Otra cosa">Something else</option>
     </select>
 
-    <label for="cNotes">Details (optional)</label>
-    <textarea id="cNotes" name="notes" placeholder="Vehicle year/make/model, what happened, where you are…"></textarea>
+    <label for="cNotes" data-i18n="Detalles (opcional)">Details (optional)</label>
+    <textarea id="cNotes" name="notes" placeholder="Vehicle year/make/model, what happened, where you are…" data-i18n-ph="Año/marca/modelo del auto, qué pasó, dónde estás…"></textarea>
 
     <div class="submitrow">
-      <button class="btn btn-call btn-lg" type="submit">Send request</button>
+      <button class="btn btn-call btn-lg" type="submit" data-i18n="Enviar solicitud">Send request</button>
     </div>
-    <p class="msg" id="cMsg"></p>
+    <p class="msg" id="cMsg" role="alert" aria-live="assertive"></p>
   </form>
 
-  <div class="cf-success" id="cSuccess">
-    <div class="big">✅</div>
-    <h2>Got it — thanks!</h2>
-    <p>Your request is saved and we'll reach out shortly. For anything urgent, call us now.</p>
+  <div class="cf-success" id="cSuccess" role="status" aria-live="polite">
+    <div class="big" aria-hidden="true">✅</div>
+    <h2 data-i18n="¡Listo — gracias!">Got it — thanks!</h2>
+    <p data-i18n="Tu solicitud se guardó y te contactaremos pronto. Si es urgente, llámanos ahora.">Your request is saved and we'll reach out shortly. For anything urgent, call us now.</p>
     <a class="btn btn-call btn-lg" href="tel:+14058705397">📞 405-870-5397</a>
   </div>
 
-  <p class="cf-note">Prefer to talk? Call or text <a href="tel:+14058705397">405-870-5397</a> —
+  <p class="cf-note" data-i18n-html="¿Prefieres hablar? Llama o envía un texto al <a href=&quot;tel:+14058705397&quot;>405-870-5397</a> — 24 horas, lunes a sábado. 4201 N MacArthur Blvd, Warr Acres, OK 73122.">Prefer to talk? Call or text <a href="tel:+14058705397">405-870-5397</a> —
   24 hours, Monday–Saturday. 4201 N MacArthur Blvd, Warr Acres, OK 73122.</p>
 </div></section>
 
@@ -163,6 +163,8 @@
   <a class="wa" href="https://wa.me/14058705397"><span class="ic">🟢</span>WhatsApp</a>
 </nav>
 
+<!-- Language toggle (EN/ES) -->
+<script src="../assets/i18n.js" defer></script>
 <!-- Shared data layer (localStorage today; cloud-swap point inside) -->
 <script src="../app/store.js"></script>
 <script>
@@ -184,7 +186,9 @@
     if(!phone){ field('cPhone').classList.add('err'); bad.push('cPhone'); }
     if(!service){ field('cService').classList.add('err'); bad.push('cService'); }
     if(bad.length){
-      msg.textContent = 'Please add your name, phone, and the service you need.';
+      msg.textContent = (document.documentElement.lang==='es')
+        ? 'Por favor agrega tu nombre, teléfono y el servicio que necesitas.'
+        : 'Please add your name, phone, and the service you need.';
       msg.className = 'msg bad';
       field(bad[0]).focus();
       return;
