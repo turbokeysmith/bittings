@@ -30,22 +30,37 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 
 ---
 
-## ✅ What you need to give me to switch the CLOUD on
-Do these and the app flips from localStorage to Supabase with no screen rewrites:
+## ✅ CLOUD IS NOW WIRED (using your existing project)
+The staff app (`index.html`) now loads supabase-js + `app/cloud-config.js` (the SAME project
+URL + publishable key already in `cloud-test.html`) and **auto-connects when an employee is
+signed in**. Not signed in / offline / table missing → it stays on localStorage. A status pill
+in the header shows **☁ Synced** vs **On this device**.
 
-1. **Create the Supabase project** (or confirm reusing the one in `cloud-test.html`) and send me:
-   - **Project URL** (e.g. `https://xxxx.supabase.co`)
-   - **anon / publishable key**
-2. **Run the SQL** in the Supabase SQL editor: `supabase/customers_setup.sql` then
-   `supabase/app_tables_setup.sql`. (Tell me if you want me to combine them into one file.)
-3. **Confirm auth method** — employees sign in how? (email+password already exists in
-   `cloud-test.html`.) RLS only allows **authenticated** users, so the app must be behind login.
-4. **Decide the data-sharing boundary** — are the public site and staff app served from the
-   **same domain/origin**? (Determines whether the contact form's leads land in the same place
-   pre-cloud; post-cloud they all share the DB.)
-5. Then I will: add the supabase-js `<script>` to the staff pages, call
-   `TKS.connectCloud({url, anonKey})` after login, run a one-time local→cloud migration of any
-   demo data, and verify each tile reads/writes the cloud.
+Verified offline against a mock Supabase: insert / update / delete and all field mapping
+(name↔customer, reorderQty↔reorder_qty, local-id→adopted-uuid) are correct. I could **not**
+run it against the live project from here (no network in my environment) — so please verify:
+
+### To see it sync (your 2 steps)
+1. **Run the SQL** in Supabase → SQL Editor: `supabase/app_tables_setup.sql`
+   (creates `inventory`, `bookings`, `receipts`; the `customers` table already exists).
+2. **Sign in** via the Staff Login (`cloud-test.html`), then open the app. The pill should
+   read **☁ Synced**. Add a part in Inventory / a customer in Customers and confirm the row
+   appears in the matching Supabase table.
+   - To force everything back to local while testing: set `AUTO_CONNECT: false` in
+     `app/cloud-config.js`.
+
+### Heads-up / decisions
+- **Scheduler + Receipts still read customers from localStorage.** When you're signed in, the
+  shell's Customers + Inventory tiles use the cloud, but `scheduler.html` / `bittings.html`
+  don't yet — so their customer lists can diverge from the cloud. They each need the same
+  3-line bootstrap + their customer reads routed through `TKS`. **Want me to wire those two as
+  well?** (Bigger edit in `bittings.html`; I'd want you to spot-check after.)
+- **Public contact form can't write to the cloud yet.** Website visitors aren't signed in, and
+  RLS only allows authenticated inserts — so leads still save locally. To land website leads in
+  the cloud we need either a public-insert policy or a small Supabase **edge function**
+  (recommended). Your call.
+- **Migration:** I did NOT auto-push your local demo data to the cloud (avoids duplicates). If
+  you want existing local customers/parts copied up once, say so and I'll add a one-time import.
 
 ## ❓ Still need decisions on
 - **Google Calendar** — real 2-way sync (needs Google OAuth + a server) or keep the current
