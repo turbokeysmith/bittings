@@ -24,8 +24,11 @@
   header.app img{width:42px;height:42px;border-radius:11px;}
   header.app h1{margin:0;font-size:20px;font-weight:800;}
   header.app h1 .red{color:var(--red);}
-  header.app .back{margin-left:auto;background:rgba(255,255,255,.06);border:1px solid var(--edge);
+  header.app .back{margin-left:10px;background:rgba(255,255,255,.06);border:1px solid var(--edge);
     color:var(--dim);border-radius:10px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;display:none;}
+  .cloudpill{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.3px;color:var(--dim);
+    border:1px solid var(--edge);border-radius:999px;padding:5px 10px;white-space:nowrap;}
+  .cloudpill.on{color:#7fd49b;border-color:rgba(34,153,74,.5);}
 
   .tiles{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   .tile{background:linear-gradient(180deg,var(--card),#181b21);border:1px solid var(--edge);border-radius:18px;
@@ -136,6 +139,7 @@
   <header class="app">
     <img src="bittings_logo.png" alt="">
     <h1>Turbo <span class="red">Keysmith</span></h1>
+    <span class="cloudpill" id="cloudPill" title="Where your data is stored">On this device</span>
     <button class="back" id="backBtn">‹ Home</button>
   </header>
 
@@ -267,15 +271,19 @@
   </div>
 </div>
 
-<!-- Shared data layer (localStorage today; single cloud-swap point inside) -->
+<!-- Supabase client + project config (auto-connects only when signed in) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app/cloud-config.js"></script>
+<!-- Shared data layer (localStorage today; flips to cloud via TKS.connectCloud) -->
 <script src="app/store.js"></script>
 <script>
 function readLS(k,f){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):f; }catch(e){ return f; } }
 function writeLS(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
-function getCustomers(){ return readLS("tks_customers", []); }
-function saveCustomers(a){ writeLS("tks_customers", a); }
-function getShops(){ return readLS("tks_shops", []); }
-function saveShops(a){ writeLS("tks_shops", a); }
+// Customers + Shops flow through the data layer so they sync when the cloud is on.
+function getCustomers(){ return TKS.list("customers"); }
+function saveCustomers(a){ TKS.saveList("customers", a); }
+function getShops(){ return TKS.list("shops"); }
+function saveShops(a){ TKS.saveList("shops", a); }
 
 const views = ['home','customers','form','payments','inventory','part'];
 function show(name){
@@ -381,11 +389,12 @@ document.getElementById('fSave').onclick = ()=>{
   const list = currentList();
   if(editIndex>=0){
     Object.assign(list[editIndex], data);
+    if(!list[editIndex].id) list[editIndex].id = TKS.uid('cust');
     list[editIndex].lastUsed = Date.now();
   } else {
     const existing = list.find(c=>(c.customer||'').toLowerCase()===name.toLowerCase());
-    if(existing){ Object.assign(existing, data); existing.lastUsed = Date.now(); }
-    else { list.push(Object.assign({}, data, {lastUsed: Date.now()})); }
+    if(existing){ Object.assign(existing, data); if(!existing.id) existing.id = TKS.uid('cust'); existing.lastUsed = Date.now(); }
+    else { list.push(Object.assign({}, data, {id: TKS.uid('cust'), lastUsed: Date.now()})); }
   }
   saveCurrent(list);
   renderCustomers();
@@ -545,6 +554,39 @@ document.getElementById('payCharge').onclick = ()=>{
   note.innerHTML = '<strong style="color:var(--amber)">Demo only — not charged.</strong> '+
     'When connected, this would take <strong>$'+amt+'</strong> via '+labels[payMethod]+'.';
 };
+
+/* ============================ CLOUD BOOTSTRAP ============================
+   Connects to Supabase ONLY when an employee is already signed in (a session
+   exists from the Staff Login / cloud-test.html). If not signed in, the
+   library is missing, or a table isn't created yet, we stay on localStorage —
+   nothing breaks. Uses the project + key in app/cloud-config.js. */
+function setCloudPill(state){
+  const el = document.getElementById('cloudPill'); if(!el) return;
+  if(state==='on'){ el.textContent='☁ Synced'; el.className='cloudpill on'; el.title='Signed in — saving to the shared cloud database'; }
+  else { el.textContent='On this device'; el.className='cloudpill'; el.title='Not signed in — saving locally. Use Staff Login to sync.'; }
+}
+function rerenderActive(){
+  if(document.getElementById('view-inventory').classList.contains('active')) renderInventory();
+  if(document.getElementById('view-customers').classList.contains('active')) renderCustomers();
+  if(document.getElementById('view-payments').classList.contains('active')) renderPayments();
+}
+TKS.onChange(rerenderActive);
+
+(function cloudBootstrap(){
+  setCloudPill('off');
+  const cfg = window.TKS_CLOUD;
+  if(!cfg || !cfg.AUTO_CONNECT) return;
+  if(!window.supabase || !window.supabase.createClient) return;       // library blocked/offline
+  let probe;
+  try { probe = window.supabase.createClient(cfg.url, cfg.anonKey); } catch(e){ return; }
+  probe.auth.getSession().then(({data})=>{
+    if(!data || !data.session) return;                                // not signed in -> stay local
+    TKS.connectCloud({ url:cfg.url, anonKey:cfg.anonKey }).then(()=>{
+      setCloudPill('on');
+      rerenderActive();
+    }).catch(()=>{ /* stay local */ });
+  }).catch(()=>{ /* stay local */ });
+})();
 </script>
 </body>
 </html>
