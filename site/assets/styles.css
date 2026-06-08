@@ -198,3 +198,17 @@ footer.site .legal{border-top:1px solid rgba(255,255,255,.14);margin-top:24px;pa
 @media (max-width:959px){
   body{padding-bottom:64px;}
 }
+
+/* ============================================================
+   Accessibility + mobile polish
+   ============================================================ */
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px;border-radius:6px;}
+.btn:focus-visible{outline-offset:3px;}
+.langtoggle:focus-visible{outline:3px solid var(--red);}
+/* comfortable tap targets on touch screens */
+nav.mobile a,.mobilebar a{min-height:48px;}
+.navtoggle,.langtoggle{min-height:44px;}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto;}
+  *{animation-duration:.001ms!important;transition-duration:.001ms!important;}
+}

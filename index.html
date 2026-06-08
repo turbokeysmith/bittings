@@ -120,6 +120,15 @@
   .seg.paymethods button{font-size:12.5px;padding:11px 6px;}
   .pay-recent-h{font-weight:800;font-size:13px;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);margin:24px 0 10px;}
   .btn.save:disabled{opacity:.6;cursor:not-allowed;}
+
+  /* ---- Accessibility + mobile polish ---- */
+  :focus-visible{outline:3px solid var(--amber);outline-offset:2px;border-radius:8px;}
+  .search,.form input,.form textarea{font-size:16px;}   /* prevent iOS zoom-on-focus */
+  .qbtn{width:40px;height:40px;}                          /* ≥40px tap target */
+  .crow .sub{overflow-wrap:anywhere;}
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms!important;transition-duration:.001ms!important;}
+  }
 </style>
 </head>
 <body>
@@ -211,7 +220,7 @@
       <div class="actions">
         <button class="btn save" id="payCharge">Charge $0.00</button>
       </div>
-      <p class="note" id="payNote">Wiring stubbed — connect Stripe or Square to take real payments.</p>
+      <p class="note" id="payNote" aria-live="polite">Wiring stubbed — connect Stripe or Square to take real payments.</p>
     </div>
     <div class="pay-recent-h">Recent payments</div>
     <div class="empty">No payments yet. They'll show here once processing is live.</div>
@@ -229,25 +238,25 @@
 
   <div class="view" id="view-part">
     <div class="form">
-      <label>Part name</label>
+      <label for="pName">Part name</label>
       <input id="pName" type="text" placeholder="e.g. Ford HU101 key blank">
-      <label>SKU / part #</label>
+      <label for="pSku">SKU / part #</label>
       <input id="pSku" type="text" placeholder="Optional">
       <div class="row2">
-        <div><label>Qty on hand</label><input id="pQty" type="number" inputmode="numeric" placeholder="0"></div>
-        <div><label>Low-stock at</label><input id="pLowAt" type="number" inputmode="numeric" placeholder="e.g. 3"></div>
+        <div><label for="pQty">Qty on hand</label><input id="pQty" type="number" inputmode="numeric" placeholder="0"></div>
+        <div><label for="pLowAt">Low-stock at</label><input id="pLowAt" type="number" inputmode="numeric" placeholder="e.g. 3"></div>
       </div>
-      <label>Category</label>
+      <label for="pCategory">Category</label>
       <input id="pCategory" type="text" placeholder="Key blanks, fobs, tools…">
       <div class="row2">
-        <div><label>Unit cost ($)</label><input id="pCost" type="number" inputmode="decimal" placeholder="0.00"></div>
-        <div><label>Location</label><input id="pLocation" type="text" placeholder="Van A · bin 3"></div>
+        <div><label for="pCost">Unit cost ($)</label><input id="pCost" type="number" inputmode="decimal" placeholder="0.00"></div>
+        <div><label for="pLocation">Location</label><input id="pLocation" type="text" placeholder="Van A · bin 3"></div>
       </div>
       <div class="row2">
-        <div><label>Supplier</label><input id="pSupplier" type="text" placeholder="Where you reorder from"></div>
-        <div><label>Reorder qty</label><input id="pReorderQty" type="number" inputmode="numeric" placeholder="e.g. 10"></div>
+        <div><label for="pSupplier">Supplier</label><input id="pSupplier" type="text" placeholder="Where you reorder from"></div>
+        <div><label for="pReorderQty">Reorder qty</label><input id="pReorderQty" type="number" inputmode="numeric" placeholder="e.g. 10"></div>
       </div>
-      <label>Notes</label>
+      <label for="pNotes">Notes</label>
       <textarea id="pNotes" placeholder="Fitment, part link, etc…"></textarea>
       <div class="actions">
         <button class="btn del" id="pDelete" style="display:none;">Delete</button>
@@ -430,9 +439,9 @@ function renderInventory(){
     const sub = [p.sku, p.category, p.location].filter(Boolean).join('  ·  ') || '—';
     row.innerHTML =
       '<div class="pq">'+
-        '<button class="qbtn minus" aria-label="Decrease">−</button>'+
-        '<span class="qn">'+(parseInt(p.qty,10)||0)+'</span>'+
-        '<button class="qbtn plus" aria-label="Increase">+</button>'+
+        '<button class="qbtn minus" aria-label="Decrease quantity of '+esc(p.name||'part')+'">−</button>'+
+        '<span class="qn" aria-label="Quantity on hand">'+(parseInt(p.qty,10)||0)+'</span>'+
+        '<button class="qbtn plus" aria-label="Increase quantity of '+esc(p.name||'part')+'">+</button>'+
       '</div>'+
       '<div class="pinfo"><div class="nm">'+esc(p.name||'(unnamed part)')+
         (isLow?' <span class="lowbadge">'+((parseInt(p.qty,10)||0)===0?'OUT':'LOW')+'</span>':'')+'</div>'+
@@ -443,7 +452,12 @@ function renderInventory(){
       (p.cost?'<span class="tag">'+money(p.cost)+'</span>':'');
     row.querySelector('.minus').onclick = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id,-1); renderInventory(); };
     row.querySelector('.plus').onclick  = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id, 1); renderInventory(); };
-    row.querySelector('.pinfo').onclick = ()=> openPart(p.id);
+    const info = row.querySelector('.pinfo');
+    info.onclick = ()=> openPart(p.id);
+    info.setAttribute('tabindex','0');
+    info.setAttribute('role','button');
+    info.setAttribute('aria-label','Edit '+(p.name||'part'));
+    info.onkeydown = (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openPart(p.id); } };
     wrap.appendChild(row);
   });
 }

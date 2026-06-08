@@ -263,6 +263,14 @@ textarea{min-height:70px;resize:vertical;}
   color:var(--coach-tag);border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle;}
 .gcal-stub button{margin-top:10px;background:transparent;border:1.5px solid var(--line);color:var(--ink);
   border-radius:10px;padding:9px 13px;font-weight:700;font-size:13px;cursor:pointer;}
+
+/* ---- Accessibility + mobile polish ---- */
+:focus-visible{outline:3px solid var(--gold,#f2b43a);outline-offset:2px;border-radius:8px;}
+.daybar .navd{min-width:44px;min-height:44px;}
+.slot .addbtn{min-height:40px;}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;transition-duration:.001ms!important;}
+}
 </style>
 </head>
 <body>
