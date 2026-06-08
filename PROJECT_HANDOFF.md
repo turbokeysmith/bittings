@@ -1,5 +1,8 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
+**Last updated:** 2026-06-08 12:37 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+timeline of what was done and when.
+
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
 Desktop) can understand everything that has been built and changed, and advise the owner without
 needing the raw code. Upload **just this file**.
@@ -201,6 +204,33 @@ From the repo folder:
   yet (e.g., Payments).
 - **Edge function** — a tiny cloud script, used (for example) to let the public contact form
   save a lead safely without giving the whole website write access to the database.
+
+---
+
+## 11. Changelog (newest first)
+Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-08
+- **Docs:** added this `PROJECT_HANDOFF.md`, the technical `app/STRUCTURE_NOTES.md`, and a
+  `CLAUDE.md` rule to keep both current after every major change; added this changelog +
+  "Last updated" stamp.
+- **Cloud (Supabase):** wrote the cloud data adapter + SQL; created and **verified** the
+  `customers`, `inventory`, `bookings`, `receipts` tables in the existing Supabase project
+  (RLS on, all policies scoped to signed-in staff). Staff app now auto-switches to the cloud
+  when an employee is signed in (still needs a real sign-in end-to-end test).
+- **Staff app — Payments:** built the Payments tile UI shell (amount, customer picker, method
+  buttons). No real card processing yet (clearly labeled demo).
+- **Public site — Spanish:** added a 🌐 EN/ES language toggle (chrome site-wide + homepage hero
+  + full contact form).
+- **Staff app — Inventory:** built the full Inventory tile (parts, qty, low-stock flag, search,
+  supplier + reorder qty) on a new shared data layer (`app/store.js`).
+- **Staff app — Scheduler:** added an in-app Day view with tappable time slots; Google Calendar
+  left as a labeled "not connected" placeholder; added "‹ Apps" navigation.
+- **Public site — Contact form:** added `/site/contact/` that captures leads into the Customers
+  list.
+- **Public website — SEO:** refreshed the 4 original city pages and built out ~40 city/area
+  pages (115 pages total) across tiers, a Service Areas hub, `sitemap.xml`, `robots.txt`, and
+  full `areaServed` schema.
 
 ---
 *End of handoff. For deeper staff-app/cloud detail, `app/STRUCTURE_NOTES.md` can be uploaded too.*

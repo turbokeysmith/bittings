@@ -22,5 +22,8 @@ a separate planning assistant, so they must never go stale:
 
 ### Rules
 - Update the docs **with** the change, not "later."
+- In `PROJECT_HANDOFF.md`: bump the **"Last updated"** line (get the real date/time, e.g.
+  `date "+%Y-%m-%d %H:%M %Z"`) and add a dated bullet under the **Changelog** (section 11,
+  newest first; group entries under the date heading).
 - When you finish a batch of work, end by confirming both files were updated (or say why not).
 - Keep `PROJECT_HANDOFF.md` plain-language; put technical depth in `app/STRUCTURE_NOTES.md`.
