@@ -385,7 +385,9 @@ export const CITIES = [
   }
 ];
 
+// Public-facing group headings for the Service Areas hub.
+// (No internal "tier" wording — these are shown to visitors.)
 export const TIER_LABELS = {
-  0:'Primary metro cities', 1:'Inner metro — Tier 1', 2:'Inner ring — Tier 2',
-  3:'Outer ring — Tier 3', 4:'Edge of our range — Tier 4 (call ahead)'
+  0:'Popular metro cities', 1:'Oklahoma City & inner metro', 2:'Surrounding metro',
+  3:'Outer metro towns', 4:'Edge of our range — call ahead'
 };
