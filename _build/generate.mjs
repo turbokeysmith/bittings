@@ -200,6 +200,7 @@ ${trust()}
 ${body}
 ${footer(depth)}
 ${mobilebar()}
+<script src="${rel(depth)}assets/i18n.js" defer></script>
 </body></html>
 `;
 }
@@ -298,6 +299,10 @@ function patchHandPages() {
       <a href="${r}oklahoma-city/">Oklahoma City</a><a href="${r}edmond/">Edmond</a>
       <a href="${r}norman/">Norman</a><a href="${r}yukon/">Yukon</a></div>`;
     html = html.replace(/<div><h4>Service Areas<\/h4>[\s\S]*?<\/div>/, newCol);
+    // 3) language toggle script (idempotent)
+    if (!/assets\/i18n\.js/.test(html)) {
+      html = html.replace('</body>', `<script src="${r}assets/i18n.js" defer></script>\n</body>`);
+    }
     writeFileSync(full, html, 'utf8');
     console.log('  patched:', rp);
   }
