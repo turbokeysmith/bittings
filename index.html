@@ -106,6 +106,7 @@
   .qbtn.minus{border-color:rgba(200,50,60,.5);color:#f0a0a6;}
   .qn{min-width:30px;text-align:center;font-weight:800;font-size:17px;}
   .crow.part.islow{border-color:rgba(242,180,58,.45);}
+  .crow.part .sub.reorder{color:var(--amber);font-weight:700;margin-top:2px;}
   .form textarea{width:100%;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:12px 14px;
     color:var(--ink);font-size:15px;outline:none;min-height:70px;resize:vertical;font-family:inherit;}
 </style>
@@ -214,8 +215,12 @@
         <div><label>Unit cost ($)</label><input id="pCost" type="number" inputmode="decimal" placeholder="0.00"></div>
         <div><label>Location</label><input id="pLocation" type="text" placeholder="Van A · bin 3"></div>
       </div>
+      <div class="row2">
+        <div><label>Supplier</label><input id="pSupplier" type="text" placeholder="Where you reorder from"></div>
+        <div><label>Reorder qty</label><input id="pReorderQty" type="number" inputmode="numeric" placeholder="e.g. 10"></div>
+      </div>
       <label>Notes</label>
-      <textarea id="pNotes" placeholder="Supplier, fitment, reorder link…"></textarea>
+      <textarea id="pNotes" placeholder="Fitment, part link, etc…"></textarea>
       <div class="actions">
         <button class="btn del" id="pDelete" style="display:none;">Delete</button>
         <button class="btn save" id="pSave">Save part</button>
@@ -403,7 +408,10 @@ function renderInventory(){
       '</div>'+
       '<div class="pinfo"><div class="nm">'+esc(p.name||'(unnamed part)')+
         (isLow?' <span class="lowbadge">'+((parseInt(p.qty,10)||0)===0?'OUT':'LOW')+'</span>':'')+'</div>'+
-        '<div class="sub">'+esc(sub)+'</div></div>'+
+        '<div class="sub">'+esc(sub)+'</div>'+
+        (isLow && (parseInt(p.reorderQty,10)||0)>0
+          ? '<div class="sub reorder">↻ Reorder '+(parseInt(p.reorderQty,10)||0)+(p.supplier?' · '+esc(p.supplier):'')+'</div>'
+          : '')+'</div>'+
       (p.cost?'<span class="tag">'+money(p.cost)+'</span>':'');
     row.querySelector('.minus').onclick = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id,-1); renderInventory(); };
     row.querySelector('.plus').onclick  = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id, 1); renderInventory(); };
@@ -423,6 +431,8 @@ function openPart(id){
   document.getElementById('pCategory').value = p.category || '';
   document.getElementById('pCost').value = (p.cost!=null? p.cost : '');
   document.getElementById('pLocation').value = p.location || '';
+  document.getElementById('pSupplier').value = p.supplier || '';
+  document.getElementById('pReorderQty').value = (p.reorderQty!=null? p.reorderQty : '');
   document.getElementById('pNotes').value = p.notes || '';
   document.getElementById('pDelete').style.display = id ? 'block' : 'none';
   document.getElementById('partNote').textContent = id ? '' : 'New part. Saved on this device.';
@@ -441,6 +451,8 @@ document.getElementById('pSave').onclick = ()=>{
     category: document.getElementById('pCategory').value.trim(),
     cost: document.getElementById('pCost').value.trim() ? parseFloat(document.getElementById('pCost').value) : '',
     location: document.getElementById('pLocation').value.trim(),
+    supplier: document.getElementById('pSupplier').value.trim(),
+    reorderQty: parseInt(document.getElementById('pReorderQty').value,10) || 0,
     notes: document.getElementById('pNotes').value.trim()
   };
   if(editPartId) part.id = editPartId;
