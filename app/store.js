@@ -52,7 +52,152 @@
     saveRaw: function (logicalKey, arr) { return write(KEYS[logicalKey], arr); }
   };
 
-  var ADAPTER = LocalAdapter; // <<< flip to CloudAdapter here when cloud is live
+  /* ------------------------------------------------------------------ *
+   *  CloudAdapter — Supabase. READY BUT SWITCHED OFF.                   *
+   *  Stays dormant until TKS.connectCloud({url, anonKey}) is called.    *
+   *  Same listRaw/saveRaw contract as LocalAdapter, kept synchronous    *
+   *  by caching: hydrate() loads every table once, reads come from the  *
+   *  cache, writes update the cache immediately and push to Supabase in *
+   *  the background. Nothing here runs until you connect — no network,  *
+   *  no credentials embedded.                                           *
+   *                                                                     *
+   *  Table mapping (see supabase/*.sql):                                *
+   *    customers  -> public.customers  (is_contracting = false)         *
+   *    shops      -> public.customers  (is_contracting = true)          *
+   *    inventory  -> public.inventory                                   *
+   *    bookings   -> public.bookings   (whole record in jsonb `data`)   *
+   *    receipts   -> public.receipts   (whole record in jsonb `data`)   *
+   * ------------------------------------------------------------------ */
+  function isUuid(v) {
+    return typeof v === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+  }
+  function ts(v) { return v ? Date.parse(v) : undefined; }
+
+  // per-logical-key config: which table, how to map rows <-> JS objects
+  var CLOUD_MAP = {
+    customers: {
+      table: 'customers', idStrategy: 'uuid', filter: { is_contracting: false },
+      fromRow: function (r) { return {
+        id: r.id, customer: r.name, contact: r.contact, phone: r.phone, email: r.email,
+        address: r.address, customerType: r.customer_type,
+        status: r.is_contracting ? 'contracting' : 'customer',
+        lastUsed: ts(r.last_used), createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
+      toRow: function (o) { return {
+        name: o.customer || '', contact: o.contact || '', phone: o.phone || '', email: o.email || '',
+        address: o.address || '', customer_type: o.customerType || 'individual', is_contracting: false }; }
+    },
+    shops: {
+      table: 'customers', idStrategy: 'uuid', filter: { is_contracting: true },
+      fromRow: function (r) { return {
+        id: r.id, customer: r.name, contact: r.contact, phone: r.phone, email: r.email,
+        address: r.address, customerType: r.customer_type, status: 'contracting',
+        lastUsed: ts(r.last_used), createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
+      toRow: function (o) { return {
+        name: o.customer || '', contact: o.contact || '', phone: o.phone || '', email: o.email || '',
+        address: o.address || '', customer_type: o.customerType || 'business', is_contracting: true }; }
+    },
+    inventory: {
+      table: 'inventory', idStrategy: 'text', filter: null,
+      fromRow: function (r) { return {
+        id: r.id, name: r.name, sku: r.sku, category: r.category, qty: r.qty, lowAt: r.low_at,
+        unit: r.unit, cost: r.cost, location: r.location, notes: r.notes,
+        supplier: r.supplier, reorderQty: r.reorder_qty,
+        createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
+      toRow: function (o) { return {
+        id: o.id, name: o.name || '', sku: o.sku || '', category: o.category || '',
+        qty: parseInt(o.qty, 10) || 0, low_at: parseInt(o.lowAt, 10) || 0, unit: o.unit || '',
+        cost: o.cost === '' || o.cost == null ? null : Number(o.cost), location: o.location || '',
+        notes: o.notes || '', supplier: o.supplier || '', reorder_qty: parseInt(o.reorderQty, 10) || 0 }; }
+    },
+    // bookings + receipts: keep their full (nested) shape inside jsonb `data`
+    bookings: {
+      table: 'bookings', idStrategy: 'text', filter: null,
+      fromRow: function (r) { return Object.assign({}, r.data, { id: r.id }); },
+      toRow: function (o) { return {
+        id: o.id, data: o, date: o.date || null, time: o.time || null,
+        customer_name: (o.customer && o.customer.name) || null }; }
+    },
+    receipts: {
+      table: 'receipts', idStrategy: 'text', filter: null,
+      fromRow: function (r) { return Object.assign({}, r.data, { id: r.id }); },
+      toRow: function (o) { return { id: o.id, data: o }; }
+    }
+  };
+
+  function makeCloudAdapter(sb) {
+    var cache = {};   // logicalKey -> array (the synchronous view screens read)
+    var shadow = {};  // logicalKey -> last-synced snapshot (to diff on write)
+
+    function snapshot(arr) { return JSON.parse(JSON.stringify(arr || [])); }
+
+    // load one logical key into the cache
+    function hydrateKey(key) {
+      var cfg = CLOUD_MAP[key];
+      var q = sb.from(cfg.table).select('*');
+      if (cfg.filter) Object.keys(cfg.filter).forEach(function (k) { q = q.eq(k, cfg.filter[k]); });
+      return q.then(function (res) {
+        if (res.error) throw res.error;
+        cache[key] = (res.data || []).map(cfg.fromRow);
+        shadow[key] = snapshot(cache[key]);
+        return cache[key];
+      });
+    }
+
+    function hydrateAll() {
+      return Promise.all(Object.keys(CLOUD_MAP).map(hydrateKey));
+    }
+
+    // diff cache vs shadow and push inserts / updates / deletes
+    function flush(key) {
+      var cfg = CLOUD_MAP[key];
+      var cur = cache[key] || [], prev = shadow[key] || [];
+      var prevById = {}; prev.forEach(function (r) { if (r.id) prevById[r.id] = r; });
+      var curById = {};  cur.forEach(function (r) { if (r.id) curById[r.id] = r; });
+
+      var inserts = [], updates = [], deletes = [];
+      cur.forEach(function (o) {
+        var existed = o.id && prevById[o.id];
+        if (!existed) inserts.push(o);
+        else if (JSON.stringify(o) !== JSON.stringify(prevById[o.id])) updates.push(o);
+      });
+      prev.forEach(function (o) { if (o.id && !curById[o.id]) deletes.push(o); });
+
+      var ops = [];
+      // deletes
+      deletes.forEach(function (o) { ops.push(sb.from(cfg.table).delete().eq('id', o.id)); });
+      // updates
+      updates.forEach(function (o) { ops.push(sb.from(cfg.table).update(cfg.toRow(o)).eq('id', o.id)); });
+      // inserts
+      inserts.forEach(function (o) {
+        var row = cfg.toRow(o);
+        if (cfg.idStrategy === 'uuid' && !isUuid(o.id)) { delete row.id; } // let DB mint a uuid
+        ops.push(sb.from(cfg.table).insert(row).select().then(function (res) {
+          // adopt the DB-generated id back into the cache record
+          if (!res.error && res.data && res.data[0] && res.data[0].id) o.id = res.data[0].id;
+          return res;
+        }));
+      });
+
+      return Promise.all(ops).then(function () { shadow[key] = snapshot(cache[key]); })
+        .catch(function (e) { if (global.console) console.warn('[TKS cloud flush]', key, e); });
+    }
+
+    var pending = {};
+    function scheduleFlush(key) {
+      if (pending[key]) return;
+      pending[key] = setTimeout(function () { pending[key] = null; flush(key); }, 250);
+    }
+
+    return {
+      name: 'cloud',
+      hydrate: hydrateAll,
+      listRaw: function (key) { return cache[key] || []; },
+      saveRaw: function (key, arr) { cache[key] = arr; scheduleFlush(key); return true; }
+    };
+  }
+
+  var ADAPTER = LocalAdapter; // <<< CloudAdapter takes over via TKS.connectCloud() — see below
 
   // ================= CUSTOMERS (shared across every tile) =================
   // Shape (back-compatible with existing pages):
@@ -121,7 +266,7 @@
 
   // ===================== INVENTORY (parts & stock) =====================
   // Shape: { id, name, sku, category, qty, lowAt, unit, cost, location,
-  //          notes, createdAt, updatedAt }
+  //          notes, supplier, reorderQty, createdAt, updatedAt }
   var Inventory = {
     all: function () { return ADAPTER.listRaw('inventory'); },
 
@@ -184,9 +329,42 @@
     }
   };
 
+  var changeHandlers = [];
+
   global.TKS = {
     KEYS: KEYS, uid: uid, read: read, write: write,
     adapter: function () { return ADAPTER.name; },
-    Customers: Customers, Inventory: Inventory, Bookings: Bookings
+    Customers: Customers, Inventory: Inventory, Bookings: Bookings,
+
+    // Register a callback to re-render after the cloud finishes hydrating.
+    onChange: function (fn) { if (typeof fn === 'function') changeHandlers.push(fn); },
+
+    /* -------------------------------------------------------------------- *
+     *  connectCloud — call this ONCE, with your Supabase project URL +      *
+     *  anon (publishable) key, to switch the whole app from localStorage    *
+     *  to the cloud. Until you call it, everything stays local.             *
+     *                                                                       *
+     *  Requirements before this works (NOT wired yet, on purpose):          *
+     *   1) Add the Supabase JS library to the page:                         *
+     *      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+     *   2) Run the SQL in supabase/customers_setup.sql + supabase/app_tables_setup.sql
+     *   3) Have employees signed in (Supabase Auth) — RLS only allows        *
+     *      authenticated users.                                             *
+     *      TKS.connectCloud({ url: '...', anonKey: '...' }).then(render)     *
+     * -------------------------------------------------------------------- */
+    connectCloud: function (opts) {
+      opts = opts || {};
+      if (!opts.url || !opts.anonKey) return Promise.reject(new Error('connectCloud needs { url, anonKey }'));
+      if (!global.supabase || !global.supabase.createClient) {
+        return Promise.reject(new Error('Supabase JS not loaded — add the supabase-js <script> first.'));
+      }
+      var sb = global.supabase.createClient(opts.url, opts.anonKey);
+      var cloud = makeCloudAdapter(sb);
+      return cloud.hydrate().then(function () {
+        ADAPTER = cloud;                       // <<< the actual switch
+        changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
+        return true;
+      });
+    }
   };
 })(window);
