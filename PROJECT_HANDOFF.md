@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-10 16:44 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-10 17:11 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -161,9 +161,17 @@ exists** — it was set up earlier and is referenced by the staff login page (`c
   If not signed in / offline / a table is missing, it silently stays on localStorage (safe).
 - **To force it fully local:** set `AUTO_CONNECT: false` in `/app/cloud-config.js`.
 
-**Verified working at the database level** (tables, columns, rules all correct). **Not yet
-verified end-to-end** in the live browser — that just needs a staff member to sign in and add a
-test record.
+**Verified end-to-end at the database level (2026-06-10):** all four tables exist; RLS lets only
+signed-in staff read/write; a record written **as an authenticated user** lands in the right table
+with the right columns (incl. the new `fitment` + lead fields). A **staff login already exists** —
+`samer@turbokeysmith.com` (you don't need to create one). The `touch_updated_at` function's
+search_path was pinned (a security-advisor item).
+
+**The one thing still needing a real human:** sign in via Staff Login (`cloud-test.html`) as
+`samer@turbokeysmith.com` (reset its password in Supabase if it's unknown), then add a record on
+one device and confirm it shows on another — that's the live browser confirmation. Also flip on
+**leaked-password protection** in Supabase → Auth settings (one toggle). Both the staff app and the
+scheduler now auto-connect to the cloud the moment a staff session exists.
 
 ---
 
@@ -257,6 +265,15 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-10
+- **Cloud verified end-to-end, server-side (17:11):** ran `app_tables_setup.sql` against the live
+  project; confirmed all 4 tables + RLS (signed-in staff only); wrote a record **as an
+  authenticated user** and confirmed it lands in the right table/columns, then cleaned it up. Found
+  the new `fitment` (inventory) and lead fields (`service_needed`/`notes`/`lang`/`source` on
+  customers) weren't in the cloud column mapping — **added the columns + mapped them in
+  `store.js`** so they survive sync. Pinned `touch_updated_at` search_path. **Added the cloud
+  bootstrap to the scheduler** so it auto-connects on sign-in (it was localStorage-only). A staff
+  login already exists (`samer@turbokeysmith.com`). Remaining: a human sign-in to confirm in the
+  browser + enable leaked-password protection.
 - **Scheduler + forms — big build (16:44):**
   - Routed the **scheduler through the shared data layer (TKS)** — bookings + customers now share
     one list, **deduped by phone**. Added booking save/edit/status methods to `app/store.js`.

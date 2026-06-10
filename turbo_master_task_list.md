@@ -25,11 +25,20 @@ first — it's what every other tile leans on.*
   fitment/VIN**
 - ✅ Cloud adapter wired to existing Supabase project; ☁ Synced / On-this-device pill
 
-### A1 — Turn the cloud on (YOUR 2 steps — unblocks the rest of Track A)
-- ⬜ Run `supabase/app_tables_setup.sql` in the Supabase project
-- ⬜ Sign in via `cloud-test.html` and add a test record to confirm end-to-end sync
-- 📝 The scheduler + contact form now write **through TKS**, so once this works, bookings and
-  website leads sync too (not just Customers/Inventory).
+### A1 — Turn the cloud on
+- ✅ **SQL applied + verified server-side (2026-06-10):** all 4 tables exist (customers, inventory,
+  bookings, receipts) with RLS = signed-in staff only; a record written as an authenticated user
+  lands in the right table/columns (incl. new `fitment` + lead fields). `touch_updated_at`
+  search_path hardened.
+- ✅ Staff app **and scheduler** now auto-connect to the cloud when a staff session exists.
+- ✅ A **staff login already exists:** `samer@turbokeysmith.com` (no need to create one).
+- ⬜ **YOUR step:** sign in via `cloud-test.html` as `samer@turbokeysmith.com` (you need its
+  password — reset it in Supabase if unknown), then add a test record on one device and confirm it
+  appears on another. This is the only thing that needs a real human login.
+- ⬜ **YOUR step (1 toggle):** enable **leaked-password protection** in Supabase → Auth settings
+  (the remaining security-advisor item).
+- 📝 The scheduler + contact form now write **through TKS**, so once you're signed in, bookings and
+  website leads sync too — not just Customers/Inventory.
 
 ### A2 — Scheduler upgrades ✅ (built 2026-06-10)
 - ✅ Routed the scheduler **through TKS** (was raw localStorage) — bookings + customers share one
@@ -124,7 +133,8 @@ first — it's what every other tile leans on.*
 2. ⏸️ **Contact form → cloud** — edge function vs public-insert rule (Track E)
 3. ⏸️ **Google Calendar** — real 2-way sync vs the current deep-link + guest invite (Track A3)
 4. ⏸️ **Domain go-live** — the careful, sequenced switch (Track C)
-5. ⬜ Minor Supabase security hardening (search_path on a function; leaked-password protection)
+5. 🔨 Supabase security hardening — ✅ `search_path` pinned on `touch_updated_at`; ⬜ enable
+   leaked-password protection (Auth settings toggle — YOUR step)
 
 ---
 
