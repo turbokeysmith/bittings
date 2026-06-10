@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-10 17:26 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-10 17:52 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -114,8 +114,12 @@ customer list across all tools.
   **auto-archive** off the active board (when Completed/Canceled or once the date passes) and file
   under the customer instead. Google Calendar **two-way sync** is still a pending decision (today
   it's the deep-link + guest invite, not a live sync).
-  *Still planned: force the guided intake to be the only booking path, with a per-booking PIN to
-  skip it for one booking.*
+  **The guided intake is now the only way to book** — the Day view is view/open-only (its old
+  "+ Book" shortcut is gone), and every step must be answered to advance. An owner can take a
+  **per-booking shortcut**: a 🔒 "Quick form" on the Home screen asks for an **owner PIN** and then
+  opens one plain quick-entry form (all fields, no coaching steps); the next booking goes back to
+  forced guided. The PIN is set in `app/cloud-config.js`, and the gate is built as a single
+  swap-point so it can become an owner-only login check later without touching the flow.
 - **Payments** — a **UI shell only**: amount, customer picker, payment-method buttons, a live
   "Charge $X" label. **It does not take real payments** — clearly labeled as a demo.
 - **Inventory** — fully built: parts list, add/edit/delete, quantity with +/- buttons,
@@ -273,6 +277,14 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-10
+- **Scheduler finished — forced guided flow + owner PIN bypass (17:52):** the guided
+  question-by-question intake is now the ONLY way to book (removed the Day-view "+ Book" shortcut;
+  Day view is view/open-only; job type, sub-type, and the upsell answer are now required so no step
+  can be skipped or jumped). Added a per-booking **"Quick form (owner)"** on Home: enter the owner
+  **PIN** → one plain quick-entry form (all fields, no guided steps) → next booking is forced-guided
+  again. The PIN lives in `app/cloud-config.js` (`TKS_OWNER.QUICK_FORM_PIN`, default `1234` — change
+  it), and the access check is a single swap point (`requestOwnerAccess()`) ready to become an
+  owner-login permission once auth gates the app. Both paths save through TKS as before.
 - **Cloud sync CONFIRMED live in the browser (17:26):** signed in as `samer@turbokeysmith.com` at
   `http://127.0.0.1:8088` and the staff app flipped to ☁ Synced. Root cause of the earlier
   "can't sign in / stays local" was signing in on the `file://` page — the browser scopes the

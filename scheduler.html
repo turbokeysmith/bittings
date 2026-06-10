@@ -414,7 +414,17 @@ const UI = {
     vin_bad:"That VIN didn't decode — enter the year, make and model by hand.",
     ign_need:"Choose the ignition type (push-to-start or keyed).",
     del_confirm:"Delete this booking entirely? (To just take it off the board, mark it Completed or Canceled instead.)",
-    job_photos:"Job photos", edit_title:"Edit booking", open_booking:"Open"
+    job_photos:"Job photos", edit_title:"Edit booking", open_booking:"Open",
+    owner_quick:"Quick form (owner)", owner_quick_sub:"PIN-protected one-off form — skips the guided steps",
+    quick_form:"Quick booking form", quick_sub:"Owner quick entry — all fields, no guided steps.",
+    owner_only:"Owner only", quick_need:"Please fill:",
+    pin_title:"Owner PIN", pin_prompt:"Enter the owner PIN to open a one-time quick form for this booking.",
+    unlock:"Unlock", cancel:"Cancel", pin_wrong:"Wrong PIN — try again.",
+    pin_unset:"No owner PIN is set yet. Add one in app/cloud-config.js (TKS_OWNER.QUICK_FORM_PIN).",
+    need_jobtype:"Pick what they need help with to continue.",
+    need_subtype:"Pick the kind of job to continue.",
+    need_upsell:"Mark whether you offered the add-on to continue.",
+    need_upsell_acc:"Mark whether they accepted to continue."
   },
   es:{
     home_sub:"Agenda un trabajo, paso a paso.", new_booking:"Nueva cita",
@@ -460,7 +470,17 @@ const UI = {
     vin_bad:"Ese VIN no se pudo leer — ingresa año, marca y modelo a mano.",
     ign_need:"Elige el tipo de encendido (botón de arranque o con llave).",
     del_confirm:"¿Eliminar esta cita por completo? (Para solo quitarla del tablero, márcala Completado o Cancelado.)",
-    job_photos:"Fotos del trabajo", edit_title:"Editar cita", open_booking:"Abrir"
+    job_photos:"Fotos del trabajo", edit_title:"Editar cita", open_booking:"Abrir",
+    owner_quick:"Formulario rápido (dueño)", owner_quick_sub:"Formulario único protegido con PIN — sin los pasos guiados",
+    quick_form:"Formulario rápido de cita", quick_sub:"Entrada rápida del dueño — todos los campos, sin pasos guiados.",
+    owner_only:"Solo dueño", quick_need:"Completa:",
+    pin_title:"PIN del dueño", pin_prompt:"Ingresa el PIN del dueño para abrir un formulario rápido para esta cita.",
+    unlock:"Desbloquear", cancel:"Cancelar", pin_wrong:"PIN incorrecto — intenta de nuevo.",
+    pin_unset:"Aún no hay PIN del dueño. Agrégalo en app/cloud-config.js (TKS_OWNER.QUICK_FORM_PIN).",
+    need_jobtype:"Elige en qué necesita ayuda para continuar.",
+    need_subtype:"Elige el tipo de trabajo para continuar.",
+    need_upsell:"Indica si ofreciste el extra para continuar.",
+    need_upsell_acc:"Indica si lo aceptó para continuar."
   }
 };
 /* Status display + colors (shared by day view, job list, booking detail). */
@@ -721,6 +741,8 @@ function render(){
   if(VIEW==='day')     return renderDay();
   if(VIEW==='jobs')    return renderJobs();
   if(VIEW==='booking') return renderBooking();
+  if(VIEW==='pin')     return renderPin();
+  if(VIEW==='quickform') return renderQuickForm();
   if(VIEW==='done')    return renderDone();
   if(VIEW==='flow')    return renderFlow();
 }
@@ -753,6 +775,10 @@ function renderHome(){
       <span class="big">📆</span>
       <span><h3>${LANG==='es'?'Vista del día':'Day view'}</h3><p>${LANG==='es'?'Mira los trabajos y los horarios libres':"See a day's jobs and open time slots"}</p></span>
     </button>
+    <button class="tile" onclick="ownerQuickForm()" style="opacity:.92">
+      <span class="big">🔒</span>
+      <span><h3>${t('owner_quick')}</h3><p>${t('owner_quick_sub')}</p></span>
+    </button>
     <div class="section-h">${t('coaching_progress')}</div>
     <div class="stats">
       <div class="stat"><div class="n">${bookings.length}</div><div class="l">${t('stat_jobs')}</div></div>
@@ -781,7 +807,6 @@ function addDaysISO(iso,n){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDa
 let DAY = todayISO();
 function shiftDay(n){ DAY = addDaysISO(DAY,n); render(); }
 function setDay(v){ if(v){ DAY=v; render(); } }
-function startFlowAt(date,time){ startFlow(); booking.date=date; booking.time=time; }
 
 function renderDay(){
   if(nav) nav.style.display='none';
@@ -803,8 +828,10 @@ function renderDay(){
           <div class="m">${esc(job||'')}${b.address?' · '+esc(b.address):''}</div></div>`;
       }).join('');
     }
-    cell += `<button class="addbtn" onclick="startFlowAt('${DAY}','${hh}:00')">+ ${LANG==='es'?'Agendar':'Book'} ${esc(label)}</button>`;
-    rows += `<div class="slot ${inSlot.length?'busy':'free'}"><div class="hr">${esc(label)}</div><div class="cell">${cell}</div></div>`;
+    // Day view is read-only: it shows jobs and lets you open them. Starting a
+    // booking must go through the forced guided flow (Home → New booking), so
+    // there is intentionally no "+ Book" shortcut here.
+    rows += `<div class="slot ${inSlot.length?'busy':'free'}"><div class="hr">${esc(label)}</div><div class="cell">${cell || ''}</div></div>`;
   }
   const count = all.length;
   app.innerHTML = `
@@ -919,6 +946,139 @@ function editBooking(id){
   stepIndex = 0; VIEW='flow'; render();
 }
 
+/* =========================================================================
+   OWNER QUICK-FORM BYPASS  (single, SWAPPABLE control point)
+   The per-booking "Quick form" skips the guided steps for ONE booking. Access
+   runs through requestOwnerAccess() — the ONLY gate. TODAY it checks a PIN from
+   app/cloud-config.js (window.TKS_OWNER.QUICK_FORM_PIN). LATER, when a real
+   owner login gates the app, replace ONLY the body of requestOwnerAccess() with
+   a role check, e.g.:
+       function requestOwnerAccess(onGranted){
+         if (window.TKS && TKS.currentUserIsOwner && TKS.currentUserIsOwner()) onGranted();
+         else { alert('Owners only'); VIEW='home'; render(); }
+       }
+   Nothing else changes — every caller just calls requestOwnerAccess(grantFn).
+   ========================================================================= */
+let _ownerGrant = null, pinError = '';
+function ownerPinConfigured(){
+  return !!(window.TKS_OWNER && String(window.TKS_OWNER.QUICK_FORM_PIN || '').length);
+}
+function requestOwnerAccess(onGranted){
+  _ownerGrant = (typeof onGranted==='function') ? onGranted : null;
+  pinError = '';
+  VIEW = 'pin'; render();
+}
+function submitOwnerPin(){
+  const el = document.getElementById('pinInput');
+  const entered = el ? el.value : '';
+  const pin = String((window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN) || '');
+  if(pin && entered === pin){
+    const g = _ownerGrant; _ownerGrant = null; pinError = '';
+    if(g) g();
+  } else {
+    pinError = t('pin_wrong'); render();
+  }
+}
+function renderPin(){
+  if(nav) nav.style.display='none';
+  app.innerHTML = `
+    <button class="btn ghost" style="margin-bottom:14px" onclick="VIEW='home';render()">← ${t('home')}</button>
+    <div class="bk-detail">
+      <div class="row-top"><h2>🔒 ${t('pin_title')}</h2></div>
+      <p class="when">${t('pin_prompt')}</p>
+      <input id="pinInput" type="password" inputmode="numeric" autocomplete="off"
+             placeholder="••••" style="font-size:20px;letter-spacing:4px;text-align:center"
+             onkeydown="if(event.key==='Enter')submitOwnerPin()">
+      ${pinError?`<div class="vin-msg bad" style="margin-top:8px">${esc(pinError)}</div>`:''}
+      <div class="bk-actions">
+        <button class="gcal" onclick="submitOwnerPin()">${t('unlock')}</button>
+        <button class="edit" onclick="VIEW='home';render()">${t('cancel')}</button>
+      </div>
+    </div>`;
+  const i = document.getElementById('pinInput'); if(i) i.focus();
+}
+function ownerQuickForm(){
+  if(!ownerPinConfigured()){ alert(t('pin_unset')); return; }
+  requestOwnerAccess(startQuickForm);   // single gate; PIN today, owner-login later
+}
+function startQuickForm(){ booking = freshBooking(); VIEW='quickform'; render(); }
+
+function renderQuickForm(){
+  if(nav) nav.style.display='none';
+  const b = booking;
+  const isAuto = b.jobType==='auto';
+  const subOpts = (SUBTYPES[b.jobType]||[]).map(([v,emo,en,es])=>
+    `<option value="${v}" ${b.subType===v?'selected':''}>${LANG==='es'?es:en}</option>`).join('');
+  app.innerHTML = `
+    <button class="btn ghost" style="margin-bottom:12px" onclick="VIEW='home';render()">← ${t('home')}</button>
+    <div class="bk-detail">
+      <div class="row-top"><h2>⚡ ${t('quick_form')}</h2>
+        <span class="status-tag" style="background:var(--gold-soft,rgba(242,180,58,.16));color:var(--gold,#f2b43a)">${t('owner_only')}</span></div>
+      <p class="when">${t('quick_sub')}</p>
+      <label>${t('name')} *</label><input data-bind="customer.name" value="${esc(b.customer.name)}">
+      <label>${t('phone')} *</label><input data-bind="customer.phone" type="tel" value="${esc(b.customer.phone)}">
+      <label>${t('email')}</label><input data-bind="customer.email" type="email" value="${esc(b.customer.email)}">
+      <label>${t('jobtype')}</label>
+      <select onchange="setQuickJob(this.value)">
+        <option value="" ${!b.jobType?'selected':''}>—</option>
+        <option value="auto" ${b.jobType==='auto'?'selected':''}>${t('auto')}</option>
+        <option value="res" ${b.jobType==='res'?'selected':''}>${t('res')}</option>
+        <option value="com" ${b.jobType==='com'?'selected':''}>${t('com')}</option>
+      </select>
+      ${b.jobType?`<label>${t('subtype')}</label>
+        <select onchange="setPath('subType',this.value)"><option value="">—</option>${subOpts}</select>`:''}
+      ${isAuto?`
+        <label>${t('veh_id')}</label>
+        <div class="vin-row">
+          <input data-bind="vehicle.vin" value="${esc(b.vehicle.vin)}" placeholder="VIN" autocapitalize="characters" autocomplete="off">
+          <button type="button" onclick="decodeVinNow()">🔎 ${t('decode_vin')}</button>
+        </div>
+        <div class="vin-msg" id="vinMsg"></div>
+        <div class="row2">
+          <div><label>${t('veh_y')}</label><input data-bind="vehicle.year" value="${esc(b.vehicle.year)}"></div>
+          <div><label>${t('veh_mk')}</label><input data-bind="vehicle.make" value="${esc(b.vehicle.make)}"></div>
+        </div>
+        <label>${t('veh_md')}</label><input data-bind="vehicle.model" value="${esc(b.vehicle.model)}">
+        <label>${t('ignition')}</label>
+        <div class="ign-pick" id="ignPick">
+          <button type="button" class="${b.vehicle.ignition==='push'?'sel':''}" onclick="setIgnition('push')">🔘 ${t('ign_push')}</button>
+          <button type="button" class="${b.vehicle.ignition==='keyed'?'sel':''}" onclick="setIgnition('keyed')">🔑 ${t('ign_keyed')}</button>
+        </div>`:''}
+      <label>${t('addr')}</label><input data-bind="address" value="${esc(b.address)}">
+      <div class="row2">
+        <div><label>${t('date')} *</label><input data-bind="date" type="date" value="${esc(b.date)}"></div>
+        <div><label>${t('time')} *</label><input data-bind="time" type="time" value="${esc(b.time)}"></div>
+      </div>
+      <label>${t('dur')}</label>
+      <select data-bind="duration">
+        <option value="30" ${b.duration==30?'selected':''}>30 min</option>
+        <option value="60" ${b.duration==60?'selected':''}>1 hr</option>
+        <option value="90" ${b.duration==90?'selected':''}>1.5 hr</option>
+        <option value="120" ${b.duration==120?'selected':''}>2 hr</option>
+      </select>
+      <label>${t('status')}</label>
+      <select data-bind="status">${TKS.Bookings.STATUSES.map(s=>`<option value="${s}" ${b.status===s?'selected':''}>${esc(statusLabel(s))}</option>`).join('')}</select>
+      <label>${t('notes')}</label><textarea data-bind="notes">${esc(b.notes)}</textarea>
+      <div class="vin-msg bad" id="qfErr"></div>
+      <div class="bk-actions">
+        <button class="gcal" onclick="saveQuick()">${t('save')}</button>
+        <button class="edit" onclick="VIEW='home';render()">${t('cancel')}</button>
+      </div>
+    </div>`;
+  bindInputs();
+}
+function setQuickJob(v){ booking.jobType=v; booking.subType=''; render(); }
+function saveQuick(){
+  const b = booking, err = document.getElementById('qfErr');
+  const miss = [];
+  if(!b.customer.name.trim()) miss.push(t('name'));
+  if(!b.customer.phone.trim()) miss.push(t('phone'));
+  if(!b.date) miss.push(t('date'));
+  if(!b.time) miss.push(t('time'));
+  if(miss.length){ if(err) err.textContent = t('quick_need')+' '+miss.join(', '); return; }
+  saveBooking();   // same TKS save: upserts customer (phone dedupe) + derives serviceCategory
+}
+
 /* ---------- DONE ---------- */
 function renderDone(){
   nav.style.display='none';
@@ -940,7 +1100,8 @@ function renderFlow(){
   nav.style.display='block';
   const step = STEPS[stepIndex];
   const pct = Math.round((stepIndex)/(STEPS.length-1)*100);
-  let html = `<div class="progress"><i style="width:${pct}%"></i></div>`;
+  let html = `<div class="progress"><i style="width:${pct}%"></i></div>
+    <div id="stepMsg" class="vin-msg bad" style="margin-bottom:8px"></div>`;
 
   if(step==='greeting') html += stepGreeting();
   if(step==='customer') html += stepCustomer();
@@ -952,14 +1113,19 @@ function renderFlow(){
   if(step==='confirm')  html += stepConfirm();
 
   app.innerHTML = html;
-  app.querySelectorAll('[data-bind]').forEach(el=>{
-    el.addEventListener('input',()=>setPath(el.dataset.bind, el.value));
-  });
+  bindInputs();
   backBtn.textContent = t('back');
   nextBtn.textContent = (step==='confirm') ? t('save') : (step==='greeting' ? t('start') : t('next'));
   backBtn.onclick = goBack;
   nextBtn.onclick = goNext;
 }
+/* attach two-way binding for any [data-bind] inputs in the current view */
+function bindInputs(){
+  app.querySelectorAll('[data-bind]').forEach(el=>{
+    el.addEventListener('input',()=>setPath(el.dataset.bind, el.value));
+  });
+}
+function stepMsgSet(txt){ const e=document.getElementById('stepMsg'); if(e) e.textContent = txt||''; }
 
 function coachCard(text){return `<div class="coach"><span class="tag">📞 ${t('say_this')}</span><div class="line">${text}</div></div>`;}
 function tipCard(text){return `<div class="coach tip"><span class="tag">💡 ${t('tip')}</span><div class="line">${text}</div></div>`;}
@@ -1169,13 +1335,18 @@ function goNext(){
 /* required-field validation with red highlight (matches Bittings behavior) */
 function validateStep(step){
   let ok=true;
+  stepMsgSet('');
   function bad(id){ const el=document.getElementById(id); if(el){el.classList.add('field-err'); ok=false;} }
   if(step==='customer'){
     if(!booking.customer.name.trim()) bad('f_name');
     if(!booking.customer.phone.trim()) bad('f_phone');
   }
-  if(step==='jobtype' && !booking.jobType) ok=false;
-  if(step==='subtype' && !booking.subType) ok=false;
+  if(step==='jobtype' && !booking.jobType){ ok=false; stepMsgSet(t('need_jobtype')); }
+  if(step==='subtype' && !booking.subType){ ok=false; stepMsgSet(t('need_subtype')); }
+  if(step==='upsell'){
+    if(booking.upsell.offered===null){ ok=false; stepMsgSet(t('need_upsell')); }
+    else if(booking.upsell.offered===true && booking.upsell.accepted===null){ ok=false; stepMsgSet(t('need_upsell_acc')); }
+  }
   if(step==='details'){
     if(!booking.address.trim() && !booking.parked.trim()) bad('f_addr');
     if(booking.jobType==='auto'){
