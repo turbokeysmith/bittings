@@ -28,6 +28,44 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 10. **A11y + mobile pass** — labels associated, keyboard-operable rows, focus-visible outlines,
     16px inputs, ≥40px tap targets, reduced-motion, aria-live messages.
 
+## Update 2026-06-10 — scheduler/forms/VIN/images
+
+**`app/store.js` (data layer) — new API**
+- `TKS.Bookings`: `STATUSES`, `get`, `save` (insert/update by id), `setStatus`, `remove`,
+  `active()`, `archived()`, `isArchived(b)`, `forCustomer(cust)`. `isArchived` = status
+  Completed/Canceled **or** `date < today` (local TZ). Booking shape gained `customerId`,
+  `status`, `serviceCategory`/`serviceLabel`, `vehicle.ignition`, `images[]`.
+- `TKS.Services`: canonical 5-item catalog (`{value,en,es,cat}`) + `fromJob(jobType,subType)` →
+  `{value,cat}` so the scheduler **auto-derives** the service category from the coaching tiles.
+- `TKS.decodeVin(vin)`: the only networked helper — NHTSA vPIC
+  (`/decodevinvalues/<vin>`), returns `{year,make,model,vin}`. (No VIN API pre-existed in the repo.)
+- `Inventory.search` now also matches `fitment` + `vin`. `Customers.upsert` already dedupes by
+  phone→name; the scheduler + both contact forms now write through it.
+- **Sync note:** `site/app/store.js` is a copy kept in sync for the public forms.
+
+**`scheduler.html`** — now loads `app/store.js` and writes bookings/customers through TKS
+(fallback to localStorage if TKS is absent). New `booking` detail view (status picker, Add-to-
+Schedule, edit, delete); status color tags via `STATUS_META`; vehicle step requires VIN **or**
+Y/M/M + ignition; `decodeVinNow()` auto-fills from the VIN; `googleUrl()` adds
+`add=turbokeysmith@gmail.com`. Job-photo slots are gated off (`.job-photos{display:none}` until
+`images[]` is non-empty).
+
+**`index.html`** — customer form shows read-only **Job history** (`TKS.Bookings.forCustomer`);
+customer rows show an **ES badge** when `lang==='es'`; Inventory has a **🔎 VIN** decode→filter and
+a **Fits (vehicles/VIN)** field.
+
+**Public contact forms** — EN (`site/contact/`, hand-maintained) and ES (`site/es/contact/`,
+**generated** by `_build/generate.mjs → esContact()`). Both use the canonical 5-option dropdown
+with **fixed English `value`** (Spanish only changes the displayed text), an "Other (describe)"
+free-text box stored as typed, and `addLead(..., {lang:'es'})` on the Spanish side. **Edit the ES
+form in the generator, not the output file** (regeneration overwrites it).
+
+**City photos** — `_build/engine.mjs photoSlots(label, photos)` and `generate.mjs esPhotoSlots`
+are now conditional: real `<figure class="photo">` gallery when a city has `photos:[...]` in
+`_build/cities.mjs`, else a hidden HTML comment (no empty boxes). Images live in
+`site/assets/cities/` (`<city>-1.jpg`, `<city>-2.jpg`); only the 4 original cities have them.
+Regenerate with `node _build/generate.mjs`.
+
 ---
 
 ## ✅ CLOUD IS NOW WIRED (using your existing project)

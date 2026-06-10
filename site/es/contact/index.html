@@ -284,14 +284,16 @@
     <label for="cService">Servicio que necesitas <span class="req">*</span></label>
     <select id="cService" required>
       <option value="">Elige una opción…</option>
-      <option>Reemplazo de llave / control de auto</option>
-      <option>Auto bloqueado</option>
-      <option>Recodificar / instalar cerradura de casa</option>
-      <option>Casa bloqueada</option>
-      <option>Cerraduras de negocio / comercial</option>
-      <option>Emergencia / 24 horas</option>
-      <option>Otra cosa</option>
+      <option value="Car lockout">Auto bloqueado</option>
+      <option value="Car key replacement / lost key">Reemplazo de llave / llave perdida</option>
+      <option value="Home or business lockout">Casa o negocio bloqueado</option>
+      <option value="Rekey / new locks">Recodificar / cerraduras nuevas</option>
+      <option value="Other (describe)">Otro (describe)</option>
     </select>
+    <div id="cOtherWrap" style="display:none">
+      <label for="cOther">Cuéntanos qué necesitas <span class="req">*</span></label>
+      <input id="cOther" type="text" placeholder="Describe el servicio">
+    </div>
     <label for="cNotes">Detalles (opcional)</label>
     <textarea id="cNotes" placeholder="Año/marca/modelo del auto, qué pasó, dónde estás…"></textarea>
     <div class="submitrow"><button class="btn btn-call btn-lg" type="submit">Enviar solicitud</button></div>
@@ -321,13 +323,20 @@
 <script>
 (function(){var f=document.getElementById('contactForm'),m=document.getElementById('cMsg');
 function g(i){return document.getElementById(i);}
+var sel=g('cService'),ow=g('cOtherWrap');
+function syncOther(){ow.style.display=(sel.value==='Other (describe)')?'block':'none';}
+sel.addEventListener('change',syncOther);syncOther();
 f.addEventListener('submit',function(e){e.preventDefault();m.textContent='';m.className='msg';
-var bad=[];['cName','cPhone','cService'].forEach(function(i){g(i).classList.remove('err');});
+var bad=[];['cName','cPhone','cService','cOther'].forEach(function(i){var el=g(i);if(el)el.classList.remove('err');});
 if(!g('cName').value.trim()){g('cName').classList.add('err');bad.push('cName');}
 if(!g('cPhone').value.trim()){g('cPhone').classList.add('err');bad.push('cPhone');}
 if(!g('cService').value){g('cService').classList.add('err');bad.push('cService');}
+var other=g('cOther')?g('cOther').value.trim():'';
+if(g('cService').value==='Other (describe)'&&!other){g('cOther').classList.add('err');bad.push('cOther');}
 if(bad.length){m.textContent="Por favor agrega tu nombre, teléfono y el servicio que necesitas.";m.className='msg bad';g(bad[0]).focus();return;}
-try{TKS.Customers.addLead({customer:g('cName').value.trim(),phone:g('cPhone').value.trim(),email:g('cEmail').value.trim(),address:g('cAddress').value.trim(),serviceNeeded:g('cService').value,notes:g('cNotes').value.trim(),lang:'es'});}catch(err){}
+var notes=g('cNotes').value.trim();
+if(g('cService').value==='Other (describe)'&&other){notes='Other service: '+other+(notes?'\n'+notes:'');}
+try{TKS.Customers.addLead({customer:g('cName').value.trim(),phone:g('cPhone').value.trim(),email:g('cEmail').value.trim(),address:g('cAddress').value.trim(),serviceNeeded:g('cService').value,notes:notes,lang:'es'});}catch(err){}
 f.style.display='none';g('cSuccess').style.display='block';window.scrollTo({top:0,behavior:'smooth'});});})();
 </script>
 <footer class="site"><div class="wrap">

@@ -264,6 +264,42 @@ textarea{min-height:70px;resize:vertical;}
 .gcal-stub button{margin-top:10px;background:transparent;border:1.5px solid var(--line);color:var(--ink);
   border-radius:10px;padding:9px 13px;font-weight:700;font-size:13px;cursor:pointer;}
 
+/* ---- Status tags + booking detail ---- */
+.status-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.3px;
+  border-radius:999px;padding:3px 9px;vertical-align:middle;white-space:nowrap;}
+.book-card .row-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.bk-detail{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;}
+.bk-detail h2{margin:0 0 4px;font-size:20px;}
+.bk-detail .when{color:var(--ink-soft);font-size:14px;margin-bottom:12px;}
+.bk-detail .r{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:14px;}
+.bk-detail .r b{color:var(--ink-soft);font-weight:600;}
+.status-picker{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px;}
+.status-picker button{border:1.5px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer;min-height:40px;}
+.status-picker button.sel{border-color:transparent;}
+.bk-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
+.bk-actions a,.bk-actions button{flex:1 1 auto;text-align:center;text-decoration:none;border-radius:11px;
+  padding:12px 14px;font-weight:800;font-size:14px;cursor:pointer;min-height:46px;display:inline-flex;
+  align-items:center;justify-content:center;gap:6px;}
+.bk-actions .gcal{background:var(--gold,#f2b43a);color:#1c1c1e;border:none;}
+.bk-actions .edit{background:transparent;border:1.5px solid var(--line);color:var(--ink);}
+.bk-actions .del{background:transparent;border:1.5px solid rgba(200,50,60,.4);color:#e0707a;flex:0 0 auto;}
+/* VIN row + ignition picker */
+.vin-row{display:flex;gap:8px;align-items:flex-end;}
+.vin-row input{flex:1;}
+.vin-row button{flex:0 0 auto;border:1.5px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:11px;padding:12px 14px;font-weight:700;font-size:13px;cursor:pointer;min-height:46px;}
+.vin-or{text-align:center;font-size:12px;color:var(--ink-soft);font-weight:700;margin:10px 0 4px;letter-spacing:.5px;}
+.ign-pick{display:flex;gap:10px;margin-top:6px;}
+.ign-pick button{flex:1;border:1.5px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:11px;padding:12px;font-weight:700;font-size:14px;cursor:pointer;min-height:46px;}
+.ign-pick button.sel{border-color:var(--gold,#f2b43a);background:var(--gold-soft,rgba(242,180,58,.14));}
+.vin-msg{font-size:13px;margin-top:6px;color:var(--ink-soft);min-height:1px;}
+.vin-msg.bad{color:#e0707a;}
+/* Job-photo slots — built but DORMANT (no photos yet). */
+.job-photos{display:none;}            /* flip to grid when real photos exist */
+.job-photos.has-photos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+
 /* ---- Accessibility + mobile polish ---- */
 :focus-visible{outline:3px solid var(--gold,#f2b43a);outline-offset:2px;border-radius:8px;}
 .daybar .navd{min-width:44px;min-height:44px;}
@@ -295,6 +331,10 @@ textarea{min-height:70px;resize:vertical;}
   </div>
 </div>
 
+<!-- Shared data layer (localStorage today; cloud-swap point inside). The
+     scheduler now reads/writes bookings + customers THROUGH TKS so it shares
+     one deduped list with the Customers tile and the contact form. -->
+<script src="app/store.js"></script>
 <script>
 /* =========================================================================
    1) STORAGE HELPERS  (same pattern as Bittings: readLS / writeLS)
@@ -358,7 +398,19 @@ const UI = {
     r_customer:"Customer", r_phone:"Phone", r_job:"Job", r_vehicle:"Vehicle",
     r_address:"Address", r_when:"When", r_upsell:"Add-on offered",
     yes_short:"Yes", no_short:"No",
-    err:"Please fill the highlighted fields."
+    err:"Please fill the highlighted fields.",
+    edit_booking:"Edit", add_to_sched:"Add to Schedule", del_booking:"Delete",
+    status:"Status", change_status:"Change status",
+    st_Scheduled:"Scheduled", st_InProgress:"In Progress", st_Completed:"Completed",
+    st_Rescheduled:"Rescheduled", st_Canceled:"Canceled",
+    active_jobs:"Active jobs", archived_jobs:"Past & completed", no_active:"No active jobs yet.",
+    veh_id:"Vehicle — VIN or year/make/model", ignition:"Ignition type",
+    ign_push:"Push-to-start", ign_keyed:"Keyed", decode_vin:"Decode VIN", vin_decoding:"Decoding…",
+    vin_need:"For a car job, enter a VIN or the year, make and model.",
+    vin_bad:"That VIN didn't decode — enter the year, make and model by hand.",
+    ign_need:"Choose the ignition type (push-to-start or keyed).",
+    del_confirm:"Delete this booking entirely? (To just take it off the board, mark it Completed or Canceled instead.)",
+    job_photos:"Job photos", edit_title:"Edit booking", open_booking:"Open"
   },
   es:{
     home_sub:"Agenda un trabajo, paso a paso.", new_booking:"Nueva cita",
@@ -392,9 +444,34 @@ const UI = {
     r_customer:"Cliente", r_phone:"Teléfono", r_job:"Trabajo", r_vehicle:"Vehículo",
     r_address:"Dirección", r_when:"Cuándo", r_upsell:"Extra ofrecido",
     yes_short:"Sí", no_short:"No",
-    err:"Por favor completa los campos marcados."
+    err:"Por favor completa los campos marcados.",
+    edit_booking:"Editar", add_to_sched:"Agregar a la agenda", del_booking:"Eliminar",
+    status:"Estado", change_status:"Cambiar estado",
+    st_Scheduled:"Agendado", st_InProgress:"En progreso", st_Completed:"Completado",
+    st_Rescheduled:"Reagendado", st_Canceled:"Cancelado",
+    active_jobs:"Trabajos activos", archived_jobs:"Pasados y completados", no_active:"Aún no hay trabajos activos.",
+    veh_id:"Vehículo — VIN o año/marca/modelo", ignition:"Tipo de encendido",
+    ign_push:"Botón de arranque", ign_keyed:"Con llave", decode_vin:"Decodificar VIN", vin_decoding:"Decodificando…",
+    vin_need:"Para un trabajo de auto, ingresa un VIN o el año, marca y modelo.",
+    vin_bad:"Ese VIN no se pudo leer — ingresa año, marca y modelo a mano.",
+    ign_need:"Elige el tipo de encendido (botón de arranque o con llave).",
+    del_confirm:"¿Eliminar esta cita por completo? (Para solo quitarla del tablero, márcala Completado o Cancelado.)",
+    job_photos:"Fotos del trabajo", edit_title:"Editar cita", open_booking:"Abrir"
   }
 };
+/* Status display + colors (shared by day view, job list, booking detail). */
+const STATUS_META = {
+  'Scheduled':   { key:'st_Scheduled',   bg:'rgba(74,163,255,.16)', fg:'#4aa3ff' },
+  'In Progress': { key:'st_InProgress',  bg:'rgba(242,180,58,.18)',  fg:'#f2b43a' },
+  'Completed':   { key:'st_Completed',   bg:'rgba(46,160,80,.18)',   fg:'#46c46a' },
+  'Rescheduled': { key:'st_Rescheduled', bg:'rgba(155,107,214,.18)', fg:'#b58be0' },
+  'Canceled':    { key:'st_Canceled',    bg:'rgba(200,50,60,.16)',   fg:'#e0707a' }
+};
+function statusLabel(s){ const m=STATUS_META[s]||STATUS_META.Scheduled; return t(m.key); }
+function statusTag(s){
+  const m = STATUS_META[s] || STATUS_META.Scheduled;
+  return `<span class="status-tag" style="background:${m.bg};color:${m.fg}">${esc(statusLabel(s))}</span>`;
+}
 function t(key){ return (UI[LANG] && UI[LANG][key]) || UI.en[key] || key; }
 
 /* =========================================================================
@@ -603,13 +680,16 @@ function isUrgent(){
 let stepIndex = 0;
 let booking = freshBooking();
 function freshBooking(){
-  return { id:null, createdAt:null,
+  return { id:null, customerId:null, createdAt:null,
     lineIdx:{},   // which script variant was chosen for each slot this call
     customer:{ name:"", phone:"", email:"" },
     jobType:"", subType:"",
+    serviceCategory:"", serviceLabel:"",
     address:"", parked:"",
-    vehicle:{ year:"", make:"", model:"", vin:"" },
+    vehicle:{ year:"", make:"", model:"", vin:"", ignition:"" },
     date:"", time:"", duration:60,
+    status:"Scheduled",
+    images:[],            // job photos — built but dormant until real photos exist
     notes:"",
     upsell:{ offered:null, accepted:null, item:"" },
     bookedBy:"trainee"
@@ -633,17 +713,22 @@ function render(){
   document.querySelectorAll('#langToggle button').forEach(b=>{
     b.classList.toggle('active', b.dataset.lang===LANG);
   });
-  if(VIEW==='home')  return renderHome();
-  if(VIEW==='day')   return renderDay();
-  if(VIEW==='jobs')  return renderJobs();
-  if(VIEW==='done')  return renderDone();
-  if(VIEW==='flow')  return renderFlow();
+  if(VIEW==='home')    return renderHome();
+  if(VIEW==='day')     return renderDay();
+  if(VIEW==='jobs')    return renderJobs();
+  if(VIEW==='booking') return renderBooking();
+  if(VIEW==='done')    return renderDone();
+  if(VIEW==='flow')    return renderFlow();
 }
+
+/* All bookings, via TKS (shared, deduped). Falls back to localStorage if the
+   data layer didn't load for any reason. */
+function allBookings(){ try{ return TKS.Bookings.all(); }catch(e){ return readLS(K_BOOKINGS, []); } }
 
 /* ---------- HOME ---------- */
 function renderHome(){
   nav.style.display='none';
-  const bookings = readLS(K_BOOKINGS, []);
+  const bookings = allBookings();
   const offered = bookings.filter(b=>b.upsell && b.upsell.offered).length;
   const rate = bookings.length ? Math.round(offered/bookings.length*100) : 0;
   app.innerHTML = `
@@ -696,7 +781,7 @@ function startFlowAt(date,time){ startFlow(); booking.date=date; booking.time=ti
 
 function renderDay(){
   if(nav) nav.style.display='none';
-  const all = readLS(K_BOOKINGS, []).filter(b=>(b.date||'')===DAY)
+  const all = allBookings().filter(b=>(b.date||'')===DAY)
                 .sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   let rows='';
   for(let h=DAY_START; h<=DAY_END; h++){
@@ -709,8 +794,8 @@ function renderDay(){
         const nm = (b.customer && b.customer.name) ? b.customer.name : (b.customer && b.customer.customer) || '—';
         const job = subLabel ? subLabel(b.jobType, b.subType) : (b.jobType||'');
         const urgent = (typeof isUrgent==='function' && isUrgent(b)) ? ' urgent' : '';
-        return `<div class="book-card${urgent}" onclick="VIEW='jobs';render()">
-          <b>${esc(fmt12(b.time))} · ${esc(nm)}</b>
+        return `<div class="book-card${urgent}" onclick="openBooking('${b.id}')">
+          <div class="row-top"><b>${esc(fmt12(b.time))} · ${esc(nm)}</b>${statusTag(b.status||'Scheduled')}</div>
           <div class="m">${esc(job||'')}${b.address?' · '+esc(b.address):''}</div></div>`;
       }).join('');
     }
@@ -736,23 +821,98 @@ function renderDay(){
     </div>`;
 }
 
+function jobRow(b){
+  const when = b.date ? `${b.date} ${fmt12(b.time)}` : '';
+  const veh = b.vehicle && b.vehicle.make ? `${b.vehicle.year} ${b.vehicle.make} ${b.vehicle.model}`.trim() : '';
+  const sub = subLabel(b.jobType, b.subType);
+  return `<div class="job" style="cursor:pointer" onclick="openBooking('${b.id}')">
+    <div class="top"><span>${esc(when)}</span>${statusTag(b.status||'Scheduled')}</div>
+    <h3>${esc((b.customer&&b.customer.name)||'—')}</h3>
+    <div class="meta">${esc(sub)}${veh?' · '+esc(veh):''}${b.address?' · '+esc(b.address):''}</div>
+    <div class="meta">${esc((b.customer&&b.customer.phone)||'')}</div>
+  </div>`;
+}
 function renderJobs(){
   nav.style.display='none';
-  const bookings = readLS(K_BOOKINGS, []).slice().reverse();
-  let rows = bookings.length ? bookings.map(b=>{
-    const when = b.date ? `${b.date} ${fmt12(b.time)}` : '';
-    const veh = b.vehicle && b.vehicle.make ? `${b.vehicle.year} ${b.vehicle.make} ${b.vehicle.model}`.trim() : '';
-    const sub = subLabel(b.jobType, b.subType);
-    return `<div class="job">
-      <div class="top"><span>${when}</span>${b.upsell&&b.upsell.offered?'<span class="pill">✓ offered</span>':''}</div>
-      <h3>${esc(b.customer.name||'—')}</h3>
-      <div class="meta">${sub}${veh?' · '+esc(veh):''}${b.address?' · '+esc(b.address):''}</div>
-      <div class="meta">${esc(b.customer.phone||'')}</div>
-    </div>`;
-  }).join('') : `<div class="empty">No bookings yet.</div>`;
+  let active=[], archived=[];
+  try{ active = TKS.Bookings.active(); archived = TKS.Bookings.archived(); }
+  catch(e){ active = allBookings(); }
+  // newest-first
+  const sortNew = (a,b)=>String((b.date||'')+(b.time||'')).localeCompare(String((a.date||'')+(a.time||'')));
+  active.sort(sortNew); archived.sort(sortNew);
+  const activeRows = active.length ? active.map(jobRow).join('') : `<div class="empty">${t('no_active')}</div>`;
+  const archBlock = archived.length
+    ? `<div class="section-h" style="margin-top:22px">${t('archived_jobs')} (${archived.length})</div>${archived.map(jobRow).join('')}`
+    : '';
   app.innerHTML = `
     <button class="btn ghost" style="margin-bottom:16px" onclick="VIEW='home';render()">← ${t('home')}</button>
-    <div class="section-h">${t('all_jobs')}</div>${rows}`;
+    <div class="section-h">${t('active_jobs')}</div>${activeRows}${archBlock}`;
+}
+
+/* ---------- BOOKING DETAIL (view / status / edit / add-to-schedule) ---------- */
+let currentBookingId = null;
+function openBooking(id){ currentBookingId = id; VIEW='booking'; render(); }
+
+function renderBooking(){
+  nav.style.display='none';
+  const b = (function(){ try{ return TKS.Bookings.get(currentBookingId); }catch(e){ return null; } })()
+            || allBookings().find(x=>x.id===currentBookingId);
+  if(!b){ VIEW='jobs'; return render(); }
+  const veh = b.vehicle && (b.vehicle.make||b.vehicle.vin)
+    ? `${b.vehicle.year||''} ${b.vehicle.make||''} ${b.vehicle.model||''}`.trim() + (b.vehicle.vin?` · VIN ${esc(b.vehicle.vin)}`:'') : '';
+  const ign = b.vehicle && b.vehicle.ignition ? (b.vehicle.ignition==='push'?t('ign_push'):t('ign_keyed')) : '';
+  const when = b.date ? `${prettyDate(b.date)} · ${fmt12(b.time)}` : '—';
+  // load THIS booking into the global so the calendar links build correctly
+  booking = JSON.parse(JSON.stringify(b)); if(!booking.lineIdx) booking.lineIdx={};
+  const rows = [
+    [t('r_customer'), (b.customer&&b.customer.name)||'—'],
+    [t('r_phone'), (b.customer&&b.customer.phone)||'—'],
+    [t('r_job'), subLabel(b.jobType,b.subType)],
+    veh?[t('r_vehicle'), veh + (ign?` · ${ign}`:'')]:null,
+    [t('r_address'), b.address || b.parked || '—'],
+    [t('r_when'), when]
+  ].filter(Boolean).map(([k,v])=>`<div class="r"><b>${k}</b><span>${esc(v)}</span></div>`).join('');
+  const picker = TKS.Bookings.STATUSES.map(s=>{
+    const m = STATUS_META[s]; const sel = (b.status||'Scheduled')===s;
+    const style = sel ? `style="background:${m.bg};color:${m.fg};border-color:${m.fg}"` : '';
+    return `<button class="${sel?'sel':''}" ${style} onclick="setBookingStatus('${b.id}','${s}')">${esc(statusLabel(s))}</button>`;
+  }).join('');
+  // Job photos: built but DORMANT — only renders if real photos exist.
+  const imgs = (b.images&&b.images.length)
+    ? `<div class="section-h" style="margin-top:14px">${t('job_photos')}</div>
+       <div class="job-photos has-photos">${b.images.map(src=>`<img src="${esc(src)}" alt="" style="width:100%;border-radius:10px">`).join('')}</div>`
+    : '';
+  app.innerHTML = `
+    <button class="btn ghost" style="margin-bottom:14px" onclick="VIEW='jobs';render()">← ${t('all_jobs')}</button>
+    <div class="bk-detail">
+      <div class="row-top"><h2>${esc((b.customer&&b.customer.name)||'—')}</h2>${statusTag(b.status||'Scheduled')}</div>
+      <div class="when">${esc(subLabel(b.jobType,b.subType))} · ${esc(when)}</div>
+      ${rows}
+      <div class="section-h" style="margin-top:14px">${t('change_status')}</div>
+      <div class="status-picker">${picker}</div>
+      ${imgs}
+      <div class="bk-actions">
+        <a class="gcal" href="${googleUrl()}" target="_blank" rel="noopener">📆 ${t('add_to_sched')}</a>
+        <button class="edit" onclick="editBooking('${b.id}')">✏️ ${t('edit_booking')}</button>
+        <button class="del" onclick="deleteBooking('${b.id}')">🗑</button>
+      </div>
+    </div>`;
+}
+function setBookingStatus(id,status){ try{ TKS.Bookings.setStatus(id,status); }catch(e){} render(); }
+function deleteBooking(id){
+  if(!confirm(t('del_confirm'))) return;
+  try{ TKS.Bookings.remove(id); }catch(e){}
+  VIEW='jobs'; render();
+}
+function editBooking(id){
+  const b = (function(){ try{ return TKS.Bookings.get(id); }catch(e){ return null; } })()
+            || allBookings().find(x=>x.id===id);
+  if(!b) return;
+  booking = JSON.parse(JSON.stringify(b));
+  if(!booking.lineIdx) booking.lineIdx={};
+  if(!booking.vehicle) booking.vehicle={year:"",make:"",model:"",vin:"",ignition:""};
+  if(!booking.images) booking.images=[];
+  stepIndex = 0; VIEW='flow'; render();
 }
 
 /* ---------- DONE ---------- */
@@ -763,7 +923,9 @@ function renderDone(){
     <div class="hero"><h1>${t('booked')}</h1><p>${t('booked_sub')}</p></div>
     <div class="coach"><span class="tag">📞 ${t('say_this')}</span>
       <div class="line">${line('closing', SCRIPT.closing)}</div></div>
-    <button class="btn primary" style="width:100%;margin-bottom:10px" onclick="startFlow()">${t('another')}</button>
+    <a class="btn primary" style="width:100%;margin-bottom:10px;display:flex;align-items:center;justify-content:center;text-decoration:none"
+       href="${googleUrl()}" target="_blank" rel="noopener">📆 ${t('add_to_sched')}</a>
+    <button class="btn ghost" style="width:100%;margin-bottom:10px" onclick="startFlow()">${t('another')}</button>
     <button class="btn ghost" style="width:100%" onclick="VIEW='home';render()">${t('home')}</button>`;
 }
 
@@ -845,12 +1007,25 @@ function stepDetails(){
   let html = coachCard(msg);
   html += tipCard(TIPS.location[LANG]);
   if(booking.jobType==='auto'){
-    html += `<div class="row2">
-        <div><label>${t('veh_y')}</label><input data-bind="vehicle.year" inputmode="numeric" value="${esc(booking.vehicle.year)}"></div>
-        <div><label>${t('veh_mk')}</label><input data-bind="vehicle.make" value="${esc(booking.vehicle.make)}"></div>
+    // A car job needs vehicle ID: a VIN (auto-fills year/make/model) OR
+    // year+make+model typed in. Ignition type is also required.
+    html += `<label>${t('veh_id')}</label>
+      <div class="vin-row">
+        <input data-bind="vehicle.vin" id="f_vin" value="${esc(booking.vehicle.vin)}" placeholder="VIN — 17 characters" autocapitalize="characters" autocomplete="off">
+        <button type="button" onclick="decodeVinNow()">🔎 ${t('decode_vin')}</button>
       </div>
-      <label>${t('veh_md')}</label><input data-bind="vehicle.model" value="${esc(booking.vehicle.model)}">
-      <label>${t('vin')}</label><input data-bind="vehicle.vin" value="${esc(booking.vehicle.vin)}" placeholder="17 chars">
+      <div class="vin-msg" id="vinMsg"></div>
+      <div class="vin-or">— ${LANG==='es'?'O':'OR'} —</div>
+      <div class="row2">
+        <div><label>${t('veh_y')}</label><input data-bind="vehicle.year" id="f_vy" inputmode="numeric" value="${esc(booking.vehicle.year)}"></div>
+        <div><label>${t('veh_mk')}</label><input data-bind="vehicle.make" id="f_vmk" value="${esc(booking.vehicle.make)}"></div>
+      </div>
+      <label>${t('veh_md')}</label><input data-bind="vehicle.model" id="f_vmd" value="${esc(booking.vehicle.model)}">
+      <label>${t('ignition')}</label>
+      <div class="ign-pick" id="ignPick">
+        <button type="button" class="${booking.vehicle.ignition==='push'?'sel':''}" onclick="setIgnition('push')">🔘 ${t('ign_push')}</button>
+        <button type="button" class="${booking.vehicle.ignition==='keyed'?'sel':''}" onclick="setIgnition('keyed')">🔑 ${t('ign_keyed')}</button>
+      </div>
       <label>${t('where_parked')}</label><input data-bind="parked" value="${esc(booking.parked)}">`;
   }
   html += `<label>${t('addr')}</label><input data-bind="address" id="f_addr" value="${esc(booking.address)}" placeholder="123 Main St, Oklahoma City">`;
@@ -926,6 +1101,24 @@ function setPath(path,val){
 }
 function pickJobType(v){ booking.jobType=v; booking.subType=''; render(); }
 function pickSub(v){ booking.subType=v; render(); }
+function setIgnition(v){ booking.vehicle.ignition=v; render(); }
+function detailMsg(key, isBad){
+  const m=document.getElementById('vinMsg');
+  if(m){ m.className='vin-msg'+(isBad?' bad':''); m.textContent=key?t(key):''; }
+}
+/* Decode a VIN via the shared NHTSA helper and auto-fill year/make/model. */
+function decodeVinNow(){
+  const vin=(booking.vehicle.vin||'').trim();
+  detailMsg('vin_decoding', false);
+  if(!window.TKS || !TKS.decodeVin){ detailMsg('vin_bad', true); return; }
+  TKS.decodeVin(vin).then(r=>{
+    booking.vehicle.year=r.year||''; booking.vehicle.make=r.make||'';
+    booking.vehicle.model=r.model||''; booking.vehicle.vin=r.vin||vin;
+    render();
+    const m=document.getElementById('vinMsg');
+    if(m){ m.className='vin-msg'; m.textContent=`✓ ${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model}`.trim(); }
+  }).catch(()=>detailMsg('vin_bad', true));
+}
 function setUpsell(field,val){
   booking.upsell[field]=val;
   if(field==='offered' && val===false) booking.upsell.accepted=null;
@@ -936,8 +1129,10 @@ function searchCust(q){
   const hits = document.getElementById('custHits'); if(!hits) return;
   q=(q||'').toLowerCase().trim();
   if(!q){ hits.innerHTML=''; return; }
-  // search BOTH individual customers and business shops (Bittings keeps them apart)
-  const all = readLS(K_CUSTOMERS, []).concat(readLS(K_SHOPS, []));
+  // search BOTH individual customers and business shops, via TKS (shared list)
+  let all;
+  try{ all = TKS.list('customers').concat(TKS.list('shops')); }
+  catch(e){ all = readLS(K_CUSTOMERS, []).concat(readLS(K_SHOPS, [])); }
   const found = all.filter(c=>{
     const n=(c.customer||'').toLowerCase();   // Bittings stores the name under "customer"
     const p=(c.phone||'').toLowerCase();
@@ -979,6 +1174,14 @@ function validateStep(step){
   if(step==='subtype' && !booking.subType) ok=false;
   if(step==='details'){
     if(!booking.address.trim() && !booking.parked.trim()) bad('f_addr');
+    if(booking.jobType==='auto'){
+      const v = booking.vehicle;
+      const hasVin = /^[A-HJ-NPR-Z0-9]{17}$/.test((v.vin||'').toUpperCase());
+      const hasYMM = (''+(v.year||'')).trim() && (v.make||'').trim() && (v.model||'').trim();
+      if(!hasVin && !hasYMM){ bad('f_vin'); bad('f_vy'); bad('f_vmk'); bad('f_vmd'); detailMsg('vin_need', true); }
+      else if(!v.ignition){ ok=false; detailMsg('ign_need', true);
+        const ip=document.getElementById('ignPick'); if(ip){ ip.style.outline='2px solid #e0707a'; ip.style.borderRadius='12px'; } }
+    }
   }
   if(step==='schedule'){
     if(!booking.date) bad('f_date');
@@ -991,12 +1194,37 @@ function validateStep(step){
 }
 
 function saveBooking(){
-  const bookings = readLS(K_BOOKINGS, []);
-  booking.id = 'bk_'+Date.now();
-  booking.createdAt = new Date().toISOString();
-  bookings.push(JSON.parse(JSON.stringify(booking)));
-  writeLS(K_BOOKINGS, bookings);
-  saveCustomerToSharedDB();
+  // 1) Upsert the customer through TKS (deduped by PHONE, then name) and grab
+  //    the id so the booking is linked to a real customer record.
+  let cust = null;
+  const name = (booking.customer.name||'').trim();
+  try{
+    if(name) cust = TKS.Customers.upsert({
+      customer: name,
+      phone: (booking.customer.phone||'').trim(),
+      email: (booking.customer.email||'').trim(),
+      address: (booking.address||'').trim(),
+      customerType: (booking.jobType==='com') ? 'business' : 'individual',
+      source: 'scheduler'
+    });
+  }catch(e){ /* fall through to local save below */ }
+  if(cust && cust.id) booking.customerId = cust.id;
+
+  // 2) Auto-derive the canonical service category from the coaching tiles
+  //    (no double entry for the trainee).
+  try{ const sv = TKS.Services.fromJob(booking.jobType, booking.subType);
+       booking.serviceCategory = sv.cat; booking.serviceLabel = sv.value; }catch(e){}
+  if(!booking.status) booking.status = 'Scheduled';
+
+  // 3) Save the booking through TKS (inserts new, or updates when editing).
+  try{ TKS.Bookings.save(booking); }
+  catch(e){
+    const bookings = readLS(K_BOOKINGS, []);
+    if(!booking.id) booking.id = 'bk_'+Date.now();
+    const i = bookings.findIndex(x=>x.id===booking.id);
+    if(i!==-1) bookings[i]=JSON.parse(JSON.stringify(booking)); else bookings.push(JSON.parse(JSON.stringify(booking)));
+    writeLS(K_BOOKINGS, bookings);
+  }
   VIEW='done'; render();
 }
 
@@ -1128,7 +1356,8 @@ function googleUrl(){
     action:'TEMPLATE', text:eventTitle(),
     dates:`${fmtCompact(start)}/${fmtCompact(end)}`,
     details:eventDetails(), location:eventLocation(),
-    ctz:'America/Chicago'
+    ctz:'America/Chicago',
+    add:'turbokeysmith@gmail.com'   // business calendar is invited as guest / system of record
   });
   return 'https://calendar.google.com/calendar/render?'+p.toString();
 }
