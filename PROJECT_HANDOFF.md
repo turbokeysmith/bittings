@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-10 15:23 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-10 15:37 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -168,8 +168,14 @@ These are the open items an advisor should focus on:
    (Stripe/Square), or open the separate payment app — provide its URL.*
 4. **Google Calendar is a placeholder.** Opens Google Calendar in a tab; no two-way sync.
    *Decision: real sync (needs Google sign-in setup) or keep the simple link?*
-5. **Spanish covers the chrome + homepage + contact form, not the long city-page text.**
-   *Decision: translate all city/service page bodies? (content work).*
+5. **Spanish — the 🌐 toggle vs the `/es/` pages.** Today the 🌐 toggle only translates the
+   *chrome* in place (nav/trust strip/footer + tagged bits); city/service **body text stays
+   English**, and the full `/es/` pages exist but are **not connected to the button** (only an
+   invisible `hreflang` link ties them, for Google). **DECIDED — Option A:** rewire the 🌐 toggle
+   to **navigate to the matching `/es/` page**, with a **back-to-English link on the `/es/` side**.
+   **Prerequisite sequence (must happen first, in order):** (1) proofread `/es/` — especially
+   technical locksmith terms; (2) publish `/es/` — remove `noindex`, add to the sitemap, unblock
+   `robots.txt`, drop the DRAFT banners; (3) then rewire the toggle. *Queued, not built yet.*
 6. **Nothing is deployed/published.** *Decision: where to host, and is the public site on the
    same web address as the staff app?*
 7. **Optional security hardening** flagged by Supabase: set a fixed search_path on the
@@ -237,6 +243,12 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-10
+- **Spanish toggle direction DECIDED — Option A (queued, not built):** the 🌐 toggle will navigate
+  to the matching `/es/` page (with a back-to-English link on the `/es/` side), instead of the
+  current chrome-only in-place translation. Clarified that the toggle and the `/es/` pages are two
+  separate systems today, linked only by an invisible `hreflang` tag. Locked the prerequisite
+  sequence: **proofread `/es/` → publish `/es/` (remove noindex, add to sitemap, unblock robots) →
+  then rewire the toggle.** Do not point the button at unpublished/unproofread pages.
 - **Master task list reconciled with the actual repo** (`turbo_master_task_list.md`): marked the
   proximity re-sort of the 25 cities as done (hub already shows the 4 distance bands); corrected
   the Spanish site to "full 98-page draft built, unpublished" (was understated as in-progress);
