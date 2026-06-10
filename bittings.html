@@ -932,6 +932,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   </div>
 </div>
 
+<!-- Shared data layer + cloud (so Receipts shares ONE deduped customer list with
+     the rest of the app and syncs to the cloud when a staff member is signed in). -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app/cloud-config.js"></script>
+<script src="app/store.js"></script>
 <script>
 "use strict";
 
@@ -958,12 +963,15 @@ function getSettings(){
   return Object.assign({}, DEFAULT_SETTINGS, s);
 }
 function saveSettingsObj(s){ writeLS("tks_settings", s); }
-function getHistory(){ return readLS("tks_receipts", []); }
-function saveHistory(arr){ writeLS("tks_receipts", arr); }
-function getCustomers(){ return readLS("tks_customers", []); }
-function saveCustomers(arr){ writeLS("tks_customers", arr); }
-function getShops(){ return readLS("tks_shops", []); }
-function saveShops(arr){ writeLS("tks_shops", arr); }
+// Receipts + customers now flow through the shared data layer (TKS), so they
+// share ONE deduped list with the staff app and sync to the cloud when signed
+// in. Falls back to localStorage if TKS isn't loaded for any reason.
+function getHistory(){ try{ return TKS.list("receipts"); }catch(e){ return readLS("tks_receipts", []); } }
+function saveHistory(arr){ try{ TKS.saveList("receipts", arr); }catch(e){ writeLS("tks_receipts", arr); } }
+function getCustomers(){ try{ return TKS.list("customers"); }catch(e){ return readLS("tks_customers", []); } }
+function saveCustomers(arr){ try{ TKS.saveList("customers", arr); }catch(e){ writeLS("tks_customers", arr); } }
+function getShops(){ try{ return TKS.list("shops"); }catch(e){ return readLS("tks_shops", []); } }
+function saveShops(arr){ try{ TKS.saveList("shops", arr); }catch(e){ writeLS("tks_shops", arr); } }
 
 // Line-item categories. Each has a default taxable treatment (flippable per item).
 const LINE_CATEGORIES = [
@@ -3312,6 +3320,28 @@ closeSettings = function(){
 };
 
 boot();
+
+/* Cloud bootstrap — connect when a staff member is already signed in (session
+   shared with the staff app via cloud-test.html). After hydrate, refresh any
+   visible customer/history lists so they show the synced data. Stays on
+   localStorage if nobody is signed in. */
+function _receiptsRefresh(){
+  try{ if(typeof renderCustList==='function') renderCustList(); }catch(e){}
+  try{ if(typeof renderHistList==='function') renderHistList(); }catch(e){}
+}
+(function receiptsCloudBootstrap(){
+  try{
+    var cfg = window.TKS_CLOUD;
+    if(!cfg || !cfg.AUTO_CONNECT) return;
+    if(!window.supabase || !window.supabase.createClient) return;
+    if(window.TKS && TKS.onChange) TKS.onChange(_receiptsRefresh);
+    var probe = window.supabase.createClient(cfg.url, cfg.anonKey);
+    probe.auth.getSession().then(function(res){
+      if(!res || !res.data || !res.data.session) return;   // not signed in -> stay local
+      TKS.connectCloud({ url:cfg.url, anonKey:cfg.anonKey }).then(_receiptsRefresh).catch(function(){});
+    }).catch(function(){});
+  }catch(e){}
+})();
 </script>
 </body>
 </html>

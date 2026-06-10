@@ -424,7 +424,9 @@ const UI = {
     need_jobtype:"Pick what they need help with to continue.",
     need_subtype:"Pick the kind of job to continue.",
     need_upsell:"Mark whether you offered the add-on to continue.",
-    need_upsell_acc:"Mark whether they accepted to continue."
+    need_upsell_acc:"Mark whether they accepted to continue.",
+    owner_denied:"That's an owner-only action. You're signed in as staff, so it's locked.",
+    owner_unlocked:"Owner signed in — quick form unlocked."
   },
   es:{
     home_sub:"Agenda un trabajo, paso a paso.", new_booking:"Nueva cita",
@@ -480,7 +482,9 @@ const UI = {
     need_jobtype:"Elige en qué necesita ayuda para continuar.",
     need_subtype:"Elige el tipo de trabajo para continuar.",
     need_upsell:"Indica si ofreciste el extra para continuar.",
-    need_upsell_acc:"Indica si lo aceptó para continuar."
+    need_upsell_acc:"Indica si lo aceptó para continuar.",
+    owner_denied:"Esta acción es solo del dueño. Tu sesión es de empleado, así que está bloqueada.",
+    owner_unlocked:"Dueño con sesión — formulario rápido desbloqueado."
   }
 };
 /* Status display + colors (shared by day view, job list, booking detail). */
@@ -964,9 +968,18 @@ function ownerPinConfigured(){
   return !!(window.TKS_OWNER && String(window.TKS_OWNER.QUICK_FORM_PIN || '').length);
 }
 function requestOwnerAccess(onGranted){
-  _ownerGrant = (typeof onGranted==='function') ? onGranted : null;
-  pinError = '';
-  VIEW = 'pin'; render();
+  const grant = (typeof onGranted==='function') ? onGranted : function(){};
+  // 1) Signed in as the OWNER → unlock immediately, no PIN.
+  try{
+    if(window.TKS && TKS.auth && TKS.auth.isSignedIn()){
+      if(TKS.auth.isOwner()){ grant(); return; }
+      // Signed in as a regular employee → their login can't unlock owner-only things.
+      alert(t('owner_denied')); VIEW='home'; render(); return;
+    }
+  }catch(e){}
+  // 2) Nobody signed in → fall back to the owner PIN (if one is configured).
+  if(!ownerPinConfigured()){ alert(t('pin_unset')); VIEW='home'; render(); return; }
+  _ownerGrant = grant; pinError=''; VIEW='pin'; render();
 }
 function submitOwnerPin(){
   const el = document.getElementById('pinInput');
@@ -998,8 +1011,8 @@ function renderPin(){
   const i = document.getElementById('pinInput'); if(i) i.focus();
 }
 function ownerQuickForm(){
-  if(!ownerPinConfigured()){ alert(t('pin_unset')); return; }
-  requestOwnerAccess(startQuickForm);   // single gate; PIN today, owner-login later
+  // Single gate: owner-login unlocks instantly; PIN is the no-login fallback.
+  requestOwnerAccess(startQuickForm);
 }
 function startQuickForm(){ booking = freshBooking(); VIEW='quickform'; render(); }
 
