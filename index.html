@@ -29,6 +29,16 @@
   .cloudpill{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.3px;color:var(--dim);
     border:1px solid var(--edge);border-radius:999px;padding:5px 10px;white-space:nowrap;}
   .cloudpill.on{color:#7fd49b;border-color:rgba(34,153,74,.5);}
+  /* Staff-login bar: who's signed in + role */
+  .authbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-8px 0 18px;
+    font-size:12.5px;color:var(--dim);}
+  .authbar b{color:var(--ink,#f4f5f7);font-weight:700;}
+  .authbar a,.authbar button{font:inherit;cursor:pointer;border-radius:9px;padding:6px 11px;font-weight:700;}
+  .authbar a{background:linear-gradient(180deg,var(--red),var(--red-deep));color:#fff;text-decoration:none;border:none;}
+  .authbar button{background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--dim);}
+  .rolebadge{font-size:10px;font-weight:800;letter-spacing:.5px;border-radius:5px;padding:2px 6px;}
+  .rolebadge.owner{background:rgba(242,180,58,.18);color:#f2b43a;}
+  .rolebadge.staff{background:rgba(74,163,255,.16);color:#7fb8ff;}
 
   .tiles{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   .tile{background:linear-gradient(180deg,var(--card),#181b21);border:1px solid var(--edge);border-radius:18px;
@@ -158,6 +168,8 @@
     <span class="cloudpill" id="cloudPill" title="Where your data is stored">On this device</span>
     <button class="back" id="backBtn">‹ Home</button>
   </header>
+
+  <div class="authbar" id="authBar"></div>
 
   <div class="view active" id="view-home">
     <div class="tiles">
@@ -655,15 +667,35 @@ function setCloudPill(state){
     if(invNote)  invNote.textContent  = 'Stock is saved on this device. Sign in to sync it to the cloud.';
   }
 }
+/* Staff-login bar — shows who's signed in and their role (owner vs staff). This
+   is the app's "who's signed in" check. Owner is decided by the email allowlist
+   in app/cloud-config.js (TKS_OWNER.OWNER_EMAILS). */
+function esc2(s){ return (s||'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function updateAuthUI(){
+  const bar = document.getElementById('authBar'); if(!bar) return;
+  const a = window.TKS && TKS.auth;
+  if(a && a.isSignedIn()){
+    const owner = a.isOwner();
+    bar.innerHTML = '<span>Signed in: <b>'+esc2(a.email())+'</b></span>'+
+      '<span class="rolebadge '+(owner?'owner':'staff')+'">'+(owner?'OWNER':'STAFF')+'</span>'+
+      '<button id="signOutBtn">Sign out</button>';
+    const so = document.getElementById('signOutBtn');
+    if(so) so.onclick = ()=>{ try{ a.signOut().then(()=>location.reload()); }catch(e){ location.reload(); } };
+  } else {
+    bar.innerHTML = '<span>Not signed in — saving on this device.</span>'+
+      '<a href="cloud-test.html" rel="nofollow">Staff Login</a>';
+  }
+}
 function rerenderActive(){
   if(document.getElementById('view-inventory').classList.contains('active')) renderInventory();
   if(document.getElementById('view-customers').classList.contains('active')) renderCustomers();
   if(document.getElementById('view-payments').classList.contains('active')) renderPayments();
 }
-TKS.onChange(rerenderActive);
+TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
 
 (function cloudBootstrap(){
   setCloudPill('off');
+  updateAuthUI();                                                     // guest state until proven otherwise
   const cfg = window.TKS_CLOUD;
   if(!cfg || !cfg.AUTO_CONNECT) return;
   if(!window.supabase || !window.supabase.createClient) return;       // library blocked/offline
@@ -674,6 +706,7 @@ TKS.onChange(rerenderActive);
     TKS.connectCloud({ url:cfg.url, anonKey:cfg.anonKey }).then(()=>{
       setCloudPill('on');
       rerenderActive();
+      updateAuthUI();
     }).catch(()=>{ /* stay local */ });
   }).catch(()=>{ /* stay local */ });
 })();

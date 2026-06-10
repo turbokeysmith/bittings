@@ -491,12 +491,38 @@
   }
 
   var changeHandlers = [];
+  var authState = { user: null, sb: null };   // current signed-in user (cloud)
 
   global.TKS = {
     KEYS: KEYS, uid: uid, read: read, write: write,
     adapter: function () { return ADAPTER.name; },
     Customers: Customers, Inventory: Inventory, Bookings: Bookings,
     Services: Services, decodeVin: decodeVin,
+
+    /* ---------------------------------------------------------------- *
+     *  auth — who is signed in, and are they the owner?                 *
+     *  Owner is decided by email allowlist in window.TKS_OWNER.         *
+     *  OWNER_EMAILS (app/cloud-config.js). role() is 'guest' (nobody    *
+     *  signed in), 'staff' (signed in, not owner), or 'owner'.          *
+     *  This is the single place the app asks "who's signed in" — later  *
+     *  it can be backed by Supabase roles without changing callers.     *
+     * ---------------------------------------------------------------- */
+    auth: {
+      user: function () { return authState.user; },
+      email: function () { return authState.user ? authState.user.email : null; },
+      isSignedIn: function () { return !!authState.user; },
+      ownerEmails: function () {
+        var o = global.TKS_OWNER && global.TKS_OWNER.OWNER_EMAILS;
+        if (!Array.isArray(o)) return [];
+        return o.map(function (e) { return String(e || '').trim().toLowerCase(); }).filter(Boolean);
+      },
+      isOwner: function () {
+        var e = this.email(); if (!e) return false;
+        return this.ownerEmails().indexOf(e.toLowerCase()) !== -1;
+      },
+      role: function () { return !this.isSignedIn() ? 'guest' : (this.isOwner() ? 'owner' : 'staff'); },
+      signOut: function () { return (authState.sb && authState.sb.auth) ? authState.sb.auth.signOut() : Promise.resolve(); }
+    },
 
     // Generic passthroughs so pages that keep their own array logic
     // (e.g. the Customers/Shops tile) still flow through the active adapter.
@@ -534,8 +560,21 @@
       var cloud = makeCloudAdapter(sb);
       return cloud.hydrate().then(function () {
         ADAPTER = cloud;                       // <<< the actual switch
-        changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
-        return true;
+        authState.sb = sb;
+        // capture the signed-in user and keep it fresh on sign-in/out
+        try {
+          sb.auth.onAuthStateChange(function (_evt, session) {
+            authState.user = (session && session.user) ? { id: session.user.id, email: session.user.email } : null;
+            changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
+          });
+        } catch (e) {}
+        return sb.auth.getUser().then(function (res) {
+          var u = res && res.data && res.data.user;
+          authState.user = u ? { id: u.id, email: u.email } : null;
+        }).catch(function () {}).then(function () {
+          changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
+          return true;
+        });
       });
     }
   };

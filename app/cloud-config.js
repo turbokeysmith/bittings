@@ -34,5 +34,13 @@ window.TKS_CLOUD = {
      requestOwnerAccess() is the single swap point for that upgrade).
    ---------------------------------------------------------------------------- */
 window.TKS_OWNER = {
+  // Who counts as the OWNER. A signed-in user whose email is in this list gets
+  // owner-only powers (e.g. the scheduler Quick form) WITHOUT a PIN. A regular
+  // employee's login does NOT — so their account can't unlock owner-only things.
+  OWNER_EMAILS: ['samer@turbokeysmith.com'],
+
+  // Fallback PIN for the scheduler Quick form when NOBODY is signed in (e.g.
+  // running locally / offline). When the owner is signed in, the PIN isn't
+  // needed. Set to '' to disable the PIN fallback entirely (owner-login only).
   QUICK_FORM_PIN: '1234'   // <-- CHANGE THIS to your own PIN
 };
