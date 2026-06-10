@@ -333,7 +333,11 @@ textarea{min-height:70px;resize:vertical;}
 
 <!-- Shared data layer (localStorage today; cloud-swap point inside). The
      scheduler now reads/writes bookings + customers THROUGH TKS so it shares
-     one deduped list with the Customers tile and the contact form. -->
+     one deduped list with the Customers tile and the contact form. The Supabase
+     client + config let it auto-connect to the cloud when a staff member is
+     signed in (same session as the staff app), exactly like index.html. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app/cloud-config.js"></script>
 <script src="app/store.js"></script>
 <script>
 /* =========================================================================
@@ -1437,6 +1441,22 @@ document.getElementById('themeBtn').addEventListener('click',()=>{
   syncThemeIcon();
 });
 syncThemeIcon();
+
+/* Cloud bootstrap — connect to Supabase ONLY if a staff member is already
+   signed in (session shared with the staff app via cloud-test.html). Otherwise
+   stay on localStorage. Re-render when the cloud finishes hydrating. */
+if(window.TKS && TKS.onChange) TKS.onChange(function(){ render(); });
+(function schedCloudBootstrap(){
+  var cfg = window.TKS_CLOUD;
+  if(!cfg || !cfg.AUTO_CONNECT) return;
+  if(!window.supabase || !window.supabase.createClient) return;   // library blocked/offline
+  var probe;
+  try{ probe = window.supabase.createClient(cfg.url, cfg.anonKey); }catch(e){ return; }
+  probe.auth.getSession().then(function(res){
+    if(!res || !res.data || !res.data.session) return;            // not signed in -> stay local
+    TKS.connectCloud({ url:cfg.url, anonKey:cfg.anonKey }).then(function(){ render(); }).catch(function(){});
+  }).catch(function(){});
+})();
 
 render();
 </script>
