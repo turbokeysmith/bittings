@@ -68,16 +68,26 @@ first — it's what every other tile leans on.*
   no jumping to the end.
 - ✅ **Per-booking PIN bypass (2026-06-10)** — a 🔒 "Quick form (owner)" entry on Home asks for an
   owner PIN, then opens ONE plain quick-entry form (all fields, no guided steps). The next booking
-  defaults back to forced guided. PIN lives in `app/cloud-config.js` (`TKS_OWNER.QUICK_FORM_PIN`);
-  the gate is a single swap point (`requestOwnerAccess()`) ready to become an owner-login check once
-  auth gates the app.
+  defaults back to forced guided. **Now upgraded (A4):** when the **owner** is signed in it unlocks
+  with no PIN; a signed-in employee is denied; the **PIN is the fallback only when nobody is signed
+  in**. PIN + owner allowlist live in `app/cloud-config.js`; `requestOwnerAccess()` is still the
+  single swap point.
 - ⏸️ **Google Calendar real 2-way sync** — currently deep-link + guest-invite only. Decide: real
   OAuth sync (needs Google sign-in + server) or keep the link? *(See Decisions.)*
 - ⬜ Other scheduler fixes/updates (TBD — list specifics)
 
-### A4 — Remaining data wiring
-- ⬜ Wire **Receipts** (`bittings.html`) through TKS too (still reads localStorage directly)
-- ⬜ **Staff login gating** — `cloud-test.html` auth doesn't yet gate the app
+### A4 — Remaining data wiring  ·  ✅ DONE (2026-06-10)
+- ✅ **Receipts wired through TKS** — `bittings.html` now shares the one deduped customer list and
+  syncs receipts to the cloud when signed in (auto-connects like the other pages).
+- ✅ **Staff-login awareness + roles** — the staff app shows **who's signed in and their role**
+  (OWNER vs STAFF) with a Sign out, and a Staff Login link when signed out. Owner is set by email
+  allowlist in `app/cloud-config.js` (`TKS_OWNER.OWNER_EMAILS`).
+- ✅ **Owner-role unlock** — the scheduler's Quick form now unlocks instantly when the **owner** is
+  signed in (no PIN); a signed-in **employee is denied**; the **PIN is the fallback only when nobody
+  is signed in**. (`requestOwnerAccess` is still the single swap point.)
+- 📝 This is a **soft gate** (it surfaces identity + gates owner-only actions) — it does NOT hard-block
+  the app when logged out (offline/local use still works by design). A hard "must sign in to use the
+  app" block can be added later if you want it.
 - ⬜ Decide: copy existing local demo data up to the cloud once? (skipped to avoid duplicates)
 
 ---
