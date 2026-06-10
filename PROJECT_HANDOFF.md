@@ -176,8 +176,10 @@ auto-connect the moment a staff session exists.
 so signing in on a double-clicked `file://` page won't carry to the served app (it'll stay "On this
 device"). `localhost` and `127.0.0.1` also count as different — pick one and stick with it.
 
-**Only cloud item left:** flip on **leaked-password protection** in Supabase → Auth settings (one
-toggle, the last security-advisor item).
+**Cloud setup is complete.** The one leftover advisory — leaked-password protection — is a
+**Pro-plan-only** feature, so it's deferred/optional on the current plan (revisit only if you
+upgrade to Pro). It's the lowest-severity item and doesn't affect security of the data, which is
+already guarded by row-level security.
 
 ---
 
