@@ -61,6 +61,17 @@ the same `booking` object + `bindInputs()`), saved via the shared `saveBooking` 
 + serviceCategory derivation are identical). It's per-booking: the only entries to the quick form are
 through the PIN each time; "New booking" and "Book another" always call `startFlow`.
 
+**A4 — Receipts→TKS, login gating, owner role (2026-06-10).** `store.js` gained `TKS.auth`
+(`user/email/isSignedIn/isOwner/role/signOut`); `connectCloud` captures the user via
+`sb.auth.getUser()` + `onAuthStateChange`. Owner = email allowlist `window.TKS_OWNER.OWNER_EMAILS`
+(`app/cloud-config.js`). `bittings.html` now loads supabase-js + cloud-config + store.js, routes its
+`getCustomers/saveCustomers/getShops/saveShops/getHistory/saveHistory` through `TKS.list/saveList`
+(localStorage fallback), and has the standard `getSession→connectCloud` bootstrap that calls
+`renderCustList`/`renderHistList` after hydrate. `index.html` has a `#authBar` (`updateAuthUI()`)
+showing email + OWNER/STAFF badge + Sign out, refreshed on `TKS.onChange` and after connect.
+`scheduler.html` `requestOwnerAccess()` now: owner signed in → grant; signed-in non-owner → deny;
+nobody signed in → PIN fallback. Soft gate (no hard block when logged out).
+
 **`index.html`** — customer form shows read-only **Job history** (`TKS.Bookings.forCustomer`);
 customer rows show an **ES badge** when `lang==='es'`; Inventory has a **🔎 VIN** decode→filter and
 a **Fits (vehicles/VIN)** field.

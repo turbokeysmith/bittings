@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-10 17:55 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-10 18:09 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -189,14 +189,24 @@ device"). `localhost` and `127.0.0.1` also count as different — pick one and s
 upgrade to Pro). It's the lowest-severity item and doesn't affect security of the data, which is
 already guarded by row-level security.
 
+**Who's signed in + roles.** The staff app now shows a small bar with the signed-in email and a
+role badge — **OWNER** or **STAFF** — plus a Sign out (and a Staff Login link when signed out).
+"Owner" is decided by an **email allowlist** in `app/cloud-config.js` (`TKS_OWNER.OWNER_EMAILS`,
+currently `samer@turbokeysmith.com`); everyone else who signs in is **staff**. Owner-only actions
+(today: the scheduler's Quick form) unlock automatically for the owner, are denied to a signed-in
+employee, and fall back to the PIN only when nobody is signed in. *This is a **soft** gate — it
+recognizes who you are and protects owner-only things, but it doesn't lock a logged-out person out
+of the app entirely (offline/local use still works). A hard "must sign in" block can be added later.*
+
 ---
 
 ## 7. What is STUBBED or still needs a decision
 These are the open items an advisor should focus on:
 
-1. **Receipts doesn't use the shared data layer yet.** The **scheduler now goes through TKS** (so it
-   syncs with everything else once the cloud is on), but **Receipts** (`bittings.html`) still reads
-   localStorage directly — its customer list can diverge. It needs the same small "connect" wiring.
+1. **Done — Receipts now uses the shared data layer.** `bittings.html` reads/writes customers, shops
+   and receipts **through TKS** and auto-connects to the cloud when a staff member is signed in, so
+   it shares the one deduped list and syncs like everything else. *(Staff app now also shows who's
+   signed in + their role; see section 6.)*
 2. **Public contact form can't write to the cloud.** Website visitors aren't signed in, and the
    database only allows signed-in writes, so website leads currently save locally only. Landing
    them in the cloud needs a small Supabase "edge function" or a public-insert rule.
@@ -281,6 +291,15 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-10
+- **A4 — Receipts on the cloud + login gating + owner role (18:09):** wired **Receipts**
+  (`bittings.html`) through TKS so it shares the one deduped customer list and syncs receipts when
+  signed in. Added a **staff-login bar** to the staff app showing who's signed in and their role
+  (**OWNER**/**STAFF**) + Sign out. Added `TKS.auth` (who's signed in / is-owner / role / sign-out)
+  to the data layer, with owner decided by an email allowlist in `app/cloud-config.js`
+  (`TKS_OWNER.OWNER_EMAILS`). Upgraded the scheduler's `requestOwnerAccess` swap point so the
+  **owner's login unlocks the Quick form with no PIN**, a signed-in **employee is denied**, and the
+  **PIN is the fallback only when nobody is signed in**. Also made the staff app's Home/Inventory
+  "sync" notes reflect the real cloud state (no more stale "sync arrives" line).
 - **Vendor quick-links (17:55):** added two Home-screen buttons in the staff app opening American
   Key Supply + Key Innovations in a new tab (styled to match). Noted that a true "PC can only reach
   these sites" lockdown is a separate Windows/browser setup, not an app feature.
