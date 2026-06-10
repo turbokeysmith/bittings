@@ -143,6 +143,7 @@ export const CITIES = [
   },
   {
     "slug": "midwest-city",
+    "photos": ["midwest-city-1.jpg", "midwest-city-2.jpg"],
     "name": "Midwest City",
     "tier": 1,
     "hasSub": true,
@@ -158,6 +159,7 @@ export const CITIES = [
   },
   {
     "slug": "edmond",
+    "photos": ["edmond-1.jpg", "edmond-2.jpg"],
     "name": "Edmond",
     "tier": 1,
     "hasSub": true,
@@ -188,6 +190,7 @@ export const CITIES = [
   },
   {
     "slug": "moore",
+    "photos": ["moore-1.jpg", "moore-2.jpg"],
     "name": "Moore",
     "tier": 2,
     "hasSub": true,
@@ -278,6 +281,7 @@ export const CITIES = [
   },
   {
     "slug": "norman",
+    "photos": ["norman-1.jpg", "norman-2.jpg"],
     "name": "Norman",
     "tier": 3,
     "hasSub": true,

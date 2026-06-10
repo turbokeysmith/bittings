@@ -295,7 +295,9 @@
       var list = this.all();
       if (!q) return list;
       return list.filter(function (p) {
-        return ['name', 'sku', 'category', 'location', 'notes']
+        // `fitment` = what vehicles a key/fob fits (make/model/years/FCC), so a
+        // VIN search (decoded to make+model) finds the matching part.
+        return ['name', 'sku', 'category', 'location', 'notes', 'fitment', 'vin']
           .some(function (f) { return (p[f] || '').toString().toLowerCase().indexOf(q) !== -1; });
       });
     },
@@ -339,15 +341,149 @@
     }
   };
 
-  // ===================== BOOKINGS (scheduler day view) =====================
+  // ===================== BOOKINGS (scheduler) =====================
+  // Shape (superset, back-compatible with the older scheduler records):
+  //   { id, customerId, customer:{name,phone,email}, jobType, subType,
+  //     serviceCategory, serviceLabel, address, parked,
+  //     vehicle:{year,make,model,vin,ignition}, date, time, duration,
+  //     status, notes, images:[], upsell, bookedBy, createdAt, updatedAt }
+  var BOOKING_STATUSES = ['Scheduled', 'In Progress', 'Completed', 'Rescheduled', 'Canceled'];
+
+  // local "today" (YYYY-MM-DD), timezone-safe
+  function todayLocalISO() {
+    var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  }
+
   var Bookings = {
+    STATUSES: BOOKING_STATUSES,
+
     all: function () { return ADAPTER.listRaw('bookings'); },
+    get: function (id) { return this.all().find(function (b) { return b.id === id; }) || null; },
+
     forDate: function (yyyy_mm_dd) {
       return this.all()
         .filter(function (b) { return (b.date || '') === yyyy_mm_dd; })
         .sort(function (a, b) { return (a.time || '').localeCompare(b.time || ''); });
+    },
+
+    // A booking falls OFF the active scheduler ("archived") when it is marked
+    // Completed or Canceled, OR when its date is in the past. Nothing is
+    // deleted — archived bookings stay in storage and surface under the
+    // customer's Job history.
+    isArchived: function (b) {
+      var s = b.status || 'Scheduled';
+      if (s === 'Completed' || s === 'Canceled') return true;
+      if (b.date && b.date < todayLocalISO()) return true;
+      return false;
+    },
+    active: function () { var self = this; return this.all().filter(function (b) { return !self.isArchived(b); }); },
+    archived: function () { var self = this; return this.all().filter(function (b) { return self.isArchived(b); }); },
+
+    // Insert (no id) or update (existing id). Stamps timestamps + default status.
+    save: function (b) {
+      var list = this.all();
+      if (b.id) {
+        var i = list.findIndex(function (x) { return x.id === b.id; });
+        if (i !== -1) {
+          b.updatedAt = now();
+          list[i] = b;
+          ADAPTER.saveRaw('bookings', list);
+          return b;
+        }
+      }
+      b.id = b.id || ('bk_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6));
+      if (!b.status) b.status = 'Scheduled';
+      if (!b.createdAt) b.createdAt = now();
+      b.updatedAt = now();
+      list.push(b);
+      ADAPTER.saveRaw('bookings', list);
+      return b;
+    },
+
+    setStatus: function (id, status) {
+      if (BOOKING_STATUSES.indexOf(status) === -1) return null;
+      var list = this.all();
+      var b = list.find(function (x) { return x.id === id; });
+      if (!b) return null;
+      b.status = status; b.updatedAt = now();
+      ADAPTER.saveRaw('bookings', list);
+      return b;
+    },
+
+    remove: function (id) {
+      ADAPTER.saveRaw('bookings', this.all().filter(function (b) { return b.id !== id; }));
+    },
+
+    // Every booking for one customer (by id first, then phone, then name),
+    // newest-first — powers the per-customer Job history.
+    forCustomer: function (cust) {
+      if (!cust) return [];
+      var id = cust.id;
+      var phone = (cust.phone || '').replace(/\D/g, '');
+      var name = (cust.customer || cust.name || '').trim().toLowerCase();
+      return this.all().filter(function (b) {
+        if (id && b.customerId && b.customerId === id) return true;
+        var bp = ((b.customer && b.customer.phone) || '').replace(/\D/g, '');
+        if (phone && bp && bp === phone) return true;
+        var bn = ((b.customer && b.customer.name) || '').trim().toLowerCase();
+        return name && bn === name;
+      }).sort(function (a, b) {
+        return String((b.date || '') + (b.time || '')).localeCompare(String((a.date || '') + (a.time || '')));
+      });
     }
   };
+
+  // ===================== SERVICES (shared canonical catalog) =====================
+  // ONE list used by the public contact form AND the staff scheduler so every
+  // lead/booking lands in the dataset with the SAME fixed English value, no
+  // matter which language the customer saw. `value` is what gets stored; `es`
+  // is only what a Spanish visitor sees. `cat` is the canonical category
+  // (automotive / residential / commercial / other) the scheduler auto-derives.
+  var SERVICES = [
+    { value: 'Car lockout',                     en: 'Car lockout',                     es: 'Auto bloqueado',                         cat: 'automotive' },
+    { value: 'Car key replacement / lost key',  en: 'Car key replacement / lost key',  es: 'Reemplazo de llave / llave perdida',     cat: 'automotive' },
+    { value: 'Home or business lockout',        en: 'Home or business lockout',        es: 'Casa o negocio bloqueado',               cat: 'residential' },
+    { value: 'Rekey / new locks',               en: 'Rekey / new locks',               es: 'Recodificar / cerraduras nuevas',        cat: 'residential' },
+    { value: 'Other (describe)',                en: 'Other (describe)',                es: 'Otro (describe)',                        cat: 'other' }
+  ];
+  var Services = {
+    list: function () { return SERVICES.slice(); },
+    // map the scheduler's coaching tiles (jobType auto/res/com + subType) to a
+    // canonical service { value, cat } — no double entry for the trainee.
+    fromJob: function (jobType, subType) {
+      var cat = jobType === 'auto' ? 'automotive' : jobType === 'com' ? 'commercial' : jobType === 'res' ? 'residential' : 'other';
+      var value;
+      if (jobType === 'auto') value = (subType === 'lost' || subType === 'spare') ? 'Car key replacement / lost key'
+        : subType === 'lockout' ? 'Car lockout' : 'Car key replacement / lost key';
+      else if (jobType === 'res' || jobType === 'com') value = subType === 'lockout' ? 'Home or business lockout'
+        : (subType === 'rekey' || subType === 'new') ? 'Rekey / new locks' : 'Home or business lockout';
+      else value = 'Other (describe)';
+      return { value: value, cat: cat };
+    }
+  };
+
+  // ===================== VIN DECODE (network helper) =====================
+  // The ONLY networked helper in this file. Uses the free NHTSA vPIC API
+  // (no key required) to turn a 17-char VIN into { year, make, model }.
+  // Returns a Promise; rejects on a bad VIN or if offline (callers fall back
+  // to manual entry). Note: there was no pre-existing VIN API in this repo —
+  // NHTSA vPIC is the standard free decoder.
+  function decodeVin(vin) {
+    vin = (vin || '').trim().toUpperCase();
+    if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) {
+      return Promise.reject(new Error('Enter a full 17-character VIN.'));
+    }
+    var url = 'https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/' + encodeURIComponent(vin) + '?format=json';
+    return global.fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+      var row = (j && j.Results && j.Results[0]) || {};
+      var out = { year: row.ModelYear || '', make: row.Make || '', model: row.Model || '', vin: vin };
+      if (!out.make && !out.year) throw new Error("Couldn't read that VIN — enter the details manually.");
+      // vPIC returns ALL-CAPS make; title-case it for display.
+      if (out.make) out.make = out.make.charAt(0) + out.make.slice(1).toLowerCase();
+      return out;
+    });
+  }
 
   var changeHandlers = [];
 
@@ -355,6 +491,7 @@
     KEYS: KEYS, uid: uid, read: read, write: write,
     adapter: function () { return ADAPTER.name; },
     Customers: Customers, Inventory: Inventory, Bookings: Bookings,
+    Services: Services, decodeVin: decodeVin,
 
     // Generic passthroughs so pages that keep their own array logic
     // (e.g. the Customers/Shops tile) still flow through the active adapter.

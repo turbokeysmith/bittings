@@ -129,6 +129,18 @@
   .search,.form input,.form textarea{font-size:16px;}   /* prevent iOS zoom-on-focus */
   .qbtn{width:40px;height:40px;}                          /* ≥40px tap target */
   .crow .sub{overflow-wrap:anywhere;}
+  /* Customer Job history (read-only) */
+  .cust-history{margin-top:18px;}
+  .cust-history .hist-h{font-size:13px;font-weight:800;letter-spacing:.3px;color:var(--muted,#9aa3af);
+    text-transform:uppercase;margin:0 2px 8px;}
+  .cust-history .hist-empty{font-size:14px;color:var(--muted,#9aa3af);padding:4px 2px;}
+  .cust-history .hist-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:10px 12px;border:1px solid var(--edge,#2a2f3a);border-radius:12px;margin-bottom:8px;background:var(--card,#1b1e24);}
+  .cust-history .hist-main b{font-size:14px;}
+  .cust-history .hist-svc{font-size:12.5px;color:var(--muted,#9aa3af);margin-top:2px;}
+  .hist-tag{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;white-space:nowrap;}
+  .es-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.4px;background:#ffb200;color:#1a1a1a;
+    border-radius:5px;padding:1px 5px;margin-left:7px;vertical-align:middle;}
   @media (prefers-reduced-motion:reduce){
     *{animation-duration:.001ms!important;transition-duration:.001ms!important;}
   }
@@ -201,6 +213,8 @@
         <button class="btn save" id="fSave">Save customer</button>
       </div>
       <p class="note" id="formNote"></p>
+      <!-- Read-only job history (from the scheduler), newest-first -->
+      <div id="custHistory" class="cust-history"></div>
     </div>
   </div>
 
@@ -232,7 +246,8 @@
 
   <div class="view" id="view-inventory">
     <div class="bar">
-      <input class="search" id="invSearch" type="text" placeholder="Search part, SKU, category…">
+      <input class="search" id="invSearch" type="text" placeholder="Search part, SKU, fitment, VIN…">
+      <button class="add" id="invVin" title="Find the key/fob for a VIN" style="background:#2a2f3a">🔎 VIN</button>
       <button class="add" id="invAdd">+ Add</button>
     </div>
     <div class="invsummary" id="invSummary"></div>
@@ -260,8 +275,10 @@
         <div><label for="pSupplier">Supplier</label><input id="pSupplier" type="text" placeholder="Where you reorder from"></div>
         <div><label for="pReorderQty">Reorder qty</label><input id="pReorderQty" type="number" inputmode="numeric" placeholder="e.g. 10"></div>
       </div>
+      <label for="pFitment">Fits (vehicles / VIN)</label>
+      <input id="pFitment" type="text" placeholder="e.g. Ford F-150 2015–2020 · FCC M3N-A2C…">
       <label for="pNotes">Notes</label>
-      <textarea id="pNotes" placeholder="Fitment, part link, etc…"></textarea>
+      <textarea id="pNotes" placeholder="Part link, cross-reference, etc…"></textarea>
       <div class="actions">
         <button class="btn del" id="pDelete" style="display:none;">Delete</button>
         <button class="btn save" id="pSave">Save part</button>
@@ -333,9 +350,11 @@ function renderCustomers(){
     row.className = 'crow' + (isBiz?' biz':'');
     const name = c.customer || '(no name)';
     const sub = [c.phone, c.email].filter(Boolean).join('  ·  ') || (c.address||'');
+    // "ES" badge = lead came through the Spanish form → expect Spanish on callback.
+    const esBadge = (c.lang==='es') ? '<span class="es-badge" title="Spanish-speaking lead">ES</span>' : '';
     row.innerHTML =
       '<div class="avatar">'+(name.trim()[0]||'?').toUpperCase()+'</div>'+
-      '<div><div class="nm">'+esc(name)+'</div>'+(sub?'<div class="sub">'+esc(sub)+'</div>':'')+'</div>'+
+      '<div><div class="nm">'+esc(name)+esBadge+'</div>'+(sub?'<div class="sub">'+esc(sub)+'</div>':'')+'</div>'+
       '<span class="tag">'+(mode==='shops'?'CONTRACTING':(isBiz?'BUSINESS':'INDIVIDUAL'))+'</span>';
     row.onclick = ()=> openForm(idx);
     wrap.appendChild(row);
@@ -369,8 +388,34 @@ function openForm(idx){
   document.getElementById('fDelete').style.display = idx>=0 ? 'block' : 'none';
   document.getElementById('formNote').textContent = idx>=0 ? '' :
     (isShop ? 'New Contracting (NASTF) account.' : 'New customer. Shared with Receipts automatically.');
+  renderCustHistory(idx>=0 ? c : null);
   show('form');
   document.getElementById('fName').focus();
+}
+
+/* ---- Read-only Job history under a customer (from the scheduler) ---- */
+function statusTagHTML(s){
+  const map = {
+    'Scheduled':['rgba(74,163,255,.16)','#2f7fd6'], 'In Progress':['rgba(242,180,58,.22)','#9a6a00'],
+    'Completed':['rgba(46,160,80,.18)','#1f8f43'], 'Rescheduled':['rgba(155,107,214,.20)','#6d3fb0'],
+    'Canceled':['rgba(200,50,60,.16)','#b3242f']
+  };
+  const c = map[s] || map['Scheduled'];
+  return '<span class="hist-tag" style="background:'+c[0]+';color:'+c[1]+'">'+esc(s)+'</span>';
+}
+function renderCustHistory(c){
+  const box = document.getElementById('custHistory'); if(!box) return;
+  if(!c || (!c.id && !c.phone && !c.customer)){ box.innerHTML=''; return; }
+  let jobs = [];
+  try{ jobs = TKS.Bookings.forCustomer(c); }catch(e){ jobs = []; }
+  if(!jobs.length){ box.innerHTML = '<div class="hist-h">Job history</div><div class="hist-empty">No past jobs yet.</div>'; return; }
+  const rows = jobs.map(b=>{
+    const when = b.date ? (b.date + (b.time? ' · '+b.time : '')) : '—';
+    const svc = b.serviceLabel || b.serviceCategory || b.jobType || 'Job';
+    return '<div class="hist-row"><div class="hist-main"><b>'+esc(when)+'</b>'+
+           '<div class="hist-svc">'+esc(svc)+'</div></div>'+statusTagHTML(b.status||'Scheduled')+'</div>';
+  }).join('');
+  box.innerHTML = '<div class="hist-h">Job history ('+jobs.length+')</div>'+rows;
 }
 
 document.getElementById('fSave').onclick = ()=>{
@@ -417,6 +462,25 @@ document.getElementById('fDelete').onclick = ()=>{
 const invSearchEl = document.getElementById('invSearch');
 invSearchEl.addEventListener('input', renderInventory);
 document.getElementById('invAdd').onclick = ()=> openPart(null);
+
+/* VIN → key/fob: decode the VIN to make+model, then filter the parts list by
+   it (matches against name / fitment / notes). */
+document.getElementById('invVin').onclick = ()=>{
+  const guess = invSearchEl.value.trim();
+  const vin = prompt('Enter the 17-character VIN to find its key/fob:', /^[A-HJ-NPR-Z0-9]{17}$/i.test(guess) ? guess : '');
+  if(!vin) return;
+  invSearchEl.value = 'Decoding…'; invSearchEl.disabled = true;
+  TKS.decodeVin(vin).then(r=>{
+    invSearchEl.disabled = false;
+    invSearchEl.value = [r.make, r.model].filter(Boolean).join(' ').trim() || vin;
+    renderInventory();
+  }).catch(()=>{
+    invSearchEl.disabled = false;
+    invSearchEl.value = '';
+    alert("Couldn't read that VIN. Search by make/model instead.");
+    renderInventory();
+  });
+};
 
 function money(n){ n=parseFloat(n); return isNaN(n)?'':'$'+n.toFixed(2); }
 
@@ -484,6 +548,7 @@ function openPart(id){
   document.getElementById('pLocation').value = p.location || '';
   document.getElementById('pSupplier').value = p.supplier || '';
   document.getElementById('pReorderQty').value = (p.reorderQty!=null? p.reorderQty : '');
+  document.getElementById('pFitment').value = p.fitment || '';
   document.getElementById('pNotes').value = p.notes || '';
   document.getElementById('pDelete').style.display = id ? 'block' : 'none';
   document.getElementById('partNote').textContent = id ? '' : 'New part. Saved on this device.';
@@ -504,6 +569,7 @@ document.getElementById('pSave').onclick = ()=>{
     location: document.getElementById('pLocation').value.trim(),
     supplier: document.getElementById('pSupplier').value.trim(),
     reorderQty: parseInt(document.getElementById('pReorderQty').value,10) || 0,
+    fitment: document.getElementById('pFitment').value.trim(),
     notes: document.getElementById('pNotes').value.trim()
   };
   if(editPartId) part.id = editPartId;

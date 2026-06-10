@@ -101,16 +101,20 @@
     <input id="cAddress" name="address" type="text" autocomplete="street-address" placeholder="Street, city" data-i18n-ph="Calle, ciudad">
 
     <label for="cService" data-i18n-html="Servicio que necesitas <span class=&quot;req&quot;>*</span>">Service needed <span class="req">*</span></label>
+    <!-- Fixed English value stored regardless of displayed language (data-i18n only
+         changes what's SHOWN; the value="" attribute is what gets saved). -->
     <select id="cService" name="service" required>
       <option value="" data-i18n="Elige una opción…">Choose one…</option>
-      <option data-i18n="Reemplazo de llave / control de auto">Car key replacement / fob</option>
-      <option data-i18n="Auto bloqueado">Car lockout</option>
-      <option data-i18n="Recodificar / instalar cerradura de casa">Home rekey / lock install</option>
-      <option data-i18n="Casa bloqueada">Home lockout</option>
-      <option data-i18n="Cerraduras de negocio / comercial">Business / commercial locks</option>
-      <option data-i18n="Emergencia / 24 horas">Emergency / 24-hour</option>
-      <option data-i18n="Otra cosa">Something else</option>
+      <option value="Car lockout" data-i18n="Auto bloqueado">Car lockout</option>
+      <option value="Car key replacement / lost key" data-i18n="Reemplazo de llave / llave perdida">Car key replacement / lost key</option>
+      <option value="Home or business lockout" data-i18n="Casa o negocio bloqueado">Home or business lockout</option>
+      <option value="Rekey / new locks" data-i18n="Recodificar / cerraduras nuevas">Rekey / new locks</option>
+      <option value="Other (describe)" data-i18n="Otro (describe)">Other (describe)</option>
     </select>
+    <div id="cOtherWrap" style="display:none">
+      <label for="cOther" data-i18n-html="Cuéntanos qué necesitas <span class=&quot;req&quot;>*</span>">Tell us what you need <span class="req">*</span></label>
+      <input id="cOther" name="other" type="text" placeholder="Describe the service" data-i18n-ph="Describe el servicio">
+    </div>
 
     <label for="cNotes" data-i18n="Detalles (opcional)">Details (optional)</label>
     <textarea id="cNotes" name="notes" placeholder="Vehicle year/make/model, what happened, where you are…" data-i18n-ph="Año/marca/modelo del auto, qué pasó, dónde estás…"></textarea>
@@ -175,7 +179,12 @@
   var form = document.getElementById('contactForm');
   var msg  = document.getElementById('cMsg');
   function field(id){ return document.getElementById(id); }
-  function clearErr(){ ['cName','cPhone','cService'].forEach(function(i){ field(i).classList.remove('err'); }); }
+  function clearErr(){ ['cName','cPhone','cService','cOther'].forEach(function(i){ var el=field(i); if(el) el.classList.remove('err'); }); }
+
+  // Reveal the free-text box only when "Other (describe)" is chosen.
+  var sel = field('cService'), otherWrap = field('cOtherWrap');
+  function syncOther(){ otherWrap.style.display = (sel.value === 'Other (describe)') ? 'block' : 'none'; }
+  sel.addEventListener('change', syncOther); syncOther();
 
   form.addEventListener('submit', function(e){
     e.preventDefault();
@@ -183,11 +192,13 @@
     msg.textContent = ''; msg.className = 'msg';
     var name = field('cName').value.trim();
     var phone = field('cPhone').value.trim();
-    var service = field('cService').value;
+    var service = field('cService').value;          // fixed English value
+    var other = field('cOther') ? field('cOther').value.trim() : '';
     var bad = [];
     if(!name){ field('cName').classList.add('err'); bad.push('cName'); }
     if(!phone){ field('cPhone').classList.add('err'); bad.push('cPhone'); }
     if(!service){ field('cService').classList.add('err'); bad.push('cService'); }
+    if(service === 'Other (describe)' && !other){ field('cOther').classList.add('err'); bad.push('cOther'); }
     if(bad.length){
       msg.textContent = (document.documentElement.lang==='es')
         ? 'Por favor agrega tu nombre, teléfono y el servicio que necesitas.'
@@ -196,7 +207,11 @@
       field(bad[0]).focus();
       return;
     }
-    // Save the lead into the shared Customers list (localStorage today).
+    // Free text is stored EXACTLY as typed (never translated). The canonical
+    // English `serviceNeeded` stays fixed; the "other" description rides in notes.
+    var notes = field('cNotes').value.trim();
+    if(service === 'Other (describe)' && other){ notes = ('Other service: ' + other + (notes ? '\n' + notes : '')); }
+    // Save the lead into the shared Customers list via TKS (deduped by phone).
     // >>> CLOUD: replace addLead's storage with a cloud insert + notify staff. <<<
     try {
       TKS.Customers.addLead({
@@ -205,7 +220,7 @@
         email: field('cEmail').value.trim(),
         address: field('cAddress').value.trim(),
         serviceNeeded: service,
-        notes: field('cNotes').value.trim()
+        notes: notes
       });
     } catch(err){ /* localStorage unavailable — still show success for the demo */ }
 

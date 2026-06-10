@@ -36,6 +36,13 @@ const ANNOTATE = `<!-- Local facts (landmarks/highways/distances) are best-effor
      OKC-metro knowledge; verify before relying. Review & photo slots are labeled
      placeholders — not shown as live testimonials until a real one is pasted in. -->`;
 
+// Resolve a city's "Our Work" photos to relative <img> srcs, or null if the
+// city has none yet (so the gallery stays hidden — no empty boxes).
+function cityPhotoSrcs(c, prefix) {
+  if (!Array.isArray(c.photos) || !c.photos.length) return null;
+  return c.photos.map(f => `${prefix}assets/cities/${f}`);
+}
+
 function write(relPath, content) {
   const full = join(SITE_DIR, relPath);
   mkdirSync(dirname(full), { recursive: true });
@@ -113,7 +120,7 @@ ${steps(c.name)}
   ${reviewSlot(`${c.name} customer`)}
 </div></section>
 
-${photoSlots(c.name)}
+${photoSlots(c.name, cityPhotoSrcs(c, r))}
 
 <section><div class="wrap">
   <div class="sec-head"><h2>Need a locksmith in ${esc(c.name)}?</h2><p>Licensed OK #AC441081 · rated 5.0★ · mobile — we come to you.</p></div>
@@ -416,17 +423,19 @@ ${esMobilebar()}
 }
 const esReviewSlot = (label) => `<div class="widget-slot"><b>${tt(U.reviewSlot, label)}</b>
     <small>${tt(U.reviewSlotSub, label)}</small></div>`;
-function esPhotoSlots(label) {
+function esPhotoSlots(label, photos) {
   const W = U.work;
+  const list = Array.isArray(photos) ? photos.filter(Boolean) : [];
+  if (!list.length) {
+    return `<!-- Galería "Nuestro trabajo": aún no hay fotos de ${esc(label)} — oculta hasta agregar imágenes reales -->`;
+  }
+  const cards = list.map(src =>
+    `<figure class="photo"><img src="${esc(src)}" alt="${esc(W.title)} — ${esc(label)}" loading="lazy"></figure>`
+  ).join('\n      ');
   return `<section class="surface"><div class="wrap">
-  <div class="sec-head"><h2>${esc(W.title)}</h2><p>${tt(W.sub, label)}</p></div>
-  <div class="ba">
-    <div><div class="tag">${esc(W.before)} → ${esc(W.after)}</div><div class="pair">
-      <div class="photo-slot"><span>📷 ${esc(W.before)}<small>${esc(W.add)}</small></span></div>
-      <div class="photo-slot"><span>📷 ${esc(W.after)}<small>${esc(W.add)}</small></span></div></div></div>
-    <div><div class="tag">${esc(W.onjob)}</div><div class="pair">
-      <div class="photo-slot"><span>📷 ${esc(W.photo)}<small>${esc(W.add)}</small></span></div>
-      <div class="photo-slot"><span>📷 ${esc(W.photo)}<small>${esc(W.add)}</small></span></div></div></div>
+  <div class="sec-head"><h2>${esc(W.title)} — ${esc(label)}</h2><p>${tt(W.sub, label)}</p></div>
+  <div class="photo-grid">
+      ${cards}
   </div>
 </div></section>`;
 }
@@ -492,7 +501,7 @@ ${esSteps(c.name)}
   ${esReviewSlot(c.name)}
 </div></section>
 
-${esPhotoSlots(c.name)}
+${esPhotoSlots(c.name, cityPhotoSrcs(c, '../../'))}
 
 <section><div class="wrap">
   <div class="sec-head"><h2>${tt(U.needHead, c.name)}</h2><p>${esc(U.needSub)}</p></div>
@@ -617,7 +626,16 @@ ${esSteps('OKC')}
 function esContact() {
   const d = 2, a = '../'.repeat(d), C = CONTACT;
   const h = esHeadCommon({ title:C.title, desc:C.desc, enPath:'/contact', esPath:'/es/contact', esDepth:d });
-  const opts = C.options.map(o => `      <option>${esc(o)}</option>`).join('\n');
+  // Canonical service options: Spanish text DISPLAYS, fixed English value="" is
+  // what gets stored, so a Spanish selection lands in the dataset in English.
+  const SERVICE_OPTS = [
+    ['Car lockout', 'Auto bloqueado'],
+    ['Car key replacement / lost key', 'Reemplazo de llave / llave perdida'],
+    ['Home or business lockout', 'Casa o negocio bloqueado'],
+    ['Rekey / new locks', 'Recodificar / cerraduras nuevas'],
+    ['Other (describe)', 'Otro (describe)']
+  ];
+  const opts = SERVICE_OPTS.map(([v, label]) => `      <option value="${esc(v)}">${esc(label)}</option>`).join('\n');
   const body = `<section><div class="wrap">
   <div class="sec-head"><h1>${esc(C.h1)}</h1><p>${esc(C.lead)} <a href="tel:${PHONE_E164}">405-870-5397</a>.</p></div>
   <form class="cform" id="contactForm" novalidate>
@@ -634,6 +652,10 @@ function esContact() {
       <option value="">${esc(C.choose)}</option>
 ${opts}
     </select>
+    <div id="cOtherWrap" style="display:none">
+      <label for="cOther">${esc(C.otherLabel || 'Cuéntanos qué necesitas')} <span class="req">*</span></label>
+      <input id="cOther" type="text" placeholder="${esc(C.otherPh || 'Describe el servicio')}">
+    </div>
     <label for="cNotes">${esc(C.fNotes)}</label>
     <textarea id="cNotes" placeholder="${esc(C.phNotes)}"></textarea>
     <div class="submitrow"><button class="btn btn-call btn-lg" type="submit">${esc(C.send)}</button></div>
@@ -663,13 +685,20 @@ ${opts}
 <script>
 (function(){var f=document.getElementById('contactForm'),m=document.getElementById('cMsg');
 function g(i){return document.getElementById(i);}
+var sel=g('cService'),ow=g('cOtherWrap');
+function syncOther(){ow.style.display=(sel.value==='Other (describe)')?'block':'none';}
+sel.addEventListener('change',syncOther);syncOther();
 f.addEventListener('submit',function(e){e.preventDefault();m.textContent='';m.className='msg';
-var bad=[];['cName','cPhone','cService'].forEach(function(i){g(i).classList.remove('err');});
+var bad=[];['cName','cPhone','cService','cOther'].forEach(function(i){var el=g(i);if(el)el.classList.remove('err');});
 if(!g('cName').value.trim()){g('cName').classList.add('err');bad.push('cName');}
 if(!g('cPhone').value.trim()){g('cPhone').classList.add('err');bad.push('cPhone');}
 if(!g('cService').value){g('cService').classList.add('err');bad.push('cService');}
+var other=g('cOther')?g('cOther').value.trim():'';
+if(g('cService').value==='Other (describe)'&&!other){g('cOther').classList.add('err');bad.push('cOther');}
 if(bad.length){m.textContent=${JSON.stringify(C.validate)};m.className='msg bad';g(bad[0]).focus();return;}
-try{TKS.Customers.addLead({customer:g('cName').value.trim(),phone:g('cPhone').value.trim(),email:g('cEmail').value.trim(),address:g('cAddress').value.trim(),serviceNeeded:g('cService').value,notes:g('cNotes').value.trim(),lang:'es'});}catch(err){}
+var notes=g('cNotes').value.trim();
+if(g('cService').value==='Other (describe)'&&other){notes='Other service: '+other+(notes?'\\n'+notes:'');}
+try{TKS.Customers.addLead({customer:g('cName').value.trim(),phone:g('cPhone').value.trim(),email:g('cEmail').value.trim(),address:g('cAddress').value.trim(),serviceNeeded:g('cService').value,notes:notes,lang:'es'});}catch(err){}
 f.style.display='none';g('cSuccess').style.display='block';window.scrollTo({top:0,behavior:'smooth'});});})();
 </script>`;
   return esWrap(h, d, body);

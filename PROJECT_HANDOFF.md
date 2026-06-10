@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-10 15:37 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-10 16:44 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -101,17 +101,30 @@ customer list across all tools.
 - **Customers** — add/edit/delete people, businesses, and contracting (NASTF) accounts. Search.
 - **Receipts** — opens `bittings.html` (an existing invoice/paperwork builder). Unchanged except
   a "‹ Apps" back link was added.
-- **Scheduler** — opens `scheduler.html`, a guided phone-intake/booking flow for new employees.
-  **Added:** an in-app **Day view** (calendar grid of a day's jobs with tappable open time
-  slots), and a "‹ Apps" back link. Google Calendar is shown as a clearly-labeled
-  **"NOT CONNECTED"** placeholder (it only opens Google Calendar in a new tab; no real sync).
-  *Planned (not built yet): force the guided intake to be the only booking path, with a
-  per-booking PIN that lets an owner/admin skip it for one booking.*
+- **Scheduler** — opens `scheduler.html`, a guided phone-intake/booking flow for new employees,
+  now wired **through the shared data layer (TKS)** so its bookings and customers share one list
+  with the rest of the app. **Built:** an in-app **Day view**; **edit any booking**; a **job status**
+  on every booking (Scheduled / In Progress / Completed / Rescheduled / Canceled) shown as
+  **color-coded tags** on the day view, job list, and booking detail; an **"Add to Schedule"**
+  button that opens a pre-filled Google Calendar event with **`turbokeysmith@gmail.com` invited as
+  guest** (the business calendar is the system of record) while keeping a **local mirror** on our
+  scheduler; **car jobs require vehicle ID** — a **VIN** (which auto-fills year/make/model via a VIN
+  lookup) **or** year/make/model typed in, **plus an ignition type** (push-to-start / keyed); and
+  **dormant job-photo slots** (built but hidden until real field photos exist). Old jobs
+  **auto-archive** off the active board (when Completed/Canceled or once the date passes) and file
+  under the customer instead. Google Calendar **two-way sync** is still a pending decision (today
+  it's the deep-link + guest invite, not a live sync).
+  *Still planned: force the guided intake to be the only booking path, with a per-booking PIN to
+  skip it for one booking.*
 - **Payments** — a **UI shell only**: amount, customer picker, payment-method buttons, a live
   "Charge $X" label. **It does not take real payments** — clearly labeled as a demo.
 - **Inventory** — fully built: parts list, add/edit/delete, quantity with +/- buttons,
-  **low-stock flag**, search, summary counts, and **supplier + reorder-quantity** fields (low
-  rows show a reorder hint).
+  **low-stock flag**, search, summary counts, **supplier + reorder-quantity** fields, a **"Fits
+  (vehicles / VIN)" field**, and a **🔎 VIN search** that decodes a VIN to make/model to find the
+  matching key/fob.
+- **Customers** — now also shows a read-only **Job history** under each customer (their past
+  bookings, newest-first) and an **"ES" badge** on any lead that came in through the Spanish
+  contact form, so staff know to expect Spanish on the callback.
 
 **Accessibility + mobile:** labels tied to inputs, keyboard-operable rows, visible focus
 outlines, 16px inputs (no zoom on iPhone), large tap targets, reduced-motion support.
@@ -157,9 +170,9 @@ test record.
 ## 7. What is STUBBED or still needs a decision
 These are the open items an advisor should focus on:
 
-1. **Scheduler + Receipts don't use the cloud yet.** They still read customers from localStorage.
-   When signed in, the Customers + Inventory tiles use the cloud but those two pages don't — so
-   their lists can diverge. They each need the same small "connect" wiring. *Decision: wire them?*
+1. **Receipts doesn't use the shared data layer yet.** The **scheduler now goes through TKS** (so it
+   syncs with everything else once the cloud is on), but **Receipts** (`bittings.html`) still reads
+   localStorage directly — its customer list can diverge. It needs the same small "connect" wiring.
 2. **Public contact form can't write to the cloud.** Website visitors aren't signed in, and the
    database only allows signed-in writes, so website leads currently save locally only. Landing
    them in the cloud needs a small Supabase "edge function" or a public-insert rule.
@@ -187,11 +200,12 @@ These are the open items an advisor should focus on:
 
 ## 8. File map (where things live)
 ```
-index.html              Staff app shell (Customers, Payments, Inventory live here)
+index.html              Staff app shell (Customers + Job history, Payments, Inventory + VIN search)
 bittings.html           Receipts/invoice builder (existing; added a back link)
-scheduler.html          Booking + intake flow (added Day view + back link)
+scheduler.html          Booking + intake flow (Day view, edit, status, VIN/ignition, Add-to-Schedule)
 cloud-test.html         Staff login page (Supabase auth) — existed before
-app/store.js            THE data layer (localStorage + Supabase adapter)
+app/store.js            THE data layer (Customers, Inventory, Bookings CRUD, Services, VIN decode)
+site/assets/cities/     Real city photos pulled from the live site (Edmond/Moore/Norman/Midwest)
 app/cloud-config.js     Supabase project URL + public key + on/off switch
 app/STRUCTURE_NOTES.md  Detailed notes on the staff-app build + cloud
 supabase/customers_setup.sql      Customers table SQL
@@ -243,6 +257,29 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-10
+- **Scheduler + forms — big build (16:44):**
+  - Routed the **scheduler through the shared data layer (TKS)** — bookings + customers now share
+    one list, **deduped by phone**. Added booking save/edit/status methods to `app/store.js`.
+  - **Edit a booking**; **job status** (Scheduled / In Progress / Completed / Rescheduled /
+    Canceled) with **color-coded tags** on the day view, job list, and a new booking-detail screen.
+  - **"Add to Schedule"** opens a pre-filled Google Calendar event with **`turbokeysmith@gmail.com`
+    invited as guest** (system of record) and keeps a **local mirror** on our scheduler.
+  - **Customer link + Job history:** each booking stamped with `customerId` (+ phone); a read-only
+    **Job history** now shows under each customer. Old jobs **auto-archive** (Completed/Canceled or
+    past date) off the active board and file under the customer — nothing deleted.
+  - **Car jobs require vehicle ID:** a **VIN** (auto-fills year/make/model via the free NHTSA vPIC
+    API — there was no existing VIN API in the repo) **or** year/make/model, **plus ignition type**
+    (push-to-start / keyed). **Inventory** is now searchable by **VIN / fitment** to find the key/fob.
+  - **Public contact forms (EN + ES):** a **canonical 5-option service dropdown** — the Spanish form
+    **displays Spanish but stores a fixed English value**, so leads land in the dataset in English.
+    "Other" is the only free-text field, **stored exactly as typed**. Every lead saves to Customers
+    **via TKS, deduped by phone**, and Spanish-form leads get an **"ES" badge** in the staff list.
+  - **Job photo slots** added to bookings but **dormant** (hidden until real photos exist).
+- **City photos (16:44):** pulled the existing images from the live turbokeysmith.com pages for the
+  **4 original cities** (Edmond, Moore, Norman, Midwest City) into `site/assets/cities/` and wired
+  them into a real "Our Work" gallery (EN + ES). The generator's photo section is now **conditional**
+  — the other **21 cities show no empty/broken boxes** (hidden placeholders) until photos are added.
+- **Scrapped:** the Android call-screening app (separate Kotlin deliverable, never in this repo).
 - **Spanish toggle direction DECIDED — Option A (queued, not built):** the 🌐 toggle will navigate
   to the matching `/es/` page (with a back-to-English link on the `/es/` side), instead of the
   current chrome-only in-place translation. Clarified that the toggle and the `/es/` pages are two

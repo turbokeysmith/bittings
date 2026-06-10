@@ -173,17 +173,21 @@ export function reviewSlot(label) {
     <small>Paste a real Google review from a ${esc(label)} customer here, or leave for now. (Labeled slot — not shown to visitors as live until filled.)</small></div>`;
 }
 
-// labeled photo slots (two pairs)
-export function photoSlots(label) {
+// "Our Work" photos. Renders a real gallery ONLY when a city has images
+// (`photos` = array of resolved src paths). With no photos it returns a HIDDEN
+// placeholder comment — never an empty/broken photo box shown to visitors.
+export function photoSlots(label, photos) {
+  const list = Array.isArray(photos) ? photos.filter(Boolean) : [];
+  if (!list.length) {
+    return `<!-- "Our Work" gallery: no ${esc(label)} photos yet — section hidden until real images are added -->`;
+  }
+  const cards = list.map(src =>
+    `<figure class="photo"><img src="${esc(src)}" alt="${esc(label)} locksmith work by Turbo Keysmith" loading="lazy"></figure>`
+  ).join('\n      ');
   return `<section class="surface"><div class="wrap">
-  <div class="sec-head"><h2>Our Work</h2><p>Add your own ${esc(label)} job photos in these labeled slots.</p></div>
-  <div class="ba">
-    <div><div class="tag">Before → After</div><div class="pair">
-      <div class="photo-slot"><span>📷 BEFORE<small>Add your photo</small></span></div>
-      <div class="photo-slot"><span>📷 AFTER<small>Add your photo</small></span></div></div></div>
-    <div><div class="tag">On the job</div><div class="pair">
-      <div class="photo-slot"><span>📷 PHOTO<small>Add your photo</small></span></div>
-      <div class="photo-slot"><span>📷 PHOTO<small>Add your photo</small></span></div></div></div>
+  <div class="sec-head"><h2>Our Work in ${esc(label)}</h2><p>A look around ${esc(label)}, where we work every week.</p></div>
+  <div class="photo-grid">
+      ${cards}
   </div>
 </div></section>`;
 }
