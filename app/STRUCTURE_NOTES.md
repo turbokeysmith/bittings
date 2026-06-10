@@ -50,6 +50,17 @@ Y/M/M + ignition; `decodeVinNow()` auto-fills from the VIN; `googleUrl()` adds
 `add=turbokeysmith@gmail.com`. Job-photo slots are gated off (`.job-photos{display:none}` until
 `images[]` is non-empty).
 
+**Forced guided flow + owner PIN bypass (2026-06-10).** Booking can ONLY start via the guided flow
+(`startFlow`) or the PIN-gated quick form — the Day-view "+ Book" shortcut and `startFlowAt()` were
+removed (Day view is view/open-only). `validateStep` now also requires `jobtype`, `subtype`, and the
+`upsell` answer (messages via `#stepMsg`/`stepMsgSet`). The owner bypass is a single swap point:
+`requestOwnerAccess(onGranted)` (today a PIN screen → `submitOwnerPin` checks
+`window.TKS_OWNER.QUICK_FORM_PIN` from `app/cloud-config.js`; later replace its body with an
+owner-role check). On success → `startQuickForm` → `renderQuickForm` (a one-screen plain form using
+the same `booking` object + `bindInputs()`), saved via the shared `saveBooking` (so customer upsert
++ serviceCategory derivation are identical). It's per-booking: the only entries to the quick form are
+through the PIN each time; "New booking" and "Book another" always call `startFlow`.
+
 **`index.html`** — customer form shows read-only **Job history** (`TKS.Bookings.forCustomer`);
 customer rows show an **ES badge** when `lang==='es'`; Inventory has a **🔎 VIN** decode→filter and
 a **Fits (vehicles/VIN)** field.

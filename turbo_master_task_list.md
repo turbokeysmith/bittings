@@ -57,9 +57,15 @@ first — it's what every other tile leans on.*
 - ✅ **Job photo slots** on a booking — **built but dormant** (hidden until real photos exist)
 
 ### A3 — Scheduler still to do
-- ⬜ **Force the guided flow** — make the guided intake the ONLY way to book (today you can also
-  book straight from Day view, which skips coaching)
-- ⬜ **Per-booking PIN bypass** — owner/admin PIN to skip the forced flow for one booking
+- ✅ **Force the guided flow (2026-06-10)** — the question-by-question intake is now the ONLY way to
+  book. Removed the Day-view "+ Book" shortcut (Day view is view/open-only); each step must be
+  answered to advance (job type, sub-type, and the upsell answer are now required too); no skipping,
+  no jumping to the end.
+- ✅ **Per-booking PIN bypass (2026-06-10)** — a 🔒 "Quick form (owner)" entry on Home asks for an
+  owner PIN, then opens ONE plain quick-entry form (all fields, no guided steps). The next booking
+  defaults back to forced guided. PIN lives in `app/cloud-config.js` (`TKS_OWNER.QUICK_FORM_PIN`);
+  the gate is a single swap point (`requestOwnerAccess()`) ready to become an owner-login check once
+  auth gates the app.
 - ⏸️ **Google Calendar real 2-way sync** — currently deep-link + guest-invite only. Decide: real
   OAuth sync (needs Google sign-in + server) or keep the link? *(See Decisions.)*
 - ⬜ Other scheduler fixes/updates (TBD — list specifics)
