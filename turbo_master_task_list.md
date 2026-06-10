@@ -25,20 +25,18 @@ first — it's what every other tile leans on.*
   fitment/VIN**
 - ✅ Cloud adapter wired to existing Supabase project; ☁ Synced / On-this-device pill
 
-### A1 — Turn the cloud on
-- ✅ **SQL applied + verified server-side (2026-06-10):** all 4 tables exist (customers, inventory,
-  bookings, receipts) with RLS = signed-in staff only; a record written as an authenticated user
-  lands in the right table/columns (incl. new `fitment` + lead fields). `touch_updated_at`
-  search_path hardened.
-- ✅ Staff app **and scheduler** now auto-connect to the cloud when a staff session exists.
-- ✅ A **staff login already exists:** `samer@turbokeysmith.com` (no need to create one).
-- ⬜ **YOUR step:** sign in via `cloud-test.html` as `samer@turbokeysmith.com` (you need its
-  password — reset it in Supabase if unknown), then add a test record on one device and confirm it
-  appears on another. This is the only thing that needs a real human login.
-- ⬜ **YOUR step (1 toggle):** enable **leaked-password protection** in Supabase → Auth settings
-  (the remaining security-advisor item).
-- 📝 The scheduler + contact form now write **through TKS**, so once you're signed in, bookings and
-  website leads sync too — not just Customers/Inventory.
+### A1 — Turn the cloud on  ·  ✅ DONE (confirmed end-to-end 2026-06-10)
+- ✅ **SQL applied + verified:** all 4 tables exist (customers, inventory, bookings, receipts) with
+  RLS = signed-in staff only; a record written as an authenticated user lands in the right
+  table/columns (incl. `fitment` + lead fields). `touch_updated_at` search_path hardened.
+- ✅ Staff app **and scheduler** auto-connect to the cloud when a staff session exists.
+- ✅ Staff login `samer@turbokeysmith.com` confirmed, signed in, **sync verified live in the browser**
+  (pill shows ☁ Synced).
+- 📝 **Gotcha learned:** sign in at the SAME address the app runs on (`http://127.0.0.1:8088`), not
+  the `file://` page — the browser scopes the login per-address, so a `file://` sign-in won't carry
+  to the served app. (Same for `localhost` vs `127.0.0.1` — pick one.)
+- ⬜ **Only remaining YOUR step:** enable **leaked-password protection** in Supabase → Auth settings
+  (one toggle — the last security-advisor item).
 
 ### A2 — Scheduler upgrades ✅ (built 2026-06-10)
 - ✅ Routed the scheduler **through TKS** (was raw localStorage) — bookings + customers share one

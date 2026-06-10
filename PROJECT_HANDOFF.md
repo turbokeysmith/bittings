@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-10 17:11 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-10 17:26 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -167,11 +167,17 @@ with the right columns (incl. the new `fitment` + lead fields). A **staff login 
 `samer@turbokeysmith.com` (you don't need to create one). The `touch_updated_at` function's
 search_path was pinned (a security-advisor item).
 
-**The one thing still needing a real human:** sign in via Staff Login (`cloud-test.html`) as
-`samer@turbokeysmith.com` (reset its password in Supabase if it's unknown), then add a record on
-one device and confirm it shows on another — that's the live browser confirmation. Also flip on
-**leaked-password protection** in Supabase → Auth settings (one toggle). Both the staff app and the
-scheduler now auto-connect to the cloud the moment a staff session exists.
+**Confirmed live in the browser (2026-06-10):** signed in as `samer@turbokeysmith.com` and the staff
+app flipped to **☁ Synced** — cloud sync is working end-to-end. Both the staff app and the scheduler
+auto-connect the moment a staff session exists.
+
+**Gotcha worth remembering:** sign in at the **same web address the app runs on** (e.g.
+`http://127.0.0.1:8088`), not the `file://` page. The browser keeps the login separate per address,
+so signing in on a double-clicked `file://` page won't carry to the served app (it'll stay "On this
+device"). `localhost` and `127.0.0.1` also count as different — pick one and stick with it.
+
+**Only cloud item left:** flip on **leaked-password protection** in Supabase → Auth settings (one
+toggle, the last security-advisor item).
 
 ---
 
@@ -265,6 +271,11 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-10
+- **Cloud sync CONFIRMED live in the browser (17:26):** signed in as `samer@turbokeysmith.com` at
+  `http://127.0.0.1:8088` and the staff app flipped to ☁ Synced. Root cause of the earlier
+  "can't sign in / stays local" was signing in on the `file://` page — the browser scopes the
+  session per web address, so it didn't carry to the served app. Fix = sign in at the same address
+  the app runs on. Only remaining cloud item: enable leaked-password protection (Auth toggle).
 - **Cloud verified end-to-end, server-side (17:11):** ran `app_tables_setup.sql` against the live
   project; confirmed all 4 tables + RLS (signed-in staff only); wrote a record **as an
   authenticated user** and confirmed it lands in the right table/columns, then cleaned it up. Found
