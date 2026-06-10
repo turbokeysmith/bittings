@@ -188,8 +188,8 @@
       </a>
     </div>
 
-    <p class="note">Customers are shared across everything on this device. Cross-device
-    sync arrives when we connect the cloud login.</p>
+    <p class="note" id="homeNote">Customers, bookings &amp; receipts are shared across every tool here.
+    Sign in (Staff Login) to sync them to the cloud across devices.</p>
   </div>
 
   <div class="view" id="view-customers">
@@ -267,7 +267,7 @@
     </div>
     <div class="invsummary" id="invSummary"></div>
     <div class="clist" id="invList"></div>
-    <p class="note">Stock is saved on this device. Cross-device sync arrives with the cloud login.</p>
+    <p class="note" id="invNote">Stock is saved on this device. Sign in to sync it to the cloud.</p>
   </div>
 
   <div class="view" id="view-part">
@@ -642,9 +642,18 @@ document.getElementById('payCharge').onclick = ()=>{
    library is missing, or a table isn't created yet, we stay on localStorage —
    nothing breaks. Uses the project + key in app/cloud-config.js. */
 function setCloudPill(state){
-  const el = document.getElementById('cloudPill'); if(!el) return;
-  if(state==='on'){ el.textContent='☁ Synced'; el.className='cloudpill on'; el.title='Signed in — saving to the shared cloud database'; }
-  else { el.textContent='On this device'; el.className='cloudpill'; el.title='Not signed in — saving locally. Use Staff Login to sync.'; }
+  const el = document.getElementById('cloudPill');
+  const homeNote = document.getElementById('homeNote');
+  const invNote  = document.getElementById('invNote');
+  if(state==='on'){
+    if(el){ el.textContent='☁ Synced'; el.className='cloudpill on'; el.title='Signed in — saving to the shared cloud database'; }
+    if(homeNote) homeNote.textContent = '☁ Synced to the cloud — customers, bookings & receipts appear on every signed-in device.';
+    if(invNote)  invNote.textContent  = '☁ Synced to the cloud — stock appears on every signed-in device.';
+  } else {
+    if(el){ el.textContent='On this device'; el.className='cloudpill'; el.title='Not signed in — saving locally. Use Staff Login to sync.'; }
+    if(homeNote) homeNote.textContent = 'Customers, bookings & receipts are shared across every tool here. Sign in (Staff Login) to sync to the cloud across devices.';
+    if(invNote)  invNote.textContent  = 'Stock is saved on this device. Sign in to sync it to the cloud.';
+  }
 }
 function rerenderActive(){
   if(document.getElementById('view-inventory').classList.contains('active')) renderInventory();
