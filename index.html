@@ -41,6 +41,10 @@
   .tile.t-scheduler::before{background:linear-gradient(180deg,var(--amber),#a9760f);}
   .tile.t-payments::before{background:linear-gradient(180deg,var(--green),#156632);}
   .tile.t-inventory::before{background:linear-gradient(180deg,#9b6bd6,#5e3a91);}
+  .tile.t-vendor::before{background:linear-gradient(180deg,#3ba3a0,#1f6f6c);}
+  a.tile{text-decoration:none;color:inherit;display:block;}
+  .vendor-h{font-size:12.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
+    color:var(--dim);margin:20px 2px 10px;}
   .tile .ic{font-size:26px;line-height:1;margin-bottom:10px;}
   .tile h2{margin:0;font-size:17px;font-weight:800;}
   .tile p{margin:3px 0 0;font-size:12.5px;color:var(--dim);line-height:1.35;}
@@ -173,6 +177,17 @@
         <div class="ic">📦</div><h2>Inventory</h2><p>Parts, stock &amp; low-stock alerts.</p>
       </button>
     </div>
+
+    <div class="vendor-h">Vendor tools</div>
+    <div class="tiles">
+      <a class="tile t-vendor" href="https://americankeysupply.com" target="_blank" rel="noopener noreferrer">
+        <div class="ic">🔧</div><h2>American Key Supply ↗</h2><p>Order keys, fobs &amp; tools.</p>
+      </a>
+      <a class="tile t-vendor" href="https://keyinnovations.com" target="_blank" rel="noopener noreferrer">
+        <div class="ic">🔑</div><h2>Key Innovations ↗</h2><p>Automotive keys &amp; programming.</p>
+      </a>
+    </div>
+
     <p class="note">Customers are shared across everything on this device. Cross-device
     sync arrives when we connect the cloud login.</p>
   </div>
