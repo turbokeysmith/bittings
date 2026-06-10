@@ -35,9 +35,12 @@ create table if not exists public.inventory (
   notes        text default '',
   supplier     text default '',            -- NEW
   reorder_qty  integer default 0,          -- NEW (how many to reorder)
+  fitment      text default '',            -- NEW (what vehicles/VIN a key/fob fits)
   created_at   timestamptz default now(),
   updated_at   timestamptz default now()
 );
+-- additive for projects created before `fitment` existed
+alter table public.inventory add column if not exists fitment text default '';
 alter table public.inventory enable row level security;
 drop policy if exists "inv_select" on public.inventory;
 drop policy if exists "inv_insert" on public.inventory;
@@ -102,6 +105,16 @@ grant select, insert, update, delete on public.receipts to authenticated;
 drop trigger if exists receipts_touch on public.receipts;
 create trigger receipts_touch before update on public.receipts
   for each row execute function public.touch_updated_at();
+
+-- ---------------------------------------------------------------
+-- CUSTOMERS — extra columns used by the public contact form so a
+-- lead's details + Spanish-form marker survive a cloud round-trip.
+-- (The customers table itself is created in customers_setup.sql.)
+-- ---------------------------------------------------------------
+alter table public.customers add column if not exists service_needed text default '';
+alter table public.customers add column if not exists notes          text default '';
+alter table public.customers add column if not exists lang           text default '';  -- 'es' = Spanish-form lead
+alter table public.customers add column if not exists source         text default '';  -- e.g. website-contact / scheduler
 
 -- ============================================================
 -- Done. The CloudAdapter stays OFF until you call
