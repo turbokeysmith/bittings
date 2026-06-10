@@ -33,8 +33,17 @@ conversion features. Done enough to set down. NOT published.
 - ✅ Full machine-translated page bodies — all 98 `/es/` pages built (home, 25 cities + sub-pages, hub, contact, metro service pages)
 - ✅ Held back safely: every page `noindex`, excluded from sitemap, blocked in `robots.txt`, visible "BORRADOR — DRAFT" banner
 - ✅ Glossary already exists (`site/es/GLOSSARY.md` + `_build/es.mjs`) — fix a term once, re-run `node _build/generate.mjs`
-- ⬜ Spanish hire to spot-check **technical locksmith terms** (key fob, rekey, deadbolt, transponder) against the glossary
-- ⏸️ Publish `/es/` pages (remove `noindex`, add to sitemap, repoint 🌐 toggle — go live with main site once terms confirmed)
+- ✅ **DECIDED — language toggle = Option A:** the 🌐 button will **navigate to the matching `/es/`
+  page** (full Spanish page), with a **back-to-English link on the `/es/` side**. NOT in-place
+  translation. (Today the toggle only swaps chrome on the English page; the `/es/` pages exist but
+  are unreachable from it.)
+- ⬜ **Prerequisite (must come first):** proofread `/es/` — especially technical locksmith terms
+  (key fob, rekey, deadbolt, transponder) against the glossary
+- ⬜ **Prerequisite (must come first):** publish `/es/` — remove `noindex`, add to `sitemap.xml`,
+  unblock in `robots.txt`, drop the DRAFT banners
+- ⬜ **Then** rewire the 🌐 toggle to navigate EN ↔ `/es/` (only after the two steps above — do NOT
+  point the button at unpublished/unproofread pages)
+- 📝 Sequence: **proofread → publish → rewire toggle.** Queued, not built yet.
 - 📝 Note: hire confirmed "good enough" — still worth a terms-only pass before live
 
 ## PROJECT 3 — Staff App  ·  status: 🔨 in progress
