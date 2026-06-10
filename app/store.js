@@ -82,33 +82,38 @@
         id: r.id, customer: r.name, contact: r.contact, phone: r.phone, email: r.email,
         address: r.address, customerType: r.customer_type,
         status: r.is_contracting ? 'contracting' : 'customer',
+        serviceNeeded: r.service_needed, notes: r.notes, lang: r.lang, source: r.source,
         lastUsed: ts(r.last_used), createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
       toRow: function (o) { return {
         name: o.customer || '', contact: o.contact || '', phone: o.phone || '', email: o.email || '',
-        address: o.address || '', customer_type: o.customerType || 'individual', is_contracting: false }; }
+        address: o.address || '', customer_type: o.customerType || 'individual', is_contracting: false,
+        service_needed: o.serviceNeeded || '', notes: o.notes || '', lang: o.lang || '', source: o.source || '' }; }
     },
     shops: {
       table: 'customers', idStrategy: 'uuid', filter: { is_contracting: true },
       fromRow: function (r) { return {
         id: r.id, customer: r.name, contact: r.contact, phone: r.phone, email: r.email,
         address: r.address, customerType: r.customer_type, status: 'contracting',
+        serviceNeeded: r.service_needed, notes: r.notes, lang: r.lang, source: r.source,
         lastUsed: ts(r.last_used), createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
       toRow: function (o) { return {
         name: o.customer || '', contact: o.contact || '', phone: o.phone || '', email: o.email || '',
-        address: o.address || '', customer_type: o.customerType || 'business', is_contracting: true }; }
+        address: o.address || '', customer_type: o.customerType || 'business', is_contracting: true,
+        service_needed: o.serviceNeeded || '', notes: o.notes || '', lang: o.lang || '', source: o.source || '' }; }
     },
     inventory: {
       table: 'inventory', idStrategy: 'text', filter: null,
       fromRow: function (r) { return {
         id: r.id, name: r.name, sku: r.sku, category: r.category, qty: r.qty, lowAt: r.low_at,
         unit: r.unit, cost: r.cost, location: r.location, notes: r.notes,
-        supplier: r.supplier, reorderQty: r.reorder_qty,
+        supplier: r.supplier, reorderQty: r.reorder_qty, fitment: r.fitment,
         createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
       toRow: function (o) { return {
         id: o.id, name: o.name || '', sku: o.sku || '', category: o.category || '',
         qty: parseInt(o.qty, 10) || 0, low_at: parseInt(o.lowAt, 10) || 0, unit: o.unit || '',
         cost: o.cost === '' || o.cost == null ? null : Number(o.cost), location: o.location || '',
-        notes: o.notes || '', supplier: o.supplier || '', reorder_qty: parseInt(o.reorderQty, 10) || 0 }; }
+        notes: o.notes || '', supplier: o.supplier || '', reorder_qty: parseInt(o.reorderQty, 10) || 0,
+        fitment: o.fitment || '' }; }
     },
     // bookings + receipts: keep their full (nested) shape inside jsonb `data`
     bookings: {
