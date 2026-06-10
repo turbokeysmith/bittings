@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-08 15:49 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-10 15:23 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -105,6 +105,8 @@ customer list across all tools.
   **Added:** an in-app **Day view** (calendar grid of a day's jobs with tappable open time
   slots), and a "‹ Apps" back link. Google Calendar is shown as a clearly-labeled
   **"NOT CONNECTED"** placeholder (it only opens Google Calendar in a new tab; no real sync).
+  *Planned (not built yet): force the guided intake to be the only booking path, with a
+  per-booking PIN that lets an owner/admin skip it for one booking.*
 - **Payments** — a **UI shell only**: amount, customer picker, payment-method buttons, a live
   "Charge $X" label. **It does not take real payments** — clearly labeled as a demo.
 - **Inventory** — fully built: parts list, add/edit/delete, quantity with +/- buttons,
@@ -233,6 +235,17 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-10
+- **Master task list reconciled with the actual repo** (`turbo_master_task_list.md`): marked the
+  proximity re-sort of the 25 cities as done (hub already shows the 4 distance bands); corrected
+  the Spanish site to "full 98-page draft built, unpublished" (was understated as in-progress);
+  noted the glossary already exists.
+- **Android call-screening app SCRAPPED** — removed from the plan. It was a separate Kotlin
+  deliverable and was never part of this web repo, so no code changes were needed here.
+- **Scheduler — two changes planned (not built yet):** force the guided intake flow to be the
+  only booking path, and add a per-booking PIN so an owner/admin can skip the flow for one
+  booking. Logged as pending tasks.
 
 ### 2026-06-08
 - **Spanish `/es/` site built as an unpublished DRAFT (15:49):** 98 machine-translated pages
