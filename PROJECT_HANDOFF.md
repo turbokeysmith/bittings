@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-10 17:52 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-10 17:55 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -129,6 +129,10 @@ customer list across all tools.
 - **Customers** — now also shows a read-only **Job history** under each customer (their past
   bookings, newest-first) and an **"ES" badge** on any lead that came in through the Spanish
   contact form, so staff know to expect Spanish on the callback.
+- **Vendor tools** — the Home screen has two quick-link buttons that open the shop's main vendor
+  sites (**American Key Supply** and **Key Innovations**) in a new tab. *Note: actually locking the
+  shop PC down so it can ONLY reach those sites + the app is a separate Windows/browser setup (a
+  managed-browser allowlist or kiosk mode), not part of this app — a later task.*
 
 **Accessibility + mobile:** labels tied to inputs, keyboard-operable rows, visible focus
 outlines, 16px inputs (no zoom on iPhone), large tap targets, reduced-motion support.
@@ -277,6 +281,9 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-10
+- **Vendor quick-links (17:55):** added two Home-screen buttons in the staff app opening American
+  Key Supply + Key Innovations in a new tab (styled to match). Noted that a true "PC can only reach
+  these sites" lockdown is a separate Windows/browser setup, not an app feature.
 - **Scheduler finished — forced guided flow + owner PIN bypass (17:52):** the guided
   question-by-question intake is now the ONLY way to book (removed the Day-view "+ Book" shortcut;
   Day view is view/open-only; job type, sub-type, and the upsell answer are now required so no step

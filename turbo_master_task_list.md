@@ -24,6 +24,11 @@ first — it's what every other tile leans on.*
 - ✅ Inventory tile (CRUD, low-stock flag, supplier + reorder-qty, search) — **now searchable by
   fitment/VIN**
 - ✅ Cloud adapter wired to existing Supabase project; ☁ Synced / On-this-device pill
+- ✅ **Vendor quick-links** on the Home screen — American Key Supply + Key Innovations (open in a new
+  tab), styled to match. The shop PC's main vendor tools, one tap away.
+- 📝 **PC "can only reach these sites" lockdown is NOT an app feature.** Truly restricting the shop PC
+  to the vendor sites + the app is a separate **Windows / browser setup** (managed-browser site
+  allowlist or kiosk mode) — to tackle later, outside this codebase.
 
 ### A1 — Turn the cloud on  ·  ✅ DONE (confirmed end-to-end 2026-06-10)
 - ✅ **SQL applied + verified:** all 4 tables exist (customers, inventory, bookings, receipts) with
