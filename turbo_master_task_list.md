@@ -35,8 +35,9 @@ first — it's what every other tile leans on.*
 - 📝 **Gotcha learned:** sign in at the SAME address the app runs on (`http://127.0.0.1:8088`), not
   the `file://` page — the browser scopes the login per-address, so a `file://` sign-in won't carry
   to the served app. (Same for `localhost` vs `127.0.0.1` — pick one.)
-- ⬜ **Only remaining YOUR step:** enable **leaked-password protection** in Supabase → Auth settings
-  (one toggle — the last security-advisor item).
+- ⏸️ **Leaked-password protection — deferred (optional):** it's a **Pro-plan-only** feature
+  (Auth → Attack Protection), so it can't be toggled on the current plan. Lowest-severity advisory
+  item; revisit only if/when you upgrade to Pro. **Cloud setup is otherwise complete.**
 
 ### A2 — Scheduler upgrades ✅ (built 2026-06-10)
 - ✅ Routed the scheduler **through TKS** (was raw localStorage) — bookings + customers share one
@@ -131,8 +132,8 @@ first — it's what every other tile leans on.*
 2. ⏸️ **Contact form → cloud** — edge function vs public-insert rule (Track E)
 3. ⏸️ **Google Calendar** — real 2-way sync vs the current deep-link + guest invite (Track A3)
 4. ⏸️ **Domain go-live** — the careful, sequenced switch (Track C)
-5. 🔨 Supabase security hardening — ✅ `search_path` pinned on `touch_updated_at`; ⬜ enable
-   leaked-password protection (Auth settings toggle — YOUR step)
+5. ✅ Supabase security hardening — `search_path` pinned on `touch_updated_at`. Leaked-password
+   protection is **Pro-plan-only**, so it's deferred/optional (revisit if you upgrade).
 
 ---
 
