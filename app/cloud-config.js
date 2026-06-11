@@ -39,8 +39,14 @@ window.TKS_OWNER = {
   // employee's login does NOT — so their account can't unlock owner-only things.
   OWNER_EMAILS: ['samer@turbokeysmith.com'],
 
-  // Fallback PIN for the scheduler Quick form when NOBODY is signed in (e.g.
-  // running locally / offline). When the owner is signed in, the PIN isn't
-  // needed. Set to '' to disable the PIN fallback entirely (owner-login only).
-  QUICK_FORM_PIN: '1234'   // <-- CHANGE THIS to your own PIN
+  // Fallback PIN for the owner-only quick forms (scheduler Quick booking AND the
+  // Receipts "Quick invoice") when NOBODY is signed in (running locally/offline).
+  // When the owner is signed in, the PIN isn't needed; a signed-in employee is
+  // always denied. Set to '' to disable the PIN fallback (owner-login only).
+  QUICK_FORM_PIN: '1234',   // <-- CHANGE THIS to your own PIN
+
+  // Master ON/OFF switch for the Receipts "Quick invoice" form (the fast,
+  // all-on-one-screen alternative to the guided chat). Set to false to turn it
+  // off for EVERYONE (trainees and owner) — Receipts becomes guided-chat-only.
+  QUICK_INVOICE_ENABLED: true
 };

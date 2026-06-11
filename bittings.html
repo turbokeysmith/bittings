@@ -1418,7 +1418,13 @@ function startInterview(){
   const reaskDocType = ()=>{
     markQuestionStart();
     botSay("What are you creating?");
-    botOptions(["Work Order","Estimate"], v=>{
+    const opts = (typeof quickInvoiceAvailable==="function" && quickInvoiceAvailable())
+      ? ["⚡ Quick invoice","Work Order","Estimate"] : ["Work Order","Estimate"];
+    botOptions(opts, v=>{
+      if(v==="⚡ Quick invoice"){
+        requestQuickInvoice(openQuickInvoice, (msg)=>{ if(msg) botSay(msg); reaskDocType(); });
+        return;
+      }
       recordAnswer("docType", reaskDocType);
       // Work Order is a pending state — it resolves to either "receipt" or "invoice"
       // based on the payment answer at the end. Estimate is its own thing.
@@ -3470,6 +3476,118 @@ function _receiptsRefresh(){
       if(j.status==="canceled"){ status("Canceled — try again.","bad"); S.attempt++; return; }
       if(polls<40) setTimeout(tick,2000); else status("Still waiting — check the reader.","bad");
     }; tick();
+  }
+})();
+
+/* ===================== QUICK INVOICE (owner-only fast form) =====================
+   A one-screen alternative to the guided chat. Owner-gated (same model as the
+   scheduler Quick form): owner login unlocks; a signed-in employee is denied;
+   PIN fallback only when nobody is signed in. Master on/off in cloud-config.js
+   (TKS_OWNER.QUICK_INVOICE_ENABLED). Builds the SAME receipt object as the chat,
+   so PDF / history / customer save / Pay Now all work identically. */
+(function(){
+  function enabledFlag(){ return !(window.TKS_OWNER && window.TKS_OWNER.QUICK_INVOICE_ENABLED === false); }
+  window.quickInvoiceAvailable = function(){
+    if(!enabledFlag()) return false;
+    try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn()) return !!TKS.auth.isOwner(); }catch(e){}
+    return true; // nobody signed in -> show it (PIN-gated)
+  };
+  window.requestQuickInvoice = function(onGranted, onDenied){
+    onDenied = onDenied || function(){};
+    try{
+      if(window.TKS && TKS.auth && TKS.auth.isSignedIn()){
+        if(TKS.auth.isOwner()){ onGranted(); return; }
+        onDenied("That's an owner-only tool — you're signed in as staff."); return;
+      }
+    }catch(e){}
+    const pin = window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN;
+    if(!pin){ onDenied("Owner sign-in is required for the quick invoice."); return; }
+    const entered = prompt("Owner PIN to open the quick invoice form:");
+    if(entered === null){ onDenied(""); return; }
+    if(String(entered) === String(pin)) onGranted(); else onDenied("Wrong PIN.");
+  };
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
+  function node(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstElementChild; }
+  let modal=null;
+  function close(){ if(modal){ modal.remove(); modal=null; } }
+  function itemRow(){
+    return `<div class="qiItem" style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
+      <input class="qiDesc" placeholder="Description" style="flex:1;background:#11141a;border:1px solid #2a2f3a;border-radius:8px;color:#f4f5f7;padding:9px;font-size:15px">
+      <input class="qiAmt" placeholder="0.00" inputmode="decimal" style="width:84px;background:#11141a;border:1px solid #2a2f3a;border-radius:8px;color:#f4f5f7;padding:9px;font-size:15px">
+      <label style="font-size:11px;color:#9aa3af;display:flex;align-items:center;gap:3px"><input type="checkbox" class="qiTax">tax</label>
+      <button type="button" class="qiDel" title="Remove" style="background:none;border:none;color:#9aa3af;cursor:pointer;font-size:18px">&times;</button></div>`;
+  }
+  window.openQuickInvoice = function(){
+    if(modal) modal.remove();
+    modal=node(`<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px">
+      <div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:460px;border-radius:16px;padding:18px;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:18px">⚡ Quick invoice</b><button type="button" id="qiX" style="background:none;border:none;color:#9aa3af;font-size:24px;cursor:pointer">&times;</button></div>
+        <label class="qiL">Type</label>
+        <div id="qiType" style="display:flex;gap:6px;margin-bottom:4px"><button type="button" class="qiTB" data-t="receipt">Receipt (paid)</button><button type="button" class="qiTB" data-t="invoice">Invoice (unpaid)</button><button type="button" class="qiTB" data-t="estimate">Estimate</button></div>
+        <label class="qiL">Service</label>
+        <div id="qiSvc" style="display:flex;gap:6px;margin-bottom:4px"><button type="button" class="qiSB" data-s="Automotive">Auto</button><button type="button" class="qiSB" data-s="Residential">Residential</button><button type="button" class="qiSB" data-s="Commercial">Commercial</button></div>
+        <label class="qiL">Customer name *</label><input id="qiName" class="qiI" list="qiCustList" placeholder="Name"><datalist id="qiCustList"></datalist>
+        <div style="display:flex;gap:8px"><div style="flex:1"><label class="qiL">Phone</label><input id="qiPhone" class="qiI" type="tel"></div><div style="flex:1"><label class="qiL">Email</label><input id="qiEmail" class="qiI" type="email"></div></div>
+        <label class="qiL">Address</label><input id="qiAddr" class="qiI">
+        <details style="margin:8px 0"><summary style="cursor:pointer;color:#9aa3af;font-size:13px">Vehicle (optional)</summary>
+          <div style="display:flex;gap:6px;margin-top:6px"><input id="qiVYear" class="qiI" placeholder="Year" style="width:74px"><input id="qiVMake" class="qiI" placeholder="Make"><input id="qiVModel" class="qiI" placeholder="Model"></div>
+          <input id="qiVin" class="qiI" placeholder="VIN" style="margin-top:6px"></details>
+        <label class="qiL">Line items *</label><div id="qiItems"></div>
+        <button type="button" id="qiAdd" style="background:#2a2f3a;border:none;color:#cbd2da;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;margin-bottom:8px">+ Add item</button>
+        <div id="qiPayWrap"><label class="qiL">Payment method</label><div id="qiPay" style="display:flex;gap:6px;margin-bottom:4px"><button type="button" class="qiPB" data-p="Cash">Cash</button><button type="button" class="qiPB" data-p="Card">Card</button><button type="button" class="qiPB" data-p="Check">Check</button></div></div>
+        <label class="qiL">Notes</label><textarea id="qiNotes" class="qiI" style="min-height:46px"></textarea>
+        <div id="qiErr" style="color:#f0a0a6;font-size:13px;margin:6px 0;min-height:16px"></div>
+        <div style="display:flex;gap:8px;margin-top:4px"><button type="button" id="qiGo" style="flex:1;padding:13px;border:none;border-radius:11px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;cursor:pointer">Create</button><button type="button" id="qiCancel" style="padding:13px 16px;border:1px solid #2a2f3a;background:transparent;color:#9aa3af;border-radius:11px;cursor:pointer">Cancel</button></div>
+      </div></div>`);
+    document.body.appendChild(modal);
+    modal.querySelectorAll(".qiL").forEach(l=>l.style.cssText="display:block;font-size:12px;color:#9aa3af;margin:8px 0 3px");
+    modal.querySelectorAll(".qiI").forEach(i=>i.style.cssText="width:100%;background:#11141a;border:1px solid #2a2f3a;border-radius:9px;color:#f4f5f7;padding:10px;font-size:15px;box-sizing:border-box");
+    const seg=(cls,attr,def)=>{ let cur=def; const bs=modal.querySelectorAll(cls);
+      const paint=()=>bs.forEach(b=>{ const on=b.dataset[attr]===cur; b.style.cssText="flex:1;padding:9px;border-radius:9px;border:1.5px solid "+(on?"#f2b43a":"#2a2f3a")+";background:"+(on?"rgba(242,180,58,.14)":"transparent")+";color:#f4f5f7;font-weight:700;cursor:pointer;font-size:13px"; });
+      bs.forEach(b=>b.onclick=()=>{ cur=b.dataset[attr]; paint(); if(cls===".qiTB"){ modal.querySelector("#qiPayWrap").style.display = (cur==="receipt")?"block":"none"; } }); paint(); return ()=>cur; };
+    const getType=seg(".qiTB","t","receipt"), getSvc=seg(".qiSB","s","Automotive"), getPay=seg(".qiPB","p","Cash");
+    try{ const all=(typeof getCustomers==="function"?getCustomers():[]).concat(typeof getShops==="function"?getShops():[]);
+      modal.querySelector("#qiCustList").innerHTML=all.map(c=>`<option value="${esc(c.customer||c.name||"")}">`).join("");
+      modal.querySelector("#qiName").addEventListener("change",function(){ const hit=all.find(c=>(c.customer||c.name||"").toLowerCase()===this.value.trim().toLowerCase()); if(hit){ if(hit.phone)modal.querySelector("#qiPhone").value=hit.phone; if(hit.email)modal.querySelector("#qiEmail").value=hit.email; if(hit.address)modal.querySelector("#qiAddr").value=hit.address; } });
+    }catch(e){}
+    const itemsBox=modal.querySelector("#qiItems");
+    function addItem(){ const r=node(itemRow()); itemsBox.appendChild(r); r.querySelector(".qiDel").onclick=()=>r.remove(); }
+    addItem(); modal.querySelector("#qiAdd").onclick=addItem;
+    modal.querySelector("#qiX").onclick=close; modal.querySelector("#qiCancel").onclick=close;
+    modal.querySelector("#qiGo").onclick=()=>submit(getType,getSvc,getPay);
+  };
+  function submit(getType,getSvc,getPay){
+    const err=modal.querySelector("#qiErr"); err.textContent="";
+    const name=(modal.querySelector("#qiName").value||"").trim();
+    if(!name){ err.textContent="Customer name is required."; return; }
+    const its=[];
+    modal.querySelectorAll(".qiItem").forEach(row=>{
+      const d=(row.querySelector(".qiDesc").value||"").trim();
+      const a=parseFloat(row.querySelector(".qiAmt").value);
+      if(d && !isNaN(a) && a>0) its.push({ desc:d, amount:Math.round(a*100)/100, taxable:row.querySelector(".qiTax").checked, category:getSvc() });
+    });
+    if(!its.length){ err.textContent="Add at least one line item (description + amount)."; return; }
+    const dt=getType();
+    // Build the SAME globals the chat builds, then hand off to finish().
+    docType = dt;
+    receipt = {
+      customer:name, contact:"", phone:(modal.querySelector("#qiPhone").value||"").trim(),
+      email:(modal.querySelector("#qiEmail").value||"").trim(), address:(modal.querySelector("#qiAddr").value||"").trim(),
+      customerType:"individual", serviceType:getSvc(),
+      vehYear:(modal.querySelector("#qiVYear").value||"").trim(), vehMake:(modal.querySelector("#qiVMake").value||"").trim(),
+      vehModel:(modal.querySelector("#qiVModel").value||"").trim(), vin:(modal.querySelector("#qiVin").value||"").trim(),
+      notes:(modal.querySelector("#qiNotes").value||"").trim()
+    };
+    if(dt==="invoice"){ receipt.payment="Not specified"; receipt.status="Unpaid"; }
+    else if(dt==="estimate"){ receipt.payment="Not specified"; receipt.status=""; }
+    else { receipt.payment=getPay(); receipt.status="Paid in Full"; }
+    items = its;
+    try{ signatureData=null; }catch(e){}
+    try{ nastfInfo=null; }catch(e){}
+    if(typeof clearUndo==="function") clearUndo();
+    close();
+    finish();
   }
 })();
 </script>
