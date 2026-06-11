@@ -3334,7 +3334,8 @@ closeSettings = function(){
   if(chat.children.length===0){ startInterview(); }
 };
 
-boot();
+// boot() runs at the very end of the script (below) so the Pay Now + Quick
+// invoice modules are defined before the first interview renders.
 
 /* Cloud bootstrap — connect when a staff member is already signed in (session
    shared with the staff app via cloud-test.html). After hydrate, refresh any
@@ -3590,6 +3591,9 @@ function _receiptsRefresh(){
     finish();
   }
 })();
+
+// Start the app last, so all of the above (Pay Now + Quick invoice) is defined first.
+boot();
 </script>
 </body>
 </html>
