@@ -1,0 +1,79 @@
+import Stripe from "npm:stripe@16";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20", httpClient: Stripe.createFetchHttpClient() });
+const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+const SURCHARGE_PCT = 0.02; // 2% Oklahoma SB 677 cap — CREDIT ONLY (enforced at capture in the webhook)
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+
+function uidFromJwt(req: Request): string | null {
+  const m = (req.headers.get("authorization") || "").match(/^Bearer (.+)$/i);
+  if (!m) return null;
+  try { const p = JSON.parse(atob(m[1].split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return p.sub ?? null; } catch { return null; }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  const json = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "content-type": "application/json" } });
+  try {
+    const body = await req.json();
+    const invoiceId = String(body.invoiceId || "").trim();
+    const method = body.method === "keyed" ? "keyed" : "reader";
+    const readerId = body.readerId ? String(body.readerId) : null;
+    const attempt = parseInt(String(body.attempt ?? "1"), 10) || 1;
+    const orgId = body.orgId ?? null;                       // future multi-tenant (null = single-shop)
+    const connectedAccountId = body.connectedAccountId ?? null; // future Connect (null = single-account)
+    if (!invoiceId) return json(400, { error: "invoiceId required" });
+    if (method === "reader" && !readerId) return json(400, { error: "readerId required for reader method" });
+
+    const idempotency_key = `inv_${invoiceId}_attempt_${attempt}`;
+    const ex = await supa.from("payment_transactions").select("*").eq("idempotency_key", idempotency_key).limit(1);
+    if (ex.data && ex.data[0]) {
+      const t = ex.data[0];
+      let clientSecret: string | undefined;
+      if (method === "keyed") { try { clientSecret = (await stripe.paymentIntents.retrieve(t.stripe_payment_intent_id)).client_secret ?? undefined; } catch (_) {} }
+      return json(200, { ok: true, reused: true, paymentIntentId: t.stripe_payment_intent_id, clientSecret, base_cents: t.base_cents, surcharge_cents: t.surcharge_cents, authorized_cents: t.authorized_cents, disclosure: "A 2% surcharge applies to CREDIT cards only (debit/prepaid are not surcharged)." });
+    }
+
+    const r = await supa.from("receipts").select("id,data").eq("id", invoiceId).limit(1);
+    if (r.error) return json(500, { error: "receipt lookup failed: " + r.error.message });
+    const rec = r.data?.[0];
+    if (!rec) return json(404, { error: "invoice not found in cloud (is the receipt synced to Supabase?)" });
+    const totals = (rec as any).data?.totals || {};
+    const totalDollars = Number(totals.total ?? (rec as any).data?.amount ?? 0);
+    const recSurcharge = Number(totals.surcharge ?? 0);
+    const base_cents = Math.round(Math.max(0, totalDollars - recSurcharge) * 100);
+    if (base_cents < 50) return json(400, { error: "invoice base must be at least $0.50" });
+    const surcharge_cents = Math.round(base_cents * SURCHARGE_PCT);
+    const authorized_cents = base_cents + surcharge_cents;
+
+    const reqOpts: Stripe.RequestOptions = { idempotencyKey: idempotency_key };
+    if (connectedAccountId) reqOpts.stripeAccount = connectedAccountId;
+    const piParams: Stripe.PaymentIntentCreateParams = {
+      amount: authorized_cents, currency: "usd", capture_method: "manual",
+      description: `Invoice ${invoiceId}`,
+      metadata: { invoice_id: invoiceId, base_cents: String(base_cents), surcharge_cents: String(surcharge_cents), surcharge_policy: "credit_only_2pct", method, created_by: uidFromJwt(req) ?? "" },
+    };
+    if (method === "reader") piParams.payment_method_types = ["card_present"];
+    else piParams.automatic_payment_methods = { enabled: true };
+
+    const pi = await stripe.paymentIntents.create(piParams, reqOpts);
+
+    await supa.from("payment_transactions").insert({
+      invoice_id: invoiceId, org_id: orgId, connected_account_id: connectedAccountId,
+      method, currency: "usd", base_cents, surcharge_cents, authorized_cents,
+      reader_id: readerId, stripe_payment_intent_id: pi.id, status: "pending",
+      idempotency_key, created_by: uidFromJwt(req),
+    });
+
+    if (method === "reader") {
+      const po: Stripe.RequestOptions | undefined = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined;
+      await stripe.terminal.readers.processPaymentIntent(readerId!, { payment_intent: pi.id }, po);
+    }
+
+    return json(200, { ok: true, paymentIntentId: pi.id, clientSecret: method === "keyed" ? pi.client_secret : undefined, base_cents, surcharge_cents, authorized_cents, disclosure: "A 2% surcharge applies to CREDIT cards only (debit/prepaid are not surcharged)." });
+  } catch (e) {
+    return json(400, { error: String((e as any)?.message ?? e) });
+  }
+});
