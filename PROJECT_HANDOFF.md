@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-11 10:16 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-11 16:10 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -297,6 +297,15 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-11
+- **Payments rebuilt into the portal — Supabase edge functions, rehearsed (16:10):** after auditing
+  TurboStripe (the owner's live desktop POS — see `TurboStripe_AUDIT.md`), chose **Option B**: a fresh
+  payment system in the portal stack (**Supabase Edge Functions + Stripe.js**, single-account direct
+  charges, NOT Connect). Verified the unknowns (stripe-node in Deno edge, server-driven Terminal from
+  edge, **credit-only 2% surcharge via manual-capture funding detection**), built the schema +
+  5 edge functions + a verified webhook (source of truth), and **passed a full TEST rehearsal**
+  (credit $102 w/ 2%, debit $100 none, refund, idempotency). Added a **Pay Now** action to Receipts
+  (reader + typed-card Payment Element, 2% credit disclosure, failure UX). All TEST; secret server-side
+  only. Details in `supabase/PAYMENTS.md`. The earlier Netlify single-shop tile is superseded.
 - **Payments wired (single-shop, TEST mode) (10:16):** added a one-time **Payment setup** screen to
   the staff app — you enter the payment app's Netlify URL, WisePOS reader ID, Stripe publishable key,
   currency, and 2% surcharge (saved on the device, nothing hardcoded). The **secret key is never in
