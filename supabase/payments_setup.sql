@@ -56,3 +56,10 @@ grant select on public.payment_transactions to authenticated;
 drop trigger if exists payment_transactions_touch on public.payment_transactions;
 create trigger payment_transactions_touch before update on public.payment_transactions
   for each row execute function public.touch_updated_at();
+
+-- IMPORTANT: the edge functions run as service_role. This project did not grant
+-- DML to service_role by default, so grant it explicitly (without this the
+-- functions get "permission denied"). service_role bypasses RLS.
+grant select on public.receipts                to service_role;   -- read authoritative invoice total
+grant select, insert, update on public.payment_transactions to service_role;
+grant select, insert on public.payment_events  to service_role;
