@@ -92,12 +92,23 @@ first — it's what every other tile leans on.*
 
 ---
 
-## TRACK B — Payments  ·  status: ⏸️ parked / next up after Track A
+## TRACK B — Payments (single-shop, Turbo Keysmith)  ·  status: 🔨 built, awaiting your config + deploy
+**Scope:** single-shop for now. The sellable multi-tenant version is **parked** (see Track F).
 - ✅ Stripe Buy Button (public site Pay Now)
-- ⬜ Deploy the separate payment app (Netlify) with keys in env (NOT in code)
-- ⬜ Wire the staff Payments tile to real charging via the BBPOS WisePOS E reader
-- ⬜ Confirm Stripe is the processor; locate/deploy the payment app URL
-- 📝 Note: secret (sk_) keys go in server/env only; surcharge 2%; this runs on the shop PC
+- ✅ **Payment Setup screen** in the staff app (Payments → ⚙ Payment setup): you enter the Netlify
+  URL, WisePOS reader ID (tmr_), publishable key (pk_), currency, and 2% surcharge — saved app-side,
+  **nothing hardcoded**. The **secret key is never entered in the app** (instructions point you to
+  paste it into Netlify env only).
+- ✅ **Payments tile wired** to the existing Netlify app: card-present via the **WisePOS E**
+  (terminal-charge → poll status; **Simulate-tap** button in test mode) and **typed-card** (field)
+  via Stripe's hosted card field. TEST/LIVE banner + surcharge breakdown.
+- ✅ **Backend functions updated** (CORS + read reader/currency from the request) in the separate
+  payments repo — **must be redeployed** for the staff app to reach them.
+- ⬜ **YOUR steps:** (1) deploy the updated payment app to Netlify; (2) set `STRIPE_SECRET_KEY`
+  (sk_test_…) in Netlify env (+ optional `ALLOWED_ORIGIN`); (3) enter the Netlify URL + pk_test_ +
+  reader (tmr_ or a simulated reader) + 2% in the Setup screen; (4) rehearse with test cards.
+- ⏸️ Go LIVE (swap to live keys) — only after test-mode rehearsal succeeds.
+- 📝 Secret (sk_) lives in Netlify env only; field/Bluetooth reader + Tap-to-Pay are a later native phase.
 
 ---
 
@@ -147,6 +158,13 @@ first — it's what every other tile leans on.*
 - ⏸️ **Lead notifications** — email/SMS alert when a lead arrives (email = free to start)
 
 ---
+
+## TRACK F — Sellable multi-tenant version  ·  status: ⏸️ PARKED (deliberate)
+The dashboard as a **product sold to other locksmiths** (each buyer their own Stripe/data/logins,
+nothing hardcoded). Parked on purpose while we finish the single-shop build. When resumed, it's a
+foundation change (orgs + memberships + `org_id` + per-org RLS; Stripe **Connect** recommended over
+collecting buyers' secret keys; payments on **Supabase edge functions**). Full plan captured in chat
+2026-06-11; see also the memory note. Do NOT build on single-shop assumptions that block this later.
 
 ## CROSS-PROJECT DECISIONS STILL OPEN
 1. ⏸️ **Lead notifications** — email or text on a new lead? (Track E)
