@@ -4,6 +4,15 @@ Built per the TurboStripe audit **Option B**: a fresh implementation in the port
 (**Supabase Edge Functions + Stripe.js**), **single-account direct charges** (NOT Connect).
 Everything is **TEST mode** until a fresh `sk_live_` is swapped in and one real charge is verified.
 
+## Two entry points into the same engine
+1. **Invoice → Pay Now** (Receipts / `bittings.html`): pays a finished invoice by id.
+2. **Payments tile → New Charge** (`index.html` + `app/pay.js`): for no-invoice jobs (lockouts /
+   walk-ups) — enter amount + service label + optional customer name/email; it auto-creates a
+   **minimal receipt** (so there's still a server-side authoritative total + a `payment_transactions`
+   row + it shows in Stripe), files into the customer's history if a name/email is given, else
+   anonymous. Owner-gated. Both upsert a receipt then call the same `pay-*` functions — the client
+   never sends an amount.
+
 ## Why this shape
 - **One auth/session:** the portal calls the functions with the staff member's **existing Supabase
   session JWT** (`verify_jwt: true`) — no second login; works from mobile.
