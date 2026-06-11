@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-10 18:09 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-11 10:16 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -120,8 +120,14 @@ customer list across all tools.
   opens one plain quick-entry form (all fields, no coaching steps); the next booking goes back to
   forced guided. The PIN is set in `app/cloud-config.js`, and the gate is built as a single
   swap-point so it can become an owner-only login check later without touching the flow.
-- **Payments** — a **UI shell only**: amount, customer picker, payment-method buttons, a live
-  "Charge $X" label. **It does not take real payments** — clearly labeled as a demo.
+- **Payments** — now wired to the separate Stripe payment app (single-shop, **TEST mode**). A
+  one-time **Payment setup** screen (Payments → ⚙ Payment setup) is where you enter your own config —
+  the payment app's Netlify URL, WisePOS reader ID, Stripe **publishable** key, currency, and 2%
+  surcharge — saved on the device, **nothing hardcoded**. The **Stripe secret key is never entered
+  in the app**; the screen tells you to paste it into Netlify's environment variables yourself. The
+  tile can then charge two ways: **in shop** via the WisePOS E reader (with a Simulate-tap button in
+  test mode) and **in field** via Stripe's hosted typed-card field. A banner shows TEST vs LIVE.
+  *(Going live = swapping to live keys after you've rehearsed with test cards.)*
 - **Inventory** — fully built: parts list, add/edit/delete, quantity with +/- buttons,
   **low-stock flag**, search, summary counts, **supplier + reorder-quantity** fields, a **"Fits
   (vehicles / VIN)" field**, and a **🔎 VIN search** that decodes a VIN to make/model to find the
@@ -289,6 +295,17 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-11
+- **Payments wired (single-shop, TEST mode) (10:16):** added a one-time **Payment setup** screen to
+  the staff app — you enter the payment app's Netlify URL, WisePOS reader ID, Stripe publishable key,
+  currency, and 2% surcharge (saved on the device, nothing hardcoded). The **secret key is never in
+  the app** — the screen instructs pasting `STRIPE_SECRET_KEY` into Netlify env only. Wired the
+  Payments tile to the existing Netlify app: card-present via the **WisePOS E** (+ Simulate-tap in
+  test) and **typed-card** via Stripe's hosted field; TEST/LIVE banner + surcharge breakdown. The
+  separate payment backend functions gained **CORS + request-driven reader/currency** (in the
+  payments repo — needs a redeploy). The **sellable multi-tenant product** is parked (Track F); plan
+  captured in chat.
 
 ### 2026-06-10
 - **A4 — Receipts on the cloud + login gating + owner role (18:09):** wired **Receipts**
