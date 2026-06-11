@@ -48,5 +48,12 @@ window.TKS_OWNER = {
   // Master ON/OFF switch for the Receipts "Quick invoice" form (the fast,
   // all-on-one-screen alternative to the guided chat). Set to false to turn it
   // off for EVERYONE (trainees and owner) — Receipts becomes guided-chat-only.
-  QUICK_INVOICE_ENABLED: true
+  QUICK_INVOICE_ENABLED: true,
+
+  // When true, Receipts opens the Quick invoice form AUTOMATICALLY for the
+  // signed-in OWNER (skip the "what are you creating?" chat). Cancelling the
+  // form drops you back into the chat. Only affects the owner when signed in;
+  // trainees and signed-out users still get the chat. Set to false to always
+  // start with the chat choice.
+  QUICK_INVOICE_DEFAULT: true
 };

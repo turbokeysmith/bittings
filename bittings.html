@@ -1422,7 +1422,7 @@ function startInterview(){
       ? ["⚡ Quick invoice","Work Order","Estimate"] : ["Work Order","Estimate"];
     botOptions(opts, v=>{
       if(v==="⚡ Quick invoice"){
-        requestQuickInvoice(openQuickInvoice, (msg)=>{ if(msg) botSay(msg); reaskDocType(); });
+        requestQuickInvoice(()=>openQuickInvoice(reaskDocType), (msg)=>{ if(msg) botSay(msg); reaskDocType(); });
         return;
       }
       recordAnswer("docType", reaskDocType);
@@ -1432,6 +1432,9 @@ function startInterview(){
       askServiceType();
     });
   };
+  // Auto-open the Quick invoice for the signed-in OWNER if the setting is on
+  // (TKS_OWNER.QUICK_INVOICE_DEFAULT). Cancelling drops back into the chat.
+  if(typeof quickInvoiceAutoForOwner==="function" && quickInvoiceAutoForOwner()){ openQuickInvoice(reaskDocType); return; }
   reaskDocType();
 }
 
@@ -3493,6 +3496,13 @@ function _receiptsRefresh(){
     try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn()) return !!TKS.auth.isOwner(); }catch(e){}
     return true; // nobody signed in -> show it (PIN-gated)
   };
+  // Auto-open default: only for the signed-in OWNER (never forces a PIN prompt).
+  window.quickInvoiceAutoForOwner = function(){
+    if(!enabledFlag()) return false;
+    if(!(window.TKS_OWNER && window.TKS_OWNER.QUICK_INVOICE_DEFAULT === true)) return false;
+    try{ return !!(window.TKS && TKS.auth && TKS.auth.isSignedIn() && TKS.auth.isOwner()); }catch(e){}
+    return false;
+  };
   window.requestQuickInvoice = function(onGranted, onDenied){
     onDenied = onDenied || function(){};
     try{
@@ -3519,7 +3529,7 @@ function _receiptsRefresh(){
       <label style="font-size:11px;color:#9aa3af;display:flex;align-items:center;gap:3px"><input type="checkbox" class="qiTax">tax</label>
       <button type="button" class="qiDel" title="Remove" style="background:none;border:none;color:#9aa3af;cursor:pointer;font-size:18px">&times;</button></div>`;
   }
-  window.openQuickInvoice = function(){
+  window.openQuickInvoice = function(onCancel){
     if(modal) modal.remove();
     modal=node(`<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px">
       <div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:460px;border-radius:16px;padding:18px;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
@@ -3555,7 +3565,8 @@ function _receiptsRefresh(){
     const itemsBox=modal.querySelector("#qiItems");
     function addItem(){ const r=node(itemRow()); itemsBox.appendChild(r); r.querySelector(".qiDel").onclick=()=>r.remove(); }
     addItem(); modal.querySelector("#qiAdd").onclick=addItem;
-    modal.querySelector("#qiX").onclick=close; modal.querySelector("#qiCancel").onclick=close;
+    const cancel=()=>{ close(); if(typeof onCancel==="function") onCancel(); };
+    modal.querySelector("#qiX").onclick=cancel; modal.querySelector("#qiCancel").onclick=cancel;
     modal.querySelector("#qiGo").onclick=()=>submit(getType,getSvc,getPay);
   };
   function submit(getType,getSvc,getPay){
