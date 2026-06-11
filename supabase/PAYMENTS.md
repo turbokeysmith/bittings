@@ -1,0 +1,70 @@
+# Portal Payments — architecture & operations (single-shop, TEST mode)
+
+Built per the TurboStripe audit **Option B**: a fresh implementation in the portal's web stack
+(**Supabase Edge Functions + Stripe.js**), **single-account direct charges** (NOT Connect).
+Everything is **TEST mode** until a fresh `sk_live_` is swapped in and one real charge is verified.
+
+## Why this shape
+- **One auth/session:** the portal calls the functions with the staff member's **existing Supabase
+  session JWT** (`verify_jwt: true`) — no second login; works from mobile.
+- **One datastore:** transactions live in Supabase next to invoices → invoice-integrated charging is
+  a first-class feature, not a cross-service hop.
+- **Secret stays server-side:** `STRIPE_SECRET_KEY` is a Supabase **edge-function secret**; never in
+  the browser, never in git.
+- **PCI SAQ-A:** card data only ever hits the reader or Stripe.js Elements — never our code.
+
+## Verified before building (spikes, then retired)
+- `stripe-node@16` runs in Supabase's Deno edge runtime (`createFetchHttpClient`, `constructEventAsync`).
+- Full **server-driven Terminal** flow works from an edge function (simulated WisePOS E).
+- **Credit-only surcharge is enforceable**: manual-capture, read `card_present.funding`, capture
+  base-only for debit/prepaid (Stripe releases the uncaptured surcharge), capture base+2% for credit.
+- Typed-card create returns a `client_secret` for the Payment Element.
+
+## The surcharge mechanic (Oklahoma SB 677: 2% credit-only; debit/prepaid never)
+1. `pay-create-intent` authorizes **base + 2%** with **`capture_method: 'manual'`**.
+2. On authorization the verified webhook (`payment_intent.amount_capturable_updated`) reads the
+   card **funding**; captures **base+2% only if `funding === 'credit'`**, otherwise **base only**.
+3. Disclosure (“2% surcharge on credit cards”) must be shown **before** charging (signage + on-screen).
+
+## Edge functions (deployed)
+| Function | Auth | Purpose |
+|---|---|---|
+| `pay-create-intent` | session JWT | `{invoiceId, method:'reader'|'keyed', readerId?, attempt?, orgId?, connectedAccountId?}` → looks up the receipt **server-side** for the authoritative base (`totals.total − totals.surcharge`), creates a manual-capture PI (base+2%), records a `payment_transactions` row, and (reader) sends it to the WisePOS E. Idempotent per `inv_<id>_attempt_<n>`. Returns `{paymentIntentId, clientSecret?}`. |
+| `stripe-webhook` | **signature-verified** | The **source of truth**. Captures the credit-only surcharge on authorization; marks `completed` on `payment_intent.succeeded`; `failed`/`canceled` accordingly; reader failures via `terminal.reader.action_failed`. Event-id idempotent via `payment_events`. |
+| `pay-status` | session JWT | `{paymentIntentId}` → transaction row for UI polling (status, funding, surcharge_applied, captured). **Never** the authoritative paid flag — that's webhook-only. |
+| `pay-refund` | session JWT | `{paymentIntentId, amountCents?}` → full/partial refund of a `completed` transaction. |
+| `pay-terminal` | session JWT | `{action:'list'|'simulate'|'cancel', readerId?, locationId?, debit?, declined?}` → list readers/locations; **simulate-tap** (test only); cancel a reader action (failure UX). |
+
+All take optional `orgId` / `connectedAccountId` (ignored single-shop) so multi-tenant + Connect are
+a clean add-on later.
+
+## Secrets (Supabase → Edge Functions → Secrets)
+- `STRIPE_SECRET_KEY` = `sk_test_…`  **(set ✓)**. At cutover, replace with `sk_live_…` in this same slot.
+- `STRIPE_WEBHOOK_SECRET` = `whsec_…`  **(TODO — see below)**.
+- `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` are auto-injected by Supabase.
+
+## YOUR remaining setup steps (TEST)
+1. **Register the webhook** (Stripe Dashboard, **Test mode** → Developers → Webhooks → Add endpoint):
+   - URL: `https://gcshuhlksjznksspbigl.supabase.co/functions/v1/stripe-webhook`
+   - Events: `payment_intent.amount_capturable_updated`, `payment_intent.succeeded`,
+     `payment_intent.payment_failed`, `payment_intent.canceled`, `terminal.reader.action_failed`.
+   - Copy the **Signing secret** (`whsec_…`) → set it as `STRIPE_WEBHOOK_SECRET` (secrets, above).
+2. Ensure **Terminal** is enabled in Stripe; in test you can use a **simulated WisePOS E** (a test
+   Location + simulated reader already exist from the spike: "Spike Test Location").
+3. (Next build) the portal **Pay Now** UI — see below.
+
+## Status
+- ✅ Schema (`payment_transactions`, `payment_events`, RLS) — `supabase/payments_setup.sql`.
+- ✅ Edge functions deployed (TEST).
+- ⬜ **YOUR:** register webhook + set `STRIPE_WEBHOOK_SECRET`.
+- ⬜ **Next build:** portal **Pay Now on an invoice** (passes invoice id only) → reader path +
+  Stripe.js **Payment Element** field path, surcharge disclosure, reader-failure UX
+  (offline/decline/cancel/timeout). Requires receipts to be **synced to Supabase** so the function
+  can read the authoritative total.
+- ⬜ Cutover: swap `sk_live_`, one real charge, then retire `TurboStripe.exe` + rotate the old key.
+
+## Test plan (once the webhook secret is set)
+Reader: create a receipt (synced) → `pay-create-intent {invoiceId, method:'reader', readerId}` →
+`pay-terminal {action:'simulate', readerId}` (default 4242 = credit → 2% applied; `debit:true` →
+no surcharge) → `pay-status` shows `completed`. Typed-card: `method:'keyed'` → Payment Element →
+test card `4242 4242 4242 4242`. Verify amounts in the Stripe **test** dashboard.
