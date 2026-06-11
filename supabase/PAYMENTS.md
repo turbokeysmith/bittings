@@ -53,15 +53,26 @@ a clean add-on later.
    Location + simulated reader already exist from the spike: "Spike Test Location").
 3. (Next build) the portal **Pay Now** UI — see below.
 
+## Rehearsal — PASSED end-to-end through the live verified webhook (TEST)
+- **Credit** (`4242`): funding=credit → **2% applied** → captured **$102.00** of a $100 invoice.
+- **Debit** (`…5556`): funding=debit → **no surcharge** → captured **$100.00** (surcharge released).
+- **Refund**: $102.00 → succeeded. **Keyed-create**: returns `client_secret`. **Idempotency**:
+  same invoice+attempt → `reused`, same PI (no double charge). Webhook **rejects unsigned** (400).
+
 ## Status
-- ✅ Schema (`payment_transactions`, `payment_events`, RLS) — `supabase/payments_setup.sql`.
-- ✅ Edge functions deployed (TEST).
-- ⬜ **YOUR:** register webhook + set `STRIPE_WEBHOOK_SECRET`.
-- ⬜ **Next build:** portal **Pay Now on an invoice** (passes invoice id only) → reader path +
-  Stripe.js **Payment Element** field path, surcharge disclosure, reader-failure UX
-  (offline/decline/cancel/timeout). Requires receipts to be **synced to Supabase** so the function
-  can read the authoritative total.
-- ⬜ Cutover: swap `sk_live_`, one real charge, then retire `TurboStripe.exe` + rotate the old key.
+- ✅ Schema + **service_role grants** (`supabase/payments_setup.sql`).
+- ✅ Edge functions deployed (TEST), bugfixed (empty-options), and **rehearsed end-to-end**.
+- ✅ **Pay Now UI** in `bittings.html`: after finishing an invoice → **💳 Pay Now** → reader path
+  (WisePOS E, with test simulate Credit/Debit/Decline) + typed-card **Payment Element** path; shows
+  the 2% credit disclosure; polls `pay-status`; surfaces approve/decline/cancel/timeout. Receipts now
+  get a stable `id` and are **upserted to Supabase on Pay Now** so the server reads the authoritative
+  total. (Typed-card path prompts once for your `pk_test_…` publishable key, stored locally.)
+- ⬜ **YOUR (browser test):** sign in, build an invoice, Pay Now → Reader → Simulate Credit/Debit;
+  then Type card with `4242 4242 4242 4242`. Confirm amounts in the Stripe **test** dashboard.
+- ⬜ Cutover: swap `sk_live_` (same secret slot) + a real `pk_live_`, one real charge, then retire
+  `TurboStripe.exe` + rotate the old key. Edge function `apiVersion` is `2024-06-20`; webhook
+  endpoint is `2023-10-16` — compatible (handler re-fetches the PI), bump later if desired.
+- ⬜ Export the 5 edge-function sources into `supabase/functions/` for version control.
 
 ## Test plan (once the webhook secret is set)
 Reader: create a receipt (synced) → `pay-create-intent {invoiceId, method:'reader', readerId}` →
