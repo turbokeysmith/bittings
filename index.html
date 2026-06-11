@@ -137,6 +137,16 @@
   .seg.paymethods button{font-size:12.5px;padding:11px 6px;}
   .pay-recent-h{font-weight:800;font-size:13px;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);margin:24px 0 10px;}
   .btn.save:disabled{opacity:.6;cursor:not-allowed;}
+  .btn.ghostbtn{background:transparent;border:1px solid var(--edge);color:var(--dim);}
+  /* payments: mode banners + amount breakdown + secret-key note */
+  .pay-banner.test{background:rgba(74,163,255,.12);border-color:rgba(74,163,255,.45);color:#9cc8ff;}
+  .pay-banner.live{background:rgba(200,50,60,.14);border-color:rgba(200,50,60,.5);color:#f0a0a6;}
+  .pay-breakdown{font-size:13.5px;color:var(--dim);margin:6px 2px 2px;min-height:1px;}
+  .pay-breakdown b{color:var(--ink,#f4f5f7);}
+  .pay-secret-note{background:rgba(242,180,58,.10);border:1px dashed rgba(242,180,58,.45);border-radius:11px;
+    padding:12px 14px;font-size:12.5px;line-height:1.5;color:var(--dim);margin:6px 0 2px;}
+  .pay-secret-note b{color:#f2d18a;}
+  .pay-secret-note code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:5px;color:var(--ink,#f4f5f7);}
 
   /* ---- Accessibility + mobile polish ---- */
   :focus-visible{outline:3px solid var(--amber);outline-offset:2px;border-radius:8px;}
@@ -246,9 +256,9 @@
   </div>
 
   <div class="view" id="view-payments">
-    <div class="pay-banner">💳 Demo shell — live card processing turns on once a payment
-      processor is connected. Nothing is charged here yet.</div>
-    <div class="form">
+    <div class="pay-banner" id="payModeBanner">Checking payment connection…</div>
+    <div class="note" id="paySetupNeeded" style="display:none"></div>
+    <div class="form" id="payForm">
       <label>Amount</label>
       <div class="amountwrap"><span>$</span><input id="payAmount" type="number" inputmode="decimal" placeholder="0.00" aria-label="Payment amount in dollars"></div>
       <label for="payCustomer">Customer</label>
@@ -256,19 +266,53 @@
       <datalist id="payCustList"></datalist>
       <label for="payDesc">Description</label>
       <input id="payDesc" type="text" placeholder="e.g. Car key replacement — 2018 F-150">
-      <label>Payment method</label>
+      <label>How are they paying?</label>
       <div class="seg paymethods" id="payMethods" role="group" aria-label="Payment method">
-        <button type="button" class="on" data-pm="card-present">Tap / insert</button>
-        <button type="button" data-pm="manual">Manual card</button>
-        <button type="button" data-pm="link">Send link</button>
+        <button type="button" class="on" data-pm="card-present">🏪 Reader (tap/insert)</button>
+        <button type="button" data-pm="keyed">⌨️ Type card (field)</button>
+      </div>
+      <div class="pay-breakdown" id="payBreakdown"></div>
+      <div class="actions">
+        <button class="btn save" id="payAction" disabled>Enter an amount</button>
+      </div>
+      <div id="payCardWrap" style="display:none">
+        <div id="payElement" style="margin:6px 0 12px"></div>
+        <div class="actions">
+          <button class="btn save" id="payConfirm">Pay</button>
+          <button class="btn ghostbtn" id="payCancel">Cancel</button>
+        </div>
+      </div>
+      <p class="note" id="payStatus" aria-live="polite"></p>
+      <p class="note"><a href="#" id="paySetupLink">⚙ Payment setup</a></p>
+    </div>
+  </div>
+
+  <div class="view" id="view-paysetup">
+    <div class="form">
+      <h2 style="margin:0 0 2px">Payment setup</h2>
+      <p class="note">One-time setup for this shop, saved on this device. Enter your own values — nothing is hardcoded. The <b>secret key is NOT entered here</b>.</p>
+      <label for="cfgUrl">Payment app URL (your Netlify site)</label>
+      <input id="cfgUrl" type="url" inputmode="url" placeholder="https://your-app.netlify.app" autocomplete="off">
+      <label for="cfgReader">WisePOS E reader ID (tmr_…)</label>
+      <input id="cfgReader" type="text" placeholder="tmr_… (a simulated reader works in test)" autocomplete="off">
+      <label for="cfgPub">Stripe publishable key (pk_…)</label>
+      <input id="cfgPub" type="text" placeholder="pk_test_… while rehearsing" autocomplete="off">
+      <div class="row2">
+        <div><label for="cfgCurrency">Currency</label><input id="cfgCurrency" type="text" value="usd" autocomplete="off"></div>
+        <div><label for="cfgSurcharge">Surcharge %</label><input id="cfgSurcharge" type="number" inputmode="decimal" value="2" autocomplete="off"></div>
+      </div>
+      <div class="pay-secret-note">
+        <b>🔒 Secret key (sk_…) — you handle this, never the app.</b>
+        Paste it into <b>Netlify only</b>: your site → <b>Site configuration → Environment variables</b> →
+        add <code>STRIPE_SECRET_KEY</code> = your <code>sk_test_…</code> → Save → <b>Trigger deploy</b>.
+        The app never sees or stores it.
       </div>
       <div class="actions">
-        <button class="btn save" id="payCharge">Charge $0.00</button>
+        <button class="btn save" id="cfgSave">Save setup</button>
+        <button class="btn ghostbtn" id="cfgTest">Test connection</button>
       </div>
-      <p class="note" id="payNote" aria-live="polite">Wiring stubbed — connect Stripe or Square to take real payments.</p>
+      <p class="note" id="cfgNote" aria-live="polite"></p>
     </div>
-    <div class="pay-recent-h">Recent payments</div>
-    <div class="empty">No payments yet. They'll show here once processing is live.</div>
   </div>
 
   <div class="view" id="view-inventory">
@@ -317,6 +361,9 @@
 
 <!-- Supabase client + project config (auto-connects only when signed in) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Stripe.js — for the typed-card (field) path. The card field is hosted by
+     Stripe; card numbers go straight to Stripe and never touch this app. -->
+<script src="https://js.stripe.com/v3/"></script>
 <script src="app/cloud-config.js"></script>
 <!-- Shared data layer (localStorage today; flips to cloud via TKS.connectCloud) -->
 <script src="app/store.js"></script>
@@ -329,12 +376,13 @@ function saveCustomers(a){ TKS.saveList("customers", a); }
 function getShops(){ return TKS.list("shops"); }
 function saveShops(a){ TKS.saveList("shops", a); }
 
-const views = ['home','customers','form','payments','inventory','part'];
+const views = ['home','customers','form','payments','paysetup','inventory','part'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
   back.style.display = (name==='home') ? 'none' : 'block';
-  back.dataset.to = (name==='form') ? 'customers' : (name==='part' ? 'inventory' : 'home');
+  back.dataset.to = (name==='form') ? 'customers' : (name==='part' ? 'inventory'
+                  : (name==='paysetup' ? 'payments' : 'home'));
   window.scrollTo(0,0);
 }
 document.getElementById('backBtn').onclick = function(){ show(this.dataset.to || 'home'); };
@@ -620,33 +668,201 @@ document.getElementById('pDelete').onclick = ()=>{
 let payMethod = 'card-present';
 function money2(n){ n=parseFloat(n); return isNaN(n)?'0.00':n.toFixed(2); }
 
-function renderPayments(){
-  // populate the shared-customer datalist
-  const dl = document.getElementById('payCustList');
-  dl.innerHTML = TKS.Customers.all()
-    .map(c=>'<option value="'+esc((c.customer||'')+(c.phone?(' · '+c.phone):''))+'"></option>').join('');
-  updateChargeLabel();
-}
-function updateChargeLabel(){
-  const amt = money2(document.getElementById('payAmount').value);
-  document.getElementById('payCharge').textContent = 'Charge $'+amt;
-}
-document.getElementById('payAmount').addEventListener('input', updateChargeLabel);
+/* =================== PAYMENT CONFIG (app-side; NEVER the secret) ===================
+   Stored on this device via TKS.read/write. The secret key (sk_) is never here —
+   it lives only in the payment app's Netlify env. */
+function getPayCfg(){ const c = TKS.read('tks_pay_config', {}); return (c && typeof c==='object') ? c : {}; }
+function savePayCfg(c){ TKS.write('tks_pay_config', c); }
+function payApiBase(){ return (getPayCfg().url||'').replace(/\/+$/,''); }
+function payConfigured(){ const c=getPayCfg(); return !!(c.url && c.pub && c.reader); }
+function payMode(){ const k=(getPayCfg().pub||''); return k.indexOf('pk_live')===0?'live':k.indexOf('pk_test')===0?'test':'unset'; }
 
+/* ---- Setup screen ---- */
+function openPaySetup(){
+  const c=getPayCfg();
+  document.getElementById('cfgUrl').value = c.url||'';
+  document.getElementById('cfgReader').value = c.reader||'';
+  document.getElementById('cfgPub').value = c.pub||'';
+  document.getElementById('cfgCurrency').value = c.currency||'usd';
+  document.getElementById('cfgSurcharge').value = (c.surcharge!=null? c.surcharge : 2);
+  document.getElementById('cfgNote').textContent='';
+  show('paysetup');
+}
+document.getElementById('cfgSave').onclick = ()=>{
+  const c = {
+    url: (document.getElementById('cfgUrl').value||'').trim().replace(/\/+$/,''),
+    reader: (document.getElementById('cfgReader').value||'').trim(),
+    pub: (document.getElementById('cfgPub').value||'').trim(),
+    currency: ((document.getElementById('cfgCurrency').value||'usd').trim().toLowerCase())||'usd',
+    surcharge: parseFloat(document.getElementById('cfgSurcharge').value)||0
+  };
+  savePayCfg(c);
+  document.getElementById('cfgNote').textContent = 'Saved ✓';
+  setTimeout(()=>{ show('payments'); renderPayments(); }, 450);
+};
+document.getElementById('cfgTest').onclick = ()=>{
+  const note=document.getElementById('cfgNote');
+  const base=(document.getElementById('cfgUrl').value||'').trim().replace(/\/+$/,'');
+  if(!base){ note.textContent='Enter the payment app URL first.'; return; }
+  note.textContent='Checking…';
+  fetch(base+'/api/get-config').then(r=>r.json()).then(j=>{
+    if(j && j.ok){
+      note.innerHTML = 'Connected ✓ · backend is in <b>'+(j.mode||'unset').toUpperCase()+'</b> mode'+
+        (j.secretConfigured ? '' : ' · <span style="color:#f0a0a6">⚠ secret key not set in Netlify yet</span>');
+    } else { note.textContent='Reached the URL but got an unexpected response.'; }
+  }).catch(()=> note.innerHTML='<span style="color:#f0a0a6">Could not reach that URL.</span> Check it\'s the deployed Netlify site and that the functions are live.');
+};
+document.getElementById('paySetupLink').onclick = (e)=>{ e.preventDefault(); openPaySetup(); };
+
+/* ---- Payments controller ---- */
+let paySession = { pi:null, poll:null, timeout:null, stripe:null, elements:null };
+function payDesc(){
+  const d=(document.getElementById('payDesc').value||'').trim();
+  const cu=(document.getElementById('payCustomer').value||'').trim();
+  return [d,cu].filter(Boolean).join(' — ') || 'Turbo Keysmith payment';
+}
+function payStatus(html, kind){
+  const s=document.getElementById('payStatus'); s.innerHTML=html;
+  s.style.color = kind==='bad' ? '#f0a0a6' : (kind==='ok' ? '#7fd49b' : 'var(--dim)');
+}
+function setPayBusy(b){ const a=document.getElementById('payAction'); if(a) a.disabled=b; }
+function stopPoll(){ if(paySession.poll){ clearInterval(paySession.poll); paySession.poll=null; } if(paySession.timeout){ clearTimeout(paySession.timeout); paySession.timeout=null; } }
+function resetPaySession(){ stopPoll(); paySession={ pi:null, poll:null, timeout:null, stripe:null, elements:null }; }
+function payAmounts(){
+  const sub = parseFloat(document.getElementById('payAmount').value)||0;
+  const pct = getPayCfg().surcharge||0;
+  const sur = Math.round(sub*pct)/100;            // pct is a percent, e.g. 2
+  const total = Math.round((sub+sur)*100)/100;
+  return { sub, pct, sur, total, cents: Math.round(total*100) };
+}
+function renderPayBreakdown(){
+  const a=payAmounts(), el=document.getElementById('payBreakdown'), act=document.getElementById('payAction');
+  if(a.sub<=0){ el.innerHTML=''; act.textContent='Enter an amount'; act.disabled=true; return; }
+  act.disabled=false;
+  el.innerHTML = 'Subtotal $'+a.sub.toFixed(2) +
+    (a.pct ? ' &nbsp;+&nbsp; '+a.pct+'% surcharge $'+a.sur.toFixed(2) : '') +
+    ' &nbsp;=&nbsp; <b>Total $'+a.total.toFixed(2)+'</b>';
+  act.textContent = (payMethod==='keyed') ? ('Start card entry · $'+a.total.toFixed(2))
+                                          : ('Send $'+a.total.toFixed(2)+' to reader');
+}
+function renderPayments(){
+  // shared-customer datalist
+  document.getElementById('payCustList').innerHTML = TKS.Customers.all()
+    .map(c=>'<option value="'+esc((c.customer||'')+(c.phone?(' · '+c.phone):''))+'"></option>').join('');
+  resetPaySession();
+  document.getElementById('payCardWrap').style.display='none';
+  document.getElementById('payStatus').textContent='';
+  const banner=document.getElementById('payModeBanner');
+  const need=document.getElementById('paySetupNeeded');
+  const form=document.getElementById('payForm');
+  if(!payConfigured()){
+    form.style.display='none';
+    need.style.display='block';
+    need.innerHTML='⚙ Payments aren\'t set up yet. <a href="#" id="goSetup">Open Payment setup</a> to add your Netlify URL, reader ID and publishable key.';
+    document.getElementById('goSetup').onclick=(e)=>{ e.preventDefault(); openPaySetup(); };
+    banner.className='pay-banner'; banner.textContent='Not configured yet';
+    return;
+  }
+  need.style.display='none'; form.style.display='block';
+  const m=payMode();
+  banner.className='pay-banner '+(m==='live'?'live':(m==='test'?'test':''));
+  banner.innerHTML = m==='live' ? '🔴 <b>LIVE MODE</b> — real cards will be charged.'
+                   : m==='test' ? '🧪 <b>TEST MODE</b> — fake cards only, no real money.'
+                   : '⚠ Publishable key not recognized — check it in Setup.';
+  renderPayBreakdown();
+}
+document.getElementById('payAmount').addEventListener('input', renderPayBreakdown);
 document.getElementById('payMethods').addEventListener('click', (e)=>{
-  const b = e.target.closest('button[data-pm]'); if(!b) return;
-  payMethod = b.dataset.pm;
+  const b=e.target.closest('button[data-pm]'); if(!b) return;
+  payMethod=b.dataset.pm;
   document.querySelectorAll('#payMethods button').forEach(x=>x.classList.toggle('on', x===b));
+  document.getElementById('payCardWrap').style.display='none';
+  resetPaySession(); payStatus('','');
+  renderPayBreakdown();
 });
 
-document.getElementById('payCharge').onclick = ()=>{
-  const amt = money2(document.getElementById('payAmount').value);
-  const note = document.getElementById('payNote');
-  const labels = {'card-present':'tap/insert card reader','manual':'manual card entry','link':'a texted payment link'};
-  // STUB: no real charge. >>> CLOUD/PROCESSOR: call Stripe/Square here. <<<
-  note.innerHTML = '<strong style="color:var(--amber)">Demo only — not charged.</strong> '+
-    'When connected, this would take <strong>$'+amt+'</strong> via '+labels[payMethod]+'.';
+document.getElementById('payAction').onclick = ()=>{
+  const a=payAmounts();
+  if(a.cents<50){ payStatus('Amount must be at least $0.50.','bad'); return; }
+  if(payMethod==='keyed') startKeyed(a); else startReader(a);
 };
+
+/* Card-present: create the charge, hand to the WisePOS E, then poll for the result. */
+function startReader(a){
+  const c=getPayCfg();
+  setPayBusy(true); payStatus('Sending $'+a.total.toFixed(2)+' to the reader…','');
+  fetch(payApiBase()+'/api/terminal-charge', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ amountCents:a.cents, description:payDesc(), readerId:c.reader, currency:c.currency }) })
+    .then(r=>r.json()).then(j=>{
+      if(j.error || !j.paymentIntentId){ payStatus('Reader error: '+(j.error||'no payment id'),'bad'); setPayBusy(false); return; }
+      paySession.pi=j.paymentIntentId;
+      const sim = (payMode()==='test') ? ' <button id="simTap" class="btn ghostbtn" style="padding:6px 10px;font-size:12px">Simulate tap (test)</button>' : '';
+      payStatus('Waiting for the customer to tap or insert on the reader…'+sim,'');
+      const st=document.getElementById('simTap'); if(st) st.onclick=simulateTap;
+      pollReader();
+    }).catch(()=>{ payStatus('Could not reach the payment app. Check the URL in Setup.','bad'); setPayBusy(false); });
+}
+function pollReader(){
+  paySession.poll=setInterval(()=>{
+    fetch(payApiBase()+'/api/terminal-status', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ paymentIntentId:paySession.pi }) })
+      .then(r=>r.json()).then(j=>{
+        if(j.status==='succeeded'){ stopPoll(); paySuccess(); }
+        else if(j.status==='canceled'){ stopPoll(); payStatus('Canceled on the reader.','bad'); setPayBusy(false); }
+      }).catch(()=>{});
+  }, 2000);
+  paySession.timeout=setTimeout(()=>{ if(paySession.poll){ stopPoll(); payStatus('Timed out waiting for the reader.','bad'); setPayBusy(false); } }, 180000);
+}
+function simulateTap(){
+  payStatus('Simulating a tap…','');
+  fetch(payApiBase()+'/api/terminal-simulate', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ readerId:getPayCfg().reader }) })
+    .then(r=>r.json()).then(j=>{ if(j.error) payStatus('Simulate failed: '+j.error,'bad'); })
+    .catch(()=>{});
+}
+
+/* Typed-card (field): create the intent, mount Stripe's hosted card field, confirm. */
+function startKeyed(a){
+  const c=getPayCfg();
+  if(!window.Stripe){ payStatus('Stripe.js didn\'t load — check your connection.','bad'); return; }
+  setPayBusy(true); payStatus('Preparing the secure card field…','');
+  fetch(payApiBase()+'/api/keyed-create', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ amountCents:a.cents, description:payDesc(), currency:c.currency }) })
+    .then(r=>r.json()).then(j=>{
+      if(j.error || !j.clientSecret){ payStatus('Could not start: '+(j.error||'no client secret'),'bad'); setPayBusy(false); return; }
+      try{
+        paySession.stripe = Stripe(c.pub);
+        paySession.elements = paySession.stripe.elements({ clientSecret:j.clientSecret });
+        const pe = paySession.elements.create('payment');
+        document.getElementById('payElement').innerHTML='';
+        pe.mount('#payElement');
+        document.getElementById('payCardWrap').style.display='block';
+        document.getElementById('payConfirm').textContent='Pay $'+a.total.toFixed(2);
+        payStatus('Enter the card details, then tap Pay.','');
+      }catch(err){ payStatus('Card field error: '+(err.message||err),'bad'); setPayBusy(false); }
+    }).catch(()=>{ payStatus('Could not reach the payment app. Check the URL in Setup.','bad'); setPayBusy(false); });
+}
+document.getElementById('payConfirm').onclick = ()=>{
+  if(!paySession.stripe || !paySession.elements) return;
+  document.getElementById('payConfirm').disabled=true;
+  payStatus('Processing…','');
+  paySession.stripe.confirmPayment({ elements:paySession.elements, redirect:'if_required' }).then(res=>{
+    document.getElementById('payConfirm').disabled=false;
+    if(res.error){ payStatus('Declined: '+res.error.message,'bad'); }
+    else if(res.paymentIntent && res.paymentIntent.status==='succeeded'){ document.getElementById('payCardWrap').style.display='none'; paySuccess(); }
+    else { payStatus('Status: '+(res.paymentIntent?res.paymentIntent.status:'unknown'),''); }
+  });
+};
+document.getElementById('payCancel').onclick = ()=>{
+  document.getElementById('payCardWrap').style.display='none';
+  resetPaySession(); setPayBusy(false); payStatus('Canceled.','');
+};
+function paySuccess(){
+  setPayBusy(false);
+  payStatus('✓ Payment approved'+(payMode()==='test'?' (test)':'')+'.','ok');
+  document.getElementById('payAmount').value='';
+  renderPayBreakdown();
+}
 
 /* ============================ CLOUD BOOTSTRAP ============================
    Connects to Supabase ONLY when an employee is already signed in (a session
