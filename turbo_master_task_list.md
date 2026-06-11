@@ -92,7 +92,26 @@ first — it's what every other tile leans on.*
 
 ---
 
-## TRACK B — Payments (single-shop, Turbo Keysmith)  ·  status: 🔨 built, awaiting your config + deploy
+## TRACK B — Payments (single-shop, Turbo Keysmith)  ·  status: 🔨 NEW portal build (Supabase) rehearsed; awaiting your browser test
+**Direction (2026-06-11):** after auditing TurboStripe (your live desktop POS), payments are being
+**rebuilt into the portal** per audit **Option B** — Supabase **edge functions + Stripe.js**,
+**single-account direct charges** (NOT Connect; Connect parked for multi-tenant). The earlier
+Netlify-tile wiring is superseded. Full design + ops in `supabase/PAYMENTS.md`.
+- ✅ Verified spikes (stripe-node in Deno edge; server-driven Terminal from edge; **credit-only 2%
+  surcharge enforceable** via manual-capture funding detection).
+- ✅ Schema (`payment_transactions`/`payment_events`, integer cents, RLS, service_role grants) +
+  5 edge functions (TEST): pay-create-intent (invoice-id → authoritative base, idempotent),
+  stripe-webhook (verified, source of truth, credit-only capture), pay-status, pay-refund, pay-terminal.
+- ✅ **Rehearsal PASSED end-to-end through the live webhook** — credit $102 (2%), debit $100 (none),
+  refund, idempotency, keyed client_secret.
+- ✅ **Pay Now UI** in Receipts (`bittings.html`): reader (WisePOS E + test simulate) + typed-card
+  Payment Element; 2% credit disclosure; failure UX.
+- ⬜ **YOUR:** browser test signed-in (build invoice → Pay Now → simulate credit/debit; type card 4242).
+- ⬜ Cutover to live (swap `sk_live_`/`pk_live_`, one real charge) → retire TurboStripe.exe + rotate old key.
+- ⬜ Export edge-function sources to `supabase/functions/` for version control.
+- 📦 *(Superseded below: the earlier Netlify single-shop tile.)*
+
+### (Superseded) earlier Netlify single-shop tile  ·  status: 🗄️ replaced by the Supabase build above
 **Scope:** single-shop for now. The sellable multi-tenant version is **parked** (see Track F).
 - ✅ Stripe Buy Button (public site Pay Now)
 - ✅ **Payment Setup screen** in the staff app (Payments → ⚙ Payment setup): you enter the Netlify
