@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 15:40 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 15:46 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -350,6 +350,13 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
+- **Standing rule: every change must be verified on iPhone + Android before "done" (15:46):** added a
+  permanent rule (in `CLAUDE.md`) that any new feature must work on **both iPhone (Safari) and Android
+  (Chrome)**, for **owner and signed-in staff**, on a small phone (fits/scrolls, tap targets, touch
+  inputs, no hover, owner-gating holds) before it's called done — and if a real device can't be tested
+  here, you get exact phone-test steps instead of an assumption. Applied retroactively: the payments
+  UI, the money tiles, and the new parts/cost capture are now marked **"code-complete, pending your
+  mobile sign-off"** (they pass a static mobile review but haven't been run on a real phone from here).
 - **Parts on a sale → real Cost & Profit, plus inventory stock + technician (15:40):** on the receipt
   builder you can now **add the actual part(s) you used from Inventory** (search by name, SKU, fitment,
   or VIN — same as the Inventory tile). The customer still sees only the **sale price**; the part's
