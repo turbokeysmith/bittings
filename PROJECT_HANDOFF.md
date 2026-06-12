@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 18:02 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 18:14 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -351,6 +351,17 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
+- **Owner-only tools are now hidden (not just disabled) for non-owners — and survive going offline
+  (18:14):** Closeout, Transaction History, the Payments/New Charge tile, and the Receipts Settings
+  gear are **removed from view** for a signed-in staff member, so trainees never see owner tools.
+  Crucially, this is **offline-safe**: the app figures out "are you the owner?" from your remembered
+  sign-in stored on the device, so if the internet drops mid-job the owner **keeps** their tools (we
+  don't mistake "offline" for "not the owner"). Exactly what shows: **owner online** → everything;
+  **owner offline (still signed in)** → everything; **staff** → owner tools hidden; **signed-out /
+  fresh device** → the analytics tiles are hidden, but taking a payment + opening Settings still work
+  via the **owner PIN** (so a fresh install can still be set up and an owner can still charge). Part of
+  this same task — the **guided first-run Setup wizard** — is the larger remaining build; the full
+  inventory of every configurable value was produced as its spec (see chat).
 - **Text legibility / contrast fix (18:02):** the Home tile **titles** (Customers, Receipts, etc.) were
   rendering near-black on the dark tiles — actually darker than the gray descriptions under them — so
   the names were hard to read and the hierarchy was upside-down. Root cause: the title text had no

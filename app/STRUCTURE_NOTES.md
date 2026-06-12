@@ -197,6 +197,24 @@ Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
 - **Typed-card key:** replaced the `prompt()` paste with an inline `#pnPK` input (16px) in `renderKeyed`
   — in **both** `app/pay.js` and the `bittings.html` inline Pay Now; `startKeyed` reads/saves it.
 
+## Update 2026-06-12 PM6 — owner-only UI hidden (not disabled), offline-aware
+- **Offline-capable ownership** (`store.js` `TKS.auth`): `rememberedEmail()` parses the email from the
+  stored supabase token (`sb-*-auth-token`, no network); `email()` = live session email **or**
+  remembered email; `isSignedIn()`/`isOwner()`/`role()` all use it. So a dropped connection never
+  demotes an owner.
+- **index.html two tiers:** `ownerHard()` (owner only) hides `.owner-only` (Closeout, Transaction
+  History) for staff **and** signed-out; `ownerSoft()` (owner OR signed-out→PIN) hides `.owner-soft`
+  (Payments/New Charge tile) for staff only. `syncOwnerTiles()` toggles both; runs in `updateAuthUI`
+  (load + `TKS.onChange`). Payments tile defaults `display:none`, revealed by sync.
+- **bittings.html:** `syncOwnerUI()` hides the `#settingsBtn` ⚙ for signed-in staff; `openSettings()`
+  blocks staff; runs in `boot()` + `_receiptsRefresh` (auth change). New Charge `chgGate` + Quick
+  invoice gate already use `TKS.auth` (now offline-aware).
+- **Matrix:** owner online → all owner UI; owner offline (remembered) → all owner UI; staff → none;
+  signed-out/no-session → hard hidden, soft (Payments/Settings) reachable via owner PIN.
+- **TODO (same task):** guided first-run Setup **wizard** = the larger remaining build; the config
+  inventory (cloud-config owner/PIN/switches, receipt identity, surcharge 2%, tax, vendor links,
+  service catalog, Supabase keys; hours absent) is its spec.
+
 ## Update 2026-06-12 PM5 — text contrast (WCAG AA) + 2 tap targets
 - **Root bug:** `index.html .tile h2` had **no `color`** → the `<button>` tiles fell back to the UA
   default (near-black) while `.tile p` was `--dim` → titles darker than descriptions (inverted). Fix:
