@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-11 16:10 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 00:34 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -295,6 +295,21 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-12
+- **Cash & check tenders + a day-closeout history (00:34):** both pay screens (the invoice **Pay Now**
+  and the Payments-tile **New Charge**) now offer three buttons — **💳 Card**, **💵 Cash**, **🧾 Check**.
+  Cash/check are recorded straight through (no Stripe) and — as required by law — carry **no surcharge**;
+  card still adds the 2% credit-only surcharge. Added a **History** screen in the Payments tile to
+  **close out the day**: pick the range and it totals everything collected, broken down by card / cash /
+  check, plus surcharge collected and any refunds, over a list of each transaction (time, method, status,
+  amount). Still all in TEST mode. (New `pay-record` cloud function; cash path rehearsed at $25.)
+- **Quick invoice + New Charge (carried over from the prior session):** Receipts has an **owner-only
+  Quick invoice** form (a one-screen shortcut so you skip the chat; trainees can't see it; there's an
+  on/off switch and an "open it automatically when I'm signed in" setting). The Payments tile gained
+  **New Charge** for no-invoice jobs like lockouts — type an amount + what it was for + an optional
+  customer, and charge it; it quietly creates a receipt so the books and the customer's history stay
+  complete (or stays anonymous if you skip the name). Both are owner-gated.
 
 ### 2026-06-11
 - **Payments rebuilt into the portal — Supabase edge functions, rehearsed (16:10):** after auditing

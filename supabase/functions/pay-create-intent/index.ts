@@ -12,6 +12,11 @@ function uidFromJwt(req: Request): string | null {
   if (!m) return null;
   try { const p = JSON.parse(atob(m[1].split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return p.sub ?? null; } catch { return null; }
 }
+function descOf(data: any): string {
+  const lbl = (data?.items && data.items[0] && data.items[0].desc) || data?.docType || "Payment";
+  const cust = data?.customer || "";
+  return cust ? (lbl + " — " + cust) : lbl;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
