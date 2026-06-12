@@ -3,7 +3,7 @@
 Keep this updated after each work session. Status key: ✅ done · 🔨 in progress ·
 ⏸️ parked (waiting on a decision/credential) · ⬜ not started.*
 
-Last updated: 2026-06-10 (Claude Code)
+Last updated: 2026-06-12 (Claude Code)
 
 > **Canonical doc:** `PROJECT_HANDOFF.md` is the owner-facing source of truth (the file uploaded
 > to Claude Desktop). This task list defers to it — **if the two ever conflict, the handoff wins.**
@@ -76,6 +76,10 @@ first — it's what every other tile leans on.*
   OAuth sync (needs Google sign-in + server) or keep the link? *(See Decisions.)*
 - ⬜ Other scheduler fixes/updates (TBD — list specifics)
 
+**Next (Track A):** mostly done. Optional polish — turn on job photos (the slots are built/dormant);
+decide Google Calendar real-sync vs. keep the link; one-time copy of any local demo data to the cloud
+(A4, skipped to avoid duplicates).
+
 ### A4 — Remaining data wiring  ·  ✅ DONE (2026-06-10)
 - ✅ **Receipts wired through TKS** — `bittings.html` now shares the one deduped customer list and
   syncs receipts to the cloud when signed in (auto-connects like the other pages).
@@ -92,42 +96,61 @@ first — it's what every other tile leans on.*
 
 ---
 
-## TRACK B — Payments (single-shop, Turbo Keysmith)  ·  status: 🔨 NEW portal build (Supabase) rehearsed; awaiting your browser test
-**Direction (2026-06-11):** after auditing TurboStripe (your live desktop POS), payments are being
+## TRACK B — Payments + money tools (single-shop, Turbo Keysmith)  ·  status: ✅ BUILT in TEST mode; awaiting your browser test + live cutover
+**Direction (2026-06-11):** after auditing TurboStripe (your live desktop POS), payments were
 **rebuilt into the portal** per audit **Option B** — Supabase **edge functions + Stripe.js**,
 **single-account direct charges** (NOT Connect; Connect parked for multi-tenant). The earlier
-Netlify-tile wiring is superseded. Full design + ops in `supabase/PAYMENTS.md`.
+Netlify tile is fully superseded. Full design + ops in `supabase/PAYMENTS.md`. Everything below is
+**TEST mode** until live keys are swapped in.
+
+### B1 — Charging engine ✅
 - ✅ Verified spikes (stripe-node in Deno edge; server-driven Terminal from edge; **credit-only 2%
   surcharge enforceable** via manual-capture funding detection).
-- ✅ Schema (`payment_transactions`/`payment_events`, integer cents, RLS, service_role grants) +
-  5 edge functions (TEST): pay-create-intent (invoice-id → authoritative base, idempotent),
-  stripe-webhook (verified, source of truth, credit-only capture), pay-status, pay-refund, pay-terminal.
+- ✅ Schema (`payment_transactions` / `payment_events`, integer cents, RLS, service_role grants) +
+  **6 edge functions, version-controlled in `supabase/functions/`**: `pay-create-intent` (invoice-id
+  → authoritative base, idempotent), `stripe-webhook` (verified, source of truth, credit-only
+  capture), `pay-status`, `pay-refund`, `pay-terminal`, **`pay-record`** (cash/check, no Stripe/no
+  surcharge).
 - ✅ **Rehearsal PASSED end-to-end through the live webhook** — credit $102 (2%), debit $100 (none),
-  refund, idempotency, keyed client_secret.
-- ✅ **Pay Now UI** in Receipts (`bittings.html`): reader (WisePOS E + test simulate) + typed-card
-  Payment Element; 2% credit disclosure; failure UX.
-- ⬜ **YOUR:** browser test signed-in (build invoice → Pay Now → simulate credit/debit; type card 4242).
-- ⬜ Cutover to live (swap `sk_live_`/`pk_live_`, one real charge) → retire TurboStripe.exe + rotate old key.
-- ⬜ Export edge-function sources to `supabase/functions/` for version control.
-- 📦 *(Superseded below: the earlier Netlify single-shop tile.)*
+  refund, idempotency, keyed client_secret; cash path recorded ($25).
 
-### (Superseded) earlier Netlify single-shop tile  ·  status: 🗄️ replaced by the Supabase build above
-**Scope:** single-shop for now. The sellable multi-tenant version is **parked** (see Track F).
-- ✅ Stripe Buy Button (public site Pay Now)
-- ✅ **Payment Setup screen** in the staff app (Payments → ⚙ Payment setup): you enter the Netlify
-  URL, WisePOS reader ID (tmr_), publishable key (pk_), currency, and 2% surcharge — saved app-side,
-  **nothing hardcoded**. The **secret key is never entered in the app** (instructions point you to
-  paste it into Netlify env only).
-- ✅ **Payments tile wired** to the existing Netlify app: card-present via the **WisePOS E**
-  (terminal-charge → poll status; **Simulate-tap** button in test mode) and **typed-card** (field)
-  via Stripe's hosted card field. TEST/LIVE banner + surcharge breakdown.
-- ✅ **Backend functions updated** (CORS + read reader/currency from the request) in the separate
-  payments repo — **must be redeployed** for the staff app to reach them.
-- ⬜ **YOUR steps:** (1) deploy the updated payment app to Netlify; (2) set `STRIPE_SECRET_KEY`
-  (sk_test_…) in Netlify env (+ optional `ALLOWED_ORIGIN`); (3) enter the Netlify URL + pk_test_ +
-  reader (tmr_ or a simulated reader) + 2% in the Setup screen; (4) rehearse with test cards.
-- ⏸️ Go LIVE (swap to live keys) — only after test-mode rehearsal succeeds.
-- 📝 Secret (sk_) lives in Netlify env only; field/Bluetooth reader + Tap-to-Pay are a later native phase.
+### B2 — Ways to take money ✅
+- ✅ **Invoice → Pay Now** in Receipts (`bittings.html`): reader (WisePOS E + test simulate) +
+  typed-card Payment Element; 2% credit disclosure; failure UX.
+- ✅ **New Charge** in the Payments tile (`index.html` + shared `app/pay.js`): no-invoice jobs
+  (lockouts/walk-ups) — amount + service + optional customer → auto-creates a minimal receipt
+  (authoritative server-side total) → same engine; files into customer history or anonymous.
+- ✅ **Cash & Check** on both screens — recorded straight through, **no surcharge** (card-only).
+- ✅ **Owner-gated** everywhere: owner signed in → grant; signed-in employee → deny; nobody signed
+  in → PIN fallback (`TKS_OWNER.QUICK_FORM_PIN`). One swap point.
+- ✅ **Quick invoice** in Receipts — owner-only one-screen shortcut (skip the chat), with an on/off
+  switch + "open automatically when I'm signed in" (`TKS_OWNER.QUICK_INVOICE_*`).
+
+### B3 — Money tools / reporting ✅ (2026-06-12)
+- ✅ **Closeout** — owner-only Home tile: today's **drawer count** (collected, split card/cash/check,
+  surcharge, refunds).
+- ✅ **Transaction History** — owner-only Home tile: lands on **today** (daily-reset default; nothing
+  deleted, stays filed under customer). **Period** dropdown (Today/Week/Month/Quarter/Year) +
+  **graph type** dropdown (bar/line/area/pie/doughnut, Chart.js). **Total Jobs / Sales / Cost /
+  Profit** cards, each **toggleable** (choice persists).
+- ✅ **Profit + per-technician commission — plumbed, not yet wired:** `payment_transactions` gained
+  `cost_cents` (profit = captured − cost) + `technician` (indexed); `inventory.cost` already stored.
+  Today Cost = $0 / Profit = Sales until a sale carries a part-cost / tech.
+
+### B4 — Next steps (Payments)
+- ⬜ **YOUR browser test (TEST mode):** sign in → build an invoice → Pay Now → simulate credit/debit
+  → type card `4242 4242 4242 4242`; try a New Charge + a cash/check; open Closeout + Transaction
+  History. Confirm amounts in the Stripe **test** dashboard.
+- ⬜ **Wire Cost & Profit** (the big one): let a receipt/charge **pick the inventory part(s) used**
+  (pulls `inventory.cost` → sets `cost_cents`) and **tag a technician**; then Cost/Profit/commission
+  light up. *(Decision: parts-on-receipt vs. a quick cost box — see Decisions.)*
+- ⬜ **Auto-decrement inventory on sale** once parts are linked (sale reduces stock → low-stock flags
+  stay honest). Natural companion to the Cost/Profit wiring.
+- ⬜ **Refund / void from the Transaction History tile** (today `pay-refund` exists but has no button
+  in the UI — only reachable by the engine).
+- ⬜ **Cutover to LIVE:** swap `sk_live_`/`pk_live_` (same secret slot), register the LIVE webhook,
+  one real charge, **retire `TurboStripe.exe` + rotate the old leaked key.**
+- ⏸️ Field/Bluetooth reader + Tap-to-Pay-on-phone — a later native phase.
 
 ---
 
@@ -147,6 +170,10 @@ Netlify-tile wiring is superseded. Full design + ops in `supabase/PAYMENTS.md`.
 - 📝 Note: verify local landmark details on city pages before live
 - ⏸️ **GO LIVE** (publish → review → domain switch) — deliberately last; protects Google ranking
 
+**Next (Track C):** decide hosting + whether the public site and staff app share a web address;
+then the careful go-live (publish → spot-check → domain switch). Photos for the other 21 cities are
+optional and can trickle in after launch.
+
 ---
 
 ## TRACK D — Spanish site (`/es/`)  ·  status: 🔨 full draft built, unpublished
@@ -162,6 +189,9 @@ Netlify-tile wiring is superseded. Full design + ops in `supabase/PAYMENTS.md`.
 - ⬜ **(2) Publish `/es/`** — remove `noindex`, add to sitemap, unblock robots, drop DRAFT banners
 - ⬜ **(3) Rewire the 🌐 toggle** to navigate EN ↔ `/es/` (only after 1 + 2)
 
+**Next (Track D):** find a Spanish-fluent proofreader for the locksmith terms (step 1) — that's the
+only real blocker; steps 2–3 are quick once the copy is trusted.
+
 ---
 
 ## TRACK E — Lead capture (public forms → Customers)  ·  status: ✅ built, cloud pending
@@ -176,6 +206,10 @@ Netlify-tile wiring is superseded. Full design + ops in `supabase/PAYMENTS.md`.
   them in the cloud needs a Supabase edge function or public-insert rule *(See Decisions.)*
 - ⏸️ **Lead notifications** — email/SMS alert when a lead arrives (email = free to start)
 
+**Next (Track E):** pick the cloud-write path for public leads (Supabase **edge function** is the
+clean answer — same pattern as payments) so website leads land in the cloud, then add an email alert
+on a new lead. Both are small once chosen.
+
 ---
 
 ## TRACK F — Sellable multi-tenant version  ·  status: ⏸️ PARKED (deliberate)
@@ -185,22 +219,78 @@ foundation change (orgs + memberships + `org_id` + per-org RLS; Stripe **Connect
 collecting buyers' secret keys; payments on **Supabase edge functions**). Full plan captured in chat
 2026-06-11; see also the memory note. Do NOT build on single-shop assumptions that block this later.
 
+**Next (Track F):** stays parked until the single-shop build is live and proven. When resumed, start
+with orgs + memberships + `org_id` + per-org RLS, then Stripe **Connect** — the payment service layer
+already carries optional `orgId`/`connectedAccountId` so it's a clean add-on, not a rewrite.
+
+---
+
+## ADDITIONAL — things we'll likely need (my suggestions, not yet requested)
+*Forward-looking items that fall out of what we've built. None are started; flagged so Desktop can
+prioritize.*
+
+**Money / books**
+- ⬜ **Receipt delivery** — email/text the customer their receipt after a charge (and a PDF/print).
+  Right now a receipt exists in the system but isn't sent to the customer.
+- ⬜ **Daily email summary** — auto-email you the Closeout totals at end of day (Supabase scheduled
+  function). Saves opening the app to reconcile.
+- ⬜ **Sales tax** — if any items are taxable, decide tax handling now (the receipt has a `tax` slot
+  but it's $0). Oklahoma rules; affects Profit math.
+- ⬜ **Tips** — if you want to allow tips on card, add it before live (affects surcharge base).
+- ⬜ **Refund/void button** in the UI (engine already supports it — see B4).
+
+**Trust / safety**
+- ⬜ **Data backup/export** — a one-tap "export everything to CSV/JSON" and/or scheduled Supabase
+  backups, so a year of customers/receipts/transactions is never trapped in one place.
+- ⬜ **Audit trail** — every charge already stamps `created_by`; surface a simple "who did what"
+  view if multiple staff start taking money.
+- ⬜ **Key rotation hygiene** — the old leaked `sk_live` in `TurboStripe.exe` must be **rotated at
+  cutover** (already noted in B4; repeating because it's security-critical).
+
+**Ops / reliability**
+- ⬜ **Error visibility** — a lightweight way to see edge-function failures (Supabase logs are there;
+  a tiny "something went wrong" surfacing in the app would help non-developers).
+- ⬜ **Offline behavior** — the app already falls back to localStorage; document/QA what happens to a
+  charge attempted with no internet (Stripe needs the network; cash/check should still record once
+  back online).
+- ⬜ **Real device test** — run the WisePOS E reader and a phone (typed-card) end-to-end before live,
+  not just the simulator.
+
+**Multi-tech (when you hire)**
+- ⬜ **Technician accounts + attribution** — the `technician` column + commission filter are plumbed;
+  the remaining work is letting staff sign in as themselves and tagging each sale to a tech.
+
 ## CROSS-PROJECT DECISIONS STILL OPEN
-1. ⏸️ **Lead notifications** — email or text on a new lead? (Track E)
-2. ⏸️ **Contact form → cloud** — edge function vs public-insert rule (Track E)
-3. ⏸️ **Google Calendar** — real 2-way sync vs the current deep-link + guest invite (Track A3)
-4. ⏸️ **Domain go-live** — the careful, sequenced switch (Track C)
-5. ✅ Supabase security hardening — `search_path` pinned on `touch_updated_at`. Leaked-password
+1. ⏸️ **Profit/cost model** — how does a part's cost attach to a sale? **(a)** pick the inventory
+   part(s) used on the receipt (auto-pulls cost) or **(b)** a quick "cost" box per charge. Drives
+   whether Total Cost/Profit + commission show real numbers. *(Track B4. You picked "revenue only
+   for now" — this is the decision that turns it on.)*
+2. ⏸️ **Payments go-live timing** — when to swap to live keys, do one real charge, and retire
+   `TurboStripe.exe` (+ rotate the old key). (Track B4)
+3. ⏸️ **Sales tax** — taxable items? Decide before live; affects the receipt + Profit. (Additional)
+4. ⏸️ **Receipt delivery** — email/text/PDF a receipt to the customer after a charge? (Additional)
+5. ⏸️ **Lead notifications** — email or text on a new lead? (Track E)
+6. ⏸️ **Contact form → cloud** — edge function vs public-insert rule (Track E)
+7. ⏸️ **Google Calendar** — real 2-way sync vs the current deep-link + guest invite (Track A3)
+8. ⏸️ **Domain go-live** — the careful, sequenced switch (Track C)
+9. ✅ Supabase security hardening — `search_path` pinned on `touch_updated_at`. Leaked-password
    protection is **Pro-plan-only**, so it's deferred/optional (revisit if you upgrade).
 
 ---
 
 ## RECOMMENDED CROSS-TRACK ORDER (my read — your call)
-1. **A1 — turn the cloud on** (run the SQL, sign in, add a test record). Everything data-related
-   leans on this, and the scheduler + forms now sync through it.
-2. **A3 — finish the scheduler** (force guided flow + PIN bypass) while it's fresh — small and
-   self-contained.
-3. **A4 — wire Receipts + staff-login gating** so every tile shares one cloud list behind auth.
-4. **Track B — Payments** (deploy the payment app + WisePOS reader).
-5. **Track D — Spanish** proofread → publish → rewire toggle (independent; can run in parallel).
-6. **Track C — go-live** last, when you're ready for the careful domain switch.
+*Tracks A (data engine) and the payments **build** are done. What's left, in the order I'd do it:*
+1. **Test payments in the browser** (Track B4) — TEST-mode rehearsal of Pay Now, New Charge,
+   cash/check, Closeout, Transaction History. Cheap, no risk, confirms it all works for you.
+2. **Decide the profit/cost model** (Decision 1) → **wire Cost & Profit** (parts-on-receipt + tech),
+   then auto-decrement inventory on a sale. This is the highest-value next build — it turns the new
+   reporting tiles into real profit/commission numbers.
+3. **Payments go-live** (Track B4) — swap live keys, one real charge, retire `TurboStripe.exe`,
+   **rotate the old key.** Do after #1, when you're confident.
+4. **Receipt delivery + daily summary** (Additional) — small wins that make the money tools feel
+   complete.
+5. **Track E — public leads to the cloud + lead alerts** (edge function) — independent; can run any
+   time.
+6. **Track D — Spanish** proofread → publish → rewire toggle (independent; needs a proofreader).
+7. **Track C — go-live** last, the careful domain switch.
+8. **Track F — multi-tenant** stays parked until the single-shop shop is humming.
