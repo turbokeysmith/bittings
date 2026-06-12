@@ -125,6 +125,24 @@ column (closeout label) and `method` now also accepts `cash`/`check`.
 **Owner-gating** mirrors the scheduler swap point: owner signed in → grant; signed-in employee → deny;
 nobody signed in → PIN fallback (`window.TKS_OWNER.QUICK_FORM_PIN`).
 
+**Owner-only money tiles (2026-06-12 PM).** Closeout + Transaction History are now **two top-level Home
+tiles** (`.owner-only`, hidden by `syncOwnerTiles()`/`ownerVisible()` — visible to a signed-in owner or
+an un-signed-in device, hidden for signed-in staff). Data-go handler early-returns to `openHistory()` /
+`openReports()`; `views` gained `reports`; both back to Home.
+- **Closeout** = the existing `view-history` (today's drawer; `renderHistory`).
+- **Transaction History** = new `view-reports` (`openReports`/`renderReports`/`drawRepChart`). Period
+  dropdown → `repRange()` (today/week/month/quarter/year) + `repBuckets()`/`repGran()` (today→hour,
+  week|month→day, quarter|year→month). Aggregates completed `payment_transactions` into Total **Jobs/
+  Sales/Cost/Profit**; each metric is a persisted toggle (`tks_report_metrics`) driving both the cards
+  and the graph datasets. View prefs persist in `tks_report_view`. **Chart.js v4** (CDN UMD) renders
+  bar/line/area (money on `y`, job-count on `y1`) or pie/doughnut (Sales by method); single `repChart`
+  instance is `.destroy()`-ed before each redraw; if `window.Chart` is absent it degrades to a message.
+  The list lands on **today** (daily-reset default) and widens with the period; nothing is deleted.
+- **Profit/commission hooks:** `payment_transactions.cost_cents` (profit = captured − coalesce(cost,0))
+  + `.technician` (indexed) added by migration `payment_transactions_cost_and_technician`. Null today →
+  Cost $0 / Profit = Sales; the cards, a future technician filter, and the graph need no rework once a
+  sale carries cost/tech. `inventory.cost` already exists (form field `pCost`, mapped in `store.js`).
+
 **`bittings.html` Quick invoice** — owner-only one-screen alternative to the chat (trainees can't see
 it). `window.quickInvoiceAvailable`/`requestQuickInvoice`/`openQuickInvoice`; on/off via
 `TKS_OWNER.QUICK_INVOICE_ENABLED`, auto-open (owner signed-in only, never PIN) via

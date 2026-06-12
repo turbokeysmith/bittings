@@ -148,6 +148,38 @@
   .pay-secret-note b{color:#f2d18a;}
   .pay-secret-note code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:5px;color:var(--ink,#f4f5f7);}
 
+  /* ---- Owner-only tiles (Closeout / Transaction History) ---- */
+  .tile.t-closeout::before{background:linear-gradient(180deg,#22994a,#0f5a2a);}
+  .tile.t-reports::before{background:linear-gradient(180deg,#4aa3ff,#1f6fd0);}
+  .tile .owner-pin{position:absolute;top:12px;right:12px;font-size:10px;font-weight:800;letter-spacing:.5px;
+    color:#f2b43a;border:1px solid rgba(242,180,58,.4);border-radius:999px;padding:3px 8px;}
+
+  /* ---- Transaction History (reports) ---- */
+  .rep-controls{display:flex;gap:8px;margin-bottom:12px;}
+  .rep-select{flex:1;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:11px 12px;
+    color:var(--ink);font-size:14px;font-weight:700;outline:none;}
+  .rep-toggles{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .rep-toggles button{background:var(--card);border:1px solid var(--edge);color:var(--dim);border-radius:999px;
+    padding:7px 13px;font-weight:700;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .rep-toggles button.on{color:#fff;}
+  .rep-toggles button .dot{width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.55;}
+  .rep-toggles button.on .dot{opacity:1;}
+  .rep-toggles button.m-jobs.on{border-color:#9b6bd6;color:#c5a6ef;}
+  .rep-toggles button.m-sales.on{border-color:#22994a;color:#7fd49b;}
+  .rep-toggles button.m-cost.on{border-color:#f2b43a;color:#f2d18a;}
+  .rep-toggles button.m-profit.on{border-color:#4aa3ff;color:#9cc8ff;}
+  .rep-cards{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .rep-cards .chip{flex:1 1 calc(50% - 5px);background:var(--card);border:1px solid var(--edge);border-radius:12px;
+    padding:12px 14px;text-align:left;font-size:12px;color:var(--dim);font-weight:700;letter-spacing:.2px;}
+  .rep-cards .chip b{display:block;font-size:20px;color:var(--ink);font-weight:800;margin-top:3px;}
+  .rep-cards .chip.m-jobs{border-color:rgba(155,107,214,.4);}
+  .rep-cards .chip.m-sales{border-color:rgba(34,153,74,.4);}
+  .rep-cards .chip.m-cost{border-color:rgba(242,180,58,.4);}
+  .rep-cards .chip.m-profit{border-color:rgba(74,163,255,.4);}
+  .rep-chartwrap{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:14px;margin-bottom:16px;
+    height:260px;position:relative;}
+  .rep-chartwrap.empty{display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:13px;}
+
   /* ---- Accessibility + mobile polish ---- */
   :focus-visible{outline:3px solid var(--amber);outline-offset:2px;border-radius:8px;}
   .search,.form input,.form textarea{font-size:16px;}   /* prevent iOS zoom-on-focus */
@@ -197,6 +229,14 @@
       </button>
       <button class="tile t-inventory" data-go="inventory">
         <div class="ic">📦</div><h2>Inventory</h2><p>Parts, stock &amp; low-stock alerts.</p>
+      </button>
+      <button class="tile t-closeout owner-only" data-go="history" style="display:none">
+        <span class="owner-pin">OWNER</span>
+        <div class="ic">🧮</div><h2>Closeout</h2><p>Count today’s drawer.</p>
+      </button>
+      <button class="tile t-reports owner-only" data-go="reports" style="display:none">
+        <span class="owner-pin">OWNER</span>
+        <div class="ic">📊</div><h2>Transaction History</h2><p>Totals, profit &amp; graphs.</p>
       </button>
     </div>
 
@@ -287,7 +327,32 @@
     </div>
     <div class="invsummary" id="histSummary"></div>
     <div class="clist" id="histList"></div>
-    <p class="note">Card, cash &amp; check for the selected day. Card totals come from Stripe; cash/check are recorded here.</p>
+    <p class="note">Card, cash &amp; check for the selected day — the drawer count. Card totals come from Stripe; cash/check are recorded here.</p>
+  </div>
+
+  <div class="view" id="view-reports">
+    <div class="rep-controls">
+      <select id="repPeriod" class="rep-select" aria-label="Time period">
+        <option value="today">Today</option>
+        <option value="week">This week</option>
+        <option value="month">This month</option>
+        <option value="quarter">This quarter</option>
+        <option value="year">This year</option>
+      </select>
+      <select id="repChart" class="rep-select" aria-label="Graph type">
+        <option value="bar">Bar</option>
+        <option value="line">Line</option>
+        <option value="area">Area</option>
+        <option value="pie">Pie</option>
+        <option value="doughnut">Doughnut</option>
+      </select>
+      <button class="add" id="repReload" title="Refresh" style="background:#2a2f3a">↻</button>
+    </div>
+    <div class="rep-toggles" id="repToggles"></div>
+    <div class="rep-cards" id="repCards"></div>
+    <div class="rep-chartwrap" id="repChartWrap"><canvas id="repCanvas"></canvas></div>
+    <div class="clist" id="repList"></div>
+    <p class="note" id="repNote">Opens on today — pick a wider period to see more. Nothing is ever deleted; every charge stays filed under its customer. Cost &amp; Profit fill in once parts/cost are linked to a sale.</p>
   </div>
 
   <div class="view" id="view-inventory">
@@ -339,6 +404,8 @@
 <!-- Stripe.js — for the typed-card (field) path. The card field is hosted by
      Stripe; card numbers go straight to Stripe and never touch this app. -->
 <script src="https://js.stripe.com/v3/"></script>
+<!-- Chart.js — the Transaction History graphs (bar/line/area/pie/doughnut). -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="app/cloud-config.js"></script>
 <!-- Shared data layer (localStorage today; flips to cloud via TKS.connectCloud) -->
 <script src="app/store.js"></script>
@@ -353,18 +420,21 @@ function saveCustomers(a){ TKS.saveList("customers", a); }
 function getShops(){ return TKS.list("shops"); }
 function saveShops(a){ TKS.saveList("shops", a); }
 
-const views = ['home','customers','form','payments','history','inventory','part'];
+const views = ['home','customers','form','payments','history','reports','inventory','part'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
   back.style.display = (name==='home') ? 'none' : 'block';
-  back.dataset.to = (name==='form') ? 'customers' : (name==='part' ? 'inventory' : (name==='history' ? 'payments' : 'home'));
+  back.dataset.to = (name==='form') ? 'customers' : (name==='part' ? 'inventory' : 'home');
   window.scrollTo(0,0);
 }
 document.getElementById('backBtn').onclick = function(){ show(this.dataset.to || 'home'); };
 
 document.querySelectorAll('[data-go]').forEach(b=>{
-  b.onclick = ()=>{ const t=b.dataset.go; if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } if(t==='payments'){ renderPayments(); } show(t); };
+  b.onclick = ()=>{ const t=b.dataset.go;
+    if(t==='history'){ openHistory(); return; }
+    if(t==='reports'){ openReports(); return; }
+    if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } if(t==='payments'){ renderPayments(); } show(t); };
 });
 document.querySelectorAll('[data-open]').forEach(b=>{
   b.onclick = ()=>{ location.href = b.dataset.open; };
@@ -751,6 +821,138 @@ async function renderHistory(){
   }).join('');
 }
 
+/* ============================ TRANSACTION HISTORY (reports) ============================
+   Owner-only analytics over payment_transactions: Total Jobs / Sales / Cost /
+   Profit (each toggleable), a period dropdown (today → year) and a graph (bar/
+   line/area/pie/doughnut). Lands on TODAY — the "daily reset" is just the default
+   view; nothing is deleted and every charge stays filed under its customer (via
+   its receipt). Cost & Profit read $0 until a sale carries cost_cents (parts
+   linking — plumbed, not yet wired); per-technician commission filtering will
+   hang off the technician column the same way. */
+const REP_METRICS=[
+  {key:'jobs',  label:'Total Jobs',  kind:'count', color:'#9b6bd6'},
+  {key:'sales', label:'Total Sales', kind:'money', color:'#22994a'},
+  {key:'cost',  label:'Total Cost',  kind:'money', color:'#f2b43a'},
+  {key:'profit',label:'Total Profit',kind:'money', color:'#4aa3ff'},
+];
+const REP_MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let repChart=null;
+function repView(){ return readLS('tks_report_view', {period:'today', chart:'bar'}); }
+function repSetView(v){ writeLS('tks_report_view', v); }
+function repMetrics(){ return Object.assign({jobs:true,sales:true,cost:true,profit:true}, readLS('tks_report_metrics', {})); }
+function repSetMetrics(m){ writeLS('tks_report_metrics', m); }
+function repMoney(c){ return '$'+((c||0)/100).toFixed(2); }
+function repFmtHour(h){ const ap=h<12?'a':'p'; const hr=(h%12)||12; return hr+ap; }
+function repRange(period){
+  const n=new Date(), y=n.getFullYear(), m=n.getMonth(), d=n.getDate();
+  if(period==='week'){ const dow=(n.getDay()+6)%7; const s=new Date(y,m,d-dow); return {start:s, end:new Date(s.getFullYear(),s.getMonth(),s.getDate()+7)}; }
+  if(period==='month'){ return {start:new Date(y,m,1), end:new Date(y,m+1,1)}; }
+  if(period==='quarter'){ const q=Math.floor(m/3); return {start:new Date(y,q*3,1), end:new Date(y,q*3+3,1)}; }
+  if(period==='year'){ return {start:new Date(y,0,1), end:new Date(y+1,0,1)}; }
+  return {start:new Date(y,m,d), end:new Date(y,m,d+1)}; // today
+}
+function repGran(period){ return period==='today'?'hour':(period==='week'||period==='month')?'day':'month'; }
+function repBucketKey(dt, gran){
+  if(gran==='hour') return dt.getHours();
+  if(gran==='day')  return dt.getFullYear()+'-'+dt.getMonth()+'-'+dt.getDate();
+  return dt.getFullYear()+'-'+dt.getMonth();
+}
+function repBuckets(start, end, gran){
+  const out=[]; const cur=new Date(start.getTime());
+  while(cur<end){
+    if(gran==='hour'){ out.push({key:cur.getHours(), label:repFmtHour(cur.getHours())}); cur.setHours(cur.getHours()+1); }
+    else if(gran==='day'){ out.push({key:cur.getFullYear()+'-'+cur.getMonth()+'-'+cur.getDate(), label:(cur.getMonth()+1)+'/'+cur.getDate()}); cur.setDate(cur.getDate()+1); }
+    else { out.push({key:cur.getFullYear()+'-'+cur.getMonth(), label:REP_MONTHS[cur.getMonth()]}); cur.setMonth(cur.getMonth()+1); }
+  }
+  return out;
+}
+function renderRepToggles(){
+  const m=repMetrics(), box=document.getElementById('repToggles');
+  box.innerHTML = REP_METRICS.map(x=>'<button class="m-'+x.key+(m[x.key]?' on':'')+'" data-m="'+x.key+'"><span class="dot"></span>'+x.label+'</button>').join('');
+  box.querySelectorAll('button').forEach(b=> b.onclick=()=>{ const cur=repMetrics(); cur[b.dataset.m]=!cur[b.dataset.m]; repSetMetrics(cur); renderReports(); });
+}
+function openReports(){
+  const v=repView();
+  document.getElementById('repPeriod').value=v.period;
+  document.getElementById('repChart').value=v.chart;
+  renderRepToggles();
+  show('reports');
+  renderReports();
+}
+document.getElementById('repPeriod').addEventListener('change', e=>{ const v=repView(); v.period=e.target.value; repSetView(v); renderReports(); });
+document.getElementById('repChart').addEventListener('change', e=>{ const v=repView(); v.chart=e.target.value; repSetView(v); renderReports(); });
+document.getElementById('repReload').onclick=renderReports;
+async function renderReports(){
+  const v=repView(), m=repMetrics();
+  const cards=document.getElementById('repCards'), list=document.getElementById('repList'), wrap=document.getElementById('repChartWrap');
+  cards.innerHTML=''; list.innerHTML='<div class="empty">Loading…</div>';
+  if(!window.TKPay || !TKPay.dayTransactions){ list.innerHTML='<div class="empty">Payment engine not loaded.</div>'; return; }
+  const {start,end}=repRange(v.period);
+  const res=await TKPay.dayTransactions(start.toISOString(), end.toISOString());
+  if(res.error){ list.innerHTML='<div class="empty">'+esc2(res.error)+'</div>'; return; }
+  const rows=res.rows||[];
+  const gran=repGran(v.period), buckets=repBuckets(start,end,gran);
+  const agg={}; buckets.forEach(b=> agg[b.key]={sales:0,cost:0,profit:0,jobs:0});
+  const tot={sales:0,cost:0,profit:0,jobs:0}; const byMethod={card:0,cash:0,check:0};
+  rows.forEach(t=>{ if(t.status!=='completed') return;
+    const sales=t.captured_cents||0, cost=t.cost_cents||0, profit=sales-cost;
+    tot.sales+=sales; tot.cost+=cost; tot.profit+=profit; tot.jobs+=1;
+    byMethod[t.method==='cash'?'cash':t.method==='check'?'check':'card']+=sales;
+    const k=repBucketKey(new Date(t.created_at), gran); if(agg[k]){ agg[k].sales+=sales; agg[k].cost+=cost; agg[k].profit+=profit; agg[k].jobs+=1; }
+  });
+  // Metric cards (only the toggled-on ones)
+  cards.innerHTML = REP_METRICS.filter(x=>m[x.key]).map(x=>{
+    const val = x.kind==='money' ? repMoney(tot[x.key]) : String(tot[x.key]);
+    return '<div class="chip m-'+x.key+'">'+x.label+'<b>'+val+'</b></div>';
+  }).join('') || '<div class="empty" style="padding:10px">No metrics selected — toggle one above.</div>';
+  drawRepChart(v.chart, buckets, agg, m, byMethod);
+  // Transaction list (period rows, newest first)
+  if(!rows.length){ list.innerHTML='<div class="empty">No transactions in this period.</div>'; return; }
+  list.innerHTML=rows.map(t=>{
+    const dt=new Date(t.created_at);
+    const when=(v.period==='today') ? dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : dt.toLocaleDateString([], {month:'short',day:'numeric'})+' '+dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    const ml=t.method==='cash'?'Cash':t.method==='check'?'Check':t.method==='reader'?'Card · reader':'Card · typed';
+    const col=t.status==='completed'?'#7fd49b':t.status==='refunded'?'#f2b43a':t.status==='pending'?'#9aa3af':'#f0a0a6';
+    return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
+      '<div class="sub">'+when+' · '+ml+(t.technician?(' · '+esc2(t.technician)):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
+      '<span class="tag" style="color:'+col+'">'+repMoney(t.captured_cents||t.base_cents)+'</span></div>';
+  }).join('');
+}
+function drawRepChart(type, buckets, agg, m, byMethod){
+  const wrap=document.getElementById('repChartWrap'), canvas=document.getElementById('repCanvas');
+  if(repChart){ repChart.destroy(); repChart=null; }
+  if(!window.Chart){ wrap.classList.add('empty'); canvas.style.display='none'; wrap.dataset.msg='Graphs need a connection (Chart.js didn’t load).'; wrap.setAttribute('title',''); wrap.textContent='Graphs need a connection (Chart.js didn’t load).'; return; }
+  wrap.classList.remove('empty');
+  // pie/doughnut → composition of Sales by payment method
+  if(type==='pie'||type==='doughnut'){
+    repChart=new Chart(canvas, { type, data:{ labels:['Card','Cash','Check'],
+      datasets:[{ data:[byMethod.card/100, byMethod.cash/100, byMethod.check/100],
+        backgroundColor:['#4aa3ff','#22994a','#f2b43a'], borderColor:'#14171b', borderWidth:2 }] },
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ labels:{ color:'#9aa1ac' } },
+          tooltip:{ callbacks:{ label:c=> c.label+': $'+Number(c.raw).toFixed(2) } } } } });
+    return;
+  }
+  const eff = (type==='area')?'line':type, fill=(type==='area');
+  const labels=buckets.map(b=>b.label);
+  const datasets=[];
+  REP_METRICS.forEach(x=>{ if(!m[x.key]) return;
+    datasets.push({ label:x.label, data:buckets.map(b=> x.kind==='money' ? agg[b.key][x.key]/100 : agg[b.key][x.key]),
+      borderColor:x.color, backgroundColor: fill? x.color+'33' : x.color, borderWidth:2, fill, tension:.25,
+      yAxisID: x.kind==='count' ? 'y1' : 'y', pointRadius: eff==='line'?2:0 });
+  });
+  const jobsOn=m.jobs;
+  repChart=new Chart(canvas, { type:eff, data:{ labels, datasets },
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{ labels:{ color:'#9aa1ac' } },
+        tooltip:{ callbacks:{ label:c=>{ const cnt=c.dataset.yAxisID==='y1'; return c.dataset.label+': '+(cnt?c.parsed.y:('$'+Number(c.parsed.y).toFixed(2))); } } } },
+      scales:{
+        x:{ ticks:{ color:'#9aa1ac' }, grid:{ color:'rgba(255,255,255,.05)' } },
+        y:{ position:'left', ticks:{ color:'#9aa1ac', callback:v=>'$'+v }, grid:{ color:'rgba(255,255,255,.05)' } },
+        y1:{ position:'right', display:jobsOn, ticks:{ color:'#9aa1ac', precision:0 }, grid:{ drawOnChartArea:false } }
+      } } });
+}
+
 /* ============================ CLOUD BOOTSTRAP ============================
    Connects to Supabase ONLY when an employee is already signed in (a session
    exists from the Staff Login / cloud-test.html). If not signed in, the
@@ -774,7 +976,13 @@ function setCloudPill(state){
    is the app's "who's signed in" check. Owner is decided by the email allowlist
    in app/cloud-config.js (TKS_OWNER.OWNER_EMAILS). */
 function esc2(s){ return (s||'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+// Closeout + Transaction History are owner-only ("just for me"). Visible to a
+// signed-in owner, or when nobody is signed in (the owner's own device / PIN era);
+// hidden for a signed-in trainee (staff).
+function ownerVisible(){ try{ const a=TKS.auth; if(a && a.isSignedIn()) return a.isOwner(); }catch(_){} return true; }
+function syncOwnerTiles(){ const vis=ownerVisible(); document.querySelectorAll('.owner-only').forEach(el=>{ el.style.display = vis ? '' : 'none'; }); }
 function updateAuthUI(){
+  syncOwnerTiles();
   const bar = document.getElementById('authBar'); if(!bar) return;
   const a = window.TKS && TKS.auth;
   if(a && a.isSignedIn()){
@@ -793,6 +1001,8 @@ function rerenderActive(){
   if(document.getElementById('view-inventory').classList.contains('active')) renderInventory();
   if(document.getElementById('view-customers').classList.contains('active')) renderCustomers();
   if(document.getElementById('view-payments').classList.contains('active')) renderPayments();
+  if(document.getElementById('view-history').classList.contains('active')) renderHistory();
+  if(document.getElementById('view-reports').classList.contains('active')) renderReports();
 }
 TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
 
