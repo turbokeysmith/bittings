@@ -33,11 +33,21 @@ Sales / Cost / Profit** — each **toggleable** (choice persisted in `localStora
 the cards and the graph series. Bar/line/area plot the selected metrics bucketed over the period
 (money on the left axis, job-count on the right); pie/doughnut show **Sales by payment method**.
 
-**Cost & Profit + technician/commission (plumbed, not yet wired).** `payment_transactions` now has
-`cost_cents` (COGS; profit = `captured_cents − coalesce(cost_cents,0)`) and `technician` (for
-per-tech totals + commission, indexed). Both are null today, so Cost = $0 and Profit = Sales until a
-sale carries a cost / tech — at which point the existing cards, filter, and graph light up with no
-rework. Inventory already stores a per-part **cost** (`inventory.cost`), ready to source COGS.
+**Cost & Profit + technician (WIRED).** A sale built in the receipt builder (`bittings.html`) can
+reference real **Inventory parts** (Quick-invoice line picker + an owner-only "📦 From Inventory"
+option in the chat), capturing each part's stored **cost** on the line (`{partId, qty, unitCost,
+cost}`, `cost = unitCost × qty`) behind the customer's sale price; a **manual per-line cost box**
+covers non-inventory/one-off lines; labor/no-part lines = **$0**. The receipt also carries a
+`technician`. `pay-create-intent` and `pay-record` read these **server-side from the stored receipt**
+(client never sends cost) → fill `payment_transactions.cost_cents` (sum of non-discount line costs)
+and `technician`. So **Total Cost / Total Profit** (`profit = captured_cents − coalesce(cost_cents,0)`)
+and the technician now show real numbers in Transaction History. The per-technician *filter* + a
+refund/void *button* are the remaining slivers.
+
+**Inventory stock on a sale.** When a sale is **paid/completed** (cash/check, a Paid-in-Full receipt,
+or a successful Pay Now), each part line's qty is **subtracted from stock** — only once (guarded by a
+`stockApplied` flag on the receipt), never on a draft. Voiding/deleting a paid sale **adds the stock
+back**. Low-stock is derived (`Inventory.isLow`), so the flag trips automatically.
 
 ## Why this shape
 - **One auth/session:** the portal calls the functions with the staff member's **existing Supabase

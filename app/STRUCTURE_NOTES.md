@@ -139,9 +139,28 @@ an un-signed-in device, hidden for signed-in staff). Data-go handler early-retur
   instance is `.destroy()`-ed before each redraw; if `window.Chart` is absent it degrades to a message.
   The list lands on **today** (daily-reset default) and widens with the period; nothing is deleted.
 - **Profit/commission hooks:** `payment_transactions.cost_cents` (profit = captured − coalesce(cost,0))
-  + `.technician` (indexed) added by migration `payment_transactions_cost_and_technician`. Null today →
-  Cost $0 / Profit = Sales; the cards, a future technician filter, and the graph need no rework once a
-  sale carries cost/tech. `inventory.cost` already exists (form field `pCost`, mapped in `store.js`).
+  + `.technician` (indexed) added by migration `payment_transactions_cost_and_technician`. **Now
+  populated** (see next section). `inventory.cost` exists (form field `pCost`, mapped in `store.js`).
+
+## Update 2026-06-12 PM — parts → cost/profit, technician, inventory stock (`bittings.html`)
+A sale can reference real Inventory parts so the system computes **profit** and keeps **stock** accurate.
+- **Line-item model** gained `{ partId, qty, unitCost, cost }` (`cost = unitCost × qty`, via `lineCost()`).
+  The customer-facing line still shows `amount` (sale price) only — cost rides behind it.
+- **Shared helpers** (top-level in `bittings.html`, before the Quick-invoice IIFE):
+  `pickInventoryPart(onPick)` — owner-gated searchable picker reusing `TKS.Inventory.search` (name/SKU/
+  fitment/VIN), shows each part's qty + cost; `applyStockForReceipt(r)` / `reverseStockForReceipt(r)`
+  (decrement/restore via `TKS.Inventory.adjustQty`, idempotent through `r.stockApplied`);
+  `_syncReceiptInHistory(r)`; `currentTechnician()` (defaults to the signed-in email).
+- **Capture surfaces:** Quick-invoice line rows got a **📦 pick** button + **Qty / Cost** inputs + a
+  **Technician** field; the chat job-picker got an owner-only **"📦 From Inventory (captures cost)"**
+  option. `pushItem()` and the Quick-invoice `submit()` write the new line fields; `finish()` and
+  Quick-invoice set `receipt.technician`.
+- **Stock timing:** `finish()` (paid receipt) and the Pay-Now poll-`completed` branch call
+  `applyStockForReceipt`; history **Mark Paid** applies, **Delete** of a paid sale reverses. Only on
+  paid/completed, never drafts.
+- **Server-side cost:** `pay-create-intent` + `pay-record` compute `cost_cents` (sum of non-discount
+  line `cost`) and `technician` from the **stored receipt** (client never sends cost) → Transaction
+  History shows real **Total Cost / Profit** and the tech. Verified: $9.00 parts → `cost_cents` 900.
 
 **`bittings.html` Quick invoice** — owner-only one-screen alternative to the chat (trainees can't see
 it). `window.quickInvoiceAvailable`/`requestQuickInvoice`/`openQuickInvoice`; on/off via

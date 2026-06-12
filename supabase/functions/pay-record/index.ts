@@ -12,6 +12,21 @@ function descOf(data: any): string {
   const cust = data?.customer || "";
   return cust ? (lbl + " — " + cust) : lbl;
 }
+// COGS read server-side from the stored receipt (client never sends cost).
+function costCentsOf(data: any): number | null {
+  const its = Array.isArray(data?.items) ? data.items : [];
+  let any = false, sum = 0;
+  for (const it of its) {
+    if (it?.isDiscount) continue;
+    const c = Number(it?.cost);
+    if (!isNaN(c) && c > 0) { sum += c; any = true; }
+  }
+  return any ? Math.round(sum * 100) : null;
+}
+function techOf(data: any): string | null {
+  const t = (data?.technician ?? "").toString().trim();
+  return t ? t : null;
+}
 
 // CASH / CHECK: records a completed transaction (no Stripe, no surcharge —
 // surcharge is card-only). Reads the authoritative total from the receipt; the
@@ -44,7 +59,8 @@ Deno.serve(async (req) => {
       invoice_id: invoiceId, org_id: orgId, connected_account_id: connectedAccountId,
       method, currency: "usd", base_cents, surcharge_cents: 0, authorized_cents: base_cents,
       captured_cents: base_cents, surcharge_applied: false, status: "completed",
-      description: descOf((rec as any).data), idempotency_key, created_by: uidFromJwt(req),
+      description: descOf((rec as any).data), cost_cents: costCentsOf((rec as any).data),
+      technician: techOf((rec as any).data), idempotency_key, created_by: uidFromJwt(req),
     }).select().limit(1);
     if (ins.error) return json(500, { error: "record failed: " + ins.error.message });
     return json(200, { ok: true, method, captured_cents: base_cents });

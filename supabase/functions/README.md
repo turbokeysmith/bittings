@@ -6,8 +6,8 @@ These are the deployed sources (version-controlled copies of what runs on the
 ## Functions & deploy settings
 | Function | `verify_jwt` | Notes |
 |---|---|---|
-| `pay-create-intent` | **true** (staff session) | invoice id → authoritative base, manual-capture PI (base+2%), idempotent per `inv_<id>_attempt_<n>`; records a `description` for closeout |
-| `pay-record` | **true** | **cash / check** — no Stripe, **no surcharge**; reads the receipt's authoritative base and inserts a `completed` txn, idempotent per `inv_<id>_<method>` |
+| `pay-create-intent` | **true** (staff session) | invoice id → authoritative base, manual-capture PI (base+2%), idempotent per `inv_<id>_attempt_<n>`; records `description`, plus `cost_cents` (Σ non-discount line `cost`) + `technician` read server-side from the receipt (for profit/commission) |
+| `pay-record` | **true** | **cash / check** — no Stripe, **no surcharge**; reads the receipt's authoritative base and inserts a `completed` txn (with `cost_cents` + `technician`), idempotent per `inv_<id>_<method>` |
 | `stripe-webhook` | **false** | signature-verified instead; **source of truth** (captures credit-only surcharge, marks paid) |
 | `pay-status` | **true** | UI poll only |
 | `pay-refund` | **true** | full/partial refund of a completed txn |
