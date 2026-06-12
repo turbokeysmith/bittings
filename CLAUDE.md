@@ -27,3 +27,23 @@ a separate planning assistant, so they must never go stale:
   newest first; group entries under the date heading).
 - When you finish a batch of work, end by confirming both files were updated (or say why not).
 - Keep `PROJECT_HANDOFF.md` plain-language; put technical depth in `app/STRUCTURE_NOTES.md`.
+
+## 📱 Mobile verification is mandatory before anything is "done"
+**Standing rule — applies to EVERY feature, change, or build, with no exceptions.** Before you mark
+anything done, it must be verified to work on **BOTH iPhone (Safari) and Android (Chrome)**, for
+**an owner AND a signed-in staff member**. The whole staff app + receipt builder are used on phones
+in the field — desktop-only "works" is not acceptable.
+
+"Works on mobile" means, on a small phone, one-handed:
+- It **fits and scrolls**; nothing overflows horizontally or gets cut off.
+- **Tap targets are usable** one-handed — nothing too small or cramped to tap reliably.
+- **Forms, dropdowns/selects, and inputs work by touch** — no keyboard, mouse, or hover required.
+- **Nothing depends on hover** or a mouse (tooltips/`title=` are fine as extras, never as the only way).
+- **Owner-gating still holds on mobile** — an owner sees owner-only tools; a signed-in staff member is
+  blocked exactly as on desktop.
+
+**Honesty requirement:** if you cannot actually run a platform in your environment (you usually can't
+run real iPhone Safari / Android Chrome), **say so plainly** and give the owner **exact, numbered test
+steps** for **both platforms × both roles**. **Never mark something done on assumption.** Until a real
+device (or the owner) confirms it, the status is at most **"code-complete, pending mobile sign-off"** —
+reflect that wording in the handoff/task list, not "done."

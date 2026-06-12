@@ -96,7 +96,11 @@ decide Google Calendar real-sync vs. keep the link; one-time copy of any local d
 
 ---
 
-## TRACK B — Payments + money tools (single-shop, Turbo Keysmith)  ·  status: ✅ BUILT in TEST mode; awaiting your browser test + live cutover
+## TRACK B — Payments + money tools (single-shop, Turbo Keysmith)  ·  status: ✅ BUILT in TEST mode; ⏳ pending your mobile sign-off (iPhone Safari + Android Chrome, owner + staff) + browser test + live cutover
+> **📱 Mobile sign-off pending (CLAUDE.md rule):** the payment UI, the two money tiles, and the new
+> parts/cost/technician capture were written mobile-first and pass a static review, but have **not been
+> run on a real iPhone/Android** from here. Treat them as *code-complete, not done* until you confirm
+> on both phones (steps in the relevant build reports).
 **Direction (2026-06-11):** after auditing TurboStripe (your live desktop POS), payments were
 **rebuilt into the portal** per audit **Option B** — Supabase **edge functions + Stripe.js**,
 **single-account direct charges** (NOT Connect; Connect parked for multi-tenant). The earlier
