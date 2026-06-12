@@ -197,6 +197,21 @@ Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
 - **Typed-card key:** replaced the `prompt()` paste with an inline `#pnPK` input (16px) in `renderKeyed`
   — in **both** `app/pay.js` and the `bittings.html` inline Pay Now; `startKeyed` reads/saves it.
 
+## Update 2026-06-12 PM5 — text contrast (WCAG AA) + 2 tap targets
+- **Root bug:** `index.html .tile h2` had **no `color`** → the `<button>` tiles fell back to the UA
+  default (near-black) while `.tile p` was `--dim` → titles darker than descriptions (inverted). Fix:
+  `.tile h2{color:var(--ink)}` (primary ~15:1), `.tile p` stays `--dim` (~6:1, secondary).
+- **index.html:** `.tile .soon` `--off`→`--dim`; the Tax-collected "· pass-through" qualifier
+  `#6b7280`→`var(--dim)`.
+- **bittings.html** (`--bg:#1c1c1c`, body `#eee`): dark-context grays `#888`/`#777`/`#6b7280`→`#9a9a9a`
+  (~5:1 AA) — `.hint`, `.field-hint`, `.cj-tag.no-tax`, `.pp-empty`, the Settings rate hint, the
+  quick-invoice tech/tax labels. White-receipt grays `#888`→`#595959` (~7:1) — estimate status + NASTF
+  type line. `.rc-subrow`/`.rc-pm` `#777` on white left as-is (≈4.6:1, already AA).
+- **Tap targets → 44px:** `.pp-head button` (panel "Done") and `.hist-item .hi-actions button`
+  (history-row PDF/Edit/Send/Delete) got `min-height:44px` + padding bump.
+- **No changes needed:** `scheduler.html` (`.tile` already sets `color:var(--ink)`; `--ink-soft` is AA
+  in light **and** dark themes) and `cloud-test.html` (all text `--ink`/`--dim`).
+
 ## Update 2026-06-12 PM4 — entry gate (login-first, offline-safe) + real logo
 - **Entry gate** (top of `index.html` `<body>`, runs before render; `app/cloud-config.js` is now also
   loaded in `<head>` so `TKS_CLOUD` is available early): if `AUTO_CONNECT` and **no Supabase session
