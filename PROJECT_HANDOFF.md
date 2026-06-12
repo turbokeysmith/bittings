@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 17:04 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 17:34 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -351,6 +351,26 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
+- **Entry experience: login-first, straight-home, never stranded + the real logo (17:34):**
+  - **Login first, home after.** When the staff app opens **signed out and online**, it now shows the
+    **Staff sign-in** screen first; after you sign in it drops you **straight to the Home screen** (no
+    more "you have to tap Home"). A **remembered sign-in** skips the login entirely and goes straight
+    Home.
+  - **Never a dead-end with no signal (the van case).** Here's exactly how the no-internet / no-session
+    case works: the app checks for a **remembered session token saved on the device** — that check is
+    instant and needs no internet. **If a token exists → Home** (works offline; syncs when back online).
+    **If there's no token but the phone is offline** (`navigator.onLine` false) → it does **not** bounce
+    to login; it opens **Home in local mode** so you can keep working. **If there's no token and you're
+    online** → it shows login first; and even there, a **"Use the app offline (no sign-in)"** button
+    takes you into the app in local mode, so the login is never a wall. Login-first only happens when
+    signing in is actually possible.
+  - **Logo.** Put the real **Turbo Keysmith** logo on the **login screen** (full lockup) and the
+    **Home header** (just the turbo mark next to the wordmark), and wired it onto the **receipts + PDF**
+    (it was showing the old "Bittings" document-and-key icon). I picked `fulllogo_transparent.png` for
+    the login (high-res, transparent, includes the wordmark) and a **cropped mark** from it for the
+    header/receipt (since those already print "Turbo Keysmith" as text, the mark alone avoids doubling
+    it). The PDF now **fits the logo to its real shape** so it's never stretched. Existing default
+    installs auto-adopt the new logo; if you'd uploaded your own, it's kept.
 - **Sales tax — configurable, not hardcoded (17:04):** you can now set a **sales-tax rate** (e.g.
   8.625%) and choose **which kinds of line items are taxable** (defaults: Parts/Materials **taxed**,
   Labor/Service **not** taxed) — in Receipts → Settings, **owner-only**, and it **syncs to the cloud**

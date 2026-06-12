@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#14171b">
 <title>Turbo Keysmith</title>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" href="bittings_logo.png">
+<link rel="icon" href="tks_mark.png">
 <style>
   :root{
     --bg:#14171b; --bg2:#1b1f25; --card:#1f232a; --edge:#2c313a; --ink:#f4f5f7; --dim:#9aa1ac;
@@ -21,7 +21,7 @@
   .wrap{max-width:620px;margin:0 auto;}
 
   header.app{display:flex;align-items:center;gap:12px;margin-bottom:22px;}
-  header.app img{width:42px;height:42px;border-radius:11px;}
+  header.app img{height:38px;width:auto;max-width:140px;object-fit:contain;}
   header.app h1{margin:0;font-size:20px;font-weight:800;}
   header.app h1 .red{color:var(--red);}
   header.app .back{margin-left:10px;background:rgba(255,255,255,.06);border:1px solid var(--edge);
@@ -201,11 +201,38 @@
     *{animation-duration:.001ms!important;transition-duration:.001ms!important;}
   }
 </style>
+<!-- Loaded early so the entry gate below can read TKS_CLOUD before the app renders. -->
+<script src="app/cloud-config.js"></script>
 </head>
 <body>
+<script>
+/* ===================== ENTRY GATE (login-first, never a dead-end) =====================
+   Decides, BEFORE the home screen renders, whether to bounce to the Staff Login:
+   • Remembered Supabase session (token in localStorage) → stay → go straight HOME.
+   • No session + believed ONLINE → redirect to the login (login-first).
+   • No session + OFFLINE (navigator.onLine===false) OR the user chose "use offline"
+     → stay → HOME in local mode. The van must never be stranded with no signal.
+   The token check is synchronous (reads localStorage, works offline), so there's no
+   home-screen flash and no network is required to reach a usable app. */
+(function(){
+  try{
+    var cfg = window.TKS_CLOUD;
+    if(!cfg || cfg.AUTO_CONNECT===false) return;            // cloud/login disabled → no gate
+    var hasToken=false;
+    for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i);
+      if(k && k.indexOf('sb-')===0 && k.indexOf('-auth-token')!==-1){ var v=localStorage.getItem(k); if(v && v.length>20){ hasToken=true; break; } } }
+    var online  = (typeof navigator!=='undefined') ? (navigator.onLine!==false) : true;
+    var useLocal = sessionStorage.getItem('tks_use_local')==='1';   // set by "Use offline" on the login
+    if(!hasToken && online && !useLocal){
+      var here = (location.pathname.split('/').pop() || 'index.html');
+      location.replace('cloud-test.html?next=' + encodeURIComponent(here));
+    }
+  }catch(e){}
+})();
+</script>
 <div class="wrap">
   <header class="app">
-    <img src="bittings_logo.png" alt="">
+    <img src="tks_mark.png" alt="Turbo Keysmith logo">
     <h1>Turbo <span class="red">Keysmith</span></h1>
     <span class="cloudpill" id="cloudPill" title="Where your data is stored">On this device</span>
     <button class="back" id="backBtn">‹ Home</button>
