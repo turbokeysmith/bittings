@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 11:25 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 15:40 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -261,10 +261,9 @@ with statuses is `turbo_master_task_list.md`.*
 1. **Test it yourself in TEST mode** — sign in, build an invoice and Pay Now, do a New Charge, try a
    cash and a check, then open Closeout and Transaction History. No risk; just confirms it all feels
    right before real money.
-2. **Turn on real Cost & Profit** — this is the highest-value next build. Decide how a part's cost
-   attaches to a sale (pick the part(s) used on the receipt, which pulls the cost automatically, vs. a
-   quick "cost" box). Same step can tag a **technician**, which switches on the commission view. Then
-   have a sale **subtract from inventory** so stock stays accurate.
+2. ✅ **Real Cost & Profit — done.** A sale can pick parts from Inventory (or take a manual cost),
+   subtracts stock when paid (and restores on void), and tags a technician — so Total Cost/Profit are
+   real now. Leftover slivers: a *filter by technician* and a *refund/void button* in the history.
 3. **Go live** — swap in the live Stripe keys, run one real card, retire the old desktop app
    (`TurboStripe.exe`) and **rotate its old key** (security-important). Do this once you're confident
    from step 1.
@@ -351,6 +350,17 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
+- **Parts on a sale → real Cost & Profit, plus inventory stock + technician (15:40):** on the receipt
+  builder you can now **add the actual part(s) you used from Inventory** (search by name, SKU, fitment,
+  or VIN — same as the Inventory tile). The customer still sees only the **sale price**; the part's
+  **cost** is captured quietly so the books can show **profit**. Every line also has a **manual cost
+  box** (for parts not in inventory or one-off jobs), and labor/no-part lines (like a lockout) count as
+  **$0 cost**. When a sale is **paid**, the used quantity is **subtracted from stock** (and the
+  low-stock flag trips automatically); if you later **void/delete** a paid sale, the stock is **added
+  back**. Stock only moves on a real paid sale — never on an unfinished draft. You can also **tag a
+  technician** on the sale (sets up the commission view). The new **Total Cost** and **Total Profit**
+  in Transaction History now fill with real numbers (the cost is read on the server from the saved
+  receipt, so it can't be faked). Owner-only; the receipt style is unchanged. *(All still TEST mode.)*
 - **Two owner-only money tiles: Closeout + Transaction History (11:25):** the day-closeout and the
   transaction history are now **their own tiles on the Home screen, just for you** — a trainee signed in
   as staff won't see them. **Closeout** counts today's drawer (collected, split by card/cash/check,

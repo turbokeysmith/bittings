@@ -1806,6 +1806,28 @@ function showJobPickerForCategory(catKey){
   const opts=document.createElement("div");
   opts.className="opts";
 
+  // Owner-only: pull a real part from Inventory so its COST rides along (for profit).
+  if(_isOwnerForCosts()){
+    const pk=document.createElement("button");
+    pk.className="opt"; pk.style.background="#1c2f24"; pk.style.borderColor="#2f6b46";
+    pk.textContent="📦 From Inventory (captures cost)";
+    pk.onclick=()=>{
+      pickInventoryPart(p=>{
+        opts.querySelectorAll(".opt").forEach(x=>x.disabled=true);
+        applyAnswer("jobPick:inventory");
+        meSay(p.name||"Part");
+        itemDraft.desc=p.name||"Part";
+        itemDraft.taxable=true;            // materials default taxable
+        itemDraft.fromCommon=false;
+        itemDraft.partId=p.id;
+        itemDraft.unitCost=(p.cost!=null && p.cost!=="")?Number(p.cost):0;
+        itemDraft.qty=1;
+        setTimeout(askItemAmount,200);
+      });
+    };
+    opts.appendChild(pk);
+  }
+
   jobs.forEach(j=>{
     const b=document.createElement("button");
     b.className="opt";
@@ -1884,9 +1906,13 @@ function askItemAmount(){
   input.focus();
 }
 function pushItem(){
+  const hasCost = (itemDraft.partId || (itemDraft.unitCost>0));
   items.push({
     desc:itemDraft.desc, amount:itemDraft.amount,
-    taxable:itemDraft.taxable, category:itemDraft.category
+    taxable:itemDraft.taxable, category:itemDraft.category,
+    partId:itemDraft.partId||null, qty:itemDraft.qty||1,
+    unitCost:itemDraft.unitCost||0,
+    cost: hasCost ? lineCost(itemDraft.unitCost, itemDraft.qty||1) : 0   // labor/no-part = $0 cost
   });
   // If this came from a saved common job, keep its lastPrice fresh so the
   // next pre-fill suggestion matches what was just charged.
@@ -2364,6 +2390,7 @@ function finish(){
   receipt.totals=computeTotals(items, receipt.payment);
   receipt.signature=signatureData;
   receipt.nastf=nastfInfo;
+  if(!receipt.technician) receipt.technician=currentTechnician();  // groundwork for commission
   // Save customer/shop to DB (if we have at least a name)
   if(receipt.customer){
     const isContracting = nastfInfo && nastfInfo.type==="Contracting D1";
@@ -2393,6 +2420,8 @@ function finish(){
     }
   }
   const hist=getHistory(); hist.unshift(receipt); saveHistory(hist);
+  // A paid sale (cash/check/marked-paid receipt) consumes its parts now.
+  if(_receiptIsPaid(receipt)) applyStockForReceipt(receipt);
 
   botSay("Done! Here's "+receipt.number+":");
   renderReceiptCard(receipt);
@@ -2910,8 +2939,9 @@ function renderHistList(){
       if(act==="pdf") makePDF(r, "en");
       else if(act==="pdfes") makePDF(r, "es");
       else if(act==="del"){
-        appConfirm("Delete "+r.number+"?", "This cannot be undone.").then(ok=>{
-          if(ok){ hist.splice(i,1); saveHistory(hist); renderHistList(); }
+        const note = r.stockApplied ? "This cannot be undone. Any parts used will be added back to stock." : "This cannot be undone.";
+        appConfirm("Delete "+r.number+"?", note).then(ok=>{
+          if(ok){ if(r.stockApplied) reverseStockForReceipt(r); hist.splice(i,1); saveHistory(hist); renderHistList(); }
         });
       }else if(act==="paid"){
         appConfirm("Mark "+r.number+" as Paid?", "This converts the invoice to a receipt.").then(ok=>{
@@ -2919,6 +2949,7 @@ function renderHistList(){
           r.docType="receipt"; r.status="Paid in Full";
           r.number=r.number.replace(/^INV/,"TKS");
           r.paidAt=Date.now();
+          applyStockForReceipt(r);   // consume parts now that it's paid (once)
           saveHistory(hist); renderHistList();
         });
       }else if(act==="toinv"){
@@ -3475,13 +3506,108 @@ function _receiptsRefresh(){
     const tick=async()=>{ polls++;
       const j=await call("pay-status",{paymentIntentId:S.pi});
       if(j.error){ status(j.error,"bad"); return; }
-      if(j.status==="completed"){ status("✓ Approved — "+m(j.captured_cents)+(j.surcharge_applied?" (incl. 2% credit surcharge)":" (no surcharge)"),"ok"); return; }
+      if(j.status==="completed"){
+        status("✓ Approved — "+m(j.captured_cents)+(j.surcharge_applied?" (incl. 2% credit surcharge)":" (no surcharge)"),"ok");
+        // Card cleared → mark the doc paid and consume its parts (once).
+        try{ const r=S.receipt; if(r){
+          if(r.docType==="invoice"){ r.docType="receipt"; if(r.number) r.number=String(r.number).replace(/^INV/,"TKS"); }
+          r.status="Paid in Full"; r.paidAt=Date.now();
+          if(typeof applyStockForReceipt==="function") applyStockForReceipt(r);
+          if(typeof renderHistList==="function"){ try{ renderHistList(); }catch(_){} }
+        } }catch(_){}
+        return;
+      }
       if(j.status==="failed"){ status("✗ "+(j.failure_reason||"failed")+" — try again.","bad"); S.attempt++; return; }
       if(j.status==="canceled"){ status("Canceled — try again.","bad"); S.attempt++; return; }
       if(polls<40) setTimeout(tick,2000); else status("Still waiting — check the reader.","bad");
     }; tick();
   }
 })();
+
+/* ===================== PARTS, COST & STOCK (shared) =====================
+   Lets a sale reference real Inventory parts so the system can compute PROFIT
+   (sale − cost) and keep stock accurate. The customer-facing line is unchanged
+   (it still shows the SALE price); the part's cost rides along behind the scenes
+   on the line item: { partId, qty, unitCost, cost }  (cost = unitCost × qty).
+   - Inventory part-picker is owner-only (it reveals cost).
+   - Stock is decremented only when a sale is COMPLETED/PAID (never on a draft),
+     and added back if a paid sale is later voided/deleted/refunded. Guarded by a
+     `stockApplied` flag on the receipt so it can never double-apply. */
+function _isOwnerForCosts(){
+  try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn()) return !!TKS.auth.isOwner(); }catch(e){}
+  return true; // nobody signed in -> owner's own device (same model as Quick invoice)
+}
+function currentTechnician(){
+  try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn()) return TKS.auth.email()||""; }catch(e){}
+  return "";
+}
+function lineCost(unitCost, qty){
+  const u=parseFloat(unitCost); const q=parseInt(qty,10)||1;
+  if(isNaN(u)||u<=0) return 0;
+  return Math.round(u*q*100)/100;
+}
+/* Open a searchable Inventory picker (name / SKU / fitment / VIN — same search as
+   the Inventory tile). Calls onPick(part) with the chosen part. Owner-gated. */
+function pickInventoryPart(onPick){
+  if(!_isOwnerForCosts()){ alert("Picking parts (and seeing cost) is owner-only."); return; }
+  if(!window.TKS || !TKS.Inventory){ alert("Inventory isn't available here yet."); return; }
+  const ov=document.createElement("div");
+  ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px";
+  ov.innerHTML=`<div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:460px;border-radius:16px;padding:16px;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:17px">📦 Pick a part</b><button id="ipX" style="background:none;border:none;color:#9aa3af;font-size:24px;cursor:pointer">&times;</button></div>
+    <input id="ipQ" placeholder="Search name, SKU, fitment, VIN…" style="width:100%;background:#11141a;border:1px solid #2a2f3a;border-radius:10px;color:#f4f5f7;padding:11px;font-size:15px;box-sizing:border-box">
+    <div id="ipList" style="margin-top:10px;max-height:60vh;overflow:auto"></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.querySelector("#ipX").onclick=close;
+  ov.addEventListener("click",e=>{ if(e.target===ov) close(); });
+  const q=ov.querySelector("#ipQ"), listBox=ov.querySelector("#ipList");
+  function row(p){
+    const low = TKS.Inventory.isLow(p);
+    const costTxt = (p.cost!=null && p.cost!=="") ? ("$"+Number(p.cost).toFixed(2)) : "no cost set";
+    const costCol = (p.cost!=null && p.cost!=="") ? "#7fd49b" : "#f2b43a";
+    return `<button class="ipRow" data-id="${escapeHtml(p.id)}" style="width:100%;text-align:left;background:#11141a;border:1px solid ${low?'#7a5b12':'#2a2f3a'};border-radius:11px;padding:10px 12px;margin-bottom:7px;color:#f4f5f7;cursor:pointer">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+        <b style="font-size:14px">${escapeHtml(p.name||"(unnamed part)")}</b>
+        <span style="font-size:12px;color:${costCol};white-space:nowrap">cost ${costTxt}</span></div>
+      <div style="font-size:12px;color:#9aa3af;margin-top:2px">${escapeHtml([p.sku, "qty "+(parseInt(p.qty,10)||0)+(low?" · LOW":""), p.fitment].filter(Boolean).join(" · "))}</div>
+    </button>`;
+  }
+  function draw(){
+    const res=TKS.Inventory.search(q.value||"");
+    if(!res.length){ listBox.innerHTML='<div style="color:#9aa3af;font-size:14px;padding:14px;text-align:center">'+(((q.value||"").trim())?"No parts match.":"No parts in inventory yet. Add them in the Inventory tile, or type a manual cost on the line.")+'</div>'; return; }
+    listBox.innerHTML=res.slice(0,60).map(row).join("");
+    listBox.querySelectorAll(".ipRow").forEach(b=> b.onclick=()=>{ const p=TKS.Inventory.get(b.dataset.id); if(p){ close(); onPick(p); } });
+  }
+  q.addEventListener("input",draw); draw(); setTimeout(()=>q.focus(),30);
+}
+/* Persist a (possibly mutated) receipt back into history by id/number. */
+function _syncReceiptInHistory(r){
+  try{ const hist=getHistory(); const i=hist.findIndex(x=> (r.id&&x.id===r.id) || (r.number&&x.number===r.number));
+    if(i>=0){ hist[i]=r; saveHistory(hist); } }catch(e){}
+}
+function _receiptIsPaid(r){ return !!r && r.status==="Paid in Full"; }
+/* Decrement stock for each part line — ONLY once, ONLY on a paid/completed sale. */
+function applyStockForReceipt(r){
+  if(!r || r.stockApplied) return false;
+  if(!window.TKS || !TKS.Inventory) return false;
+  let did=false;
+  (r.items||[]).forEach(it=>{ const qn=parseInt(it.qty,10)||0; if(it.partId && qn>0){ TKS.Inventory.adjustQty(it.partId, -qn); did=true; } });
+  r.stockApplied=true; r.stockAppliedAt=Date.now();
+  _syncReceiptInHistory(r);
+  return did;
+}
+/* Add stock back if a paid sale is voided / deleted / refunded. */
+function reverseStockForReceipt(r){
+  if(!r || !r.stockApplied) return false;
+  if(!window.TKS || !TKS.Inventory) return false;
+  let did=false;
+  (r.items||[]).forEach(it=>{ const qn=parseInt(it.qty,10)||0; if(it.partId && qn>0){ TKS.Inventory.adjustQty(it.partId, +qn); did=true; } });
+  r.stockApplied=false; r.stockReversedAt=Date.now();
+  _syncReceiptInHistory(r);
+  return did;
+}
 
 /* ===================== QUICK INVOICE (owner-only fast form) =====================
    A one-screen alternative to the guided chat. Owner-gated (same model as the
@@ -3523,11 +3649,19 @@ function _receiptsRefresh(){
   let modal=null;
   function close(){ if(modal){ modal.remove(); modal=null; } }
   function itemRow(){
-    return `<div class="qiItem" style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
-      <input class="qiDesc" placeholder="Description" style="flex:1;background:#11141a;border:1px solid #2a2f3a;border-radius:8px;color:#f4f5f7;padding:9px;font-size:15px">
-      <input class="qiAmt" placeholder="0.00" inputmode="decimal" style="width:84px;background:#11141a;border:1px solid #2a2f3a;border-radius:8px;color:#f4f5f7;padding:9px;font-size:15px">
-      <label style="font-size:11px;color:#9aa3af;display:flex;align-items:center;gap:3px"><input type="checkbox" class="qiTax">tax</label>
-      <button type="button" class="qiDel" title="Remove" style="background:none;border:none;color:#9aa3af;cursor:pointer;font-size:18px">&times;</button></div>`;
+    const inp="background:#11141a;border:1px solid #2a2f3a;border-radius:8px;color:#f4f5f7;padding:8px;font-size:14px;box-sizing:border-box;margin-left:3px";
+    const lbl="font-size:11px;color:#9aa3af;display:flex;align-items:center;gap:2px";
+    return `<div class="qiItem" data-part="" style="border:1px solid #232833;border-radius:10px;padding:8px;margin-bottom:7px">
+      <div style="display:flex;gap:6px;margin-bottom:5px;align-items:center">
+        <input class="qiDesc" placeholder="Description" style="flex:1;background:#11141a;border:1px solid #2a2f3a;border-radius:8px;color:#f4f5f7;padding:9px;font-size:15px">
+        <button type="button" class="qiPick" title="Pick a part from Inventory (captures its cost)" style="background:#2a2f3a;border:none;color:#cbd2da;border-radius:8px;padding:9px 10px;font-size:15px;cursor:pointer">📦</button>
+        <button type="button" class="qiDel" title="Remove" style="background:none;border:none;color:#9aa3af;cursor:pointer;font-size:18px">&times;</button></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label style="${lbl}">Qty<input class="qiQty" inputmode="numeric" value="1" style="width:44px;${inp}"></label>
+        <label style="${lbl}">Sale $<input class="qiAmt" placeholder="0.00" inputmode="decimal" style="width:72px;${inp}"></label>
+        <label style="${lbl}">Cost $<input class="qiCost" placeholder="0.00" inputmode="decimal" style="width:72px;${inp}"></label>
+        <label style="font-size:11px;color:#9aa3af;display:flex;align-items:center;gap:3px;margin-left:auto"><input type="checkbox" class="qiTax">tax</label></div>
+      <div class="qiPartTag" style="font-size:11px;color:#7fd49b;margin-top:4px;display:none"></div></div>`;
   }
   window.openQuickInvoice = function(onCancel){
     if(modal) modal.remove();
@@ -3547,6 +3681,7 @@ function _receiptsRefresh(){
         <label class="qiL">Line items *</label><div id="qiItems"></div>
         <button type="button" id="qiAdd" style="background:#2a2f3a;border:none;color:#cbd2da;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;margin-bottom:8px">+ Add item</button>
         <div id="qiPayWrap"><label class="qiL">Payment method</label><div id="qiPay" style="display:flex;gap:6px;margin-bottom:4px"><button type="button" class="qiPB" data-p="Cash">Cash</button><button type="button" class="qiPB" data-p="Card">Card</button><button type="button" class="qiPB" data-p="Check">Check</button></div></div>
+        <label class="qiL">Technician <span style="color:#6b7280">(for commission — optional)</span></label><input id="qiTech" class="qiI" placeholder="Who did the job">
         <label class="qiL">Notes</label><textarea id="qiNotes" class="qiI" style="min-height:46px"></textarea>
         <div id="qiErr" style="color:#f0a0a6;font-size:13px;margin:6px 0;min-height:16px"></div>
         <div style="display:flex;gap:8px;margin-top:4px"><button type="button" id="qiGo" style="flex:1;padding:13px;border:none;border-radius:11px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;cursor:pointer">Create</button><button type="button" id="qiCancel" style="padding:13px 16px;border:1px solid #2a2f3a;background:transparent;color:#9aa3af;border-radius:11px;cursor:pointer">Cancel</button></div>
@@ -3563,8 +3698,20 @@ function _receiptsRefresh(){
       modal.querySelector("#qiName").addEventListener("change",function(){ const hit=all.find(c=>(c.customer||c.name||"").toLowerCase()===this.value.trim().toLowerCase()); if(hit){ if(hit.phone)modal.querySelector("#qiPhone").value=hit.phone; if(hit.email)modal.querySelector("#qiEmail").value=hit.email; if(hit.address)modal.querySelector("#qiAddr").value=hit.address; } });
     }catch(e){}
     const itemsBox=modal.querySelector("#qiItems");
-    function addItem(){ const r=node(itemRow()); itemsBox.appendChild(r); r.querySelector(".qiDel").onclick=()=>r.remove(); }
+    function addItem(){ const r=node(itemRow()); itemsBox.appendChild(r);
+      r.querySelector(".qiDel").onclick=()=>r.remove();
+      r.querySelector(".qiPick").onclick=()=> pickInventoryPart(p=>{
+        r.dataset.part=p.id;
+        const desc=r.querySelector(".qiDesc"); if(!desc.value.trim()) desc.value=p.name||"";
+        if(p.cost!=null && p.cost!=="") r.querySelector(".qiCost").value=Number(p.cost).toFixed(2);
+        r.querySelector(".qiTax").checked=true;  // materials are usually taxable
+        const tag=r.querySelector(".qiPartTag");
+        tag.style.display="block";
+        tag.textContent="📦 "+(p.name||"part")+" · stock "+(parseInt(p.qty,10)||0)+" — will subtract on a paid sale";
+      });
+    }
     addItem(); modal.querySelector("#qiAdd").onclick=addItem;
+    try{ modal.querySelector("#qiTech").value=currentTechnician(); }catch(e){}
     const cancel=()=>{ close(); if(typeof onCancel==="function") onCancel(); };
     modal.querySelector("#qiX").onclick=cancel; modal.querySelector("#qiCancel").onclick=cancel;
     modal.querySelector("#qiGo").onclick=()=>submit(getType,getSvc,getPay);
@@ -3577,7 +3724,12 @@ function _receiptsRefresh(){
     modal.querySelectorAll(".qiItem").forEach(row=>{
       const d=(row.querySelector(".qiDesc").value||"").trim();
       const a=parseFloat(row.querySelector(".qiAmt").value);
-      if(d && !isNaN(a) && a>0) its.push({ desc:d, amount:Math.round(a*100)/100, taxable:row.querySelector(".qiTax").checked, category:getSvc() });
+      if(!(d && !isNaN(a) && a>0)) return;
+      const qty=parseInt(row.querySelector(".qiQty").value,10)||1;
+      const unitCost=parseFloat(row.querySelector(".qiCost").value);
+      const partId=row.dataset.part||null;
+      its.push({ desc:d, amount:Math.round(a*100)/100, taxable:row.querySelector(".qiTax").checked, category:getSvc(),
+                 partId:partId, qty:qty, unitCost:(isNaN(unitCost)?0:unitCost), cost:lineCost(unitCost,qty) });
     });
     if(!its.length){ err.textContent="Add at least one line item (description + amount)."; return; }
     const dt=getType();
@@ -3589,6 +3741,7 @@ function _receiptsRefresh(){
       customerType:"individual", serviceType:getSvc(),
       vehYear:(modal.querySelector("#qiVYear").value||"").trim(), vehMake:(modal.querySelector("#qiVMake").value||"").trim(),
       vehModel:(modal.querySelector("#qiVModel").value||"").trim(), vin:(modal.querySelector("#qiVin").value||"").trim(),
+      technician:(modal.querySelector("#qiTech").value||"").trim(),
       notes:(modal.querySelector("#qiNotes").value||"").trim()
     };
     if(dt==="invoice"){ receipt.payment="Not specified"; receipt.status="Unpaid"; }

@@ -133,21 +133,27 @@ Netlify tile is fully superseded. Full design + ops in `supabase/PAYMENTS.md`. E
   deleted, stays filed under customer). **Period** dropdown (Today/Week/Month/Quarter/Year) +
   **graph type** dropdown (bar/line/area/pie/doughnut, Chart.js). **Total Jobs / Sales / Cost /
   Profit** cards, each **toggleable** (choice persists).
-- ✅ **Profit + per-technician commission — plumbed, not yet wired:** `payment_transactions` gained
-  `cost_cents` (profit = captured − cost) + `technician` (indexed); `inventory.cost` already stored.
-  Today Cost = $0 / Profit = Sales until a sale carries a part-cost / tech.
+- ✅ **Cost & Profit WIRED (2026-06-12 PM):** on the receipt builder (`bittings.html`) a sale can
+  **pick real parts from Inventory** (searchable by name/SKU/fitment/VIN), capturing each part's stored
+  **cost** behind the customer's sale price; a **manual cost box** on every line covers non-inventory /
+  one-off jobs; labor/no-part lines default to **$0 cost**. The edge functions read the cost
+  **server-side** from the stored receipt and fill `cost_cents`, so Transaction History's **Total Cost
+  / Total Profit** show real numbers (validated: a $9.00 parts cost → `cost_cents` 900). Also **tag a
+  technician** on the sale (Quick invoice field + chat default) → `technician` column populated, ready
+  for the commission filter.
+- ✅ **Inventory auto-decrements on a paid sale** (and **adds stock back** on a void/delete) — only on
+  completed/paid sales, never drafts, guarded by a `stockApplied` flag so it can't double-apply.
+  Low-stock flag is derived, so it trips automatically when stock crosses the threshold.
 
 ### B4 — Next steps (Payments)
-- ⬜ **YOUR browser test (TEST mode):** sign in → build an invoice → Pay Now → simulate credit/debit
-  → type card `4242 4242 4242 4242`; try a New Charge + a cash/check; open Closeout + Transaction
-  History. Confirm amounts in the Stripe **test** dashboard.
-- ⬜ **Wire Cost & Profit** (the big one): let a receipt/charge **pick the inventory part(s) used**
-  (pulls `inventory.cost` → sets `cost_cents`) and **tag a technician**; then Cost/Profit/commission
-  light up. *(Decision: parts-on-receipt vs. a quick cost box — see Decisions.)*
-- ⬜ **Auto-decrement inventory on sale** once parts are linked (sale reduces stock → low-stock flags
-  stay honest). Natural companion to the Cost/Profit wiring.
-- ⬜ **Refund / void from the Transaction History tile** (today `pay-refund` exists but has no button
-  in the UI — only reachable by the engine).
+- ⬜ **YOUR browser test (TEST mode):** sign in → build an invoice (add a part from Inventory + set a
+  qty/cost, tag a tech) → Pay Now → simulate credit/debit → type card `4242 4242 4242 4242`; try a New
+  Charge + a cash/check; open Closeout + Transaction History and confirm **Total Cost/Profit** + the
+  technician show. Confirm amounts in the Stripe **test** dashboard, and that stock dropped.
+- ⬜ **Technician filter in Transaction History** (data is captured now; the filter UI + a commission
+  total is the remaining commission-view work).
+- ⬜ **Refund / void button in the Transaction History tile** (today `pay-refund` exists but has no
+  button — only reachable by the engine; the stock-reversal helper is ready to hook to it).
 - ⬜ **Cutover to LIVE:** swap `sk_live_`/`pk_live_` (same secret slot), register the LIVE webhook,
   one real charge, **retire `TurboStripe.exe` + rotate the old leaked key.**
 - ⏸️ Field/Bluetooth reader + Tap-to-Pay-on-phone — a later native phase.
@@ -261,10 +267,11 @@ prioritize.*
   the remaining work is letting staff sign in as themselves and tagging each sale to a tech.
 
 ## CROSS-PROJECT DECISIONS STILL OPEN
-1. ⏸️ **Profit/cost model** — how does a part's cost attach to a sale? **(a)** pick the inventory
-   part(s) used on the receipt (auto-pulls cost) or **(b)** a quick "cost" box per charge. Drives
-   whether Total Cost/Profit + commission show real numbers. *(Track B4. You picked "revenue only
-   for now" — this is the decision that turns it on.)*
+1. ✅ **Profit/cost model — DECIDED & BUILT (2026-06-12):** both ways — pick the inventory part(s) on
+   the receipt (auto-pulls cost) **and** a manual per-line cost box for non-inventory/one-off lines;
+   labor defaults to $0. Cost rides on the line behind the sale price; the edge functions read it
+   server-side. Total Cost/Profit now show real numbers; technician tagging is in (commission filter
+   UI still to come).
 2. ⏸️ **Payments go-live timing** — when to swap to live keys, do one real charge, and retire
    `TurboStripe.exe` (+ rotate the old key). (Track B4)
 3. ⏸️ **Sales tax** — taxable items? Decide before live; affects the receipt + Profit. (Additional)
@@ -282,11 +289,11 @@ prioritize.*
 *Tracks A (data engine) and the payments **build** are done. What's left, in the order I'd do it:*
 1. **Test payments in the browser** (Track B4) — TEST-mode rehearsal of Pay Now, New Charge,
    cash/check, Closeout, Transaction History. Cheap, no risk, confirms it all works for you.
-2. **Decide the profit/cost model** (Decision 1) → **wire Cost & Profit** (parts-on-receipt + tech),
-   then auto-decrement inventory on a sale. This is the highest-value next build — it turns the new
-   reporting tiles into real profit/commission numbers.
+2. ✅ **Cost & Profit + inventory decrement + technician tagging — DONE (2026-06-12).** The
+   reporting tiles now show real Cost/Profit; a sale consumes stock; technician is captured. Remaining
+   slivers: a technician *filter* + a refund/void *button* (both small).
 3. **Payments go-live** (Track B4) — swap live keys, one real charge, retire `TurboStripe.exe`,
-   **rotate the old key.** Do after #1, when you're confident.
+   **rotate the old key.** Do after the browser test (#1), when you're confident.
 4. **Receipt delivery + daily summary** (Additional) — small wins that make the money tools feel
    complete.
 5. **Track E — public leads to the cloud + lead alerts** (edge function) — independent; can run any

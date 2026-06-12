@@ -17,6 +17,23 @@ function descOf(data: any): string {
   const cust = data?.customer || "";
   return cust ? (lbl + " — " + cust) : lbl;
 }
+// COGS for the sale, read SERVER-SIDE from the stored receipt (the client never
+// sends cost). Sum of each non-discount line's captured cost (qty already folded
+// into line `cost` by the builder). null when nothing was captured.
+function costCentsOf(data: any): number | null {
+  const its = Array.isArray(data?.items) ? data.items : [];
+  let any = false, sum = 0;
+  for (const it of its) {
+    if (it?.isDiscount) continue;
+    const c = Number(it?.cost);
+    if (!isNaN(c) && c > 0) { sum += c; any = true; }
+  }
+  return any ? Math.round(sum * 100) : null;
+}
+function techOf(data: any): string | null {
+  const t = (data?.technician ?? "").toString().trim();
+  return t ? t : null;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -69,6 +86,8 @@ Deno.serve(async (req) => {
       invoice_id: invoiceId, org_id: orgId, connected_account_id: connectedAccountId,
       method, currency: "usd", base_cents, surcharge_cents, authorized_cents,
       reader_id: readerId, stripe_payment_intent_id: pi.id, status: "pending",
+      description: descOf((rec as any).data), cost_cents: costCentsOf((rec as any).data),
+      technician: techOf((rec as any).data),
       idempotency_key, created_by: uidFromJwt(req),
     });
 
