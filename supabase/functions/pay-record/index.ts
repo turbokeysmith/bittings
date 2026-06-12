@@ -27,6 +27,30 @@ function techOf(data: any): string | null {
   const t = (data?.technician ?? "").toString().trim();
   return t ? t : null;
 }
+// AUTHORITATIVE total recomputed server-side from line items + the receipt's tax
+// rate (mirrors bittings.html computeTotals; verified parity). base = goods+labor+tax.
+function authoritativeTotals(data: any): { base_cents: number; tax_cents: number } {
+  const items = Array.isArray(data?.items) ? data.items : [];
+  if (!items.length) {
+    const t = data?.totals || {};
+    const base = Math.max(0, Number(t.total ?? data?.amount ?? 0) - Number(t.surcharge ?? 0));
+    return { base_cents: Math.round(base * 100), tax_cents: Math.round(Math.max(0, Number(t.tax ?? 0)) * 100) };
+  }
+  const taxRate = Number(data?.taxRate ?? 0) / 100;
+  let taxable = 0, nontax = 0;
+  for (const it of items) { if (it?.isDiscount) continue; const a = Number(it?.amount) || 0; if (it?.taxable) taxable += a; else nontax += a; }
+  const gross = taxable + nontax;
+  let disc = 0;
+  for (const it of items) { if (!it?.isDiscount) continue; disc += it.discountMode === "percent" ? gross * ((Number(it.discountValue) || 0) / 100) : (Number(it.discountValue) || 0); }
+  if (disc > gross) disc = gross;
+  disc = Math.round(disc * 100) / 100;
+  let dT = 0, dN = 0;
+  if (gross > 0 && disc > 0) { dT = disc * (taxable / gross); dN = disc * (nontax / gross); }
+  const taxableAfter = Math.max(0, taxable - dT);
+  const subtotal = Math.round((taxableAfter + Math.max(0, nontax - dN)) * 100) / 100;
+  const tax = Math.round(taxableAfter * taxRate * 100) / 100;
+  return { base_cents: Math.round((subtotal + tax) * 100), tax_cents: Math.round(tax * 100) };
+}
 
 // CASH / CHECK: records a completed transaction (no Stripe, no surcharge —
 // surcharge is card-only). Reads the authoritative total from the receipt; the
@@ -51,8 +75,7 @@ Deno.serve(async (req) => {
     if (r.error) return json(500, { error: "receipt lookup failed: " + r.error.message });
     const rec = r.data?.[0];
     if (!rec) return json(404, { error: "invoice not found in cloud" });
-    const totals = (rec as any).data?.totals || {};
-    const base_cents = Math.round(Math.max(0, Number(totals.total ?? (rec as any).data?.amount ?? 0) - Number(totals.surcharge ?? 0)) * 100);
+    const { base_cents, tax_cents } = authoritativeTotals((rec as any).data);
     if (base_cents < 1) return json(400, { error: "amount must be greater than zero" });
 
     const ins = await supa.from("payment_transactions").insert({
@@ -60,7 +83,7 @@ Deno.serve(async (req) => {
       method, currency: "usd", base_cents, surcharge_cents: 0, authorized_cents: base_cents,
       captured_cents: base_cents, surcharge_applied: false, status: "completed",
       description: descOf((rec as any).data), cost_cents: costCentsOf((rec as any).data),
-      technician: techOf((rec as any).data), idempotency_key, created_by: uidFromJwt(req),
+      technician: techOf((rec as any).data), tax_cents, idempotency_key, created_by: uidFromJwt(req),
     }).select().limit(1);
     if (ins.error) return json(500, { error: "record failed: " + ins.error.message });
     return json(200, { ok: true, method, captured_cents: base_cents });

@@ -27,8 +27,9 @@ create table if not exists public.payment_transactions (
   failure_reason           text,
   idempotency_key          text,                         -- inv_<id>_attempt_<n> (card) | inv_<id>_<method> (cash/check)
   description              text,                         -- human label for the day-closeout history
-  cost_cents               integer,                      -- COGS (parts) for this sale; null/0 = unknown. profit = captured - coalesce(cost_cents,0)
+  cost_cents               integer,                      -- COGS (parts) for this sale; null/0 = unknown. profit = sales - coalesce(cost_cents,0)
   technician               text,                         -- tech/employee attributed (per-tech totals + commission); null = unattributed
+  tax_cents                integer,                      -- sales tax collected (pass-through). Sales = base_cents - coalesce(tax_cents,0)
   created_by               uuid,                         -- auth.uid of the cashier
   created_at               timestamptz not null default now(),
   updated_at               timestamptz not null default now()
@@ -37,6 +38,26 @@ create index if not exists pt_pi_idx      on public.payment_transactions (stripe
 create index if not exists pt_invoice_idx on public.payment_transactions (invoice_id);
 create unique index if not exists pt_idem_idx on public.payment_transactions (idempotency_key) where idempotency_key is not null;
 create index if not exists pt_technician_idx on public.payment_transactions (technician) where technician is not null;
+
+-- Cloud-synced owner config (single row id=1). Today: sales-tax settings — a
+-- default rate (percent) and which line categories are taxable. The app reads/
+-- writes it (owner-gated in UI); receipts snapshot their own rate (override).
+create table if not exists public.shop_config (
+  id                 int primary key default 1,
+  tax_rate           numeric not null default 0,            -- percent, e.g. 8.625
+  taxable_categories jsonb   not null default '{}'::jsonb,  -- {category: bool} overrides
+  updated_by         uuid,
+  updated_at         timestamptz not null default now(),
+  constraint shop_config_singleton check (id = 1)
+);
+alter table public.shop_config enable row level security;
+drop policy if exists shop_config_sel on public.shop_config;
+drop policy if exists shop_config_ins on public.shop_config;
+drop policy if exists shop_config_upd on public.shop_config;
+create policy shop_config_sel on public.shop_config for select to authenticated using (true);
+create policy shop_config_ins on public.shop_config for insert to authenticated with check (true);
+create policy shop_config_upd on public.shop_config for update to authenticated using (true) with check (true);
+grant select, insert, update on public.shop_config to authenticated, service_role;
 
 -- Verified-webhook sink: audit trail + event idempotency (PK = stripe event id).
 create table if not exists public.payment_events (

@@ -847,10 +847,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <div class="field-hint">Whatever you want printed on the receipt. Leave blank if none.</div>
     </div>
 
-    <div class="field">
-      <label>Sales Tax Rate (%)</label>
+    <div class="field" id="taxConfigBlock">
+      <label>Sales Tax Rate (%) <span style="color:#888;font-weight:400">· shop default, cloud-synced</span></label>
       <input type="number" id="setTaxRate" step="0.001" placeholder="0">
-      <div class="field-hint">Used when an item is marked taxable.</div>
+      <div class="field-hint">Default rate for taxable goods. You can override it per receipt. Oklahoma exempts
+        separately-stated labor — keep labor on its own line (it's excluded automatically).</div>
+      <label style="margin-top:10px;display:block">Taxable line categories</label>
+      <div id="taxCatToggles" style="display:flex;flex-direction:column;gap:6px;margin-top:4px"></div>
+      <div class="field-hint" id="taxOwnerNote"></div>
     </div>
 
     <div class="field">
@@ -990,8 +994,21 @@ function catLabel(key){
   return c ? c.label : key;
 }
 function catDefaultTax(key){
+  // Owner config (cloud-synced) overrides the built-in default per category.
+  try{ const cfg=(window.TKS&&TKS.Config)?TKS.Config.get():null;
+    if(cfg && cfg.taxableByCategory && key in cfg.taxableByCategory) return !!cfg.taxableByCategory[key]; }catch(e){}
   const c = LINE_CATEGORIES.find(c=>c.key===key);
   return c ? !!c.defaultTax : false;
+}
+// The default sales-tax rate (%) from the cloud-synced owner config (falls back to
+// the old local SETTINGS.taxRate, then 0).
+function configTaxRate(){
+  try{ const cfg=(window.TKS&&TKS.Config)?TKS.Config.get():null; if(cfg && cfg.taxRate!=null) return Number(cfg.taxRate)||0; }catch(e){}
+  return (SETTINGS && SETTINGS.taxRate) ? Number(SETTINGS.taxRate)||0 : 0;
+}
+// A receipt's own rate (per-receipt override), defaulting to the config rate.
+function receiptTaxRate(r){
+  return (r && r.taxRate!=null && r.taxRate!=='') ? Number(r.taxRate) : configTaxRate();
 }
 
 // Common jobs: {desc, taxable, category, svc, useCount}
@@ -2327,8 +2344,9 @@ function applyAnswer(label){
 /* ==========================================================
    TOTALS & FINISH
    ========================================================== */
-function computeTotals(its, payment){
-  const taxRate=(SETTINGS.taxRate||0)/100;
+function computeTotals(its, payment, taxRatePct){
+  const ratePct = (taxRatePct!=null ? Number(taxRatePct) : configTaxRate()) || 0;
+  const taxRate=ratePct/100;
   const surchargeRate=(SETTINGS.surcharge||0)/100;
   // Sum up positive line items by taxable bucket
   let taxable=0, nontax=0;
@@ -2375,7 +2393,7 @@ function computeTotals(its, payment){
     nontaxAfter: Math.round(nontaxAfter*100)/100,
     subtotal: subtotalAfter,          // subtotal AFTER discount
     tax, surcharge, total,
-    taxRate:SETTINGS.taxRate, surchargeRate:SETTINGS.surcharge
+    taxRate:ratePct, surchargeRate:SETTINGS.surcharge
   };
 }
 
@@ -2388,7 +2406,8 @@ function finish(){
   receipt.savedAt=Date.now();
   if(!receipt.id) receipt.id="rcpt_"+Date.now().toString(36)+Math.random().toString(36).slice(2,7); // stable id for cloud sync + Pay Now
   receipt.items=items.slice();
-  receipt.totals=computeTotals(items, receipt.payment);
+  if(receipt.taxRate==null || receipt.taxRate==='') receipt.taxRate=configTaxRate(); // snapshot rate (per-receipt override defaults to config)
+  receipt.totals=computeTotals(items, receipt.payment, receipt.taxRate);
   receipt.signature=signatureData;
   receipt.nastf=nastfInfo;
   if(!receipt.technician) receipt.technician=currentTechnician();  // groundwork for commission
@@ -2936,7 +2955,7 @@ function renderHistList(){
       const i=hist.findIndex(x=>x.number===num);
       if(i<0) return;
       const r=hist[i];
-      if(!r.totals){ r.totals=computeTotals(r.items||[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}], r.payment); }
+      if(!r.totals){ r.totals=computeTotals(r.items||[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}], r.payment, receiptTaxRate(r)); }
       if(!r.items) r.items=[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}];
       if(act==="share") shareDocument(r, "en", true);
       else if(act==="pdf") makePDF(r, "en");
@@ -2978,15 +2997,27 @@ function editReceipt(r){
   const origNumber=r.number;
   botSay("Editing "+r.number+". Pick a field to change, or tap Done.");
   function showFieldMenu(){
-    const options=["Customer","Contact","Phone","Email","Vehicle","VIN","Plate","Odometer","Notes","Done editing"];
+    const options=["Customer","Contact","Phone","Email","Vehicle","VIN","Plate","Odometer","Notes"];
+    if(_isOwnerForCosts()) options.push("Tax rate");   // owner-only per-receipt override
+    options.push("Done editing");
     inputbar.classList.add("hidden");
     botOptions(options, v=>{
       if(v==="Done editing"){
         const hist=getHistory();
         const i=hist.findIndex(x=>x.number===origNumber);
-        if(i>=0){ hist[i]=r; saveHistory(hist); }
+        // Recompute totals so any field/tax-rate change is reflected (uses this receipt's rate).
+        if(i>=0){ try{ r.totals=computeTotals(r.items||[], r.payment, receiptTaxRate(r)); }catch(e){} hist[i]=r; saveHistory(hist); }
         botSay("Saved changes to "+r.number+".");
         renderReceiptCard(r);
+        return;
+      }
+      if(v==="Tax rate"){
+        inputbar.classList.remove("hidden");
+        botSay("Tax rate % for THIS receipt? (current: "+receiptTaxRate(r)+"% · shop default "+configTaxRate()+"%)");
+        const oldH=sendBtn.onclick;
+        sendBtn.onclick=()=>{ const val=input.value.trim(); input.value="";
+          if(val!==""){ r.taxRate=parseFloat(val)||0; meSay(r.taxRate+"%"); } else { meSay("(no change)"); }
+          sendBtn.onclick=oldH; setTimeout(showFieldMenu,200); };
         return;
       }
       const fieldMap={"Customer":"customer","Contact":"contact","Phone":"phone","Email":"email",
@@ -3094,9 +3125,26 @@ function loadSettingsForm(){
   document.getElementById("setPhone").value=s.phone||"";
   document.getElementById("setEmail").value=s.email||"";
   document.getElementById("setLicense").value=s.license||"";
-  document.getElementById("setTaxRate").value=s.taxRate!==undefined?s.taxRate:"";
+  // Tax config comes from the cloud-synced owner config (not local SETTINGS).
+  const cfg = (window.TKS&&TKS.Config)?TKS.Config.get():{taxRate:0,taxableByCategory:{}};
+  const owner = (typeof _isOwnerForCosts==="function") ? _isOwnerForCosts() : true;
+  document.getElementById("setTaxRate").value = (cfg.taxRate!=null?cfg.taxRate:"");
+  document.getElementById("setTaxRate").disabled = !owner;
+  document.getElementById("taxOwnerNote").textContent = owner ? "" : "Tax settings are owner-only.";
+  renderTaxToggles(cfg, owner);
   document.getElementById("setSurcharge").value=s.surcharge!==undefined?s.surcharge:"";
   cjRender();
+}
+function renderTaxToggles(cfg, owner){
+  const box=document.getElementById("taxCatToggles"); if(!box) return;
+  box.innerHTML="";
+  LINE_CATEGORIES.filter(c=>!c.isDiscount).forEach(c=>{
+    const on = (cfg.taxableByCategory && (c.key in cfg.taxableByCategory)) ? !!cfg.taxableByCategory[c.key] : !!c.defaultTax;
+    const row=document.createElement("label");
+    row.style.cssText="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer";
+    row.innerHTML='<input type="checkbox" class="taxCatCb" data-cat="'+c.key+'" '+(on?"checked":"")+(owner?"":" disabled")+' style="width:18px;height:18px;flex:0 0 auto"> '+escapeHtml(c.label);
+    box.appendChild(row);
+  });
 }
 
 /* ==========================================================
@@ -3248,12 +3296,17 @@ function saveSettings(){
     phone: document.getElementById("setPhone").value.trim(),
     email: document.getElementById("setEmail").value.trim(),
     license: document.getElementById("setLicense").value.trim(),
-    taxRate: parseFloat(document.getElementById("setTaxRate").value)||0,
     surcharge: parseFloat(document.getElementById("setSurcharge").value)||0
   };
   if(!s.name){ appAlert("Required", "Business name is required."); return; }
   saveSettingsObj(s);
   SETTINGS = Object.assign({}, DEFAULT_SETTINGS, s);
+  // Tax settings → cloud-synced owner config (owner-only). Rate + per-category taxability.
+  if((typeof _isOwnerForCosts!=="function" || _isOwnerForCosts()) && window.TKS && TKS.Config){
+    const taxableByCategory={};
+    document.querySelectorAll('.taxCatCb').forEach(cb=>{ taxableByCategory[cb.dataset.cat]=cb.checked; });
+    TKS.Config.save({ taxRate: parseFloat(document.getElementById("setTaxRate").value)||0, taxableByCategory });
+  }
   applyBranding();
   closeSettings();
 }
@@ -3362,6 +3415,13 @@ function boot(){
     applyBranding();
     startInterview();
   }
+  // One-time: carry a pre-existing local tax rate into the new cloud-synced config
+  // (so shops that had a rate keep it). Runs only when no config has been saved yet.
+  try{
+    if(!localStorage.getItem('tks_shop_config') && SETTINGS && Number(SETTINGS.taxRate)>0 && window.TKS && TKS.Config){
+      TKS.Config.save({ taxRate: Number(SETTINGS.taxRate), taxableByCategory: {} });
+    }
+  }catch(e){}
 }
 
 // when settings are closed for the first time, start the interview
@@ -3431,13 +3491,20 @@ function _receiptsRefresh(){
   function render(){
     if(modal) modal.remove();
     const sur=Math.round(S.baseCents*0.02);
+    const _t=(S.receipt&&S.receipt.totals)||{};
+    const taxC=Math.round((Number(_t.tax)||0)*100);
+    const rateLbl=_t.taxRate?(" ("+_t.taxRate+"%)"):"";
+    const taxRows = taxC>0 ? (
+        '<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#9aa3af"><span>Subtotal (goods + labor)</span><span>'+m(S.baseCents-taxC)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#9aa3af"><span>Sales Tax'+rateLbl+'</span><span>'+m(taxC)+'</span></div>') : "";
     modal=node(`<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center">
       <div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:440px;border-radius:18px 18px 0 0;padding:18px;max-height:92vh;overflow:auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:18px">Pay Now</b><button id="pnX" style="background:none;border:none;color:#9aa3af;font-size:26px;cursor:pointer;line-height:1;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
         <div style="font-size:13px;color:#9aa3af;margin-bottom:10px">Invoice ${esc(S.receipt.number||S.receipt.id)}</div>
         <div style="background:#11141a;border:1px solid #2a2f3a;border-radius:12px;padding:12px;margin-bottom:12px">
-          <div style="display:flex;justify-content:space-between"><span>Amount</span><b>${m(S.baseCents)}</b></div>
-          <div style="font-size:12px;color:#f2b43a;margin-top:6px">A 2% surcharge (${m(sur)}) applies to <b>credit</b> cards only — debit &amp; prepaid are never surcharged.</div>
+          ${taxRows}
+          <div style="display:flex;justify-content:space-between;margin-top:${taxC>0?'4px':'0'}"><span>Amount${taxC>0?' (incl. tax)':''}</span><b>${m(S.baseCents)}</b></div>
+          <div style="font-size:12px;color:#f2b43a;margin-top:6px">Then a 2% surcharge (${m(sur)}) is added on top for <b>credit</b> cards only — debit &amp; prepaid are never surcharged.</div>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:12px"><button class="pnM" data-m="reader">🏪 Reader</button><button class="pnM" data-m="keyed">⌨️ Type card</button></div>
         <div id="pnBody"></div><div id="pnStatus" style="font-size:13px;margin-top:10px;min-height:18px"></div>
@@ -3698,6 +3765,7 @@ function reverseStockForReceipt(r){
         <button type="button" id="qiAdd" style="background:#2a2f3a;border:none;color:#cbd2da;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;margin-bottom:8px">+ Add item</button>
         <div id="qiPayWrap"><label class="qiL">Payment method</label><div id="qiPay" style="display:flex;gap:6px;margin-bottom:4px"><button type="button" class="qiPB" data-p="Cash">Cash</button><button type="button" class="qiPB" data-p="Card">Card</button><button type="button" class="qiPB" data-p="Check">Check</button></div></div>
         <label class="qiL">Technician <span style="color:#6b7280">(for commission — optional)</span></label><input id="qiTech" class="qiI" placeholder="Who did the job">
+        <label class="qiL">Tax rate % <span style="color:#6b7280">(this receipt — blank uses the shop default)</span></label><input id="qiTaxRate" class="qiI" type="number" step="0.001" inputmode="decimal" placeholder="shop default">
         <label class="qiL">Notes</label><textarea id="qiNotes" class="qiI" style="min-height:46px"></textarea>
         <div id="qiErr" style="color:#f0a0a6;font-size:13px;margin:6px 0;min-height:16px"></div>
         <div style="display:flex;gap:8px;margin-top:4px"><button type="button" id="qiGo" style="flex:1;padding:13px;border:none;border-radius:11px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;cursor:pointer">Create</button><button type="button" id="qiCancel" style="padding:13px 16px;border:1px solid #2a2f3a;background:transparent;color:#9aa3af;border-radius:11px;cursor:pointer">Cancel</button></div>
@@ -3728,6 +3796,7 @@ function reverseStockForReceipt(r){
     }
     addItem(); modal.querySelector("#qiAdd").onclick=addItem;
     try{ modal.querySelector("#qiTech").value=currentTechnician(); }catch(e){}
+    try{ modal.querySelector("#qiTaxRate").placeholder="default "+configTaxRate()+"%"; }catch(e){}
     const cancel=()=>{ close(); if(typeof onCancel==="function") onCancel(); };
     modal.querySelector("#qiX").onclick=cancel; modal.querySelector("#qiCancel").onclick=cancel;
     modal.querySelector("#qiGo").onclick=()=>submit(getType,getSvc,getPay);
@@ -3758,6 +3827,7 @@ function reverseStockForReceipt(r){
       vehYear:(modal.querySelector("#qiVYear").value||"").trim(), vehMake:(modal.querySelector("#qiVMake").value||"").trim(),
       vehModel:(modal.querySelector("#qiVModel").value||"").trim(), vin:(modal.querySelector("#qiVin").value||"").trim(),
       technician:(modal.querySelector("#qiTech").value||"").trim(),
+      taxRate:(function(){ const v=(modal.querySelector("#qiTaxRate").value||"").trim(); return v!==""?(parseFloat(v)||0):configTaxRate(); })(),
       notes:(modal.querySelector("#qiNotes").value||"").trim()
     };
     if(dt==="invoice"){ receipt.payment="Not specified"; receipt.status="Unpaid"; }

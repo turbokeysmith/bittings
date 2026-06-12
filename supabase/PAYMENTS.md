@@ -85,8 +85,36 @@ No third-party email/SMS service, no API key, no cost — it uses the phone's ow
   base-only for debit/prepaid (Stripe releases the uncaptured surcharge), capture base+2% for credit.
 - Typed-card create returns a `client_secret` for the Payment Element.
 
+## Sales tax (configurable, server-authoritative, pass-through)
+- **Config (cloud-synced owner config):** a default **tax rate** (percent, e.g. `8.625`) plus per
+  line-category **taxable toggles** (defaults: Parts/Materials **on**, Labor/Service/Travel/etc **off**),
+  all editable, owner-gated, stored in Supabase `shop_config` (id=1) and mirrored locally. Exposed via
+  `TKS.Config` in `app/store.js`; edited in the Receipts **Settings** panel.
+- **Receipt math (`computeTotals` in `bittings.html`):** only lines marked taxable are taxed; **labor /
+  service stay on their own separately-stated lines and are excluded** (Oklahoma exempts separately-
+  stated labor — parts and labor are **never merged**); tax is shown as its **own line**.
+- **Per-receipt override:** the owner can set a different rate on an individual receipt (rates vary by
+  city); it **defaults to the shop rate**. Set in the Quick-invoice form or via Receipts → Edit → Tax
+  rate. The receipt **snapshots** its rate (`data.taxRate`).
+- **Authoritative (server-side):** `pay-create-intent` and `pay-record` **recompute** the base + tax
+  from the receipt's line items and its `taxRate` (`authoritativeTotals()`, an exact port of the client
+  `computeTotals` — parity verified). The client never sends an amount **or** a tax number; both come
+  from the stored receipt server-side. `tax_cents` is recorded on the transaction.
+- **Profit:** collected tax is **pass-through** — `Sales = base_cents − tax_cents` (also excludes the
+  card surcharge, which isn't in `base`), and `Profit = Sales − cost`. Transaction History shows a
+  separate **Tax collected** chip; Closeout shows a **sales tax** chip (the drawer "collected" still
+  includes tax, since that's real money received).
+
+## Order of operations (tax → bill → surcharge) — shown before charging
+1. **Tax** the taxable goods at the receipt's rate.
+2. Add it to the bill → that's the **base** (goods + separately-stated labor + tax).
+3. The **2% credit-only surcharge** is computed on the **final base** and added on top **at capture**
+   (credit cards only). The Pay Now screen shows the **subtotal, the tax line, the amount, and the
+   surcharge** before you charge.
+
 ## The surcharge mechanic (Oklahoma SB 677: 2% credit-only; debit/prepaid never)
-1. `pay-create-intent` authorizes **base + 2%** with **`capture_method: 'manual'`**.
+1. `pay-create-intent` authorizes **base + 2%** with **`capture_method: 'manual'`** (base already
+   includes any sales tax — surcharge is the **last** step, applied on the final base).
 2. On authorization the verified webhook (`payment_intent.amount_capturable_updated`) reads the
    card **funding**; captures **base+2% only if `funding === 'credit'`**, otherwise **base only**.
 3. Disclosure (“2% surcharge on credit cards”) must be shown **before** charging (signage + on-screen).

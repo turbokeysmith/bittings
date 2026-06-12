@@ -832,13 +832,14 @@ async function renderHistory(){
   const res=await TKPay.dayTransactions(start.toISOString(), end.toISOString());
   if(res.error){ list.innerHTML='<div class="empty">'+esc2(res.error)+'</div>'; return; }
   const rows=res.rows||[]; const money=c=>'$'+((c||0)/100).toFixed(2);
-  let collected=0,sur=0,refunds=0; const byM={card:0,cash:0,check:0};
-  rows.forEach(t=>{ if(t.status==='completed'){ const amt=t.captured_cents||0; collected+=amt; if(t.surcharge_applied) sur+=(t.surcharge_cents||0);
+  let collected=0,sur=0,tax=0,refunds=0; const byM={card:0,cash:0,check:0};
+  rows.forEach(t=>{ if(t.status==='completed'){ const amt=t.captured_cents||0; collected+=amt; if(t.surcharge_applied) sur+=(t.surcharge_cents||0); tax+=(t.tax_cents||0);
       byM[t.method==='cash'?'cash':t.method==='check'?'check':'card']+=amt; } if(t.status==='refunded') refunds++; });
   sum.innerHTML='<div class="chip"><b>'+money(collected)+'</b>collected</div>'+
     '<div class="chip"><b>'+rows.filter(t=>t.status==='completed').length+'</b>charges</div>'+
     '<div class="chip"><b>'+money(byM.card)+'</b>card</div><div class="chip"><b>'+money(byM.cash)+'</b>cash</div>'+
     '<div class="chip"><b>'+money(byM.check)+'</b>check</div><div class="chip"><b>'+money(sur)+'</b>surcharge</div>'+
+    '<div class="chip"><b>'+money(tax)+'</b>sales tax</div>'+
     (refunds?'<div class="chip low"><b>'+refunds+'</b>refunded</div>':'');
   if(!rows.length){ list.innerHTML='<div class="empty">No transactions on this day.</div>'; return; }
   list.innerHTML=rows.map(t=>{
@@ -942,18 +943,22 @@ async function renderReports(){
   const rows = sel.value==='all' ? allRows : allRows.filter(t=>(t.technician||'').trim()===sel.value);
   const gran=repGran(v.period), buckets=repBuckets(start,end,gran);
   const agg={}; buckets.forEach(b=> agg[b.key]={sales:0,cost:0,profit:0,jobs:0});
-  const tot={sales:0,cost:0,profit:0,jobs:0}; const byMethod={card:0,cash:0,check:0};
+  const tot={sales:0,cost:0,profit:0,jobs:0,tax:0}; const byMethod={card:0,cash:0,check:0};
   rows.forEach(t=>{ if(t.status!=='completed') return;
-    const sales=t.captured_cents||0, cost=t.cost_cents||0, profit=sales-cost;
-    tot.sales+=sales; tot.cost+=cost; tot.profit+=profit; tot.jobs+=1;
+    // Sales/Profit = goods+labor revenue only. Tax is pass-through (excluded), and
+    // base_cents already excludes the card surcharge. sales = base - tax.
+    const tax=t.tax_cents||0, cost=t.cost_cents||0;
+    const sales=Math.max(0,(t.base_cents||0)-tax), profit=sales-cost;
+    tot.sales+=sales; tot.cost+=cost; tot.profit+=profit; tot.jobs+=1; tot.tax+=tax;
     byMethod[t.method==='cash'?'cash':t.method==='check'?'check':'card']+=sales;
     const k=repBucketKey(new Date(t.created_at), gran); if(agg[k]){ agg[k].sales+=sales; agg[k].cost+=cost; agg[k].profit+=profit; agg[k].jobs+=1; }
   });
-  // Metric cards (only the toggled-on ones)
-  cards.innerHTML = REP_METRICS.filter(x=>m[x.key]).map(x=>{
+  // Metric cards (only the toggled-on ones) + an always-on "Tax collected" (pass-through).
+  cards.innerHTML = (REP_METRICS.filter(x=>m[x.key]).map(x=>{
     const val = x.kind==='money' ? repMoney(tot[x.key]) : String(tot[x.key]);
     return '<div class="chip m-'+x.key+'">'+x.label+'<b>'+val+'</b></div>';
-  }).join('') || '<div class="empty" style="padding:10px">No metrics selected — toggle one above.</div>';
+  }).join('')) +
+    '<div class="chip" style="border-color:rgba(154,161,172,.4)">Tax collected <span style="font-weight:400;color:#6b7280">· pass-through</span><b>'+repMoney(tot.tax)+'</b></div>';
   drawRepChart(v.chart, buckets, agg, m, byMethod);
   // Transaction list (period rows, newest first)
   if(!rows.length){ list.innerHTML='<div class="empty">No transactions in this period.</div>'; return; }
