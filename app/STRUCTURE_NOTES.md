@@ -197,6 +197,25 @@ Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
 - **Typed-card key:** replaced the `prompt()` paste with an inline `#pnPK` input (16px) in `renderKeyed`
   — in **both** `app/pay.js` and the `bittings.html` inline Pay Now; `startKeyed` reads/saves it.
 
+## Update 2026-06-12 PM3 — configurable sales tax (server-authoritative, pass-through)
+- **Cloud-synced config:** new Supabase `shop_config` table (single row id=1: `tax_rate`,
+  `taxable_categories` jsonb) + RLS. `TKS.Config` in `store.js` (`get/save/load/taxableDefault`) with
+  localStorage fallback; `connectCloud` calls `Config.load()` to pull. `site/app/store.js` synced.
+- **bittings.html:** `catDefaultTax(key)` now reads `TKS.Config` overrides; new `configTaxRate()` /
+  `receiptTaxRate(r)`. `computeTotals(its, payment, taxRatePct)` (was `SETTINGS.taxRate`). `finish()`
+  snapshots `receipt.taxRate` (override → config). Settings panel: tax-rate field + per-category
+  taxable toggles (`#taxCatToggles`), **owner-gated** (`_isOwnerForCosts`), saved to `TKS.Config`.
+  Per-receipt override: Quick-invoice `#qiTaxRate` field + Receipts → Edit → **Tax rate** (recomputes
+  on save). Pay Now amount box shows the **subtotal / tax / amount / surcharge** breakdown.
+- **Edge functions:** `pay-create-intent` + `pay-record` gained `authoritativeTotals(data)` — an exact
+  port of `computeTotals` (base = goods+labor+tax; **parity unit-tested 7/7 + live-checked**), so tax is
+  computed **server-side from the stored receipt** (client sends neither amount nor tax). Records
+  `tax_cents` (new column on `payment_transactions`).
+- **index.html reports:** Sales = `base_cents − tax_cents` (excludes pass-through tax **and** the
+  surcharge, since `base` excludes it); Profit = Sales − cost. Transaction History adds an always-on
+  **Tax collected** chip; Closeout adds a **sales tax** chip. Order of operations: tax → base →
+  2% credit-only surcharge at capture.
+
 **`bittings.html` Quick invoice** — owner-only one-screen alternative to the chat (trainees can't see
 it). `window.quickInvoiceAvailable`/`requestQuickInvoice`/`openQuickInvoice`; on/off via
 `TKS_OWNER.QUICK_INVOICE_ENABLED`, auto-open (owner signed-in only, never PIN) via

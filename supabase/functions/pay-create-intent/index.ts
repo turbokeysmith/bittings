@@ -34,6 +34,34 @@ function techOf(data: any): string | null {
   const t = (data?.technician ?? "").toString().trim();
   return t ? t : null;
 }
+// AUTHORITATIVE total — recomputed server-side from the receipt's line items and
+// its tax rate (the client never sends an amount; tax is NOT trusted from the
+// client). Mirrors computeTotals() in bittings.html exactly (verified parity).
+// Order of operations: tax taxable goods → add to the bill (base) → the 2%
+// credit-only surcharge is applied on `base` later, at capture. Returns the
+// pre-surcharge base and the pass-through tax, both in integer cents.
+function authoritativeTotals(data: any): { base_cents: number; tax_cents: number } {
+  const items = Array.isArray(data?.items) ? data.items : [];
+  if (!items.length) { // legacy / non-itemized receipt → trust stored totals (minus est. surcharge)
+    const t = data?.totals || {};
+    const base = Math.max(0, Number(t.total ?? data?.amount ?? 0) - Number(t.surcharge ?? 0));
+    return { base_cents: Math.round(base * 100), tax_cents: Math.round(Math.max(0, Number(t.tax ?? 0)) * 100) };
+  }
+  const taxRate = Number(data?.taxRate ?? 0) / 100;
+  let taxable = 0, nontax = 0;
+  for (const it of items) { if (it?.isDiscount) continue; const a = Number(it?.amount) || 0; if (it?.taxable) taxable += a; else nontax += a; }
+  const gross = taxable + nontax;
+  let disc = 0;
+  for (const it of items) { if (!it?.isDiscount) continue; disc += it.discountMode === "percent" ? gross * ((Number(it.discountValue) || 0) / 100) : (Number(it.discountValue) || 0); }
+  if (disc > gross) disc = gross;
+  disc = Math.round(disc * 100) / 100;
+  let dT = 0, dN = 0;
+  if (gross > 0 && disc > 0) { dT = disc * (taxable / gross); dN = disc * (nontax / gross); }
+  const taxableAfter = Math.max(0, taxable - dT);
+  const subtotal = Math.round((taxableAfter + Math.max(0, nontax - dN)) * 100) / 100;
+  const tax = Math.round(taxableAfter * taxRate * 100) / 100;
+  return { base_cents: Math.round((subtotal + tax) * 100), tax_cents: Math.round(tax * 100) };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -62,10 +90,7 @@ Deno.serve(async (req) => {
     if (r.error) return json(500, { error: "receipt lookup failed: " + r.error.message });
     const rec = r.data?.[0];
     if (!rec) return json(404, { error: "invoice not found in cloud (is the receipt synced to Supabase?)" });
-    const totals = (rec as any).data?.totals || {};
-    const totalDollars = Number(totals.total ?? (rec as any).data?.amount ?? 0);
-    const recSurcharge = Number(totals.surcharge ?? 0);
-    const base_cents = Math.round(Math.max(0, totalDollars - recSurcharge) * 100);
+    const { base_cents, tax_cents } = authoritativeTotals((rec as any).data);
     if (base_cents < 50) return json(400, { error: "invoice base must be at least $0.50" });
     const surcharge_cents = Math.round(base_cents * SURCHARGE_PCT);
     const authorized_cents = base_cents + surcharge_cents;
@@ -87,7 +112,7 @@ Deno.serve(async (req) => {
       method, currency: "usd", base_cents, surcharge_cents, authorized_cents,
       reader_id: readerId, stripe_payment_intent_id: pi.id, status: "pending",
       description: descOf((rec as any).data), cost_cents: costCentsOf((rec as any).data),
-      technician: techOf((rec as any).data),
+      technician: techOf((rec as any).data), tax_cents,
       idempotency_key, created_by: uidFromJwt(req),
     });
 

@@ -260,8 +260,9 @@ prioritize.*
   **thermal-printer** print path is a separate future task (flagged under Track B4).
 - ⬜ **Daily email summary** — auto-email you the Closeout totals at end of day (Supabase scheduled
   function). Saves opening the app to reconcile.
-- ⬜ **Sales tax** — if any items are taxable, decide tax handling now (the receipt has a `tax` slot
-  but it's $0). Oklahoma rules; affects Profit math.
+- ✅ **Sales tax (2026-06-12)** — configurable rate + per-category taxable toggles (cloud-synced owner
+  config), separately-stated labor excluded (OK rule), server-authoritative recompute, per-receipt
+  override, pass-through (excluded from Sales/Profit; shown separately). *(Pending mobile sign-off.)*
 - ⬜ **Tips** — if you want to allow tips on card, add it before live (affects surcharge base).
 - ✅ **Refund/void button** in Transaction History (2026-06-12) — card via `pay-refund`, cash/check via
   `pay-void`, returns parts to stock. *(Pending mobile sign-off.)*
@@ -295,7 +296,8 @@ prioritize.*
    UI still to come).
 2. ⏸️ **Payments go-live timing** — when to swap to live keys, do one real charge, and retire
    `TurboStripe.exe` (+ rotate the old key). (Track B4)
-3. ⏸️ **Sales tax** — taxable items? Decide before live; affects the receipt + Profit. (Additional)
+3. ✅ **Sales tax — DECIDED & BUILT (2026-06-12):** configurable rate + per-category toggles, OK
+   separately-stated-labor exclusion, server-authoritative, per-receipt override, pass-through.
 4. ⏸️ **Receipt delivery** — email/text/PDF a receipt to the customer after a charge? (Additional)
 5. ⏸️ **Lead notifications** — email or text on a new lead? (Track E)
 6. ⏸️ **Contact form → cloud** — edge function vs public-insert rule (Track E)

@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 16:25 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 17:04 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -351,6 +351,19 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
+- **Sales tax — configurable, not hardcoded (17:04):** you can now set a **sales-tax rate** (e.g.
+  8.625%) and choose **which kinds of line items are taxable** (defaults: Parts/Materials **taxed**,
+  Labor/Service **not** taxed) — in Receipts → Settings, **owner-only**, and it **syncs to the cloud**
+  so every device matches. On a receipt, only taxable lines are taxed, **labor stays on its own line
+  and is excluded** (Oklahoma exempts separately-stated labor — parts and labor are never lumped
+  together), and **tax shows as its own line**. Because you're mobile and city rates vary, you can
+  **override the rate on an individual receipt** (it defaults to your shop rate) — on the Quick invoice,
+  or via Receipts → Edit → Tax rate. The math is done **on the server** from the saved receipt, so a
+  phone can't fudge the amount or the tax. **Order on the bill:** tax the goods → that's the amount →
+  then the 2% credit-card surcharge is added on top of that — and the Pay screen shows the subtotal,
+  tax, amount, and surcharge before you charge. **Collected tax is pass-through:** it's **excluded from
+  Total Sales and Profit**, and shown separately ("Tax collected" in Transaction History, "sales tax" in
+  Closeout) so you know what to remit. Still TEST mode; owner-gated; **pending your mobile sign-off**.
 - **Phone-layout cleanup pass (16:25):** from the full mobile audit — made things fit and tap nicely on
   a small phone. Dropped the extra **💬 Text / ✉️ Email** buttons from the receipt card (the **📤 Share**
   button already opens Messages/Mail and attaches the PDF, so they were redundant and crowding the bar);

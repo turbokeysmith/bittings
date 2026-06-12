@@ -493,6 +493,25 @@
   var changeHandlers = [];
   var authState = { user: null, sb: null };   // current signed-in user (cloud)
 
+  // ---- cloud-synced owner config (shop_config table; localStorage fallback) ----
+  // Today this holds the sales-tax settings: a default rate (percent) and which
+  // line categories are taxable. Editable by the owner; mirrored to Supabase so
+  // every signed-in device shares it. Receipts snapshot their own rate (override).
+  var CONFIG_LSKEY = 'tks_shop_config';
+  var CONFIG_DEFAULTS = {
+    taxRate: 0,  // percent, e.g. 8.625
+    taxableByCategory: { Labor: false, Materials: true, Travel: false, Programming: false, AfterHours: false }
+  };
+  var configCache = null;
+  function mergeConfig(c) {
+    c = c || {};
+    return {
+      taxRate: (c.taxRate != null && c.taxRate !== '') ? Number(c.taxRate) : CONFIG_DEFAULTS.taxRate,
+      taxableByCategory: Object.assign({}, CONFIG_DEFAULTS.taxableByCategory, c.taxableByCategory || {})
+    };
+  }
+  function getConfig() { if (!configCache) configCache = mergeConfig(read(CONFIG_LSKEY, null)); return configCache; }
+
   global.TKS = {
     KEYS: KEYS, uid: uid, read: read, write: write,
     adapter: function () { return ADAPTER.name; },
@@ -522,6 +541,41 @@
       },
       role: function () { return !this.isSignedIn() ? 'guest' : (this.isOwner() ? 'owner' : 'staff'); },
       signOut: function () { return (authState.sb && authState.sb.auth) ? authState.sb.auth.signOut() : Promise.resolve(); }
+    },
+
+    /* ---------------------------------------------------------------- *
+     *  Config — cloud-synced owner config (sales tax today).            *
+     *  get() returns { taxRate, taxableByCategory }. taxableDefault(cat) *
+     *  is the per-category default for a new line. save() writes local  *
+     *  + upserts shop_config (id=1). load() pulls from the cloud.        *
+     * ---------------------------------------------------------------- */
+    Config: {
+      get: function () { return getConfig(); },
+      taxableDefault: function (category) { return !!getConfig().taxableByCategory[category]; },
+      save: function (cfg) {
+        configCache = mergeConfig(cfg);
+        write(CONFIG_LSKEY, configCache);
+        if (authState.sb) {
+          try {
+            authState.sb.from('shop_config').upsert({
+              id: 1, tax_rate: configCache.taxRate, taxable_categories: configCache.taxableByCategory,
+              updated_by: (authState.user ? authState.user.id : null), updated_at: new Date().toISOString()
+            }).then(function () {}, function () {});
+          } catch (e) {}
+        }
+        changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
+        return configCache;
+      },
+      load: function () {
+        if (!authState.sb) return Promise.resolve(getConfig());
+        try {
+          return authState.sb.from('shop_config').select('*').eq('id', 1).limit(1).then(function (res) {
+            var row = res && res.data && res.data[0];
+            if (row) { configCache = mergeConfig({ taxRate: row.tax_rate, taxableByCategory: row.taxable_categories }); write(CONFIG_LSKEY, configCache); }
+            return configCache;
+          }, function () { return getConfig(); });
+        } catch (e) { return Promise.resolve(getConfig()); }
+      }
     },
 
     // Generic passthroughs so pages that keep their own array logic
@@ -572,8 +626,9 @@
           var u = res && res.data && res.data.user;
           authState.user = u ? { id: u.id, email: u.email } : null;
         }).catch(function () {}).then(function () {
-          changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
-          return true;
+          // pull the cloud-synced owner config (tax settings), then notify the UI
+          var done = function () { changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} }); return true; };
+          try { return global.TKS.Config.load().then(done, done); } catch (e) { return done(); }
         });
       });
     }
