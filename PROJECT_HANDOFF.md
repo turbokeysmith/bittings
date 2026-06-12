@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 00:34 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 11:25 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -297,6 +297,17 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
+- **Two owner-only money tiles: Closeout + Transaction History (11:25):** the day-closeout and the
+  transaction history are now **their own tiles on the Home screen, just for you** — a trainee signed in
+  as staff won't see them. **Closeout** counts today's drawer (collected, split by card/cash/check,
+  surcharge, refunds). **Transaction History** opens on **today** (the daily "reset" — nothing is ever
+  deleted, older sales just drop off the default view and stay filed under each customer) and has a
+  **period dropdown** (Today / Week / Month / Quarter / Year) plus a **graph you can switch between bar,
+  line, area, pie and doughnut**. It shows **Total Jobs, Total Sales, Total Cost and Total Profit**, and
+  you can **turn each of those on or off**. Groundwork laid for **profit and per-technician commission**:
+  Inventory already holds each part's **cost**, and every sale can now carry a cost and a technician —
+  today Cost shows $0 / Profit equals Sales until parts (and techs) are attached to a sale, then those
+  numbers and a "filter by technician" fill in with no rebuild.
 - **Cash & check tenders + a day-closeout history (00:34):** both pay screens (the invoice **Pay Now**
   and the Payments-tile **New Charge**) now offer three buttons — **💳 Card**, **💵 Cash**, **🧾 Check**.
   Cash/check are recorded straight through (no Stripe) and — as required by law — carry **no surcharge**;

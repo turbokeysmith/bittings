@@ -17,11 +17,27 @@ Both entry points offer three tenders: **💳 Card** (reader or typed, 2% credit
 **💵 Cash**, and **🧾 Check**. Cash/check go through `pay-record` — **no Stripe, no surcharge** —
 and still write a `payment_transactions` row so they appear in the day closeout.
 
-## Day closeout (transaction history)
-Payments tile → **History** (`view-history` in `index.html`) calls `TKPay.dayTransactions(from,to)`
-(queries `payment_transactions` for the range) and shows summary chips — **collected**, # charges,
-and a breakdown by **card / cash / check**, plus **surcharge** collected and **refunded** — over a
-list of rows (time · method · funding · status · amount). Use it to reconcile/close out the day.
+## Owner-only money tiles
+Two **owner-only** Home tiles (hidden for a signed-in trainee; shown to the owner or on an
+un-signed-in device — `ownerVisible()` / `syncOwnerTiles()` in `index.html`):
+
+**🧮 Closeout** (`view-history`) — today's **drawer count**. `TKPay.dayTransactions(from,to)` →
+summary chips (**collected**, # charges, **card / cash / check** split, **surcharge**, **refunded**)
+over a row list (time · method · funding · status · amount).
+
+**📊 Transaction History** (`view-reports`) — analytics. Lands on **today** (the "daily reset" is
+just the default view — nothing is deleted; every charge stays filed under its customer via its
+receipt). Controls: a **period** dropdown (Today / Week / Month / Quarter / Year) and a **graph-type**
+dropdown (bar / line / area / pie / doughnut, via **Chart.js**). Four metric cards — **Total Jobs /
+Sales / Cost / Profit** — each **toggleable** (choice persisted in `localStorage`); toggles drive both
+the cards and the graph series. Bar/line/area plot the selected metrics bucketed over the period
+(money on the left axis, job-count on the right); pie/doughnut show **Sales by payment method**.
+
+**Cost & Profit + technician/commission (plumbed, not yet wired).** `payment_transactions` now has
+`cost_cents` (COGS; profit = `captured_cents − coalesce(cost_cents,0)`) and `technician` (for
+per-tech totals + commission, indexed). Both are null today, so Cost = $0 and Profit = Sales until a
+sale carries a cost / tech — at which point the existing cards, filter, and graph light up with no
+rework. Inventory already stores a per-part **cost** (`inventory.cost`), ready to source COGS.
 
 ## Why this shape
 - **One auth/session:** the portal calls the functions with the staff member's **existing Supabase
@@ -96,6 +112,10 @@ a clean add-on later.
 - ✅ **Cash / check** tenders (`pay-record`) — no surcharge; **Day-closeout history** (`view-history`,
   `TKPay.dayTransactions`) breaking down collected by card/cash/check + surcharge + refunds. Cash path
   rehearsed ($25 → recorded `completed`, surcharge 0).
+- ✅ **Owner-only tiles**: **Closeout** (drawer) + **Transaction History** (period dropdown + Chart.js
+  graph + toggleable Total Jobs/Sales/Cost/Profit cards). Added `cost_cents` + `technician` columns
+  (migration `payment_transactions_cost_and_technician`) so Profit + per-tech commission are a no-rework
+  add-on once parts/tech get linked to a sale.
 
 ## Test plan (once the webhook secret is set)
 Reader: create a receipt (synced) → `pay-create-intent {invoiceId, method:'reader', readerId}` →

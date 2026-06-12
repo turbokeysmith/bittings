@@ -27,6 +27,8 @@ create table if not exists public.payment_transactions (
   failure_reason           text,
   idempotency_key          text,                         -- inv_<id>_attempt_<n> (card) | inv_<id>_<method> (cash/check)
   description              text,                         -- human label for the day-closeout history
+  cost_cents               integer,                      -- COGS (parts) for this sale; null/0 = unknown. profit = captured - coalesce(cost_cents,0)
+  technician               text,                         -- tech/employee attributed (per-tech totals + commission); null = unattributed
   created_by               uuid,                         -- auth.uid of the cashier
   created_at               timestamptz not null default now(),
   updated_at               timestamptz not null default now()
@@ -34,6 +36,7 @@ create table if not exists public.payment_transactions (
 create index if not exists pt_pi_idx      on public.payment_transactions (stripe_payment_intent_id);
 create index if not exists pt_invoice_idx on public.payment_transactions (invoice_id);
 create unique index if not exists pt_idem_idx on public.payment_transactions (idempotency_key) where idempotency_key is not null;
+create index if not exists pt_technician_idx on public.payment_transactions (technician) where technician is not null;
 
 -- Verified-webhook sink: audit trail + event idempotency (PK = stripe event id).
 create table if not exists public.payment_events (
