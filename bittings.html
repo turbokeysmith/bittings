@@ -499,10 +499,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .rc-pm{font-size:11px;color:#777;margin-top:5px;text-align:right;}
   .rc-st{font-size:11.5px;font-weight:800;margin-top:2px;text-align:right;}
   .rc-notes{font-size:11.5px;color:#555;margin-top:10px;padding-top:8px;border-top:1px dashed #ccc;font-style:italic;}
-  .rc-actions{display:flex;border-top:1px solid #eee;}
+  .rc-actions{display:flex;flex-wrap:wrap;border-top:1px solid #eee;}
   .rc-actions button{
-    flex:1;background:var(--red);color:#fff;border:none;
-    padding:12px;font-size:13px;font-weight:700;border-right:1px solid rgba(255,255,255,.2);
+    flex:1 1 45%;min-width:140px;min-height:44px;background:var(--red);color:#fff;border:none;
+    padding:13px;font-size:13px;font-weight:700;border-right:1px solid rgba(255,255,255,.2);
+    border-bottom:1px solid rgba(255,255,255,.2);white-space:nowrap;
   }
   .rc-actions button:last-child{border-right:none;}
   .rc-actions button:active{background:#a82828;}
@@ -2561,17 +2562,13 @@ function renderReceiptCard(r){
        '<button data-lang="en" data-copy="mine" title="Your full copy with NASTF audit fields">My Copy</button>'+
        '<button data-lang="en" data-copy="customer" title="Customer-facing copy (NASTF fields hidden)">Customer Copy</button>'+
        '<button data-lang="es" data-copy="customer" title="Customer Copy in Spanish">Español</button>'+
-       '<button data-share="1" data-lang="en" data-copy="customer" title="Send via text, email, or another app — attaches the PDF">📤 Share</button>'+
-       (r.phone?'<button data-send="text" title="Prefill a text to '+escapeHtml(r.phone)+' (best-effort)">💬 Text</button>':'')+
-       (r.email?'<button data-send="email" title="Prefill an email to '+escapeHtml(r.email)+'">✉️ Email</button>':'')+
+       '<button data-share="1" data-lang="en" data-copy="customer" title="Send via the share sheet — pick Messages, Mail, etc.; attaches the PDF">📤 Share</button>'+
      '</div>'+
    '</div>';
   chat.appendChild(card);
   card.querySelectorAll(".rc-actions button").forEach(b=>{
     b.onclick=()=>{
-      if(b.dataset.send === "text"){ sendByText(r); }
-      else if(b.dataset.send === "email"){ sendByEmail(r); }
-      else if(b.dataset.share === "1"){
+      if(b.dataset.share === "1"){
         shareDocument(r, b.dataset.lang || "en", b.dataset.copy === "customer");
       }else{
         makePDF(r, b.dataset.lang||"en", b.dataset.copy==="customer");
@@ -2643,33 +2640,6 @@ function shareDocument(r, lang, forCustomer){
     appAlert("Share not supported here",
       "This browser doesn't support file sharing. The PDF was downloaded instead — open it from your Files/Downloads to share manually.");
   }
-}
-
-/* ----------------------------------------------------------
-   Best-effort convenience senders (NO email service, NO cost):
-   open the device's own Messages / Mail prefilled. These carry a
-   short TEXT summary only — the actual PDF goes via 📤 Share
-   (the Web Share sheet, which can attach the file). sms: prefill
-   is unreliable on some Android builds, so treat as best-effort.
-   ---------------------------------------------------------- */
-function receiptSummaryText(r){
-  const biz=SETTINGS.name||"your locksmith";
-  const lbl=docLabel(r.docType); const nice=lbl.charAt(0)+lbl.slice(1).toLowerCase();
-  const total=(r.totals&&r.totals.total!=null)?money(r.totals.total):"";
-  return [nice+" "+r.number+" from "+biz, total?("Total: "+total):"", "Thank you for your business!"].filter(Boolean).join("\n");
-}
-function sendByText(r){
-  const phone=(r.phone||"").replace(/[^\d+]/g,"");
-  if(!phone){ appAlert("No phone on file","Add the customer's phone, or use 📤 Share to pick an app."); return; }
-  // "?&body=" is the form that prefills on iOS and most Android builds.
-  window.location.href="sms:"+phone+"?&body="+encodeURIComponent(receiptSummaryText(r));
-}
-function sendByEmail(r){
-  const email=(r.email||"").trim();
-  if(!email){ appAlert("No email on file","Add the customer's email, or use 📤 Share to pick an app."); return; }
-  const subj=(docLabel(r.docType).charAt(0)+docLabel(r.docType).slice(1).toLowerCase())+" "+r.number+(SETTINGS.name?(" — "+SETTINGS.name):"");
-  const body=receiptSummaryText(r)+"\n\n(Tip: to send the PDF itself, use the 📤 Share button and pick Mail/Gmail.)";
-  window.location.href="mailto:"+encodeURIComponent(email)+"?subject="+encodeURIComponent(subj)+"&body="+encodeURIComponent(body);
 }
 
 /* ==========================================================
@@ -3463,7 +3433,7 @@ function _receiptsRefresh(){
     const sur=Math.round(S.baseCents*0.02);
     modal=node(`<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center">
       <div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:440px;border-radius:18px 18px 0 0;padding:18px;max-height:92vh;overflow:auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:18px">Pay Now</b><button id="pnX" style="background:none;border:none;color:#9aa3af;font-size:24px;cursor:pointer;line-height:1">&times;</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:18px">Pay Now</b><button id="pnX" style="background:none;border:none;color:#9aa3af;font-size:26px;cursor:pointer;line-height:1;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
         <div style="font-size:13px;color:#9aa3af;margin-bottom:10px">Invoice ${esc(S.receipt.number||S.receipt.id)}</div>
         <div style="background:#11141a;border:1px solid #2a2f3a;border-radius:12px;padding:12px;margin-bottom:12px">
           <div style="display:flex;justify-content:space-between"><span>Amount</span><b>${m(S.baseCents)}</b></div>
@@ -3512,13 +3482,17 @@ function _receiptsRefresh(){
   }
 
   function renderKeyed(){
-    modal.querySelector("#pnBody").innerHTML=`<div id="pnPE" style="background:#fff;border-radius:10px;padding:10px;margin-bottom:10px;min-height:42px"></div>${payBtn("Start card entry","pnGo")}`;
+    const pk=localStorage.getItem("tks_pay_pk")||"";
+    const pkRow = pk ? "" : `<label style="font-size:12px;color:#9aa3af">Stripe publishable key (one-time)</label>
+      <input id="pnPK" type="text" inputmode="text" autocomplete="off" placeholder="pk_test_…" style="width:100%;background:#11141a;border:1px solid #2a2f3a;border-radius:10px;color:#f4f5f7;padding:11px;font-size:16px;box-sizing:border-box;margin:4px 0 10px">`;
+    modal.querySelector("#pnBody").innerHTML=`${pkRow}<div id="pnPE" style="background:#fff;border-radius:10px;padding:10px;margin-bottom:10px;min-height:42px"></div>${payBtn("Start card entry","pnGo")}`;
     modal.querySelector("#pnGo").onclick=startKeyed;
   }
   async function startKeyed(){
     if(!window.Stripe){ status("Stripe.js didn't load.","bad"); return; }
     let pk=localStorage.getItem("tks_pay_pk")||"";
-    if(!pk){ pk=(prompt("Enter your Stripe publishable key (pk_test_…):")||"").trim(); if(pk) localStorage.setItem("tks_pay_pk",pk); else { status("Publishable key needed for typed card.","bad"); return; } }
+    if(!pk){ const f=modal.querySelector("#pnPK"); pk=((f&&f.value)||"").trim();
+      if(pk) localStorage.setItem("tks_pay_pk",pk); else { status("Enter your publishable key (pk_test_…) to continue.","bad"); if(f) f.focus(); return; } }
     status("Preparing secure card field…");
     const j=await call("pay-create-intent",{invoiceId:S.receipt.id,method:"keyed",attempt:S.attempt});
     if(j.error||!j.clientSecret){ status(j.error||"no client secret","bad"); return; }
@@ -3596,7 +3570,7 @@ function pickInventoryPart(onPick){
   const ov=document.createElement("div");
   ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px";
   ov.innerHTML=`<div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:460px;border-radius:16px;padding:16px;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:17px">📦 Pick a part</b><button id="ipX" style="background:none;border:none;color:#9aa3af;font-size:24px;cursor:pointer">&times;</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:17px">📦 Pick a part</b><button id="ipX" style="background:none;border:none;color:#9aa3af;font-size:26px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
     <input id="ipQ" placeholder="Search name, SKU, fitment, VIN…" style="width:100%;background:#11141a;border:1px solid #2a2f3a;border-radius:10px;color:#f4f5f7;padding:11px;font-size:15px;box-sizing:border-box">
     <div id="ipList" style="margin-top:10px;max-height:60vh;overflow:auto"></div>
   </div>`;
@@ -3696,8 +3670,8 @@ function reverseStockForReceipt(r){
     return `<div class="qiItem" data-part="" style="border:1px solid #232833;border-radius:10px;padding:8px;margin-bottom:7px">
       <div style="display:flex;gap:6px;margin-bottom:5px;align-items:center">
         <input class="qiDesc" placeholder="Description" style="flex:1;background:#11141a;border:1px solid #2a2f3a;border-radius:8px;color:#f4f5f7;padding:9px;font-size:15px">
-        <button type="button" class="qiPick" title="Pick a part from Inventory (captures its cost)" style="background:#2a2f3a;border:none;color:#cbd2da;border-radius:8px;padding:9px 10px;font-size:15px;cursor:pointer">📦</button>
-        <button type="button" class="qiDel" title="Remove" style="background:none;border:none;color:#9aa3af;cursor:pointer;font-size:18px">&times;</button></div>
+        <button type="button" class="qiPick" title="Pick a part from Inventory (captures its cost)" style="background:#2a2f3a;border:none;color:#cbd2da;border-radius:8px;min-width:44px;min-height:44px;font-size:18px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">📦</button>
+        <button type="button" class="qiDel" title="Remove" style="background:none;border:none;color:#9aa3af;cursor:pointer;font-size:22px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center">&times;</button></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <label style="${lbl}">Qty<input class="qiQty" inputmode="numeric" value="1" style="width:44px;${inp}"></label>
         <label style="${lbl}">Sale $<input class="qiAmt" placeholder="0.00" inputmode="decimal" style="width:72px;${inp}"></label>
@@ -3709,7 +3683,7 @@ function reverseStockForReceipt(r){
     if(modal) modal.remove();
     modal=node(`<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px">
       <div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:460px;border-radius:16px;padding:18px;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:18px">⚡ Quick invoice</b><button type="button" id="qiX" style="background:none;border:none;color:#9aa3af;font-size:24px;cursor:pointer">&times;</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:18px">⚡ Quick invoice</b><button type="button" id="qiX" style="background:none;border:none;color:#9aa3af;font-size:26px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
         <label class="qiL">Type</label>
         <div id="qiType" style="display:flex;gap:6px;margin-bottom:4px"><button type="button" class="qiTB" data-t="receipt">Receipt (paid)</button><button type="button" class="qiTB" data-t="invoice">Invoice (unpaid)</button><button type="button" class="qiTB" data-t="estimate">Estimate</button></div>
         <label class="qiL">Service</label>

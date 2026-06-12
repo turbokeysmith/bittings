@@ -81,7 +81,7 @@
     const sur=Math.round(S.baseCents*0.02);
     modal=nodeEl(`<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center">
       <div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:440px;border-radius:18px 18px 0 0;padding:18px;max-height:92vh;overflow:auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:18px">Pay Now</b><button type="button" id="pnX" style="background:none;border:none;color:#9aa3af;font-size:24px;cursor:pointer;line-height:1">&times;</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:18px">Pay Now</b><button type="button" id="pnX" style="background:none;border:none;color:#9aa3af;font-size:26px;cursor:pointer;line-height:1;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
         <div style="font-size:13px;color:#9aa3af;margin-bottom:10px">${esc(S.title)}</div>
         <div style="background:#11141a;border:1px solid #2a2f3a;border-radius:12px;padding:12px;margin-bottom:12px">
           <div style="display:flex;justify-content:space-between"><span>Amount</span><b>${m(S.baseCents)}</b></div>
@@ -129,13 +129,17 @@
     const j=await call("pay-terminal",body); if(j.error) status("Simulate: "+j.error,"bad");
   }
   function renderKeyed(){
-    modal.querySelector("#pnBody").innerHTML=`<div id="pnPE" style="background:#fff;border-radius:10px;padding:10px;margin-bottom:10px;min-height:42px"></div>${payBtn("Start card entry","pnGo")}`;
+    const pk=localStorage.getItem("tks_pay_pk")||"";
+    const pkRow = pk ? "" : `<label style="font-size:12px;color:#9aa3af">Stripe publishable key (one-time)</label>
+      <input id="pnPK" type="text" inputmode="text" autocomplete="off" placeholder="pk_test_…" style="width:100%;background:#11141a;border:1px solid #2a2f3a;border-radius:10px;color:#f4f5f7;padding:11px;font-size:16px;box-sizing:border-box;margin:4px 0 10px">`;
+    modal.querySelector("#pnBody").innerHTML=`${pkRow}<div id="pnPE" style="background:#fff;border-radius:10px;padding:10px;margin-bottom:10px;min-height:42px"></div>${payBtn("Start card entry","pnGo")}`;
     modal.querySelector("#pnGo").onclick=startKeyed;
   }
   async function startKeyed(){
     if(!window.Stripe){ status("Stripe.js didn't load.","bad"); return; }
     let pk=localStorage.getItem("tks_pay_pk")||"";
-    if(!pk){ pk=(prompt("Enter your Stripe publishable key (pk_test_…):")||"").trim(); if(pk) localStorage.setItem("tks_pay_pk",pk); else { status("Publishable key needed for typed card.","bad"); return; } }
+    if(!pk){ const f=modal.querySelector("#pnPK"); pk=((f&&f.value)||"").trim();
+      if(pk) localStorage.setItem("tks_pay_pk",pk); else { status("Enter your publishable key (pk_test_…) to continue.","bad"); if(f) f.focus(); return; } }
     status("Preparing secure card field…");
     const j=await call("pay-create-intent",{invoiceId:S.receipt.id,method:"keyed",attempt:S.attempt});
     if(j.error||!j.clientSecret){ status(j.error||"no client secret","bad"); return; }

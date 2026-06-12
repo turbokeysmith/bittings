@@ -181,6 +181,22 @@ A sale can reference real Inventory parts so the system computes **profit** and 
   zoom-on-focus). **Not yet run on real iPhone/Android from here** — pending the owner's device sign-off
   per the CLAUDE.md rule.
 
+## Update 2026-06-12 PM2 — mobile-layout cleanup (from the full app audit)
+Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
+- **Receipt action bar** (`bittings.html` `.rc-actions`): removed the redundant 💬 Text / ✉️ Email
+  buttons (📤 Share covers Messages/Mail via the share sheet); `flex-wrap` + `flex:1 1 45%;min-width:140px;
+  min-height:44px` → 2×2, no clipping. Removed the now-dead `sendByText/sendByEmail/receiptSummaryText`.
+- **Closeout** (`index.html` `.invsummary`): added `flex-wrap:wrap` + `.chip{flex:1 1 90px}` so the 7
+  chips wrap (matches `.rep-cards`).
+- **Tap targets → ~44px:** modal close ✕ in `app/pay.js` + both bittings modals (`#pnX/#ipX/#qiX`),
+  Transaction-History `refBtn`, Quick-invoice `.qiPick`/`.qiDel`.
+- **Sub-16px inputs → 16px** (stops iOS zoom-on-focus on the zoom-allowed pages): `cloud-test.html`
+  `input`, `index.html` `.rep-select`, `scheduler.html` `.daybar input[type=date]`. (Scheduler's
+  customer typeahead already inherited 17px; `bittings.html` is `user-scalable=no` so its small inputs
+  don't zoom.)
+- **Typed-card key:** replaced the `prompt()` paste with an inline `#pnPK` input (16px) in `renderKeyed`
+  — in **both** `app/pay.js` and the `bittings.html` inline Pay Now; `startKeyed` reads/saves it.
+
 **`bittings.html` Quick invoice** — owner-only one-screen alternative to the chat (trainees can't see
 it). `window.quickInvoiceAvailable`/`requestQuickInvoice`/`openQuickInvoice`; on/off via
 `TKS_OWNER.QUICK_INVOICE_ENABLED`, auto-open (owner signed-in only, never PIN) via
