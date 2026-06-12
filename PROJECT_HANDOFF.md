@@ -120,14 +120,24 @@ customer list across all tools.
   opens one plain quick-entry form (all fields, no coaching steps); the next booking goes back to
   forced guided. The PIN is set in `app/cloud-config.js`, and the gate is built as a single
   swap-point so it can become an owner-only login check later without touching the flow.
-- **Payments** — now wired to the separate Stripe payment app (single-shop, **TEST mode**). A
-  one-time **Payment setup** screen (Payments → ⚙ Payment setup) is where you enter your own config —
-  the payment app's Netlify URL, WisePOS reader ID, Stripe **publishable** key, currency, and 2%
-  surcharge — saved on the device, **nothing hardcoded**. The **Stripe secret key is never entered
-  in the app**; the screen tells you to paste it into Netlify's environment variables yourself. The
-  tile can then charge two ways: **in shop** via the WisePOS E reader (with a Simulate-tap button in
-  test mode) and **in field** via Stripe's hosted typed-card field. A banner shows TEST vs LIVE.
-  *(Going live = swapping to live keys after you've rehearsed with test cards.)*
+- **Payments** — real card processing, built into the portal itself (single-shop, **TEST mode**).
+  There are **two places to take money**, both using the same secure engine: **Receipts → Pay Now**
+  (pay a finished invoice) and the **Payments tile → New Charge** (for no-invoice jobs like lockouts —
+  type an amount, what it was for, and an optional customer). Each offers **three buttons: 💳 Card,
+  💵 Cash, 🧾 Check.** Card works **in-shop** (the WisePOS E reader) or **in the field** (a typed-card
+  field hosted by Stripe). A **2% surcharge applies to credit cards only** (never debit, never cash or
+  check — Oklahoma law), shown before you charge. Cash and check are just recorded. **Taking payment is
+  owner-only** (a trainee signed in as staff is blocked; with nobody signed in there's a PIN). The
+  card number never touches our code or our database — it goes straight to Stripe; the secret key lives
+  only in the cloud (never in the app or the website). *(Going live = swapping to live keys after you
+  rehearse with test cards — see "Suggested next steps".)*
+  - **Two owner-only money tiles** on the Home screen (a trainee won't see them): **🧮 Closeout** counts
+    **today's drawer** (collected, split by card/cash/check, surcharge, refunds), and **📊 Transaction
+    History** opens on **today** (older sales stay filed under each customer; nothing is deleted) with a
+    **period dropdown** (Today / Week / Month / Quarter / Year), a **switchable graph** (bar / line /
+    area / pie / doughnut), and **Total Jobs / Sales / Cost / Profit** cards you can turn on and off.
+    **Cost and Profit show $0 for now** — they fill in once we attach a part's cost (and a technician)
+    to a sale; the Inventory already stores each part's cost, ready for that step.
 - **Inventory** — fully built: parts list, add/edit/delete, quantity with +/- buttons,
   **low-stock flag**, search, summary counts, **supplier + reorder-quantity** fields, a **"Fits
   (vehicles / VIN)" field**, and a **🔎 VIN search** that decodes a VIN to make/model to find the
@@ -217,8 +227,13 @@ These are the open items an advisor should focus on:
    database only allows signed-in writes, so website leads currently save locally only. Landing
    them in the cloud needs a small Supabase "edge function" or a public-insert rule.
    *Decision: which approach + where should new leads notify the owner (email/SMS)?*
-3. **Payments are a visual shell only.** No real card processing. *Decision: which processor
-   (Stripe/Square), or open the separate payment app — provide its URL.*
+3. **Payments are real and working in TEST mode** (Stripe, built into the portal). Card + cash +
+   check, invoice Pay Now + New Charge, owner-gated, with Closeout + Transaction History tiles.
+   *Open items, not blockers:* **(a)** decide how a part's **cost** attaches to a sale so **Cost /
+   Profit / commission** show real numbers (pick the part(s) on the receipt vs. a quick cost box);
+   **(b)** **go live** — swap live keys, one real charge, retire the old `TurboStripe.exe` desktop app
+   **and rotate its old key**; **(c)** sales tax + sending the customer a receipt. Full detail:
+   `supabase/PAYMENTS.md`.
 4. **Google Calendar is a placeholder.** Opens Google Calendar in a tab; no two-way sync.
    *Decision: real sync (needs Google sign-in setup) or keep the simple link?*
 5. **Spanish — the 🌐 toggle vs the `/es/` pages.** Today the 🌐 toggle only translates the
@@ -238,6 +253,39 @@ These are the open items an advisor should focus on:
 
 ---
 
+## 7.5 Suggested next steps (by area) — my read, your call
+*Most of the building is done. Here's what I'd line up next, plainest-first. The deeper task list
+with statuses is `turbo_master_task_list.md`.*
+
+**Payments / money (the active area)**
+1. **Test it yourself in TEST mode** — sign in, build an invoice and Pay Now, do a New Charge, try a
+   cash and a check, then open Closeout and Transaction History. No risk; just confirms it all feels
+   right before real money.
+2. **Turn on real Cost & Profit** — this is the highest-value next build. Decide how a part's cost
+   attaches to a sale (pick the part(s) used on the receipt, which pulls the cost automatically, vs. a
+   quick "cost" box). Same step can tag a **technician**, which switches on the commission view. Then
+   have a sale **subtract from inventory** so stock stays accurate.
+3. **Go live** — swap in the live Stripe keys, run one real card, retire the old desktop app
+   (`TurboStripe.exe`) and **rotate its old key** (security-important). Do this once you're confident
+   from step 1.
+4. **Finish the money loop** — email/text/print the customer a receipt; auto-email yourself the
+   day's Closeout totals; decide sales tax if any items are taxable.
+
+**Website**
+5. **Public leads into the cloud** — today website leads save only on the device that took them. A
+   small cloud script lands them in the shared database, plus an **email alert** when one arrives.
+6. **Spanish** — get the draft `/es/` pages proofread (locksmith terms), publish them, then point the
+   🌐 button at them. The proofreader is the only real blocker.
+7. **Go live with the website** — decide hosting, then the careful publish → check → domain switch
+   (kept for last to protect Google ranking).
+
+**Later**
+8. **Backups/export** (don't let a year of records live in one place), **error visibility**, and a
+   **real-device test** of the card reader + phone before relying on them.
+9. **Selling the app to other locksmiths** stays parked until your own shop is running on it.
+
+---
+
 ## 8. File map (where things live)
 ```
 index.html              Staff app shell (Customers + Job history, Payments, Inventory + VIN search)
@@ -245,11 +293,17 @@ bittings.html           Receipts/invoice builder (existing; added a back link)
 scheduler.html          Booking + intake flow (Day view, edit, status, VIN/ignition, Add-to-Schedule)
 cloud-test.html         Staff login page (Supabase auth) — existed before
 app/store.js            THE data layer (Customers, Inventory, Bookings CRUD, Services, VIN decode)
+app/pay.js              Shared Pay Now engine (New Charge + cash/check + transaction queries)
 site/assets/cities/     Real city photos pulled from the live site (Edmond/Moore/Norman/Midwest)
-app/cloud-config.js     Supabase project URL + public key + on/off switch
-app/STRUCTURE_NOTES.md  Detailed notes on the staff-app build + cloud
+app/cloud-config.js     Supabase project URL + public key + owner allowlist/PIN + on/off switches
+app/STRUCTURE_NOTES.md  Detailed notes on the staff-app build + cloud + payments
 supabase/customers_setup.sql      Customers table SQL
 supabase/app_tables_setup.sql     Inventory/Bookings/Receipts table SQL
+supabase/payments_setup.sql       Payments tables (transactions + events) SQL
+supabase/functions/               The 6 Stripe edge functions (version-controlled) + README
+supabase/PAYMENTS.md              Payments architecture + operations + go-live steps
+TurboStripe_AUDIT.md              Audit of the old desktop POS + why we chose the portal build
+turbo_master_task_list.md         The deep task list (every track, statuses, next steps)
 site/                   The public website (115 pages)
   site/index.html       Homepage
   site/contact/         Contact form
