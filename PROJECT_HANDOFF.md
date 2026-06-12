@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 17:34 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 18:02 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -351,6 +351,15 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
+- **Text legibility / contrast fix (18:02):** the Home tile **titles** (Customers, Receipts, etc.) were
+  rendering near-black on the dark tiles — actually darker than the gray descriptions under them — so
+  the names were hard to read and the hierarchy was upside-down. Root cause: the title text had no
+  color set, so it fell back to the browser's default near-black on the buttons. Titles are now the
+  **brightest text on the tile** (near-white) with the description a readable step dimmer. Also went
+  through all four app pages and **raised the too-dark small text** (faint hints/labels/sub-rows) to
+  the readable accessibility standard while keeping the bright→dim hierarchy, and **enlarged two small
+  buttons** (the Receipts history-row buttons and the panel "Done" button) to a thumb-friendly size.
+  Scheduler and the login page were already fine. **Pending mobile sign-off.**
 - **Entry experience: login-first, straight-home, never stranded + the real logo (17:34):**
   - **Login first, home after.** When the staff app opens **signed out and online**, it now shows the
     **Staff sign-in** screen first; after you sign in it drops you **straight to the Home screen** (no

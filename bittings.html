@@ -451,7 +451,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   @keyframes pop{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
   .bot .bubble{background:var(--bubble-bot);border-bottom-left-radius:4px;}
   .me .bubble{background:var(--bubble-me);color:#fff;border-bottom-right-radius:4px;}
-  .hint{font-size:11.5px;color:#888;margin-top:5px;}
+  .hint{font-size:11.5px;color:#9a9a9a;margin-top:5px;}
   .bubble.callout{background:#3a2828;border-left:3px solid var(--amber);}
 
   .opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
@@ -564,7 +564,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .panel.open{display:flex;}
   .pp-head{background:var(--dark);padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:2px solid var(--red);}
   .pp-head b{flex:1;font-size:16px;}
-  .pp-head button{background:#444;border:none;color:#ddd;padding:8px 13px;border-radius:8px;font-size:13px;font-weight:600;}
+  .pp-head button{background:#444;border:none;color:#ddd;padding:10px 15px;min-height:44px;border-radius:8px;font-size:13px;font-weight:600;}
   .pp-body{flex:1;overflow-y:auto;padding:14px;}
 
   /* settings form */
@@ -578,7 +578,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .field textarea{resize:vertical;min-height:60px;font-family:inherit;}
   .field .row2{display:flex;gap:8px;}
   .field .row2 input{flex:1;}
-  .field-hint{font-size:11px;color:#777;margin-top:4px;}
+  .field-hint{font-size:11px;color:#9a9a9a;margin-top:4px;}
   .logo-preview{width:80px;height:80px;border-radius:8px;background:#000;object-fit:cover;display:block;margin-bottom:8px;}
   .file-btn{
     display:inline-block;background:#444;color:#ddd;border:none;
@@ -608,7 +608,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   }
   .cj-item .cj-desc{flex:1;font-size:13.5px;color:#fff;}
   .cj-item .cj-tag{font-size:10px;color:var(--amber);font-weight:600;}
-  .cj-item .cj-tag.no-tax{color:#888;}
+  .cj-item .cj-tag.no-tax{color:#9a9a9a;}
   .cj-item .cj-actions{display:flex;gap:6px;}
   .cj-item .cj-actions button{
     background:#444;border:none;color:#ddd;
@@ -645,7 +645,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .hist-item .hi-desc{font-size:11.5px;color:#999;margin-top:2px;}
   .hist-item .hi-actions{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
   .hist-item .hi-actions button{
-    flex:1;min-width:80px;background:#444;border:none;color:#ddd;padding:8px;border-radius:7px;font-size:11.5px;font-weight:600;
+    flex:1;min-width:80px;min-height:44px;background:#444;border:none;color:#ddd;padding:10px 8px;border-radius:7px;font-size:12px;font-weight:600;
   }
   .hist-item .hi-actions button:active{background:var(--red);color:#fff;}
   .hist-filter{display:flex;gap:6px;margin-bottom:12px;}
@@ -653,7 +653,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     flex:1;background:#333;border:1px solid #555;color:#ddd;padding:9px;border-radius:8px;font-size:12px;font-weight:600;
   }
   .hist-filter button.active{background:var(--red);border-color:var(--red);color:#fff;}
-  .pp-empty{text-align:center;color:#777;margin-top:40px;font-size:14px;}
+  .pp-empty{text-align:center;color:#9a9a9a;margin-top:40px;font-size:14px;}
 
   /* Custom modal (replaces browser confirm/alert) */
   #modalBackdrop{
@@ -848,7 +848,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     </div>
 
     <div class="field" id="taxConfigBlock">
-      <label>Sales Tax Rate (%) <span style="color:#888;font-weight:400">· shop default, cloud-synced</span></label>
+      <label>Sales Tax Rate (%) <span style="color:#9a9a9a;font-weight:400">· shop default, cloud-synced</span></label>
       <input type="number" id="setTaxRate" step="0.001" placeholder="0">
       <div class="field-hint">Default rate for taxable goods. You can override it per receipt. Oklahoma exempts
         separately-stated labor — keep labor on its own line (it's excluded automatically).</div>
@@ -2514,7 +2514,7 @@ function renderReceiptCard(r){
     statusLine='<div class="rc-pm">Expected payment: '+escapeHtml(r.payment||"Not specified")+'</div>'+
                '<div class="rc-st" style="color:var(--amber)">Status: UNPAID — DUE UPON RECEIPT</div>';
   }else{
-    statusLine='<div class="rc-st" style="color:#888">ESTIMATE — Valid 30 days from issue</div>';
+    statusLine='<div class="rc-st" style="color:#595959">ESTIMATE — Valid 30 days from issue</div>';
   }
 
   const isContracting = r.nastf && r.nastf.type==="Contracting D1";
@@ -2550,7 +2550,7 @@ function renderReceiptCard(r){
     if(r.voDocVerified) nastfBlock+='<div class="rc-line">Ownership doc verified: '+escapeHtml(r.voDocVerified)+'</div>';
     if(r.voDLMatch)     nastfBlock+='<div class="rc-line">DL name matches ownership doc: '+escapeHtml(r.voDLMatch)+'</div>';
   }
-  if(r.nastf) nastfBlock += '<div class="rc-line" style="color:#888;font-style:italic;margin-top:6px;">NASTF Type: '+escapeHtml(r.nastf.type)+'</div>';
+  if(r.nastf) nastfBlock += '<div class="rc-line" style="color:#595959;font-style:italic;margin-top:6px;">NASTF Type: '+escapeHtml(r.nastf.type)+'</div>';
 
   const card=document.createElement("div");
   card.className="row bot";
@@ -3776,8 +3776,8 @@ function reverseStockForReceipt(r){
         <label class="qiL">Line items *</label><div id="qiItems"></div>
         <button type="button" id="qiAdd" style="background:#2a2f3a;border:none;color:#cbd2da;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;margin-bottom:8px">+ Add item</button>
         <div id="qiPayWrap"><label class="qiL">Payment method</label><div id="qiPay" style="display:flex;gap:6px;margin-bottom:4px"><button type="button" class="qiPB" data-p="Cash">Cash</button><button type="button" class="qiPB" data-p="Card">Card</button><button type="button" class="qiPB" data-p="Check">Check</button></div></div>
-        <label class="qiL">Technician <span style="color:#6b7280">(for commission — optional)</span></label><input id="qiTech" class="qiI" placeholder="Who did the job">
-        <label class="qiL">Tax rate % <span style="color:#6b7280">(this receipt — blank uses the shop default)</span></label><input id="qiTaxRate" class="qiI" type="number" step="0.001" inputmode="decimal" placeholder="shop default">
+        <label class="qiL">Technician <span style="color:#9a9a9a">(for commission — optional)</span></label><input id="qiTech" class="qiI" placeholder="Who did the job">
+        <label class="qiL">Tax rate % <span style="color:#9a9a9a">(this receipt — blank uses the shop default)</span></label><input id="qiTaxRate" class="qiI" type="number" step="0.001" inputmode="decimal" placeholder="shop default">
         <label class="qiL">Notes</label><textarea id="qiNotes" class="qiI" style="min-height:46px"></textarea>
         <div id="qiErr" style="color:#f0a0a6;font-size:13px;margin:6px 0;min-height:16px"></div>
         <div style="display:flex;gap:8px;margin-top:4px"><button type="button" id="qiGo" style="flex:1;padding:13px;border:none;border-radius:11px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;cursor:pointer">Create</button><button type="button" id="qiCancel" style="padding:13px 16px;border:1px solid #2a2f3a;background:transparent;color:#9aa3af;border-radius:11px;cursor:pointer">Cancel</button></div>
