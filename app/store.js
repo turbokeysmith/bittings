@@ -494,20 +494,43 @@
   var authState = { user: null, sb: null };   // current signed-in user (cloud)
 
   // ---- cloud-synced owner config (shop_config table; localStorage fallback) ----
-  // Today this holds the sales-tax settings: a default rate (percent) and which
-  // line categories are taxable. Editable by the owner; mirrored to Supabase so
-  // every signed-in device shares it. Receipts snapshot their own rate (override).
+  // The single source of truth for the Setup wizard + Settings: business identity,
+  // tax, payments display, access (owner/staff/PIN/switches), vendor links, service
+  // catalog, hours, receipt footer, and setup progress. Mirrored to Supabase so
+  // every signed-in device shares it. Structured in GROUPS so it can later become
+  // per-shop onboarding for a multi-tenant version without hardcoding.
   var CONFIG_LSKEY = 'tks_shop_config';
+  var DEFAULT_VENDORS = [
+    { label: 'American Key Supply', url: 'https://americankeysupply.com' },
+    { label: 'Key Innovations', url: 'https://keyinnovations.com' }
+  ];
   var CONFIG_DEFAULTS = {
-    taxRate: 0,  // percent, e.g. 8.625
-    taxableByCategory: { Labor: false, Materials: true, Travel: false, Programming: false, AfterHours: false }
+    // tax (kept at top level for back-compat with existing tax wiring)
+    taxRate: 0,
+    taxableByCategory: { Labor: false, Materials: true, Travel: false, Programming: false, AfterHours: false },
+    // groups
+    identity: { name: '', address: '', phone: '', email: '', license: '', logo: '', logoCustom: false, footer: '' },
+    payments: { surchargePct: 2 },     // DISPLAY ONLY — server enforces 2% credit-only
+    access: { ownerEmails: [], staffEmails: [], quickFormPin: '', quickInvoiceEnabled: true, quickInvoiceDefault: true },
+    vendors: DEFAULT_VENDORS.slice(),
+    services: SERVICES.slice(),         // default = the canonical catalog
+    hours: '',                          // freeform for now, e.g. "Mon–Sat, 24-hour emergency"
+    setup: { completed: false, done: {}, skipped: {} }   // per-step progress
   };
   var configCache = null;
   function mergeConfig(c) {
     c = c || {};
+    var d = CONFIG_DEFAULTS;
     return {
-      taxRate: (c.taxRate != null && c.taxRate !== '') ? Number(c.taxRate) : CONFIG_DEFAULTS.taxRate,
-      taxableByCategory: Object.assign({}, CONFIG_DEFAULTS.taxableByCategory, c.taxableByCategory || {})
+      taxRate: (c.taxRate != null && c.taxRate !== '') ? Number(c.taxRate) : d.taxRate,
+      taxableByCategory: Object.assign({}, d.taxableByCategory, c.taxableByCategory || {}),
+      identity: Object.assign({}, d.identity, c.identity || {}),
+      payments: Object.assign({}, d.payments, c.payments || {}),
+      access: Object.assign({}, d.access, c.access || {}),
+      vendors: Array.isArray(c.vendors) && c.vendors.length ? c.vendors : d.vendors.slice(),
+      services: Array.isArray(c.services) && c.services.length ? c.services : d.services.slice(),
+      hours: (c.hours != null) ? c.hours : d.hours,
+      setup: Object.assign({ completed: false, done: {}, skipped: {} }, c.setup || {})
     };
   }
   function getConfig() { if (!configCache) configCache = mergeConfig(read(CONFIG_LSKEY, null)); return configCache; }
