@@ -197,6 +197,25 @@ Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
 - **Typed-card key:** replaced the `prompt()` paste with an inline `#pnPK` input (16px) in `renderKeyed`
   — in **both** `app/pay.js` and the `bittings.html` inline Pay Now; `startKeyed` reads/saves it.
 
+## Update 2026-06-12 PM4 — entry gate (login-first, offline-safe) + real logo
+- **Entry gate** (top of `index.html` `<body>`, runs before render; `app/cloud-config.js` is now also
+  loaded in `<head>` so `TKS_CLOUD` is available early): if `AUTO_CONNECT` and **no Supabase session
+  token in localStorage** (`sb-*-auth-token`, checked synchronously — no network) and `navigator.onLine`
+  and not `sessionStorage.tks_use_local`, `location.replace('cloud-test.html?next=…')`. Otherwise it
+  stays → Home. So: remembered token → Home; offline + no token → Home (local); online + no token →
+  login. **No network is ever required to reach a usable app.**
+- **`cloud-test.html` (login):** `refresh()` now `location.replace(safeNext())` on a valid session
+  (route straight Home; `?next=` is sanitized to a same-origin relative path). Added a **"Use the app
+  offline"** button → sets `sessionStorage.tks_use_local='1'` then goes to the app (so the gate won't
+  bounce back) — the no-dead-end escape. Added the full-lockup logo.
+- **Logo assets** (served from the app folder): `tks_logo.png` (full lockup, login) and `tks_mark.png`
+  (cropped turbo mark — header + receipt). `index.html` header/favicon → `tks_mark.png` (CSS
+  `height:38;width:auto;object-fit:contain`). `bittings.html` `DEFAULT_LOGO` data-URI → the mark;
+  header/`.rc-head img` switched to `object-fit:contain`; **PDF `addImage` fits to real aspect via
+  `getImageProperties`** (never stretched). Migration in `boot()`: adopt `DEFAULT_LOGO` unless
+  `SETTINGS.logoCustom` (set true when the owner uploads a logo). The old `bittings_logo.png` was the
+  unrelated "Bittings" receipt-app icon.
+
 ## Update 2026-06-12 PM3 — configurable sales tax (server-authoritative, pass-through)
 - **Cloud-synced config:** new Supabase `shop_config` table (single row id=1: `tax_rate`,
   `taxable_categories` jsonb) + RLS. `TKS.Config` in `store.js` (`get/save/load/taxableDefault`) with

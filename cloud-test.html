@@ -50,11 +50,11 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="badge">● CLOUD TEST — proving Supabase sync</div>
+  <img src="tks_logo.png" alt="Turbo Keysmith" style="display:block;width:100%;max-width:230px;height:auto;margin:6px auto 18px">
 
   <!-- LOGIN -->
   <div id="loginView">
-    <h1>Sign in</h1>
+    <h1>Staff sign-in</h1>
     <p class="sub">Use the employee login you created in Supabase. <b>Important:</b> open this at the
     same web address you run the app from (e.g. <b>http://127.0.0.1:8088/cloud-test.html</b>) — not a
     double-clicked <code>file://</code> page, or the login won't carry over to the app.</p>
@@ -65,7 +65,9 @@
     <button class="btn" id="loginBtn">Sign in</button>
     <button class="btn ghost" id="checkBtn">Check connection</button>
     <div id="loginMsg" class="msg"></div>
-    <p class="sub" id="diag" style="margin-top:14px;font-size:11.5px;"></p>
+    <button class="btn ghost" id="offlineBtn" style="margin-top:10px">Use the app offline (no sign-in)</button>
+    <p class="sub" style="margin-top:8px;font-size:11.5px;">No signal? You can still work on this device — your data saves locally and syncs next time you sign in.</p>
+    <p class="sub" id="diag" style="margin-top:6px;font-size:11.5px;"></p>
   </div>
 
   <!-- APP -->
@@ -111,20 +113,25 @@ const $ = id => document.getElementById(id);
 function flash(el, cls, text){ el.className = 'msg show '+cls; el.textContent = text; }
 function clearMsg(el){ el.className = 'msg'; el.textContent=''; }
 
-/* ---- session ---- */
+/* Where to go after sign-in. Honors ?next= but only a same-origin relative path
+   (no open redirects). Defaults to the app home. */
+function safeNext(){
+  const n = new URLSearchParams(location.search).get('next');
+  if(!n || /^https?:|^\/\//i.test(n)) return 'index.html';
+  return n;
+}
+/* ---- session ---- (1) on a valid session, go STRAIGHT HOME — don't stay on this page. */
 async function refresh(){
   const { data:{ session } } = await sb.auth.getSession();
-  if(session){
-    $('loginView').classList.add('hidden');
-    $('appView').classList.remove('hidden');
-    $('whoEmail').textContent = session.user.email;
-    loadCustomers();
-  } else {
-    $('appView').classList.add('hidden');
-    $('loginView').classList.remove('hidden');
-  }
+  if(session){ location.replace(safeNext()); return; }
+  $('appView').classList.add('hidden');
+  $('loginView').classList.remove('hidden');
 }
 sb.auth.onAuthStateChange(()=> refresh());
+
+/* Offline / no-account escape: never dead-end. Mark this session as "local use"
+   so the app's entry gate won't bounce back here, then go to the app (local mode). */
+$('offlineBtn').onclick = ()=>{ try{ sessionStorage.setItem('tks_use_local','1'); }catch(e){} location.replace(safeNext()); };
 
 $('loginBtn').onclick = async ()=>{
   clearMsg($('loginMsg'));
