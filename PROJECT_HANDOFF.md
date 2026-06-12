@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 16:04 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 16:25 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -351,6 +351,15 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
+- **Phone-layout cleanup pass (16:25):** from the full mobile audit — made things fit and tap nicely on
+  a small phone. Dropped the extra **💬 Text / ✉️ Email** buttons from the receipt card (the **📤 Share**
+  button already opens Messages/Mail and attaches the PDF, so they were redundant and crowding the bar);
+  the remaining four buttons now wrap to two neat rows instead of clipping. Made the **Closeout** total
+  chips wrap so all seven fit. Enlarged small tap targets (close ✕, the Refund button, the quick-invoice
+  ✕/📦) toward a thumb-friendly size. Stopped the iPhone "zoom when you tap a field" on the login,
+  the Transaction-History dropdowns, and the scheduler date box (raised their text to 16px). Replaced the
+  pop-up that asked for the card key (typed-card) with a normal **input field** on the Pay screen. Still
+  **pending your on-phone sign-off** (iPhone + Android).
 - **Send a receipt from your own phone, plus refunds & a technician filter (16:04):** on a paid
   receipt — or right after Pay Now / New Charge — you can now **send the customer their receipt using
   your phone's own apps** (their number, their Gmail/Mail). **No email service, no key, no monthly
