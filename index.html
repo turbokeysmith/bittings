@@ -270,9 +270,24 @@
       <label for="chgEmail">Customer email (optional)</label>
       <input id="chgEmail" type="email" placeholder="files the charge to their history" autocomplete="off">
       <div class="pay-breakdown" id="chgBreakdown"></div>
-      <div class="actions"><button class="btn save" id="chgGo" disabled>Enter an amount</button></div>
+      <div class="actions" style="flex-wrap:wrap;gap:8px">
+        <button class="btn save" id="chgCard" disabled style="flex:1 1 100%">💳 Card — Pay Now</button>
+        <button class="btn ghostbtn" id="chgCash" disabled style="flex:1">💵 Cash</button>
+        <button class="btn ghostbtn" id="chgCheck" disabled style="flex:1">🧾 Check</button>
+      </div>
       <p class="note" id="chgStatus" aria-live="polite"></p>
+      <p class="note"><a href="#" id="chgHistLink">📋 Day closeout / transaction history</a></p>
     </div>
+  </div>
+
+  <div class="view" id="view-history">
+    <div class="bar">
+      <input class="search" id="histDate" type="date">
+      <button class="add" id="histReload" title="Refresh">↻</button>
+    </div>
+    <div class="invsummary" id="histSummary"></div>
+    <div class="clist" id="histList"></div>
+    <p class="note">Card, cash &amp; check for the selected day. Card totals come from Stripe; cash/check are recorded here.</p>
   </div>
 
   <div class="view" id="view-inventory">
@@ -338,12 +353,12 @@ function saveCustomers(a){ TKS.saveList("customers", a); }
 function getShops(){ return TKS.list("shops"); }
 function saveShops(a){ TKS.saveList("shops", a); }
 
-const views = ['home','customers','form','payments','inventory','part'];
+const views = ['home','customers','form','payments','history','inventory','part'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
   back.style.display = (name==='home') ? 'none' : 'block';
-  back.dataset.to = (name==='form') ? 'customers' : (name==='part' ? 'inventory' : 'home');
+  back.dataset.to = (name==='form') ? 'customers' : (name==='part' ? 'inventory' : (name==='history' ? 'payments' : 'home'));
   window.scrollTo(0,0);
 }
 document.getElementById('backBtn').onclick = function(){ show(this.dataset.to || 'home'); };
@@ -631,7 +646,8 @@ document.getElementById('pDelete').onclick = ()=>{
 let _chgUnlocked=false;
 function chgEls(){ return { amt:document.getElementById('chgAmount'), label:document.getElementById('chgLabel'),
   cust:document.getElementById('chgCust'), email:document.getElementById('chgEmail'),
-  go:document.getElementById('chgGo'), status:document.getElementById('chgStatus'),
+  card:document.getElementById('chgCard'), cash:document.getElementById('chgCash'), check:document.getElementById('chgCheck'),
+  status:document.getElementById('chgStatus'),
   breakdown:document.getElementById('chgBreakdown'), banner:document.getElementById('chgBanner'),
   gate:document.getElementById('chgGate'), form:document.getElementById('chgForm') }; }
 function chgShowForm(){ const e=chgEls(); e.form.style.display='block'; e.gate.style.display='none'; _chgUnlocked=true; }
@@ -651,12 +667,24 @@ function chgGate(){
   document.getElementById('chgPinBtn').onclick=pinPrompt;
 }
 function chgAmounts(){ const e=chgEls(); const sub=parseFloat(e.amt.value)||0; const sur=Math.round(sub*2)/100; return { sub, sur, total:Math.round((sub+sur)*100)/100, cents:Math.round(sub*100) }; }
-function renderChgBreakdown(){ const e=chgEls(), a=chgAmounts();
-  if(a.sub<=0){ e.breakdown.innerHTML=''; e.go.textContent='Enter an amount'; e.go.disabled=true; return; }
-  e.go.disabled=false;
-  e.breakdown.innerHTML='Base $'+a.sub.toFixed(2)+' &nbsp;·&nbsp; +2% on credit only ($'+a.sur.toFixed(2)+') &nbsp;=&nbsp; <b>up to $'+a.total.toFixed(2)+'</b>';
-  e.go.textContent='Pay Now · $'+a.sub.toFixed(2);
+function renderChgBreakdown(){ const e=chgEls(), a=chgAmounts(); const off=(a.sub<=0);
+  [e.card,e.cash,e.check].forEach(b=>{ if(b) b.disabled=off; });
+  if(off){ e.breakdown.innerHTML=''; if(e.card) e.card.textContent='💳 Card — enter an amount'; return; }
+  e.breakdown.innerHTML='Base $'+a.sub.toFixed(2)+' &nbsp;·&nbsp; card +2% on credit only ($'+a.sur.toFixed(2)+', up to <b>$'+a.total.toFixed(2)+'</b>) · cash/check $'+a.sub.toFixed(2)+' (no surcharge).';
+  e.card.textContent='💳 Card — Pay Now · $'+a.sub.toFixed(2);
 }
+function chgBuildReceipt(){
+  const e=chgEls(), a=chgAmounts();
+  const name=(e.cust.value||'').trim(), email=(e.email.value||'').trim();
+  const label=(e.label.value||'').trim()||'Service';
+  const id='chg_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  if(name){ try{ TKS.Customers.upsert({ customer:name, email, source:'new-charge' }); }catch(_){} }
+  const receipt={ id, number:id, docType:'receipt', source:'new-charge', customer:name, email, status:'Unpaid',
+    items:[{desc:label, amount:a.sub, taxable:false}], totals:{ total:a.sub, surcharge:0, subtotal:a.sub, tax:0, discount:0 } };
+  return { receipt, name, label, a };
+}
+function chgClear(){ const e=chgEls(); e.amt.value=''; e.label.value=''; e.cust.value=''; e.email.value=''; renderChgBreakdown(); }
+function chgSay(msg,ok){ const e=chgEls(); e.status.textContent=msg; e.status.style.color=ok?'#7fd49b':(ok===false?'#f0a0a6':'var(--dim)'); }
 function renderPayments(){
   const e=chgEls();
   try{ const dl=document.getElementById('chgCustList'); if(dl) dl.innerHTML=TKS.Customers.all().map(c=>'<option value="'+esc2(c.customer||'')+'">').join(''); }catch(_){}
@@ -666,20 +694,62 @@ function renderPayments(){
   chgGate();
 }
 document.getElementById('chgAmount').addEventListener('input', renderChgBreakdown);
-document.getElementById('chgGo').onclick=function(){
+document.getElementById('chgCard').onclick=function(){
   if(!_chgUnlocked){ chgGate(); return; }
-  const e=chgEls(), a=chgAmounts();
-  if(a.cents<50){ e.status.textContent='Amount must be at least $0.50.'; e.status.style.color='#f0a0a6'; return; }
-  const name=(e.cust.value||'').trim(), email=(e.email.value||'').trim();
-  const label=(e.label.value||'').trim()||'Service';
-  const id='chg_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-  const receipt={ id, number:id, docType:'receipt', source:'new-charge', customer:name, email, status:'Unpaid', payment:'Card',
-    items:[{desc:label, amount:a.sub, taxable:false}], totals:{ total:a.sub, surcharge:0, subtotal:a.sub, tax:0, discount:0 } };
-  if(name){ try{ TKS.Customers.upsert({ customer:name, email, source:'new-charge' }); }catch(_){} }
-  if(!window.TKPay || !TKPay.openForReceipt){ e.status.textContent='Payment engine not loaded.'; e.status.style.color='#f0a0a6'; return; }
-  TKPay.openForReceipt(receipt, { title: label+(name?(' — '+name):' — walk-in'),
-    onDone:()=>{ e.amt.value=''; e.label.value=''; e.cust.value=''; e.email.value=''; renderChgBreakdown(); e.status.textContent='✓ Charge complete.'; e.status.style.color='#7fd49b'; } });
+  const a=chgAmounts();
+  if(a.cents<50){ chgSay('Amount must be at least $0.50 for card.',false); return; }
+  const b=chgBuildReceipt();
+  if(!window.TKPay || !TKPay.openForReceipt){ chgSay('Payment engine not loaded.',false); return; }
+  TKPay.openForReceipt(b.receipt, { title:b.label+(b.name?(' — '+b.name):' — walk-in'),
+    onDone:()=>{ chgClear(); chgSay('✓ Card charge complete.',true); } });
 };
+function chgRecord(method){
+  if(!_chgUnlocked){ chgGate(); return; }
+  const a=chgAmounts();
+  if(a.cents<1){ chgSay('Enter an amount.',false); return; }
+  const b=chgBuildReceipt();
+  if(!window.TKPay || !TKPay.recordCashCheck){ chgSay('Payment engine not loaded.',false); return; }
+  chgSay('Recording…',null);
+  TKPay.recordCashCheck(b.receipt, method, {
+    onDone:()=>{ chgClear(); chgSay('✓ '+(method==='cash'?'Cash':'Check')+' recorded ($'+b.a.sub.toFixed(2)+').',true); },
+    onError:(msg)=>{ chgSay('Could not record: '+msg,false); } });
+}
+document.getElementById('chgCash').onclick=()=>chgRecord('cash');
+document.getElementById('chgCheck').onclick=()=>chgRecord('check');
+document.getElementById('chgHistLink').onclick=(ev)=>{ ev.preventDefault(); openHistory(); };
+
+/* ---- Day closeout / transaction history ---- */
+function localDayISO(d){ const x=new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,10); }
+function openHistory(){ const di=document.getElementById('histDate'); if(!di.value) di.value=localDayISO(new Date()); show('history'); renderHistory(); }
+document.getElementById('histReload').onclick=renderHistory;
+document.getElementById('histDate').addEventListener('change', renderHistory);
+async function renderHistory(){
+  const date=document.getElementById('histDate').value||localDayISO(new Date());
+  const sum=document.getElementById('histSummary'), list=document.getElementById('histList');
+  sum.innerHTML=''; list.innerHTML='<div class="empty">Loading…</div>';
+  if(!window.TKPay || !TKPay.dayTransactions){ list.innerHTML='<div class="empty">Payment engine not loaded.</div>'; return; }
+  const start=new Date(date+'T00:00:00'), end=new Date(start.getTime()+86400000);
+  const res=await TKPay.dayTransactions(start.toISOString(), end.toISOString());
+  if(res.error){ list.innerHTML='<div class="empty">'+esc2(res.error)+'</div>'; return; }
+  const rows=res.rows||[]; const money=c=>'$'+((c||0)/100).toFixed(2);
+  let collected=0,sur=0,refunds=0; const byM={card:0,cash:0,check:0};
+  rows.forEach(t=>{ if(t.status==='completed'){ const amt=t.captured_cents||0; collected+=amt; if(t.surcharge_applied) sur+=(t.surcharge_cents||0);
+      byM[t.method==='cash'?'cash':t.method==='check'?'check':'card']+=amt; } if(t.status==='refunded') refunds++; });
+  sum.innerHTML='<div class="chip"><b>'+money(collected)+'</b>collected</div>'+
+    '<div class="chip"><b>'+rows.filter(t=>t.status==='completed').length+'</b>charges</div>'+
+    '<div class="chip"><b>'+money(byM.card)+'</b>card</div><div class="chip"><b>'+money(byM.cash)+'</b>cash</div>'+
+    '<div class="chip"><b>'+money(byM.check)+'</b>check</div><div class="chip"><b>'+money(sur)+'</b>surcharge</div>'+
+    (refunds?'<div class="chip low"><b>'+refunds+'</b>refunded</div>':'');
+  if(!rows.length){ list.innerHTML='<div class="empty">No transactions on this day.</div>'; return; }
+  list.innerHTML=rows.map(t=>{
+    const time=new Date(t.created_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    const ml=t.method==='cash'?'Cash':t.method==='check'?'Check':t.method==='reader'?'Card · reader':'Card · typed';
+    const col=t.status==='completed'?'#7fd49b':t.status==='refunded'?'#f2b43a':t.status==='pending'?'#9aa3af':'#f0a0a6';
+    return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
+      '<div class="sub">'+time+' · '+ml+(t.card_funding?(' · '+t.card_funding):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
+      '<span class="tag" style="color:'+col+'">'+money(t.captured_cents||t.base_cents)+'</span></div>';
+  }).join('');
+}
 
 /* ============================ CLOUD BOOTSTRAP ============================
    Connects to Supabase ONLY when an employee is already signed in (a session

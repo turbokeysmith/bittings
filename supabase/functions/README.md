@@ -6,7 +6,8 @@ These are the deployed sources (version-controlled copies of what runs on the
 ## Functions & deploy settings
 | Function | `verify_jwt` | Notes |
 |---|---|---|
-| `pay-create-intent` | **true** (staff session) | invoice id → authoritative base, manual-capture PI (base+2%), idempotent per `inv_<id>_attempt_<n>` |
+| `pay-create-intent` | **true** (staff session) | invoice id → authoritative base, manual-capture PI (base+2%), idempotent per `inv_<id>_attempt_<n>`; records a `description` for closeout |
+| `pay-record` | **true** | **cash / check** — no Stripe, **no surcharge**; reads the receipt's authoritative base and inserts a `completed` txn, idempotent per `inv_<id>_<method>` |
 | `stripe-webhook` | **false** | signature-verified instead; **source of truth** (captures credit-only surcharge, marks paid) |
 | `pay-status` | **true** | UI poll only |
 | `pay-refund` | **true** | full/partial refund of a completed txn |
@@ -23,6 +24,7 @@ These are the deployed sources (version-controlled copies of what runs on the
 ## Deploy (Supabase CLI)
 ```bash
 supabase functions deploy pay-create-intent --project-ref gcshuhlksjznksspbigl                 # verify_jwt default true
+supabase functions deploy pay-record        --project-ref gcshuhlksjznksspbigl                 # cash/check
 supabase functions deploy stripe-webhook    --project-ref gcshuhlksjznksspbigl --no-verify-jwt  # signature-verified
 supabase functions deploy pay-status        --project-ref gcshuhlksjznksspbigl
 supabase functions deploy pay-refund        --project-ref gcshuhlksjznksspbigl

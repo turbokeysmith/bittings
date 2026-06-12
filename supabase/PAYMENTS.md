@@ -13,6 +13,16 @@ Everything is **TEST mode** until a fresh `sk_live_` is swapped in and one real 
    anonymous. Owner-gated. Both upsert a receipt then call the same `pay-*` functions — the client
    never sends an amount.
 
+Both entry points offer three tenders: **💳 Card** (reader or typed, 2% credit-only surcharge),
+**💵 Cash**, and **🧾 Check**. Cash/check go through `pay-record` — **no Stripe, no surcharge** —
+and still write a `payment_transactions` row so they appear in the day closeout.
+
+## Day closeout (transaction history)
+Payments tile → **History** (`view-history` in `index.html`) calls `TKPay.dayTransactions(from,to)`
+(queries `payment_transactions` for the range) and shows summary chips — **collected**, # charges,
+and a breakdown by **card / cash / check**, plus **surcharge** collected and **refunded** — over a
+list of rows (time · method · funding · status · amount). Use it to reconcile/close out the day.
+
 ## Why this shape
 - **One auth/session:** the portal calls the functions with the staff member's **existing Supabase
   session JWT** (`verify_jwt: true`) — no second login; works from mobile.
@@ -38,7 +48,8 @@ Everything is **TEST mode** until a fresh `sk_live_` is swapped in and one real 
 ## Edge functions (deployed)
 | Function | Auth | Purpose |
 |---|---|---|
-| `pay-create-intent` | session JWT | `{invoiceId, method:'reader'|'keyed', readerId?, attempt?, orgId?, connectedAccountId?}` → looks up the receipt **server-side** for the authoritative base (`totals.total − totals.surcharge`), creates a manual-capture PI (base+2%), records a `payment_transactions` row, and (reader) sends it to the WisePOS E. Idempotent per `inv_<id>_attempt_<n>`. Returns `{paymentIntentId, clientSecret?}`. |
+| `pay-create-intent` | session JWT | `{invoiceId, method:'reader'|'keyed', readerId?, attempt?, orgId?, connectedAccountId?}` → looks up the receipt **server-side** for the authoritative base (`totals.total − totals.surcharge`), creates a manual-capture PI (base+2%), records a `payment_transactions` row (with a `description` for closeout), and (reader) sends it to the WisePOS E. Idempotent per `inv_<id>_attempt_<n>`. Returns `{paymentIntentId, clientSecret?}`. |
+| `pay-record` | session JWT | `{invoiceId, method:'cash'|'check', orgId?, connectedAccountId?}` → **cash/check, no Stripe**. Reads the receipt's authoritative base, inserts a `completed` `payment_transactions` row (surcharge 0, captured = base, `description`). Idempotent per `inv_<id>_<method>`. |
 | `stripe-webhook` | **signature-verified** | The **source of truth**. Captures the credit-only surcharge on authorization; marks `completed` on `payment_intent.succeeded`; `failed`/`canceled` accordingly; reader failures via `terminal.reader.action_failed`. Event-id idempotent via `payment_events`. |
 | `pay-status` | session JWT | `{paymentIntentId}` → transaction row for UI polling (status, funding, surcharge_applied, captured). **Never** the authoritative paid flag — that's webhook-only. |
 | `pay-refund` | session JWT | `{paymentIntentId, amountCents?}` → full/partial refund of a `completed` transaction. |
@@ -81,7 +92,10 @@ a clean add-on later.
 - ⬜ Cutover: swap `sk_live_` (same secret slot) + a real `pk_live_`, one real charge, then retire
   `TurboStripe.exe` + rotate the old key. Edge function `apiVersion` is `2024-06-20`; webhook
   endpoint is `2023-10-16` — compatible (handler re-fetches the PI), bump later if desired.
-- ⬜ Export the 5 edge-function sources into `supabase/functions/` for version control.
+- ✅ Edge-function sources version-controlled in `supabase/functions/` (6: the 5 above + `pay-record`).
+- ✅ **Cash / check** tenders (`pay-record`) — no surcharge; **Day-closeout history** (`view-history`,
+  `TKPay.dayTransactions`) breaking down collected by card/cash/check + surcharge + refunds. Cash path
+  rehearsed ($25 → recorded `completed`, surcharge 0).
 
 ## Test plan (once the webhook secret is set)
 Reader: create a receipt (synced) → `pay-create-intent {invoiceId, method:'reader', readerId}` →

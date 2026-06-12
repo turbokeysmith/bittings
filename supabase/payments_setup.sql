@@ -11,7 +11,7 @@ create table if not exists public.payment_transactions (
   invoice_id               text,                         -- receipts.id being paid
   org_id                   text,                         -- null = single-shop (future multi-tenant)
   connected_account_id     text,                         -- null = single-account direct (future Connect)
-  method                   text not null,                -- 'reader' | 'keyed'
+  method                   text not null,                -- 'reader' | 'keyed' | 'cash' | 'check'
   currency                 text not null default 'usd',
   base_cents               integer not null,             -- authoritative invoice base (pre-surcharge)
   surcharge_cents          integer not null default 0,   -- 2% of base (authorized on top; credit-only)
@@ -25,7 +25,8 @@ create table if not exists public.payment_transactions (
   stripe_refund_id         text,
   status                   text not null default 'pending', -- pending|authorized|completed|failed|canceled|refunded
   failure_reason           text,
-  idempotency_key          text,                         -- inv_<id>_attempt_<n>
+  idempotency_key          text,                         -- inv_<id>_attempt_<n> (card) | inv_<id>_<method> (cash/check)
+  description              text,                         -- human label for the day-closeout history
   created_by               uuid,                         -- auth.uid of the cashier
   created_at               timestamptz not null default now(),
   updated_at               timestamptz not null default now()

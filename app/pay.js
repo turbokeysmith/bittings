@@ -45,6 +45,26 @@
     render();
   };
 
+  // Cash / Check: record a completed transaction (no card, no surcharge — it's
+  // card-only). Upserts the receipt first so the total is authoritative server-side.
+  window.TKPay.recordCashCheck = async function(receipt, method, opts){
+    opts = opts || {};
+    if(!receipt || !receipt.id){ if(opts.onError) opts.onError("missing id"); return; }
+    const c=client(); const tok=await token();
+    if(!c || !tok){ alert("Sign in (Staff Login) to record a payment."); return; }
+    try{ await c.from("receipts").upsert({ id:receipt.id, data:receipt }); }catch(e){ if(opts.onError) opts.onError(e.message||e); return; }
+    const j=await call("pay-record",{ invoiceId:receipt.id, method });
+    if(j.error){ if(opts.onError) opts.onError(j.error); return; }
+    if(opts.onDone) opts.onDone(j);
+  };
+
+  // Day closeout: transactions in [fromISO, toISO). Reads as the signed-in staff.
+  window.TKPay.dayTransactions = async function(fromISO, toISO){
+    const c=client(); if(!c) return { error:"not connected" };
+    const q=await c.from("payment_transactions").select("*").gte("created_at", fromISO).lt("created_at", toISO).order("created_at", { ascending:false });
+    return q.error ? { error:q.error.message } : { rows:q.data||[] };
+  };
+
   function render(){
     if(modal) modal.remove();
     const sur=Math.round(S.baseCents*0.02);

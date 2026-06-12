@@ -90,6 +90,49 @@ Regenerate with `node _build/generate.mjs`.
 
 ---
 
+## Update 2026-06-12 — payments engine (Stripe + cash/check + closeout)
+Supersedes #9 ("Payments tile UI shell … demo stub"): the demo stub is gone. Full architecture +
+ops in **`supabase/PAYMENTS.md`**; deployed function sources in **`supabase/functions/`**; schema in
+**`supabase/payments_setup.sql`**. Single-shop, **single-account direct charges (NOT Connect)**, all
+**TEST mode** until `sk_live_` is swapped in.
+
+**Shared engine — `app/pay.js` (`window.TKPay`)** — one swap point both pay screens call:
+- `openForReceipt(receipt,{title,onDone})` — upserts the receipt to Supabase (so the server reads the
+  authoritative total), opens the reader + typed-card modal, calls the `pay-*` functions.
+- `recordCashCheck(receipt, method, {onDone,onError})` — POST `pay-record` (cash/check; no Stripe, **no
+  surcharge**).
+- `dayTransactions(fromISO,toISO)` — queries `payment_transactions` for the closeout history.
+Uses `window.TKS_CLOUD` + a supabase client carrying the staff session JWT; the client **never** sends
+an amount.
+
+**Two entry points** (both owner-gated, both offer 💳 Card / 💵 Cash / 🧾 Check):
+- `bittings.html` **Invoice → Pay Now** — pays a finished receipt by id (inline `openPayNow` engine).
+- `index.html` **Payments tile → New Charge** — no-invoice jobs (lockouts): amount + service label +
+  optional customer → auto-creates a minimal receipt → same engine → files into customer history if
+  named, else anonymous. `chgEls/chgGate/renderChgBreakdown/chgBuildReceipt`; `chgCard` → `TKPay
+  .openForReceipt`; `chgCash`/`chgCheck` → `chgRecord(method)` → `TKPay.recordCashCheck`.
+
+**Day closeout** — `index.html` `view-history` (in the `views` array; back-target → payments).
+`openHistory()`/`renderHistory()` call `TKPay.dayTransactions`, render summary chips (collected, #
+charges, card/cash/check split, surcharge, refunded) + rows (time · method · funding · status · amount).
+
+**Edge functions** (`verify_jwt:true` except the signature-verified webhook): `pay-create-intent`
+(manual-capture PI base+2%, records `description`), **`pay-record`** (cash/check → `completed` row,
+surcharge 0, idempotent `inv_<id>_<method>`), `stripe-webhook` (source of truth, captures credit-only
+surcharge), `pay-status`, `pay-refund`, `pay-terminal`. `payment_transactions` gained a `description`
+column (closeout label) and `method` now also accepts `cash`/`check`.
+
+**Owner-gating** mirrors the scheduler swap point: owner signed in → grant; signed-in employee → deny;
+nobody signed in → PIN fallback (`window.TKS_OWNER.QUICK_FORM_PIN`).
+
+**`bittings.html` Quick invoice** — owner-only one-screen alternative to the chat (trainees can't see
+it). `window.quickInvoiceAvailable`/`requestQuickInvoice`/`openQuickInvoice`; on/off via
+`TKS_OWNER.QUICK_INVOICE_ENABLED`, auto-open (owner signed-in only, never PIN) via
+`QUICK_INVOICE_DEFAULT` + `quickInvoiceAutoForOwner`. `boot()` runs at the very end of the script so
+the module is defined first.
+
+---
+
 ## ✅ CLOUD IS NOW WIRED (using your existing project)
 The staff app (`index.html`) now loads supabase-js + `app/cloud-config.js` (the SAME project
 URL + publishable key already in `cloud-test.html`) and **auto-connects when an employee is
