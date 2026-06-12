@@ -10,7 +10,8 @@ These are the deployed sources (version-controlled copies of what runs on the
 | `pay-record` | **true** | **cash / check** — no Stripe, **no surcharge**; reads the receipt's authoritative base and inserts a `completed` txn (with `cost_cents` + `technician`), idempotent per `inv_<id>_<method>` |
 | `stripe-webhook` | **false** | signature-verified instead; **source of truth** (captures credit-only surcharge, marks paid) |
 | `pay-status` | **true** | UI poll only |
-| `pay-refund` | **true** | full/partial refund of a completed txn |
+| `pay-refund` | **true** | full/partial refund of a completed **card** txn → marks `refunded` |
+| `pay-void` | **true** | void a completed **cash/check** txn (no Stripe) → marks `refunded` |
 | `pay-terminal` | **true** | list readers/locations; test simulate-tap; cancel reader action |
 
 ## Secrets (Supabase → Edge Functions → Secrets)
@@ -27,7 +28,8 @@ supabase functions deploy pay-create-intent --project-ref gcshuhlksjznksspbigl  
 supabase functions deploy pay-record        --project-ref gcshuhlksjznksspbigl                 # cash/check
 supabase functions deploy stripe-webhook    --project-ref gcshuhlksjznksspbigl --no-verify-jwt  # signature-verified
 supabase functions deploy pay-status        --project-ref gcshuhlksjznksspbigl
-supabase functions deploy pay-refund        --project-ref gcshuhlksjznksspbigl
+supabase functions deploy pay-refund        --project-ref gcshuhlksjznksspbigl                 # card refund
+supabase functions deploy pay-void          --project-ref gcshuhlksjznksspbigl                 # cash/check void
 supabase functions deploy pay-terminal      --project-ref gcshuhlksjznksspbigl
 ```
 Runtime: `stripe-node@16` via `npm:` specifier + `Stripe.createFetchHttpClient()`; webhooks use the

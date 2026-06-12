@@ -46,8 +46,28 @@ refund/void *button* are the remaining slivers.
 
 **Inventory stock on a sale.** When a sale is **paid/completed** (cash/check, a Paid-in-Full receipt,
 or a successful Pay Now), each part line's qty is **subtracted from stock** — only once (guarded by a
-`stockApplied` flag on the receipt), never on a draft. Voiding/deleting a paid sale **adds the stock
-back**. Low-stock is derived (`Inventory.isLow`), so the flag trips automatically.
+`stockApplied` flag on the receipt), never on a draft. Voiding/deleting/**refunding** a paid sale
+**adds the stock back** (`reverseStockForReceipt` in `bittings.html`, `reverseStockForInvoice` in
+`index.html`). Low-stock is derived (`Inventory.isLow`), so the flag trips automatically.
+
+**Refund / void + technician filter (Transaction History).** Each completed transaction has an
+**↩︎ Refund** button: **card → `pay-refund`**, **cash/check → `pay-void`** — both mark the row
+`refunded` (drops out of "collected", counts as refunded) and return parts to stock. A **technician
+dropdown** filters the cards, graph, and list to one tech (the commission view's filter half).
+
+## Send a receipt — through the device's own apps (no email service)
+No third-party email/SMS service, no API key, no cost — it uses the phone's own share/messaging.
+- **Primary: native Share sheet** (`navigator.share` + `navigator.canShare({files})`). On the
+  **Receipts/invoice** flow (`bittings.html` `shareDocument`) it generates the **actual PDF**
+  (`makePDF(..., returnBlob)`) and hands the **file** to the OS sheet → the user picks Messages / Mail /
+  Gmail / WhatsApp / AirDrop, etc. On the Payments-tile **New Charge** (`index.html`, no PDF engine) it
+  shares a **text summary**. Surfaced on the receipt card, **Pay Now** success, saved-receipt **history
+  rows**, and after a **New Charge**.
+- **Best-effort convenience:** when the customer's phone/email is on file, **💬 Text** (`sms:?&body=`)
+  and **✉️ Email** (`mailto:`) buttons prefill a short **text summary** (these can't attach the file;
+  `sms:` prefill is unreliable on some Android builds).
+- **Desktop (no share sheet):** falls back to downloading the PDF (the existing save/print path).
+- **Future (not built):** print to the shop's **thermal receipt printer** instead of a PDF.
 
 ## Why this shape
 - **One auth/session:** the portal calls the functions with the staff member's **existing Supabase
@@ -78,7 +98,8 @@ back**. Low-stock is derived (`Inventory.isLow`), so the flag trips automaticall
 | `pay-record` | session JWT | `{invoiceId, method:'cash'|'check', orgId?, connectedAccountId?}` → **cash/check, no Stripe**. Reads the receipt's authoritative base, inserts a `completed` `payment_transactions` row (surcharge 0, captured = base, `description`). Idempotent per `inv_<id>_<method>`. |
 | `stripe-webhook` | **signature-verified** | The **source of truth**. Captures the credit-only surcharge on authorization; marks `completed` on `payment_intent.succeeded`; `failed`/`canceled` accordingly; reader failures via `terminal.reader.action_failed`. Event-id idempotent via `payment_events`. |
 | `pay-status` | session JWT | `{paymentIntentId}` → transaction row for UI polling (status, funding, surcharge_applied, captured). **Never** the authoritative paid flag — that's webhook-only. |
-| `pay-refund` | session JWT | `{paymentIntentId, amountCents?}` → full/partial refund of a `completed` transaction. |
+| `pay-refund` | session JWT | `{paymentIntentId, amountCents?}` → full/partial refund of a `completed` **card** transaction; marks the row `refunded`. |
+| `pay-void` | session JWT | `{transactionId}` → void a `completed` **cash/check** transaction (no Stripe); marks the row `refunded`. |
 | `pay-terminal` | session JWT | `{action:'list'|'simulate'|'cancel', readerId?, locationId?, debit?, declined?}` → list readers/locations; **simulate-tap** (test only); cancel a reader action (failure UX). |
 
 All take optional `orgId` / `connectedAccountId` (ignored single-shop) so multi-tenant + Connect are
