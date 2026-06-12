@@ -251,7 +251,7 @@
       <button class="tile t-scheduler" data-open="scheduler.html">
         <div class="ic">🗓️</div><h2>Scheduler</h2><p>Front-desk booking &amp; intake.</p>
       </button>
-      <button class="tile t-payments" data-go="payments">
+      <button class="tile t-payments owner-soft" data-go="payments" style="display:none">
         <div class="ic">💳</div><h2>Payments</h2><p>Take a card, counter or field.</p>
       </button>
       <button class="tile t-inventory" data-go="inventory">
@@ -1071,11 +1071,22 @@ function setCloudPill(state){
    is the app's "who's signed in" check. Owner is decided by the email allowlist
    in app/cloud-config.js (TKS_OWNER.OWNER_EMAILS). */
 function esc2(s){ return (s||'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
-// Closeout + Transaction History are owner-only ("just for me"). Visible to a
-// signed-in owner, or when nobody is signed in (the owner's own device / PIN era);
-// hidden for a signed-in trainee (staff).
-function ownerVisible(){ try{ const a=TKS.auth; if(a && a.isSignedIn()) return a.isOwner(); }catch(_){} return true; }
-function syncOwnerTiles(){ const vis=ownerVisible(); document.querySelectorAll('.owner-only').forEach(el=>{ el.style.display = vis ? '' : 'none'; }); }
+/* Two visibility tiers (offline-capable — owner identity is read from the live
+   session OR a remembered token, so a dropped connection never demotes an owner):
+   • ownerHard(): owner ONLY. Analytics (Closeout, Transaction History) — hidden
+     for staff AND for fully signed-out/no-session.
+   • ownerSoft(): owner, OR signed-out/no-session (PIN unlocks the action). Hidden
+     for a signed-in staff member. Used for payment-taking (Payments/New Charge).
+   Matrix — owner online: both show · owner offline (remembered): both show ·
+   staff: both hidden · signed-out/no-session: hard hidden, soft shown (PIN-gated). */
+function ownerHard(){ try{ return !!(window.TKS && TKS.auth && TKS.auth.isOwner()); }catch(_){} return false; }
+function ownerSoft(){ try{ const a=TKS.auth; if(a && a.isSignedIn()) return !!a.isOwner(); }catch(_){} return true; }
+function ownerVisible(){ return ownerHard(); }   // back-compat alias (hard)
+function syncOwnerTiles(){
+  const hard=ownerHard(), soft=ownerSoft();
+  document.querySelectorAll('.owner-only').forEach(el=>{ el.style.display = hard ? '' : 'none'; });
+  document.querySelectorAll('.owner-soft').forEach(el=>{ el.style.display = soft ? '' : 'none'; });
+}
 function updateAuthUI(){
   syncOwnerTiles();
   const bar = document.getElementById('authBar'); if(!bar) return;

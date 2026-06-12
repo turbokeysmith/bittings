@@ -742,7 +742,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   </div>
   <a class="hdr-btn" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center" title="Back to all apps">‹ Apps</a>
   <button class="hdr-btn" onclick="openHist()">History</button>
-  <button class="hdr-btn" onclick="openSettings()">⚙</button>
+  <button class="hdr-btn" id="settingsBtn" onclick="openSettings()">⚙</button>
 </header>
 
 <div id="chat"></div>
@@ -3121,7 +3121,17 @@ function renderCustList(){
 /* ==========================================================
    SETTINGS PANEL
    ========================================================== */
-function openSettings(){ loadSettingsForm(); document.getElementById("settingsPanel").classList.add("open"); }
+/* Owner-only Settings (soft): a signed-in STAFF member is blocked + the gear is
+   hidden for them; the owner (live or remembered session, so it survives offline)
+   and a signed-out/first-run device are allowed. */
+function syncOwnerUI(){
+  try{ const staff = window.TKS && TKS.auth && TKS.auth.isSignedIn() && !TKS.auth.isOwner();
+    const g=document.getElementById("settingsBtn"); if(g) g.style.display = staff ? "none" : ""; }catch(e){}
+}
+function openSettings(){
+  try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn() && !TKS.auth.isOwner()){ appAlert("Owner only","Settings are owner-only."); return; } }catch(e){}
+  loadSettingsForm(); document.getElementById("settingsPanel").classList.add("open");
+}
 function closeSettings(){ document.getElementById("settingsPanel").classList.remove("open"); }
 function loadSettingsForm(){
   const s=getSettings()||DEFAULT_SETTINGS;
@@ -3434,6 +3444,7 @@ function boot(){
       TKS.Config.save({ taxRate: Number(SETTINGS.taxRate), taxableByCategory: {} });
     }
   }catch(e){}
+  syncOwnerUI();   // hide the ⚙ Settings gear for a signed-in staff member
 }
 
 // when settings are closed for the first time, start the interview
@@ -3453,6 +3464,7 @@ closeSettings = function(){
 function _receiptsRefresh(){
   try{ if(typeof renderCustList==='function') renderCustList(); }catch(e){}
   try{ if(typeof renderHistList==='function') renderHistList(); }catch(e){}
+  try{ if(typeof syncOwnerUI==='function') syncOwnerUI(); }catch(e){}
 }
 (function receiptsCloudBootstrap(){
   try{

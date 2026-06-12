@@ -528,8 +528,30 @@
      * ---------------------------------------------------------------- */
     auth: {
       user: function () { return authState.user; },
-      email: function () { return authState.user ? authState.user.email : null; },
-      isSignedIn: function () { return !!authState.user; },
+      // The signed-in email FROM THE LIVE SESSION (populated by connectCloud).
+      liveEmail: function () { return authState.user ? authState.user.email : null; },
+      // The email from a REMEMBERED session token in localStorage — read WITHOUT
+      // network, so an owner stays recognized as owner when the internet drops.
+      // (supabase-js v2 stores the session JSON under sb-<ref>-auth-token.)
+      rememberedEmail: function () {
+        try {
+          var ls = global.localStorage;
+          for (var i = 0; i < ls.length; i++) {
+            var k = ls.key(i);
+            if (k && k.indexOf('sb-') === 0 && k.indexOf('-auth-token') !== -1) {
+              var v = ls.getItem(k); if (!v) continue;
+              var o = JSON.parse(v);
+              var u = (o && (o.user || (o.currentSession && o.currentSession.user))) || null;
+              if (u && u.email) return String(u.email);
+            }
+          }
+        } catch (e) {}
+        return null;
+      },
+      // Effective identity = live session if present, else the remembered token.
+      // This is what gates owner UI, so offline ≠ "not owner".
+      email: function () { return this.liveEmail() || this.rememberedEmail(); },
+      isSignedIn: function () { return !!this.email(); },
       ownerEmails: function () {
         var o = global.TKS_OWNER && global.TKS_OWNER.OWNER_EMAILS;
         if (!Array.isArray(o)) return [];
@@ -539,7 +561,7 @@
         var e = this.email(); if (!e) return false;
         return this.ownerEmails().indexOf(e.toLowerCase()) !== -1;
       },
-      role: function () { return !this.isSignedIn() ? 'guest' : (this.isOwner() ? 'owner' : 'staff'); },
+      role: function () { var e = this.email(); return !e ? 'guest' : (this.isOwner() ? 'owner' : 'staff'); },
       signOut: function () { return (authState.sb && authState.sb.auth) ? authState.sb.auth.signOut() : Promise.resolve(); }
     },
 
