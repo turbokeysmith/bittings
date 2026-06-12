@@ -149,17 +149,32 @@ Netlify tile is fully superseded. Full design + ops in `supabase/PAYMENTS.md`. E
   completed/paid sales, never drafts, guarded by a `stockApplied` flag so it can't double-apply.
   Low-stock flag is derived, so it trips automatically when stock crosses the threshold.
 
+### B3.1 — Send receipt, technician filter, refunds ✅ (2026-06-12 PM) — ⏳ pending mobile sign-off
+- ✅ **Send receipt via the device's own apps (no email service, no key, no cost).** Primary path =
+  the **native Share sheet** (`navigator.share` with the **actual PDF file**) — on the Receipts/invoice
+  flow it attaches the real PDF; on the Payments-tile **New Charge** it shares a **text summary** (that
+  screen has no PDF engine). Plus best-effort **💬 Text** (`sms:`) and **✉️ Email** (`mailto:`)
+  prefilled buttons when the customer's phone/email is on file. Surfaced on the on-screen receipt card,
+  in **Pay Now** success, on saved-receipt **history rows**, and after a **New Charge**. Desktop with no
+  share sheet falls back to download/print (unchanged).
+- ✅ **Technician filter** in Transaction History (dropdown of whoever's tagged in the period →
+  filters cards, graph, and list) — the commission view's filter half.
+- ✅ **Refund / void button** per completed transaction in Transaction History: **card → `pay-refund`**
+  (Stripe), **cash/check → new `pay-void`** function; both mark the row `refunded` and **return any
+  parts to stock** (`reverseStockForInvoice`).
+
 ### B4 — Next steps (Payments)
-- ⬜ **YOUR browser test (TEST mode):** sign in → build an invoice (add a part from Inventory + set a
-  qty/cost, tag a tech) → Pay Now → simulate credit/debit → type card `4242 4242 4242 4242`; try a New
-  Charge + a cash/check; open Closeout + Transaction History and confirm **Total Cost/Profit** + the
-  technician show. Confirm amounts in the Stripe **test** dashboard, and that stock dropped.
-- ⬜ **Technician filter in Transaction History** (data is captured now; the filter UI + a commission
-  total is the remaining commission-view work).
-- ⬜ **Refund / void button in the Transaction History tile** (today `pay-refund` exists but has no
-  button — only reachable by the engine; the stock-reversal helper is ready to hook to it).
+- ⬜ **YOUR mobile + browser test (TEST mode), iPhone Safari + Android Chrome, owner + staff:** build an
+  invoice (add a part from Inventory + qty/cost, tag a tech) → Pay Now → simulate credit/debit → type
+  card `4242 4242 4242 4242`; try New Charge + cash/check; **Send receipt** (confirm what attaches on
+  each phone); open Transaction History → check Cost/Profit, the **technician filter**, and a
+  **refund**; confirm stock dropped then came back on refund. Confirm amounts in the Stripe **test**
+  dashboard.
 - ⬜ **Cutover to LIVE:** swap `sk_live_`/`pk_live_` (same secret slot), register the LIVE webhook,
   one real charge, **retire `TurboStripe.exe` + rotate the old leaked key.**
+- ⏸️ **FUTURE (do NOT build yet): thermal receipt printer** — print a real receipt to the shop's
+  thermal printer instead of a PDF. Separate hardware/driver job (ESC/POS or the printer's web/USB
+  bridge); revisit after go-live.
 - ⏸️ Field/Bluetooth reader + Tap-to-Pay-on-phone — a later native phase.
 
 ---
@@ -240,14 +255,16 @@ already carries optional `orgId`/`connectedAccountId` so it's a clean add-on, no
 prioritize.*
 
 **Money / books**
-- ⬜ **Receipt delivery** — email/text the customer their receipt after a charge (and a PDF/print).
-  Right now a receipt exists in the system but isn't sent to the customer.
+- ✅ **Receipt delivery (2026-06-12)** — send via the device's own apps (native Share sheet attaches
+  the PDF; best-effort Text/Email prefill), no email service. *(Pending mobile sign-off.)* The
+  **thermal-printer** print path is a separate future task (flagged under Track B4).
 - ⬜ **Daily email summary** — auto-email you the Closeout totals at end of day (Supabase scheduled
   function). Saves opening the app to reconcile.
 - ⬜ **Sales tax** — if any items are taxable, decide tax handling now (the receipt has a `tax` slot
   but it's $0). Oklahoma rules; affects Profit math.
 - ⬜ **Tips** — if you want to allow tips on card, add it before live (affects surcharge base).
-- ⬜ **Refund/void button** in the UI (engine already supports it — see B4).
+- ✅ **Refund/void button** in Transaction History (2026-06-12) — card via `pay-refund`, cash/check via
+  `pay-void`, returns parts to stock. *(Pending mobile sign-off.)*
 
 **Trust / safety**
 - ⬜ **Data backup/export** — a one-tap "export everything to CSV/JSON" and/or scheduled Supabase

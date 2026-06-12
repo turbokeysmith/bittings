@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 15:46 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 16:04 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -267,8 +267,9 @@ with statuses is `turbo_master_task_list.md`.*
 3. **Go live** — swap in the live Stripe keys, run one real card, retire the old desktop app
    (`TurboStripe.exe`) and **rotate its old key** (security-important). Do this once you're confident
    from step 1.
-4. **Finish the money loop** — email/text/print the customer a receipt; auto-email yourself the
-   day's Closeout totals; decide sales tax if any items are taxable.
+4. **Finish the money loop** — ✅ sending the customer a receipt is done (via your phone's own apps;
+   pending your mobile sign-off). Still open: auto-email yourself the day's Closeout totals, decide
+   sales tax if any items are taxable, and (future) a thermal-printer print path.
 
 **Website**
 5. **Public leads into the cloud** — today website leads save only on the device that took them. A
@@ -350,6 +351,19 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
+- **Send a receipt from your own phone, plus refunds & a technician filter (16:04):** on a paid
+  receipt — or right after Pay Now / New Charge — you can now **send the customer their receipt using
+  your phone's own apps** (their number, their Gmail/Mail). **No email service, no key, no monthly
+  cost.** The main button is **📤 Share**, which opens your phone's Share sheet with the **actual PDF
+  attached** (pick Messages, Mail, Gmail, WhatsApp, AirDrop…). When the customer's phone/email is on
+  file you also get quick **💬 Text** and **✉️ Email** buttons (these prefill a short summary — best-
+  effort, since text prefill is unreliable on some Androids). On the shop computer (no Share sheet) it
+  still just downloads/prints as before. *(New Charge sends a text summary; the full PDF lives in the
+  Receipts flow.)* Also added: a **↩︎ Refund** button on each transaction in Transaction History
+  (card refunds through Stripe, cash/check voided — and any parts go back to stock), and a **filter by
+  technician** so you can see one person's sales. **Pending mobile sign-off** (see the rule above; I
+  can't run real phones from here — test steps provided). **Future, not built:** printing to a
+  **thermal receipt printer** instead of a PDF.
 - **Standing rule: every change must be verified on iPhone + Android before "done" (15:46):** added a
   permanent rule (in `CLAUDE.md`) that any new feature must work on **both iPhone (Safari) and Android
   (Chrome)**, for **owner and signed-in staff**, on a small phone (fits/scrolls, tap targets, touch

@@ -2561,13 +2561,17 @@ function renderReceiptCard(r){
        '<button data-lang="en" data-copy="mine" title="Your full copy with NASTF audit fields">My Copy</button>'+
        '<button data-lang="en" data-copy="customer" title="Customer-facing copy (NASTF fields hidden)">Customer Copy</button>'+
        '<button data-lang="es" data-copy="customer" title="Customer Copy in Spanish">Español</button>'+
-       '<button data-share="1" data-lang="en" data-copy="customer" title="Send via text, email, or another app">📤 Share</button>'+
+       '<button data-share="1" data-lang="en" data-copy="customer" title="Send via text, email, or another app — attaches the PDF">📤 Share</button>'+
+       (r.phone?'<button data-send="text" title="Prefill a text to '+escapeHtml(r.phone)+' (best-effort)">💬 Text</button>':'')+
+       (r.email?'<button data-send="email" title="Prefill an email to '+escapeHtml(r.email)+'">✉️ Email</button>':'')+
      '</div>'+
    '</div>';
   chat.appendChild(card);
   card.querySelectorAll(".rc-actions button").forEach(b=>{
     b.onclick=()=>{
-      if(b.dataset.share === "1"){
+      if(b.dataset.send === "text"){ sendByText(r); }
+      else if(b.dataset.send === "email"){ sendByEmail(r); }
+      else if(b.dataset.share === "1"){
         shareDocument(r, b.dataset.lang || "en", b.dataset.copy === "customer");
       }else{
         makePDF(r, b.dataset.lang||"en", b.dataset.copy==="customer");
@@ -2639,6 +2643,33 @@ function shareDocument(r, lang, forCustomer){
     appAlert("Share not supported here",
       "This browser doesn't support file sharing. The PDF was downloaded instead — open it from your Files/Downloads to share manually.");
   }
+}
+
+/* ----------------------------------------------------------
+   Best-effort convenience senders (NO email service, NO cost):
+   open the device's own Messages / Mail prefilled. These carry a
+   short TEXT summary only — the actual PDF goes via 📤 Share
+   (the Web Share sheet, which can attach the file). sms: prefill
+   is unreliable on some Android builds, so treat as best-effort.
+   ---------------------------------------------------------- */
+function receiptSummaryText(r){
+  const biz=SETTINGS.name||"your locksmith";
+  const lbl=docLabel(r.docType); const nice=lbl.charAt(0)+lbl.slice(1).toLowerCase();
+  const total=(r.totals&&r.totals.total!=null)?money(r.totals.total):"";
+  return [nice+" "+r.number+" from "+biz, total?("Total: "+total):"", "Thank you for your business!"].filter(Boolean).join("\n");
+}
+function sendByText(r){
+  const phone=(r.phone||"").replace(/[^\d+]/g,"");
+  if(!phone){ appAlert("No phone on file","Add the customer's phone, or use 📤 Share to pick an app."); return; }
+  // "?&body=" is the form that prefills on iOS and most Android builds.
+  window.location.href="sms:"+phone+"?&body="+encodeURIComponent(receiptSummaryText(r));
+}
+function sendByEmail(r){
+  const email=(r.email||"").trim();
+  if(!email){ appAlert("No email on file","Add the customer's email, or use 📤 Share to pick an app."); return; }
+  const subj=(docLabel(r.docType).charAt(0)+docLabel(r.docType).slice(1).toLowerCase())+" "+r.number+(SETTINGS.name?(" — "+SETTINGS.name):"");
+  const body=receiptSummaryText(r)+"\n\n(Tip: to send the PDF itself, use the 📤 Share button and pick Mail/Gmail.)";
+  window.location.href="mailto:"+encodeURIComponent(email)+"?subject="+encodeURIComponent(subj)+"&body="+encodeURIComponent(body);
 }
 
 /* ==========================================================
@@ -2913,7 +2944,8 @@ function renderHistList(){
     div.className="hist-item "+type;
     // Use doc number (stable id) instead of array index (changes on edit/delete/filter)
     const dn=escapeHtml(r.number);
-    let actions='<button data-act="pdf" data-num="'+dn+'">PDF</button>'+
+    let actions='<button data-act="share" data-num="'+dn+'">📤 Send</button>'+
+                '<button data-act="pdf" data-num="'+dn+'">PDF</button>'+
                 '<button data-act="pdfes" data-num="'+dn+'">PDF (ES)</button>'+
                 '<button data-act="edit" data-num="'+dn+'">Edit</button>';
     if(type==="invoice") actions += '<button data-act="paid" data-num="'+dn+'">Mark Paid</button>';
@@ -2936,7 +2968,8 @@ function renderHistList(){
       const r=hist[i];
       if(!r.totals){ r.totals=computeTotals(r.items||[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}], r.payment); }
       if(!r.items) r.items=[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}];
-      if(act==="pdf") makePDF(r, "en");
+      if(act==="share") shareDocument(r, "en", true);
+      else if(act==="pdf") makePDF(r, "en");
       else if(act==="pdfes") makePDF(r, "es");
       else if(act==="del"){
         const note = r.stockApplied ? "This cannot be undone. Any parts used will be added back to stock." : "This cannot be undone.";
@@ -3514,6 +3547,15 @@ function _receiptsRefresh(){
           r.status="Paid in Full"; r.paidAt=Date.now();
           if(typeof applyStockForReceipt==="function") applyStockForReceipt(r);
           if(typeof renderHistList==="function"){ try{ renderHistList(); }catch(_){} }
+          // Offer to send the receipt straight from the success screen (native share / file).
+          const body=modal&&modal.querySelector("#pnBody");
+          if(body && !body.querySelector(".pnSend")){
+            const sb=document.createElement("button"); sb.type="button"; sb.className="pnSend";
+            sb.textContent="📤 Send receipt to customer";
+            sb.style.cssText="width:100%;margin-top:12px;padding:13px;border-radius:11px;border:1px solid #2a2f3a;background:#11141a;color:#f4f5f7;font-weight:700;cursor:pointer";
+            sb.onclick=()=>{ try{ shareDocument(r,"en",true); }catch(e){ alert("Sharing isn't available on this device — open the receipt and use Share or Print."); } };
+            body.appendChild(sb);
+          }
         } }catch(_){}
         return;
       }

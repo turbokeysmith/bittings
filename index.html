@@ -316,6 +316,7 @@
         <button class="btn ghostbtn" id="chgCheck" disabled style="flex:1">🧾 Check</button>
       </div>
       <p class="note" id="chgStatus" aria-live="polite"></p>
+      <div id="chgSendRow" class="actions" style="display:none;flex-wrap:wrap;gap:8px"></div>
       <p class="note"><a href="#" id="chgHistLink">📋 Day closeout / transaction history</a></p>
     </div>
   </div>
@@ -347,6 +348,9 @@
         <option value="doughnut">Doughnut</option>
       </select>
       <button class="add" id="repReload" title="Refresh" style="background:#2a2f3a">↻</button>
+    </div>
+    <div class="rep-controls">
+      <select id="repTech" class="rep-select" aria-label="Filter by technician (for commission)"><option value="all">All technicians</option></select>
     </div>
     <div class="rep-toggles" id="repToggles"></div>
     <div class="rep-cards" id="repCards"></div>
@@ -753,7 +757,33 @@ function chgBuildReceipt(){
     items:[{desc:label, amount:a.sub, taxable:false}], totals:{ total:a.sub, surcharge:0, subtotal:a.sub, tax:0, discount:0 } };
   return { receipt, name, label, a };
 }
-function chgClear(){ const e=chgEls(); e.amt.value=''; e.label.value=''; e.cust.value=''; e.email.value=''; renderChgBreakdown(); }
+function chgClear(){ const e=chgEls(); e.amt.value=''; e.label.value=''; e.cust.value=''; e.email.value=''; renderChgBreakdown();
+  const sr=document.getElementById('chgSendRow'); if(sr){ sr.style.display='none'; sr.innerHTML=''; } }
+/* Send the customer their receipt using the DEVICE's own apps — no email service,
+   no cost. Native Share sheet is primary (works on iPhone + Android); an Email
+   button (mailto:) shows when an email is on file. New Charge carries a TEXT
+   summary (this screen has no PDF engine — the full PDF lives in Receipts). */
+function chgSummaryText(r){
+  const total=(r.totals&&r.totals.total!=null)?('$'+Number(r.totals.total).toFixed(2)):'';
+  const svc=(r.items&&r.items[0]&&r.items[0].desc)||'Service';
+  return 'Receipt from Turbo Keysmith — '+svc+(total?(' — Total '+total):'')+'. Thank you!';
+}
+function sendChargeReceipt(r){
+  if(!r) return; const text=chgSummaryText(r);
+  if(navigator.share){ navigator.share({ title:'Turbo Keysmith receipt', text }).catch(()=>{}); return; }
+  const email=(r.email||'').trim();
+  if(email){ window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Your Turbo Keysmith receipt')+'&body='+encodeURIComponent(text); return; }
+  try{ navigator.clipboard.writeText(text); chgSay('Receipt summary copied — paste into a text/email.',true); }catch(e){ alert(text); }
+}
+function showChgSend(r){
+  const sr=document.getElementById('chgSendRow'); if(!sr||!r) return;
+  const email=(r.email||'').trim();
+  sr.innerHTML='<button class="btn ghostbtn" id="chgSendShare" style="flex:1">📤 Send receipt</button>'+
+    (email?'<button class="btn ghostbtn" id="chgSendEmail" style="flex:1">✉️ Email</button>':'');
+  sr.style.display='flex';
+  const sh=document.getElementById('chgSendShare'); if(sh) sh.onclick=()=>sendChargeReceipt(r);
+  const em=document.getElementById('chgSendEmail'); if(em) em.onclick=()=>{ window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Your Turbo Keysmith receipt')+'&body='+encodeURIComponent(chgSummaryText(r)); };
+}
 function chgSay(msg,ok){ const e=chgEls(); e.status.textContent=msg; e.status.style.color=ok?'#7fd49b':(ok===false?'#f0a0a6':'var(--dim)'); }
 function renderPayments(){
   const e=chgEls();
@@ -771,7 +801,7 @@ document.getElementById('chgCard').onclick=function(){
   const b=chgBuildReceipt();
   if(!window.TKPay || !TKPay.openForReceipt){ chgSay('Payment engine not loaded.',false); return; }
   TKPay.openForReceipt(b.receipt, { title:b.label+(b.name?(' — '+b.name):' — walk-in'),
-    onDone:()=>{ chgClear(); chgSay('✓ Card charge complete.',true); } });
+    onDone:()=>{ chgClear(); chgSay('✓ Card charge complete.',true); showChgSend(b.receipt); } });
 };
 function chgRecord(method){
   if(!_chgUnlocked){ chgGate(); return; }
@@ -781,7 +811,7 @@ function chgRecord(method){
   if(!window.TKPay || !TKPay.recordCashCheck){ chgSay('Payment engine not loaded.',false); return; }
   chgSay('Recording…',null);
   TKPay.recordCashCheck(b.receipt, method, {
-    onDone:()=>{ chgClear(); chgSay('✓ '+(method==='cash'?'Cash':'Check')+' recorded ($'+b.a.sub.toFixed(2)+').',true); },
+    onDone:()=>{ chgClear(); chgSay('✓ '+(method==='cash'?'Cash':'Check')+' recorded ($'+b.a.sub.toFixed(2)+').',true); showChgSend(b.receipt); },
     onError:(msg)=>{ chgSay('Could not record: '+msg,false); } });
 }
 document.getElementById('chgCash').onclick=()=>chgRecord('cash');
@@ -837,8 +867,19 @@ const REP_METRICS=[
 ];
 const REP_MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 let repChart=null;
-function repView(){ return readLS('tks_report_view', {period:'today', chart:'bar'}); }
+function repView(){ return Object.assign({period:'today', chart:'bar', tech:'all'}, readLS('tks_report_view', {})); }
 function repSetView(v){ writeLS('tks_report_view', v); }
+// Return any inventory parts on a refunded/voided sale back to stock (mirrors
+// reverseStockForReceipt in bittings.html; this page also has TKS).
+function reverseStockForInvoice(invoiceId){
+  try{ if(!invoiceId || !window.TKS || !TKS.Inventory) return;
+    const listR=TKS.list('receipts'); const r=listR.find(x=> x && x.id===invoiceId);
+    if(r && r.stockApplied){
+      (r.items||[]).forEach(it=>{ const q=parseInt(it.qty,10)||0; if(it.partId && q>0) TKS.Inventory.adjustQty(it.partId, +q); });
+      r.stockApplied=false; r.stockReversedAt=Date.now(); TKS.saveList('receipts', listR);
+    }
+  }catch(e){}
+}
 function repMetrics(){ return Object.assign({jobs:true,sales:true,cost:true,profit:true}, readLS('tks_report_metrics', {})); }
 function repSetMetrics(m){ writeLS('tks_report_metrics', m); }
 function repMoney(c){ return '$'+((c||0)/100).toFixed(2); }
@@ -881,6 +922,7 @@ function openReports(){
 }
 document.getElementById('repPeriod').addEventListener('change', e=>{ const v=repView(); v.period=e.target.value; repSetView(v); renderReports(); });
 document.getElementById('repChart').addEventListener('change', e=>{ const v=repView(); v.chart=e.target.value; repSetView(v); renderReports(); });
+document.getElementById('repTech').addEventListener('change', e=>{ const v=repView(); v.tech=e.target.value; repSetView(v); renderReports(); });
 document.getElementById('repReload').onclick=renderReports;
 async function renderReports(){
   const v=repView(), m=repMetrics();
@@ -890,7 +932,14 @@ async function renderReports(){
   const {start,end}=repRange(v.period);
   const res=await TKPay.dayTransactions(start.toISOString(), end.toISOString());
   if(res.error){ list.innerHTML='<div class="empty">'+esc2(res.error)+'</div>'; return; }
-  const rows=res.rows||[];
+  const allRows=res.rows||[];
+  // Technician filter: options from whoever appears this period (keep selection).
+  const techs=Array.from(new Set(allRows.map(t=>(t.technician||'').trim()).filter(Boolean))).sort();
+  const sel=document.getElementById('repTech'); const want=(v.tech||'all');
+  sel.innerHTML='<option value="all">All technicians</option>'+techs.map(t=>'<option value="'+esc2(t)+'">'+esc2(t)+'</option>').join('');
+  sel.value = (want==='all'||techs.indexOf(want)>=0) ? want : 'all';
+  if(sel.value!==want){ const vv=repView(); vv.tech=sel.value; repSetView(vv); }
+  const rows = sel.value==='all' ? allRows : allRows.filter(t=>(t.technician||'').trim()===sel.value);
   const gran=repGran(v.period), buckets=repBuckets(start,end,gran);
   const agg={}; buckets.forEach(b=> agg[b.key]={sales:0,cost:0,profit:0,jobs:0});
   const tot={sales:0,cost:0,profit:0,jobs:0}; const byMethod={card:0,cash:0,check:0};
@@ -908,15 +957,29 @@ async function renderReports(){
   drawRepChart(v.chart, buckets, agg, m, byMethod);
   // Transaction list (period rows, newest first)
   if(!rows.length){ list.innerHTML='<div class="empty">No transactions in this period.</div>'; return; }
+  const refBtn='background:transparent;border:1px solid rgba(200,50,60,.5);color:#f0a0a6;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer';
   list.innerHTML=rows.map(t=>{
     const dt=new Date(t.created_at);
     const when=(v.period==='today') ? dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : dt.toLocaleDateString([], {month:'short',day:'numeric'})+' '+dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
     const ml=t.method==='cash'?'Cash':t.method==='check'?'Check':t.method==='reader'?'Card · reader':'Card · typed';
     const col=t.status==='completed'?'#7fd49b':t.status==='refunded'?'#f2b43a':t.status==='pending'?'#9aa3af':'#f0a0a6';
+    const refund = t.status==='completed' ?
+      '<button class="repRefund" data-id="'+esc2(t.id)+'" data-pi="'+esc2(t.stripe_payment_intent_id||'')+'" data-method="'+esc2(t.method)+'" data-inv="'+esc2(t.invoice_id||'')+'" style="'+refBtn+'">↩︎ Refund</button>' : '';
     return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
       '<div class="sub">'+when+' · '+ml+(t.technician?(' · '+esc2(t.technician)):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
-      '<span class="tag" style="color:'+col+'">'+repMoney(t.captured_cents||t.base_cents)+'</span></div>';
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'+
+        '<span class="tag" style="color:'+col+'">'+repMoney(t.captured_cents||t.base_cents)+'</span>'+refund+'</div></div>';
   }).join('');
+  list.querySelectorAll('.repRefund').forEach(b=> b.onclick=async()=>{
+    const id=b.dataset.id, pi=b.dataset.pi, method=b.dataset.method, inv=b.dataset.inv;
+    const isCard=(method==='reader'||method==='keyed');
+    if(!confirm('Refund/void this '+(isCard?'card charge':method+' payment')+'? Any parts used will be returned to stock.')) return;
+    b.disabled=true; const old=b.textContent; b.textContent='…';
+    let r2; try{ r2 = isCard ? await TKPay.refundCard(pi) : await TKPay.voidCashCheck(id); }catch(e){ r2={error:String(e)}; }
+    if(r2 && r2.error){ alert('Could not refund/void: '+r2.error); b.disabled=false; b.textContent=old; return; }
+    reverseStockForInvoice(inv);
+    renderReports();
+  });
 }
 function drawRepChart(type, buckets, agg, m, byMethod){
   const wrap=document.getElementById('repChartWrap'), canvas=document.getElementById('repCanvas');

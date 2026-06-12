@@ -162,6 +162,25 @@ A sale can reference real Inventory parts so the system computes **profit** and 
   line `cost`) and `technician` from the **stored receipt** (client never sends cost) → Transaction
   History shows real **Total Cost / Profit** and the tech. Verified: $9.00 parts → `cost_cents` 900.
 
+## Update 2026-06-12 PM — send receipt (device-native), refund/void, technician filter
+- **Send receipt — no email service.** Reuses the existing `shareDocument()` in `bittings.html`
+  (Web Share L2: `makePDF(...,returnBlob)` → `navigator.share({files})`, with a `canShare` guard +
+  download fallback). Added **`sendByText()`/`sendByEmail()`** (`sms:?&body=` / `mailto:`, text summary
+  only) + `receiptSummaryText()`. Surfaced: receipt-card actions (📤 Share + conditional 💬 Text /
+  ✉️ Email when `r.phone`/`r.email`), the **Pay-Now success** branch (a `.pnSend` button), and
+  saved-receipt **history rows** (`data-act="share"`). `index.html` New Charge has its own
+  `sendChargeReceipt()`/`showChgSend()` (text-summary share; `#chgSendRow`) since it has no jsPDF.
+- **Refund/void (Transaction History, `index.html`).** Per completed row an **↩︎ Refund** button:
+  card → `TKPay.refundCard(pi)` (`pay-refund`), cash/check → `TKPay.voidCashCheck(id)` (new **`pay-void`**
+  edge fn) — both set status `refunded`; then `reverseStockForInvoice(invoiceId)` returns parts to stock
+  (mirrors `bittings.html`'s `reverseStockForReceipt`). New `TKPay.refundCard` / `TKPay.voidCashCheck`
+  in `app/pay.js`.
+- **Technician filter.** `#repTech` dropdown built from the period's distinct `technician` values;
+  `repView().tech` persists; filters the cards, graph, and list. (Commission *totals* still to come.)
+- **Mobile:** all new controls are tap/click, no hover; `bittings.html` has `user-scalable=no` (no
+  zoom-on-focus). **Not yet run on real iPhone/Android from here** — pending the owner's device sign-off
+  per the CLAUDE.md rule.
+
 **`bittings.html` Quick invoice** — owner-only one-screen alternative to the chat (trainees can't see
 it). `window.quickInvoiceAvailable`/`requestQuickInvoice`/`openQuickInvoice`; on/off via
 `TKS_OWNER.QUICK_INVOICE_ENABLED`, auto-open (owner signed-in only, never PIN) via

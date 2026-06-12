@@ -58,6 +58,17 @@
     if(opts.onDone) opts.onDone(j);
   };
 
+  // Refund a CARD transaction (Stripe) by its PaymentIntent id → pay-refund.
+  window.TKPay.refundCard = async function(paymentIntentId){
+    if(!paymentIntentId) return { error:"missing paymentIntentId" };
+    return await call("pay-refund", { paymentIntentId });
+  };
+  // Void a CASH/CHECK transaction by its row id → pay-void (no Stripe).
+  window.TKPay.voidCashCheck = async function(transactionId){
+    if(!transactionId) return { error:"missing transactionId" };
+    return await call("pay-void", { transactionId });
+  };
+
   // Day closeout: transactions in [fromISO, toISO). Reads as the signed-in staff.
   window.TKPay.dayTransactions = async function(fromISO, toISO){
     const c=client(); if(!c) return { error:"not connected" };
