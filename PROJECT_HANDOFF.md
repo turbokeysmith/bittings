@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-13 00:42 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-13 00:47 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -358,7 +358,10 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   optional **price** box (enter a standard price, or leave blank for per-job). Checked services become
   your service list; there's an **"+ Add a service"** at the bottom for specialty work we didn't list.
   Fixes the earlier confusion (duplicate category headings / missing common services) — the full common
-  list now always shows for your selected types. Stored in the cloud-synced config.
+  list now always shows for your selected types. **Pre-checked:** when you tick a category in step 1, all
+  its common services start checked so you just **uncheck what you don't do**; each category in step 2
+  has a **Select all / Clear** button to flip the whole group at once **without removing the category**.
+  Stored in the cloud-synced config.
 
 ### 2026-06-12
 - **Quick links split from Services + organized into categories (22:51):** in Setup, **Vendors/links**
