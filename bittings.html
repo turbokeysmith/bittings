@@ -742,7 +742,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   </div>
   <a class="hdr-btn" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center" title="Back to all apps">‹ Apps</a>
   <button class="hdr-btn" onclick="openHist()">History</button>
-  <button class="hdr-btn" id="settingsBtn" onclick="openSettings()">⚙</button>
+  <button class="hdr-btn" id="settingsBtn" onclick="location.href='setup.html'" title="Setup &amp; Settings">⚙</button>
 </header>
 
 <div id="chat"></div>
@@ -2880,7 +2880,8 @@ function makePDF(r, lang, forCustomer){
   // footer
   doc.setFillColor(...DARK); doc.rect(0,742,W,50,"F");
   doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(180,180,180);
-  const footerLine1 = [SETTINGS.name, SETTINGS.license, tr("Insured & Bonded",lang)].filter(Boolean).join("  |  ");
+  const _footerTail = (SETTINGS.footer||'').trim() || tr("Insured & Bonded",lang);   // owner-configured receipt footer (Setup) or the default
+  const footerLine1 = [SETTINGS.name, SETTINGS.license, _footerTail].filter(Boolean).join("  |  ");
   doc.text(footerLine1, W/2, 765, {align:"center"});
   doc.text(tr("Thank you for choosing",lang)+" "+SETTINGS.name+"!", W/2, 777, {align:"center"});
 
@@ -3127,6 +3128,16 @@ function renderCustList(){
 function syncOwnerUI(){
   try{ const staff = window.TKS && TKS.auth && TKS.auth.isSignedIn() && !TKS.auth.isOwner();
     const g=document.getElementById("settingsBtn"); if(g) g.style.display = staff ? "none" : ""; }catch(e){}
+}
+// Pull business identity from the cloud-synced owner config (Setup wizard) into the
+// receipt SETTINGS, so receipts/PDF show the shop's configured identity everywhere.
+function hydrateIdentityFromConfig(){
+  try{ if(!(window.TKS && TKS.Config) || !SETTINGS) return;
+    const ci=TKS.Config.identity()||{};
+    ['name','address','phone','email','license','logo','footer'].forEach(k=>{ if(ci[k]!=null && ci[k]!=='') SETTINGS[k]=ci[k]; });
+    if(ci.logoCustom) SETTINGS.logoCustom=true;
+    if(typeof applyBranding==='function') applyBranding();
+  }catch(e){}
 }
 function openSettings(){
   try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn() && !TKS.auth.isOwner()){ appAlert("Owner only","Settings are owner-only."); return; } }catch(e){}
@@ -3444,6 +3455,7 @@ function boot(){
       TKS.Config.save({ taxRate: Number(SETTINGS.taxRate), taxableByCategory: {} });
     }
   }catch(e){}
+  hydrateIdentityFromConfig();   // receipts use the Setup wizard's business identity
   syncOwnerUI();   // hide the ⚙ Settings gear for a signed-in staff member
 }
 
@@ -3465,6 +3477,7 @@ function _receiptsRefresh(){
   try{ if(typeof renderCustList==='function') renderCustList(); }catch(e){}
   try{ if(typeof renderHistList==='function') renderHistList(); }catch(e){}
   try{ if(typeof syncOwnerUI==='function') syncOwnerUI(); }catch(e){}
+  try{ if(typeof hydrateIdentityFromConfig==='function') hydrateIdentityFromConfig(); }catch(e){}
 }
 (function receiptsCloudBootstrap(){
   try{
@@ -3723,7 +3736,7 @@ function reverseStockForReceipt(r){
    (TKS_OWNER.QUICK_INVOICE_ENABLED). Builds the SAME receipt object as the chat,
    so PDF / history / customer save / Pay Now all work identically. */
 (function(){
-  function enabledFlag(){ return !(window.TKS_OWNER && window.TKS_OWNER.QUICK_INVOICE_ENABLED === false); }
+  function enabledFlag(){ try{ if(window.TKS && TKS.Config) return TKS.Config.access().quickInvoiceEnabled !== false; }catch(e){} return !(window.TKS_OWNER && window.TKS_OWNER.QUICK_INVOICE_ENABLED === false); }
   window.quickInvoiceAvailable = function(){
     if(!enabledFlag()) return false;
     try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn()) return !!TKS.auth.isOwner(); }catch(e){}
@@ -3732,7 +3745,8 @@ function reverseStockForReceipt(r){
   // Auto-open default: only for the signed-in OWNER (never forces a PIN prompt).
   window.quickInvoiceAutoForOwner = function(){
     if(!enabledFlag()) return false;
-    if(!(window.TKS_OWNER && window.TKS_OWNER.QUICK_INVOICE_DEFAULT === true)) return false;
+    let def=false; try{ def = (window.TKS && TKS.Config) ? !!TKS.Config.access().quickInvoiceDefault : (window.TKS_OWNER && window.TKS_OWNER.QUICK_INVOICE_DEFAULT === true); }catch(e){}
+    if(!def) return false;
     try{ return !!(window.TKS && TKS.auth && TKS.auth.isSignedIn() && TKS.auth.isOwner()); }catch(e){}
     return false;
   };
@@ -3744,7 +3758,7 @@ function reverseStockForReceipt(r){
         onDenied("That's an owner-only tool — you're signed in as staff."); return;
       }
     }catch(e){}
-    const pin = window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN;
+    const pin = (window.TKS && TKS.Config) ? TKS.Config.ownerPin() : (window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN);
     if(!pin){ onDenied("Owner sign-in is required for the quick invoice."); return; }
     const entered = prompt("Owner PIN to open the quick invoice form:");
     if(entered === null){ onDenied(""); return; }

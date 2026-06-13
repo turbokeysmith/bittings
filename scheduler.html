@@ -965,7 +965,7 @@ function editBooking(id){
    ========================================================================= */
 let _ownerGrant = null, pinError = '';
 function ownerPinConfigured(){
-  return !!(window.TKS_OWNER && String(window.TKS_OWNER.QUICK_FORM_PIN || '').length);
+  return !!String((window.TKS && TKS.Config ? TKS.Config.ownerPin() : (window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN)) || '').length;
 }
 function requestOwnerAccess(onGranted){
   const grant = (typeof onGranted==='function') ? onGranted : function(){};
@@ -984,7 +984,7 @@ function requestOwnerAccess(onGranted){
 function submitOwnerPin(){
   const el = document.getElementById('pinInput');
   const entered = el ? el.value : '';
-  const pin = String((window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN) || '');
+  const pin = String((window.TKS && TKS.Config ? TKS.Config.ownerPin() : (window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN)) || '');
   if(pin && entered === pin){
     const g = _ownerGrant; _ownerGrant = null; pinError = '';
     if(g) g();

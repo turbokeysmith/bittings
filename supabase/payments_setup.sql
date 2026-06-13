@@ -46,6 +46,7 @@ create table if not exists public.shop_config (
   id                 int primary key default 1,
   tax_rate           numeric not null default 0,            -- percent, e.g. 8.625
   taxable_categories jsonb   not null default '{}'::jsonb,  -- {category: bool} overrides
+  data               jsonb   not null default '{}'::jsonb,  -- FULL owner/onboarding config (identity, payments, access, vendors, services, hours, footer, setup progress) — Setup wizard source of truth
   updated_by         uuid,
   updated_at         timestamptz not null default now(),
   constraint shop_config_singleton check (id = 1)

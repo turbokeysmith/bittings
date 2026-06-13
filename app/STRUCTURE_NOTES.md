@@ -197,6 +197,31 @@ Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
 - **Typed-card key:** replaced the `prompt()` paste with an inline `#pnPK` input (16px) in `renderKeyed`
   — in **both** `app/pay.js` and the `bittings.html` inline Pay Now; `startKeyed` reads/saves it.
 
+## Update 2026-06-12 PM7 — guided Setup wizard (= Settings), cloud-synced config
+- **Config store (`store.js` `TKS.Config`):** `CONFIG_DEFAULTS` is now a grouped object — `taxRate`/
+  `taxableByCategory` (top-level, back-compat) + `identity`, `payments`, `access`
+  (ownerEmails/staffEmails/quickFormPin/quickInvoiceEnabled/Default), `vendors`, `services`, `hours`,
+  `setup` (completed/done/skipped). `save(partial)` deep-merges a single group/step without clobbering
+  others and persists to **`shop_config.data` jsonb** (+ mirrors `tax_rate`/`taxable_categories`);
+  `load()` reads `data` (fallback to tax columns). Accessors: `identity/access/payments/vendors/
+  services/hours/setupState/isSetupComplete/ownerPin`. `TKS.auth.ownerEmails()` = cloud-config.js
+  bootstrap owners ∪ `access.ownerEmails`.
+- **`setup.html`:** one page, two modes — first-run **wizard** (stepped, jumps to first incomplete step)
+  and editable **Settings** (chips jump anywhere). 7 steps, each Skip/Save (sets `setup.done`/`skipped`),
+  Finish-later (sets `sessionStorage tks_setup_later`, persists), Review surfaces skipped/empty. Logo
+  upload (canvas-resized data-URI). Owner-gated (staff see a block). Connects cloud then loads config.
+- **First-run gating (`index.html`):** `maybeRedirectToSetup()` (in cloudBootstrap) → `setup.html`
+  when `!isSetupComplete()` && not staff && not the finish-later session flag. `⚙ Setup` link in the
+  auth bar (ownerSoft). Vendor tiles render from `TKS.Config.vendors()` (`#vendorTiles`).
+- **Consumer wiring:** `bittings.html` `hydrateIdentityFromConfig()` (boot + onChange) copies
+  `Config.identity()` into receipt `SETTINGS` → receipts/PDF; PDF footer uses `SETTINGS.footer`; the ⚙
+  gear → `setup.html`. PIN consumers (index `chgGate`, bittings quick-invoice, scheduler
+  `ownerPinConfigured`/`submitOwnerPin`) use `TKS.Config.ownerPin()` (fallback cloud-config.js).
+  Quick-invoice enabled/default read `Config.access()`. `TKS.Services.list()` returns `Config.services`
+  when set. **Verified** the full config round-trips through `shop_config.data` (cloud).
+- **Multi-tenant ready:** config is grouped + per-shop-shaped; RLS note — `shop_config` is
+  authenticated-write (single-shop, owner-gated UI); a multi-tenant version adds `org_id` + per-org RLS.
+
 ## Update 2026-06-12 PM6 — owner-only UI hidden (not disabled), offline-aware
 - **Offline-capable ownership** (`store.js` `TKS.auth`): `rememberedEmail()` parses the email from the
   stored supabase token (`sb-*-auth-token`, no network); `email()` = live session email **or**
