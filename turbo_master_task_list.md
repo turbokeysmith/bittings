@@ -3,7 +3,7 @@
 Keep this updated after each work session. Status key: ✅ done · 🔨 in progress ·
 ⏸️ parked (waiting on a decision/credential) · ⬜ not started.*
 
-Last updated: 2026-06-13 09:50 CDT (Claude Code) — A5 (Setup as single source of truth) built this pass
+Last updated: 2026-06-13 10:22 CDT (Claude Code) — end-of-day Deposit Slip added to Closeout this pass
 
 > **Canonical doc:** `PROJECT_HANDOFF.md` is the owner-facing source of truth (the file uploaded
 > to Claude Desktop). This task list defers to it — **if the two ever conflict, the handoff wins.**
@@ -170,8 +170,15 @@ Netlify tile is fully superseded. Full design + ops in `supabase/PAYMENTS.md`. E
 ### B3 — Money tools / reporting ✅ (2026-06-12)
 - ✅ **Closeout** — owner-only Home tile: today's **drawer count** (collected, split card/cash/check,
   surcharge, refunds).
-- ⬜ **Printable "deposit slip" — NOT built.** Closeout is an on-screen count/summary only. If the owner
-  wants a printable/shareable end-of-day deposit slip (cash to bank), that is a separate, unbuilt task.
+- ✅ **End-of-day Deposit Slip (2026-06-13) — ⏳ pending mobile sign-off.** Closeout now has a
+  **denomination drawer count** (bills + coins) that builds a deposit slip: **total counted**, **float
+  retained** (default $120, persisted in `tks_drawer_float`), **deposit = counted − float**, and
+  **over/short = deposit − expected cash** (expected = the day's recorded cash sales). On-screen
+  copyable summary **and** a **branded PDF** (jsPDF, receipt-style header/logo via `TKS.Config.identity`)
+  **shared via `navigator.share`** (download fallback), mirroring `bittings.html`'s `shareDocument`.
+  Integer-cents math throughout; **owner-gated** (`ownerHard()`); PDF degrades to copy-summary if jsPDF
+  is unavailable offline. In `index.html`: `renderDrawer`/`recalcDrawer`/`depositData`/`makeDepositPDF`/
+  `shareDepositSlip`; jsPDF added via CDN.
 - ✅ **Transaction History** — owner-only Home tile: lands on **today** (daily-reset default; nothing
   deleted, stays filed under customer). **Period** dropdown (Today/Week/Month/Quarter/Year) +
   **graph type** dropdown (bar/line/area/pie/doughnut, Chart.js). **Total Jobs / Sales / Cost /

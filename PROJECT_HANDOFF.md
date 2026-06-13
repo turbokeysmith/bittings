@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-13 09:50 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-13 10:22 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -132,8 +132,10 @@ customer list across all tools.
   only in the cloud (never in the app or the website). *(Going live = swapping to live keys after you
   rehearse with test cards — see "Suggested next steps".)*
   - **Two owner-only money tiles** on the Home screen (a trainee won't see them): **🧮 Closeout** counts
-    **today's drawer** (collected, split by card/cash/check, surcharge, refunds — *a count/summary only;
-    there is no separate printable "deposit slip" generator yet*), and **📊 Transaction
+    **today's drawer** (collected, split by card/cash/check, surcharge, refunds) and now includes a
+    **denomination drawer count → branded Deposit Slip** (enter how many of each bill/coin; it computes
+    total cash counted, the float you keep (default $120), the deposit (counted − float), and today's
+    **over/short** vs expected cash — then **📤 Share/Save** it as a PDF or **copy** the summary), and **📊 Transaction
     History** opens on **today** (older sales stay filed under each customer; nothing is deleted) with a
     **period dropdown** (Today / Week / Month / Quarter / Year), a **switchable graph** (bar / line /
     area / pie / doughnut), and **Total Jobs / Sales / Cost / Profit** cards you can turn on and off.
@@ -354,6 +356,16 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-13
+- **Closeout — end-of-day Deposit Slip added (10:22):** Closeout now has a **denomination drawer count**
+  (how many $100/$50/$20/$10/$5/$2/$1 bills, $1 coins, and 50¢/25¢/10¢/5¢/1¢) that builds an
+  **end-of-day deposit slip**. It shows, live on screen: **total cash counted**, the **float you keep in
+  the drawer** (default **$120**, remembered between days), the **deposit amount** (counted − float), and
+  **today's over/short** vs the cash the system expected (the day's recorded cash sales). You can
+  **📤 Share/Save** it as a **branded PDF** (same look as the receipt — your logo + business name) the
+  same way you share a receipt (phone Share sheet, or download on a computer), or **📋 Copy** a text
+  summary. All money math is in whole cents. **Owner-only.** *(Built on `jsPDF`, added to the staff app
+  for this; if it can't load offline, the slip still copies the text summary so it never dead-ends.)*
+  **Status = code-complete, pending your mobile sign-off** (iPhone Safari + Android Chrome, owner + staff).
 - **A5 BUILT — Setup is now the single source of truth for service types across all apps (09:50):**
   the scheduler and the invoice builder no longer keep their own hardcoded Automotive/Residential/
   Commercial lists — they read the categories (and, on invoices, the priced services) the owner picks
@@ -381,8 +393,8 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   lead fields), RLS on; all **7 payment edge functions are deployed and ACTIVE**, plus the webhook
   (`verify_jwt:false`, correct). Doc corrections made this pass: edge-function count **6 → 7** (pay-void
   was added but uncounted in the file map + task list). Two truths surfaced for the planning assistant:
-  **(1)** Closeout is a **drawer count/summary only — there is no printable "deposit slip" generator**
-  (never built; not previously noted anywhere). **(2)** Two leftover verification functions
+  **(1)** Closeout was a **drawer count/summary only — no printable "deposit slip"** *(since built — see
+  the 2026-06-13 10:22 changelog entry)*. **(2)** Two leftover verification functions
   (`spike-stripe`, `spike-terminal`) are still deployed live and should be **deleted at go-live cutover**.
   Security advisors: leaked-password protection still off (Pro-only, deferred) and the per-table RLS
   policies are `authenticated = full access` (correct/by-design for single-shop; **must become per-org
