@@ -1076,7 +1076,8 @@ function renderDrawer(){
       '<p class="dsub" style="margin:6px 2px 0">This is what the drawer opened with (you keep it for tomorrow). Edit it to change the starting float — owner only. The standard float lives in Settings → Payments.</p>'+
       '<div class="drawer-tot" id="drawerTotals"></div>'+
       '<div class="drawer-actions">'+
-        '<button class="primary" onclick="shareDepositSlip()">📤 Deposit slip (Share / Save)</button>'+
+        '<button class="primary" onclick="openDepositSlip()">⬇ View / Download PDF</button>'+
+        '<button onclick="shareDepositSlip()">📤 Share</button>'+
         '<button onclick="copyDepositSummary()">📋 Copy summary</button>'+
       '</div>'+
     '</div>';
@@ -1203,6 +1204,20 @@ function makeDepositPDF(d){
 function downloadBlob(res){
   const a=document.createElement('a'); a.href=URL.createObjectURL(res.blob); a.download=res.filename;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+// View/download the slip directly in the browser — no Share sheet, no email needed.
+// Opens the PDF in a new tab (so it's viewable inline); falls back to a direct
+// download if the tab is blocked.
+function openDepositSlip(){
+  if(!ownerHard()){ alert('Owner only.'); return; }
+  const d=depositData();
+  finalizeCloseout(d);
+  const res=makeDepositPDF(d);
+  if(!res){ copyDepositSummary(); alert('PDF engine not loaded (offline?). The text summary was copied instead.'); return; }
+  const url=URL.createObjectURL(res.blob);
+  const w=window.open(url, '_blank');
+  if(!w){ const a=document.createElement('a'); a.href=url; a.download=res.filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
 }
 function shareDepositSlip(){
   if(!ownerHard()){ alert('Owner only.'); return; }

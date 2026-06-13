@@ -185,6 +185,9 @@ Netlify tile is fully superseded. Full design + ops in `supabase/PAYMENTS.md`. E
   restore it (or continue → deposit $0, slip notes the shortfall). `settingsFloatCents`/
   `startingFloatPrefill`/`finalizeCloseout` in `index.html`; `f_float` field + gather in `setup.html`;
   `payments.drawerFloatCents` default in `store.js` (mirrored to `site/app/store.js`).
+- ✅ **Deposit slip: View/Download PDF button (2026-06-13 10:58).** Added `openDepositSlip()` (opens the
+  PDF in a new browser tab to view inline; download fallback if the tab is blocked) alongside Share +
+  Copy — so the slip is viewable without going through email/share sheet.
 - ✅ **Transaction History** — owner-only Home tile: lands on **today** (daily-reset default; nothing
   deleted, stays filed under customer). **Period** dropdown (Today/Week/Month/Quarter/Year) +
   **graph type** dropdown (bar/line/area/pie/doughnut, Chart.js). **Total Jobs / Sales / Cost /
