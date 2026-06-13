@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 22:51 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-13 00:42 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -349,6 +349,16 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-13
+- **Services rebuilt as a pick-and-price flow (00:42):** the confusing services grid is replaced by a
+  clear **2-step** flow. **Step 1 — Service types:** tick the categories you work in (Automotive,
+  Residential, Commercial, Safe & Vault, Emergency, Access Control, Other). **Step 2 — Services:** for
+  each category you picked, the **common services are listed for you to check off**, each with an
+  optional **price** box (enter a standard price, or leave blank for per-job). Checked services become
+  your service list; there's an **"+ Add a service"** at the bottom for specialty work we didn't list.
+  Fixes the earlier confusion (duplicate category headings / missing common services) — the full common
+  list now always shows for your selected types. Stored in the cloud-synced config.
 
 ### 2026-06-12
 - **Quick links split from Services + organized into categories (22:51):** in Setup, **Vendors/links**

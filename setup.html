@@ -61,6 +61,13 @@
   .svc-cat{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--amber);margin:8px 2px 4px;}
   .svc-row{display:flex;gap:6px;align-items:center;margin-bottom:6px;}
   .svc-row input{flex:1;}
+  /* pick-and-price service rows */
+  .svc-pick{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+  .svc-pick .sp_l{display:flex;align-items:center;gap:8px;flex:1;min-width:0;margin:0;font-size:14px;color:var(--ink);font-weight:500;cursor:pointer;}
+  .svc-pick .sp_l input{width:19px;height:19px;flex:0 0 auto;}
+  .svc-pick .sp_price,.svc-pick .cs_price{flex:0 0 92px;width:92px;padding:8px 9px;}
+  .svc-pick .sp_price:disabled{opacity:.4;}
+  .svc-pick.custom .cs_name{flex:1;}
   /* employee rows */
   .emp-row{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
   .emp-row input.tx{flex:1 1 40%;min-width:120px;}
@@ -117,6 +124,7 @@ const STEPS = [
   {key:'payments', title:'Payments'},
   {key:'access',   title:'Access & owner'},
   {key:'quicklinks',title:'Quick links'},
+  {key:'servicetypes',title:'Service types'},
   {key:'services', title:'Services'},
   {key:'hours',    title:'Hours & footer'},
   {key:'inventory',title:'Inventory (optional)'},
@@ -237,11 +245,16 @@ function renderPanel(key){
       '<div class="hint"><b>Keycodes</b> (the dealer/OEM portals) are built in and always shown on Home — no need to add them here.</div>';
     renderQuickLinks();
   }
+  else if(key==='servicetypes'){
+    p.innerHTML='<h2>Service types</h2><div class="sub">What kinds of work do you do? Pick your categories — the next step lists the common services in each so you can check what you offer and set pricing.</div>'+
+      SVC_CATS2.map(([ck,cl])=>'<label class="toggle"><input type="checkbox" class="stype" data-c="'+ck+'" '+(((cfg.serviceCats||[]).indexOf(ck)>=0)?'checked':'')+'> '+esc(cl)+'</label>').join('');
+    p.querySelectorAll('.stype').forEach(cb=> cb.onchange=()=>{ const c=cb.dataset.c; cfg.serviceCats=(cfg.serviceCats||[]).filter(x=>x!==c); if(cb.checked) cfg.serviceCats.push(c); });
+  }
   else if(key==='services'){
-    p.innerHTML = '<h2>Services</h2><div class="sub">The full service list, grouped by category. Add, rename, reorder (▲▼), or recategorize. These feed the booking form and scheduler.</div>'+
-      '<div class="rowlist" id="slist"></div><button type="button" class="addbtn" id="sAdd">+ Add service</button>';
+    p.innerHTML='<h2>Services</h2><div class="sub">Check the services you offer and add a standard price (or leave blank for per-job pricing). Add specialty work at the bottom.</div>'+
+      '<div id="slist"></div><button type="button" class="addbtn" id="sAdd">+ Add a service</button>';
     renderServices();
-    document.getElementById('sAdd').onclick=()=>{ cfg.services.push({value:'',en:'',es:'',cat:'other'}); renderServices(); };
+    document.getElementById('sAdd').onclick=()=>{ const cats=(cfg.serviceCats&&cfg.serviceCats.length)?cfg.serviceCats:['other']; cfg.services.push({value:'',en:'',es:'',cat:cats[0],price:''}); renderServices(); };
   }
   else if(key==='hours'){
     p.innerHTML = '<h2>Hours &amp; receipt footer</h2><div class="sub">Optional. Set the days you\'re open and the times. The footer prints at the bottom of receipts.</div>'+
@@ -278,36 +291,50 @@ function renderQuickLinks(){
   el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.quickLinks[+b.dataset.c].links.splice(+b.dataset.l,1); renderQuickLinks(); });
   el.querySelectorAll('.ql_add').forEach(b=> b.onclick=()=>{ cfg.quickLinks[+b.dataset.c].links.push({label:'',url:''}); renderQuickLinks(); });
 }
-const SVC_CATS=[['automotive','Automotive'],['residential','Residential'],['commercial','Commercial'],['safe','Safe & Vault'],['emergency','Emergency / Other'],['other','Other']];
+/* Service categories (step 1) + the common-service catalog shown per category in
+   step 2. The catalog is the reference list to check off; the owner's offered
+   services live in cfg.services as {value,cat,price}. */
+const SVC_CATS2=[['automotive','Automotive'],['residential','Residential'],['commercial','Commercial'],['safe','Safe & Vault'],['emergency','Emergency'],['accesscontrol','Access Control'],['other','Other']];
+const SVC_CAT_LABEL=Object.fromEntries(SVC_CATS2);
+const CATALOG={
+  automotive:['Car lockout','Car key duplication / spare','Car key replacement (lost all keys)','Transponder / chip key programming','Key fob / remote programming','Smart / proximity key programming','Push-to-start programming','Ignition repair / replacement','Broken key extraction','ECU / immobilizer programming','High-security / laser-cut key cutting','Motorcycle / powersport keys','Fleet vehicle keys'],
+  residential:['House lockout','Rekey','Lock change / replacement','Lock repair','Deadbolt installation','Smart lock installation','Key duplication','Master key system','Mailbox lock','Garage / gate keys'],
+  commercial:['Commercial lockout','Commercial rekey','Commercial lock change / install','Master key system','Panic / exit device (push bar)','Door closer install / repair','File cabinet / desk locks','High-security locks','Storefront / mortise locks'],
+  safe:['Safe opening / lockout','Safe combination change','Safe installation / moving','Safe repair','Gun safe service'],
+  emergency:['24/7 emergency lockout','Roadside assistance','Emergency rekey','Break-in / board-up & rekey'],
+  accesscontrol:['Keypad / electronic locks','Access control system install','Card / fob reader','Keyless entry','Intercom / buzzer entry','Service & maintenance'],
+  other:['Security audit / consultation','Walk-in key cutting','Lock sales','Other (describe)']
+};
+function svcIndex(val,cat){ return cfg.services.findIndex(s=> s.value===val && (s.cat||'')===cat); }
+function toggleSvc(val,cat,on){ const i=svcIndex(val,cat); if(on && i<0) cfg.services.push({value:val,en:val,es:'',cat:cat,price:''}); else if(!on && i>=0) cfg.services.splice(i,1); }
+function setSvcPrice(val,cat,price){ const i=svcIndex(val,cat); if(i>=0) cfg.services[i].price=price; }
 function renderServices(){
   const el=document.getElementById('slist'); if(!el) return;
+  const cats=(cfg.serviceCats||[]).slice();
+  if(!cats.length){ el.innerHTML='<div class="hint">Go <b>‹ Back</b> and pick the service types you offer — then your common services show here to check off.</div>'; return; }
   let html='';
-  SVC_CATS.forEach(([ck,clabel])=>{
-    const idxs=cfg.services.map((s,i)=>i).filter(i=>((cfg.services[i].cat||'other')===ck));
-    if(!idxs.length) return;
+  SVC_CATS2.forEach(([ck,clabel])=>{
+    if(cats.indexOf(ck)<0) return;
     html+='<div class="svc-group"><div class="svc-cat">'+esc(clabel)+'</div>';
-    idxs.forEach((gi,pos)=>{ const s=cfg.services[gi];
-      html+='<div class="svc-row">'+
-        '<button type="button" class="mv" data-mv="up" data-i="'+gi+'" data-ck="'+ck+'"'+(pos===0?' disabled':'')+'>▲</button>'+
-        '<button type="button" class="mv" data-mv="down" data-i="'+gi+'" data-ck="'+ck+'"'+(pos===idxs.length-1?' disabled':'')+'>▼</button>'+
-        '<input class="s_val" data-i="'+gi+'" value="'+esc(s.value)+'" placeholder="Service name">'+
-        '<select class="s_cat" data-i="'+gi+'">'+SVC_CATS.map(c=>'<option value="'+c[0]+'"'+((s.cat||'other')===c[0]?' selected':'')+'>'+c[1]+'</option>').join('')+'</select>'+
-        '<button type="button" class="del" data-i="'+gi+'">&times;</button></div>';
+    (CATALOG[ck]||[]).forEach(name=>{
+      const i=svcIndex(name,ck), off=i>=0, price=off?(cfg.services[i].price||''):'';
+      html+='<div class="svc-pick"><label class="sp_l"><input type="checkbox" class="sp_off" data-val="'+esc(name)+'" data-cat="'+ck+'" '+(off?'checked':'')+'> '+esc(name)+'</label>'+
+        '<input class="sp_price" data-val="'+esc(name)+'" data-cat="'+ck+'" inputmode="decimal" placeholder="$ / job" value="'+esc(price)+'"'+(off?'':' disabled')+'></div>';
+    });
+    // specialty/custom services the owner added in this category (not in the catalog)
+    cfg.services.forEach((s,i)=>{ if((s.cat||'')!==ck) return; if((CATALOG[ck]||[]).indexOf(s.value)>=0) return;
+      html+='<div class="svc-pick custom"><input class="cs_name" data-i="'+i+'" value="'+esc(s.value)+'" placeholder="Service name">'+
+        '<input class="cs_price" data-i="'+i+'" inputmode="decimal" placeholder="$ / job" value="'+esc(s.price||'')+'">'+
+        '<button type="button" class="del" data-i="'+i+'">&times;</button></div>';
     });
     html+='</div>';
   });
   el.innerHTML=html;
-  el.querySelectorAll('.s_val').forEach(x=> x.oninput=()=>{ const s=cfg.services[+x.dataset.i]; s.value=x.value; s.en=x.value; });
-  el.querySelectorAll('.s_cat').forEach(x=> x.onchange=()=>{ cfg.services[+x.dataset.i].cat=x.value; renderServices(); });
+  el.querySelectorAll('.sp_off').forEach(cb=> cb.onchange=()=>{ toggleSvc(cb.dataset.val, cb.dataset.cat, cb.checked); renderServices(); });
+  el.querySelectorAll('.sp_price').forEach(x=> x.oninput=()=> setSvcPrice(x.dataset.val, x.dataset.cat, x.value));
+  el.querySelectorAll('.cs_name').forEach(x=> x.oninput=()=>{ const s=cfg.services[+x.dataset.i]; s.value=x.value; s.en=x.value; });
+  el.querySelectorAll('.cs_price').forEach(x=> x.oninput=()=> cfg.services[+x.dataset.i].price=x.value);
   el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.services.splice(+b.dataset.i,1); renderServices(); });
-  el.querySelectorAll('.mv').forEach(b=> b.onclick=()=> moveSvc(+b.dataset.i, b.dataset.mv, b.dataset.ck));
-}
-function moveSvc(i, dir, ck){
-  const same=cfg.services.map((s,idx)=>idx).filter(idx=>((cfg.services[idx].cat||'other')===ck));
-  const pos=same.indexOf(i); const swap=dir==='up'?pos-1:pos+1;
-  if(swap<0||swap>=same.length) return;
-  const j=same[swap]; const t=cfg.services[i]; cfg.services[i]=cfg.services[j]; cfg.services[j]=t;
-  renderServices();
 }
 function renderEmployees(){
   const el=document.getElementById('emplist'); if(!el) return;
@@ -383,7 +410,8 @@ function gather(key){
   }
   else if(key==='quicklinks'){ cfg.quickLinks=(cfg.quickLinks||[]).map(c=>({ key:c.key, label:c.label, icon:c.icon,
     links:(c.links||[]).filter(l=>(l.url||'').trim()).map(l=>({label:(l.label||'').trim(), url:(l.url||'').trim()})) })); }
-  else if(key==='services'){ cfg.services=cfg.services.filter(s=>(s.value||'').trim()).map(s=>({ value:s.value, en:s.en||s.value, es:s.es||'', cat:s.cat||'other' })); }
+  else if(key==='servicetypes'){ const ck=[]; document.querySelectorAll('.stype').forEach(cb=>{ if(cb.checked) ck.push(cb.dataset.c); }); if(ck.length||document.querySelector('.stype')) cfg.serviceCats=ck; }
+  else if(key==='services'){ cfg.services=cfg.services.filter(s=>(s.value||'').trim()).map(s=>({ value:s.value.trim(), en:(s.value||'').trim(), es:s.es||'', cat:s.cat||'other', price:(s.price!=null?String(s.price).trim():'') })); }
   else if(key==='inventory'){ /* import is its own modal; nothing to gather here */ }
   else if(key==='hours'){ /* hours live-bound to cfg.hours via the editor */ cfg.identity.footer=g('f_footer'); }
 }
@@ -428,7 +456,8 @@ function renderReview(p){
     ['Payments','payments', (cfg.payments.surchargePct!=null?cfg.payments.surchargePct:2)+'% credit surcharge'],
     ['Access & owner','access', (emps.length? (emps.length+' user(s), '+owners+' owner(s)') : '') + (ac.quickFormPin?' · PIN set':'')],
     ['Quick links','quicklinks', (function(){ let n=0; (cfg.quickLinks||[]).forEach(c=>n+=(c.links||[]).length); return n+' link(s)'; })()],
-    ['Services','services', cfg.services.length+' service(s)'],
+    ['Service types','servicetypes', (cfg.serviceCats||[]).map(c=>SVC_CAT_LABEL[c]||c).join(', ')],
+    ['Services','services', cfg.services.length+' offered'+(cfg.services.filter(s=>(s.price||'').trim()).length?(' · '+cfg.services.filter(s=>(s.price||'').trim()).length+' priced'):'')],
     ['Hours & footer','hours', [hoursSummary(cfg.hours), id.footer].filter(Boolean).join('  ·  ')],
     ['Inventory','inventory', invCount+' part(s) in stock']
   ];
