@@ -626,7 +626,7 @@
     taxableByCategory: { Labor: false, Materials: true, Travel: false, Programming: false, AfterHours: false },
     // groups
     identity: { name: '', address: '', phone: '', email: '', license: '', logo: '', logoCustom: false, footer: '' },
-    payments: { surchargePct: 2 },     // DISPLAY ONLY — server enforces 2% credit-only
+    payments: { surchargePct: 2, drawerFloatCents: 12000 },     // surcharge DISPLAY ONLY (server enforces 2% credit-only); drawerFloatCents = standard cash-drawer float (default $120)
     // employees: [{name,email,owner}]; ownerEmails is derived from owner=true rows.
     access: { employees: [], ownerEmails: [], staffEmails: [], quickFormPin: '', quickInvoiceEnabled: true, quickInvoiceDefault: true },
     quickLinks: DEFAULT_QUICKLINKS.map(function (c) { return { key: c.key, label: c.label, icon: c.icon, links: c.links.slice() }; }),

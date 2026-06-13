@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-13 10:22 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-13 10:37 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -134,8 +134,13 @@ customer list across all tools.
   - **Two owner-only money tiles** on the Home screen (a trainee won't see them): **🧮 Closeout** counts
     **today's drawer** (collected, split by card/cash/check, surcharge, refunds) and now includes a
     **denomination drawer count → branded Deposit Slip** (enter how many of each bill/coin; it computes
-    total cash counted, the float you keep (default $120), the deposit (counted − float), and today's
-    **over/short** vs expected cash — then **📤 Share/Save** it as a PDF or **copy** the summary), and **📊 Transaction
+    total cash counted, the deposit (counted − **starting float**), and today's **over/short** vs
+    expected cash — then **📤 Share/Save** it as a PDF or **copy** the summary). The **starting float
+    carries over** from the previous close (what you keep becomes tomorrow's opening float); it defaults
+    to your Settings float (**$120**, set in Setup → Payments, raise as you grow) and is **editable per
+    day right on Closeout (owner-only)**. If the count comes up **under the starting float**, it warns
+    and tells you exactly how much cash to add to restore it — or you can continue (the slip notes the
+    shortfall, deposit $0). And **📊 Transaction
     History** opens on **today** (older sales stay filed under each customer; nothing is deleted) with a
     **period dropdown** (Today / Week / Month / Quarter / Year), a **switchable graph** (bar / line /
     area / pie / doughnut), and **Total Jobs / Sales / Cost / Profit** cards you can turn on and off.
@@ -356,6 +361,15 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-13
+- **Deposit Slip — carryover starting float + shortfall handling + Settings float (10:37):** the float
+  is now a real **carryover** — what you keep at close becomes the **next day's opening (starting)
+  float**. The Closeout "starting float" is **editable per day (owner-only)** and defaults to the carried
+  amount, or to your **Settings float** on a fresh start. Added a **Cash drawer float** field to
+  **Setup → Payments** (default **$120**; raise it as the business grows). If the counted drawer is
+  **under the starting float**, Closeout now **warns and tells you exactly how much cash to add** to
+  bring it back — or lets you **continue** (deposit shows $0 and the slip records the shortfall). The
+  deposit-slip PDF + copyable summary now show the **starting float** and any **float shortfall**.
+  Owner-gated; whole-cents math. *Pending mobile sign-off.*
 - **Closeout — end-of-day Deposit Slip added (10:22):** Closeout now has a **denomination drawer count**
   (how many $100/$50/$20/$10/$5/$2/$1 bills, $1 coins, and 50¢/25¢/10¢/5¢/1¢) that builds an
   **end-of-day deposit slip**. It shows, live on screen: **total cash counted**, the **float you keep in
