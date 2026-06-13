@@ -66,6 +66,11 @@
   .emp-row input.tx{flex:1 1 40%;min-width:120px;}
   .emp-own{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim);white-space:nowrap;}
   .emp-own input{width:18px;height:18px;flex:0 0 auto;min-width:0;}
+  /* business hours editor */
+  .hours-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;}
+  .hours-row .hd{flex:0 0 38px;font-weight:700;font-size:13px;color:var(--ink);}
+  .hours-row select{width:auto;flex:1 1 90px;min-width:84px;padding:8px 9px;}
+  .hours-row .h_to{color:var(--dim);font-size:13px;flex:0 0 auto;}
   .logo-prev{display:flex;align-items:center;gap:12px;margin:5px 0;}
   .logo-prev img{height:42px;width:auto;max-width:140px;object-fit:contain;background:#11141a;border:1px solid var(--edge);border-radius:8px;padding:4px;}
   .nav{display:flex;gap:8px;flex-wrap:wrap;}
@@ -235,9 +240,10 @@ function renderPanel(key){
     document.getElementById('sAdd').onclick=()=>{ cfg.services.push({value:'',en:'',es:'',cat:'other'}); renderServices(); };
   }
   else if(key==='hours'){
-    p.innerHTML = '<h2>Hours &amp; receipt footer</h2><div class="sub">Optional. Hours can show on the app; the footer prints at the bottom of receipts.</div>'+
-      '<label>Business hours</label><input id="f_hours" value="'+esc(cfg.hours||'')+'" placeholder="e.g. Mon–Sat · 24-hour emergency">'+
-      '<label>Receipt footer line (optional)</label><input id="f_footer" value="'+esc(id.footer||'')+'" placeholder="Insured &amp; Bonded · Thank you!">';
+    p.innerHTML = '<h2>Hours &amp; receipt footer</h2><div class="sub">Optional. Set the days you\'re open and the times. The footer prints at the bottom of receipts.</div>'+
+      '<label>Business hours</label><div id="hoursEd"></div>'+
+      '<label style="margin-top:12px">Receipt footer line (optional)</label><input id="f_footer" value="'+esc(id.footer||'')+'" placeholder="Insured &amp; Bonded · Thank you!">';
+    renderHoursEditor();
   }
   else if(key==='inventory'){
     p.innerHTML='<h2>Inventory (optional)</h2><div class="sub">Already have a parts list in a spreadsheet? Import it now — upload an .xlsx or .csv, match your columns to the app\'s fields, preview, and import. Duplicates are skipped.</div>'+
@@ -303,6 +309,37 @@ function renderEmployees(){
   el.querySelectorAll('.e_owner').forEach(x=> x.onchange=()=> cfg.access.employees[+x.dataset.i].owner=x.checked);
   el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.access.employees.splice(+b.dataset.i,1); renderEmployees(); });
 }
+const HOURS_DAYS=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri'],['sat','Sat'],['sun','Sun']];
+function timeOpts(sel){ let o=''; for(let h=0;h<24;h++){ for(const m of [0,30]){ const v=(h<10?'0':'')+h+':'+(m<10?'0':'')+m; const ap=h<12?'AM':'PM'; const hh=h%12||12; o+='<option value="'+v+'"'+(sel===v?' selected':'')+'>'+hh+':'+(m<10?'0':'')+m+' '+ap+'</option>'; } } return o; }
+function renderHoursEditor(){
+  const el=document.getElementById('hoursEd'); if(!el) return;
+  if(!cfg.hours || typeof cfg.hours!=='object') cfg.hours={};
+  el.innerHTML = HOURS_DAYS.map(([dk,dl])=>{
+    const d = cfg.hours[dk] || {mode:'closed',open:'08:00',close:'17:00'};
+    const open = d.mode==='open';
+    return '<div class="hours-row"><span class="hd">'+dl+'</span>'+
+      '<select class="h_mode" data-d="'+dk+'"><option value="open"'+(d.mode==='open'?' selected':'')+'>Open</option>'+
+        '<option value="closed"'+(d.mode==='closed'?' selected':'')+'>Closed</option>'+
+        '<option value="24"'+(d.mode==='24'?' selected':'')+'>24 hours</option></select>'+
+      '<select class="h_open" data-d="'+dk+'"'+(open?'':' style="display:none"')+'>'+timeOpts(d.open)+'</select>'+
+      '<span class="h_to"'+(open?'':' style="display:none"')+'>to</span>'+
+      '<select class="h_close" data-d="'+dk+'"'+(open?'':' style="display:none"')+'>'+timeOpts(d.close)+'</select></div>';
+  }).join('');
+  el.querySelectorAll('.h_mode').forEach(s=> s.onchange=()=>{ cfg.hours[s.dataset.d].mode=s.value; renderHoursEditor(); });
+  el.querySelectorAll('.h_open').forEach(s=> s.onchange=()=> cfg.hours[s.dataset.d].open=s.value);
+  el.querySelectorAll('.h_close').forEach(s=> s.onchange=()=> cfg.hours[s.dataset.d].close=s.value);
+}
+// Compact readable summary for the Review step, grouping consecutive same-schedule days.
+function hoursSummary(h){
+  if(!h || typeof h!=='object') return '';
+  const order=['mon','tue','wed','thu','fri','sat','sun'], lbl={mon:'Mon',tue:'Tue',wed:'Wed',thu:'Thu',fri:'Fri',sat:'Sat',sun:'Sun'};
+  const fmt=t=>{ const [H,M]=String(t||'').split(':').map(Number); const ap=H<12?'a':'p'; const hh=H%12||12; return hh+(M?(':'+(M<10?'0':'')+M):'')+ap; };
+  const day=d=> (!d||d.mode==='closed')?'closed':(d.mode==='24'?'24h':(fmt(d.open)+'–'+fmt(d.close)));
+  let out=[], i=0;
+  while(i<order.length){ const s=day(h[order[i]]); let j=i; while(j+1<order.length && day(h[order[j+1]])===s) j++;
+    out.push((i===j?lbl[order[i]]:lbl[order[i]]+'–'+lbl[order[j]])+' '+s); i=j+1; }
+  return out.join(' · ');
+}
 
 function onLogoPick(e){
   const f=e.target.files[0]; if(!f) return;
@@ -334,7 +371,7 @@ function gather(key){
   else if(key==='catalog'){ cfg.vendors=cfg.vendors.filter(v=>(v.label||'').trim()||(v.url||'').trim());
     cfg.services=cfg.services.filter(s=>(s.value||'').trim()).map(s=>({ value:s.value, en:s.en||s.value, es:s.es||'', cat:s.cat||'other' })); }
   else if(key==='inventory'){ /* import is its own modal; nothing to gather here */ }
-  else if(key==='hours'){ cfg.hours=g('f_hours'); cfg.identity.footer=g('f_footer'); }
+  else if(key==='hours'){ /* hours live-bound to cfg.hours via the editor */ cfg.identity.footer=g('f_footer'); }
 }
 
 function persist(extraSetup){
@@ -377,7 +414,7 @@ function renderReview(p){
     ['Payments','payments', (cfg.payments.surchargePct!=null?cfg.payments.surchargePct:2)+'% credit surcharge'],
     ['Access & owner','access', (emps.length? (emps.length+' user(s), '+owners+' owner(s)') : '') + (ac.quickFormPin?' · PIN set':'')],
     ['Vendors & services','catalog', cfg.vendors.length+' vendor(s), '+cfg.services.length+' service(s)'],
-    ['Hours & footer','hours', [cfg.hours, id.footer].filter(Boolean).join(' · ')],
+    ['Hours & footer','hours', [hoursSummary(cfg.hours), id.footer].filter(Boolean).join('  ·  ')],
     ['Inventory','inventory', invCount+' part(s) in stock']
   ];
   let h='<h2>Review &amp; finish</h2><div class="sub">Anything you skipped is flagged — you can fix it now or finish and come back later.</div><div class="review">';
