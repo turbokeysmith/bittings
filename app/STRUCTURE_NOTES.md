@@ -197,6 +197,18 @@ Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
 - **Typed-card key:** replaced the `prompt()` paste with an inline `#pnPK` input (16px) in `renderKeyed`
   — in **both** `app/pay.js` and the `bittings.html` inline Pay Now; `startKeyed` reads/saves it.
 
+## Update 2026-06-13 PM12 — Services: 2-step pick-and-price (catalog) flow
+- **Config:** `config.services` default now **[]** (offered services `{value,cat,price,en,es}`);
+  `config.serviceCats` = the categories the shop offers (Setup step 1). `mergeConfig` defaults services
+  to `[]` and derives `serviceCats` from saved services' cats when not explicit. `TKS.Config.serviceCats()`
+  accessor; save() array-replace includes `serviceCats`. (`DEFAULT_SERVICES` no longer the services
+  default — kept but unused; `Services.list()` still falls back to the canonical `SERVICES` 5 when empty.)
+- **setup.html:** `catalog`/old grid replaced by two steps — `servicetypes` (category checkboxes, 7 cats
+  `SVC_CATS2` incl. Access Control) and `services` (per selected category, the **`CATALOG`** common list
+  as checkboxes + a price box each; `toggleSvc`/`setSvcPrice` live-bind to `cfg.services`; specialty/
+  custom rows + "+ Add a service"). `gather` for both; Review shows types + offered/priced counts.
+  Old `SVC_CATS`/`renderServices` grid + `moveSvc` removed.
+
 ## Update 2026-06-12 PM11 — quick links split into categories; Services its own step
 - **Config:** `config.vendors` (flat) → `config.quickLinks` = array of CATEGORIES
   `{key,label,icon,links:[{label,url}]}` (`DEFAULT_QUICKLINKS`: vendors, nastf, programming, reference,

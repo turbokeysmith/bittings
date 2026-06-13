@@ -567,7 +567,8 @@
     // employees: [{name,email,owner}]; ownerEmails is derived from owner=true rows.
     access: { employees: [], ownerEmails: [], staffEmails: [], quickFormPin: '', quickInvoiceEnabled: true, quickInvoiceDefault: true },
     quickLinks: DEFAULT_QUICKLINKS.map(function (c) { return { key: c.key, label: c.label, icon: c.icon, links: c.links.slice() }; }),
-    services: DEFAULT_SERVICES.slice(),
+    serviceCats: [],                    // categories the shop offers (Setup step 1)
+    services: [],                       // the offered services [{value,cat,price,en,es}] (Setup step 2)
     // hours: per-day { mode:'open'|'closed'|'24', open:'HH:MM', close:'HH:MM' }
     hours: { mon:{mode:'open',open:'08:00',close:'17:00'}, tue:{mode:'open',open:'08:00',close:'17:00'},
              wed:{mode:'open',open:'08:00',close:'17:00'}, thu:{mode:'open',open:'08:00',close:'17:00'},
@@ -614,7 +615,10 @@
       payments: Object.assign({}, d.payments, c.payments || {}),
       access: Object.assign({}, d.access, c.access || {}),
       quickLinks: normalizeQuickLinks(c.quickLinks, c.vendors),
-      services: Array.isArray(c.services) && c.services.length ? c.services : d.services.slice(),
+      services: Array.isArray(c.services) ? c.services : [],
+      // categories offered: explicit list, else derived from the saved services' cats
+      serviceCats: (Array.isArray(c.serviceCats) && c.serviceCats.length) ? c.serviceCats
+        : (Array.isArray(c.services) ? Object.keys(c.services.reduce(function (a, s) { if (s && s.cat) a[s.cat] = 1; return a; }, {})) : []),
       hours: normalizeHours(c.hours),
       setup: Object.assign({ completed: false, done: {}, skipped: {} }, c.setup || {})
     };
@@ -699,6 +703,7 @@
       // back-compat: the links in the "vendors" category
       vendors: function () { var q = getConfig().quickLinks.filter(function (c) { return c.key === 'vendors'; })[0]; return q ? q.links : []; },
       services: function () { return getConfig().services; },
+      serviceCats: function () { return getConfig().serviceCats; },
       hours: function () { return getConfig().hours; },
       setupState: function () { return getConfig().setup; },
       isSetupComplete: function () { return !!getConfig().setup.completed; },
@@ -718,7 +723,7 @@
           if (partial[g]) merged[g] = Object.assign({}, cur[g], partial[g]);
         });
         if (partial.taxableByCategory) merged.taxableByCategory = Object.assign({}, cur.taxableByCategory, partial.taxableByCategory);
-        ['taxRate', 'quickLinks', 'services', 'hours'].forEach(function (k) { if (partial[k] !== undefined) merged[k] = partial[k]; });
+        ['taxRate', 'quickLinks', 'services', 'serviceCats', 'hours'].forEach(function (k) { if (partial[k] !== undefined) merged[k] = partial[k]; });
         configCache = mergeConfig(merged);
         write(CONFIG_LSKEY, configCache);
         if (authState.sb) {
