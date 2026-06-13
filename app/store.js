@@ -505,6 +505,47 @@
     { label: 'American Key Supply', url: 'https://www.americankeysupply.com/' },
     { label: 'Key Innovations', url: 'https://keyinnovations.com/' }
   ];
+  // Full default locksmith catalog (editable in Setup → Services; stored in config).
+  // Folds in the canonical 5 (Car lockout / key replacement / lockout / rekey / Other).
+  var DEFAULT_SERVICES = [
+    { value: 'Car lockout', cat: 'automotive' },
+    { value: 'Car key duplication / spare', cat: 'automotive' },
+    { value: 'Car key replacement (lost all keys)', cat: 'automotive' },
+    { value: 'Transponder/chip key programming', cat: 'automotive' },
+    { value: 'Key fob / remote programming', cat: 'automotive' },
+    { value: 'Smart / proximity key programming', cat: 'automotive' },
+    { value: 'Push-to-start programming', cat: 'automotive' },
+    { value: 'Ignition repair/replacement', cat: 'automotive' },
+    { value: 'Broken key extraction', cat: 'automotive' },
+    { value: 'ECU / immobilizer programming', cat: 'automotive' },
+    { value: 'High-security / laser-cut key cutting', cat: 'automotive' },
+    { value: 'Motorcycle / powersport keys', cat: 'automotive' },
+    { value: 'Fleet / commercial vehicle keys', cat: 'automotive' },
+    { value: 'House lockout', cat: 'residential' },
+    { value: 'Rekey', cat: 'residential' },
+    { value: 'Lock change / replacement', cat: 'residential' },
+    { value: 'Lock repair', cat: 'residential' },
+    { value: 'Deadbolt installation', cat: 'residential' },
+    { value: 'Smart lock installation', cat: 'residential' },
+    { value: 'Key duplication', cat: 'residential' },
+    { value: 'Master key system (residential)', cat: 'residential' },
+    { value: 'Mailbox lock', cat: 'residential' },
+    { value: 'Commercial lockout', cat: 'commercial' },
+    { value: 'Commercial rekey', cat: 'commercial' },
+    { value: 'Commercial lock change / install', cat: 'commercial' },
+    { value: 'Master key system (commercial)', cat: 'commercial' },
+    { value: 'Access control / keypad / electronic locks', cat: 'commercial' },
+    { value: 'Panic / exit device (push bar)', cat: 'commercial' },
+    { value: 'Door closer install/repair', cat: 'commercial' },
+    { value: 'File cabinet / desk locks', cat: 'commercial' },
+    { value: 'Safe opening / lockout', cat: 'safe' },
+    { value: 'Safe combination change', cat: 'safe' },
+    { value: 'Safe installation / moving', cat: 'safe' },
+    { value: '24/7 emergency lockout', cat: 'emergency' },
+    { value: 'Roadside assistance', cat: 'emergency' },
+    { value: 'Security audit / consultation', cat: 'emergency' },
+    { value: 'Other (describe)', cat: 'other' }
+  ];
   var CONFIG_DEFAULTS = {
     // tax (kept at top level for back-compat with existing tax wiring)
     taxRate: 0,
@@ -512,9 +553,10 @@
     // groups
     identity: { name: '', address: '', phone: '', email: '', license: '', logo: '', logoCustom: false, footer: '' },
     payments: { surchargePct: 2 },     // DISPLAY ONLY — server enforces 2% credit-only
-    access: { ownerEmails: [], staffEmails: [], quickFormPin: '', quickInvoiceEnabled: true, quickInvoiceDefault: true },
+    // employees: [{name,email,owner}]; ownerEmails is derived from owner=true rows.
+    access: { employees: [], ownerEmails: [], staffEmails: [], quickFormPin: '', quickInvoiceEnabled: true, quickInvoiceDefault: true },
     vendors: DEFAULT_VENDORS.slice(),
-    services: SERVICES.slice(),         // default = the canonical catalog
+    services: DEFAULT_SERVICES.slice(),
     hours: '',                          // freeform for now, e.g. "Mon–Sat, 24-hour emergency"
     setup: { completed: false, done: {}, skipped: {} }   // per-step progress
   };
@@ -582,7 +624,11 @@
         var list = [];
         var o = global.TKS_OWNER && global.TKS_OWNER.OWNER_EMAILS;
         if (Array.isArray(o)) list = list.concat(o);
-        try { var ce = getConfig().access.ownerEmails; if (Array.isArray(ce)) list = list.concat(ce); } catch (e) {}
+        try {
+          var ac = getConfig().access || {};
+          if (Array.isArray(ac.ownerEmails)) list = list.concat(ac.ownerEmails);             // legacy/explicit
+          if (Array.isArray(ac.employees)) list = list.concat(ac.employees.filter(function (e) { return e && e.owner; }).map(function (e) { return e.email; }));
+        } catch (e) {}
         return list.map(function (e) { return String(e || '').trim().toLowerCase(); }).filter(Boolean);
       },
       isOwner: function () {

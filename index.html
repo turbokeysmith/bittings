@@ -410,6 +410,7 @@
   <div class="view" id="view-inventory">
     <div class="bar">
       <input class="search" id="invSearch" type="text" placeholder="Search part, SKU, fitment, VIN…">
+      <button class="add" id="invImport" title="Import from a spreadsheet (.xlsx/.csv)" style="background:#2a2f3a">📥 Import</button>
       <button class="add" id="invVin" title="Find the key/fob for a VIN" style="background:#2a2f3a">🔎 VIN</button>
       <button class="add" id="invAdd">+ Add</button>
     </div>
@@ -463,6 +464,9 @@
 <script src="app/store.js"></script>
 <!-- Shared Pay Now engine (Payments tile "New Charge"; invoice flow has its own) -->
 <script src="app/pay.js"></script>
+<!-- Shared inventory importer (Inventory tile + Setup wizard); SheetJS for .xlsx -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="app/inventory-import.js"></script>
 <script>
 function readLS(k,f){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):f; }catch(e){ return f; } }
 function writeLS(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
@@ -699,6 +703,10 @@ document.getElementById('fDelete').onclick = ()=>{
 const invSearchEl = document.getElementById('invSearch');
 invSearchEl.addEventListener('input', renderInventory);
 document.getElementById('invAdd').onclick = ()=> openPart(null);
+document.getElementById('invImport').onclick = ()=>{
+  if(window.TKImport && TKImport.open){ TKImport.open({ onDone: ()=> renderInventory() }); }
+  else { alert('Importer not loaded — reload and try again.'); }
+};
 
 /* VIN → key/fob: decode the VIN to make+model, then filter the parts list by
    it (matches against name / fitment / notes). */

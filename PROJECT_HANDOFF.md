@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 21:54 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 22:24 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -351,6 +351,22 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
+- **Setup page fixes — fuller catalog, structured employees, inventory import, tighter & private (22:24):**
+  six fixes to the guided Setup page. **(1) Services:** replaced the short list with a **full locksmith
+  catalog grouped by category** (Automotive, Residential, Commercial, Safe & Vault, Emergency/Other) —
+  pre-filled and fully **add / remove / rename / reorder** (▲▼), stored in the cloud config (the old
+  5–6 are folded in, not duplicated). **(2) Employees:** the freeform email boxes are now **Name +
+  Email rows** with an **"Add user"** button and an **Owner** tick per person — owner powers follow the
+  ticked emails. **(3) Inventory import:** a new optional step lets you **upload a .xlsx or .csv**,
+  it **auto-detects your headers**, you **map each column** to the app's inventory fields (read from the
+  real schema), **preview**, then **import — skipping duplicates** (by SKU or name) and reporting how
+  many came in / were skipped. The **same importer is also on the Inventory tile** (📥 Import) — built
+  once. **(4) Tighter sizing:** trimmed field/spacing sizes so short steps fit with Save/Continue
+  visible without scrolling (inputs stay 16px so phones don't zoom). **(5) Placeholders** are now
+  generic samples ("123 Main St", "(555) 123-4567") — never your real data; your entered values show as
+  normal filled-in text. **(6) Everything persists** to the cloud-synced config on every keystroke/step
+  — **where:** Supabase `shop_config` table, single row, `data` (JSON) column, mirrored to this device's
+  storage; it repopulates on reopen so you only fill it in once.
 - **Vendor tools → three tiles, each opening a tappable link list (21:54):** the Home "Vendor tools"
   area now has **Vendors**, **Keycodes**, and **NASTF** tiles; tapping one opens a list that opens each
   link in a new tab. **Vendors** holds American Key Supply + Key Innovations (from your config, editable
