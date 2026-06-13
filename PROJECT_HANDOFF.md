@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-13 09:32 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-13 09:50 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -354,6 +354,26 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-13
+- **A5 BUILT — Setup is now the single source of truth for service types across all apps (09:50):**
+  the scheduler and the invoice builder no longer keep their own hardcoded Automotive/Residential/
+  Commercial lists — they read the categories (and, on invoices, the priced services) the owner picks
+  in **Setup**. What changed: **(1)** a new shared helper `TKS.ServiceCats` in `app/store.js` reads the
+  owner's offered categories + services from the cloud `shop_config` (localStorage fallback offline).
+  **(2)** The scheduler's guided **job-type tiles** and the owner **Quick-form** dropdown are built from
+  the owner's selected categories — so **Safe & Vault / Emergency / Access Control** appear when
+  selected, and **Commercial disappears if you don't offer it**. New (non-core) categories book
+  **"not in detail"** (a job type with no step-by-step sub-coaching; Car/House/Business keep their full
+  flow incl. the VIN/ignition rules). **(3)** The invoice **"What type of service?"** picker lists your
+  offered categories, and the line-item picker now **floats your Setup services to the top with a ★ and
+  your set price pre-filled** (alongside the built-in common jobs). **(4)** The scheduler **call scripts
+  stop saying "Turbo Keysmith"** — they auto-fill **your business name** (from Setup; "our shop" if
+  blank) and the **signed-in tech's first name** ("Thanks for calling Acme Lock, this is Sam!"), in
+  English and Spanish. An un-configured/offline shop still behaves exactly as before (the 3 core types).
+  No data migration — existing bookings/receipts keep their stored values. **Status = code-complete,
+  pending your mobile sign-off** (iPhone Safari + Android Chrome, owner + staff). *Heads-up for the
+  books:* a **custom-named** Setup service (one not in the built-in catalog) is auto-sorted to
+  Materials-taxable or Labor-non-taxable by a keyword guess — **double-check the taxable flag** on those
+  lines until confirmed on real receipts.
 - **Full status-report verification pass (09:32, report-only — no features changed):** audited the whole
   codebase against these docs and against the **live Supabase project**. Findings: all 7 cloud tables
   (`customers`, `inventory`, `bookings`, `receipts`, `payment_transactions`, `payment_events`,
@@ -370,9 +390,10 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
 - **"+ Add a service" now lives under each category:** in Setup → Services, every category has its own
   **"+ Add a service"** button that adds a blank custom row **to that category**. (Before, a single button
   at the bottom always dropped the new service into Automotive.) Verified end-to-end.
-- **PLANNED — one service list shared across all the apps (not yet built):** the categories and services
-  you pick in Setup will become the **single source of truth** for the whole app — the **scheduler** and
-  the **invoice/receipt** screens will read your selections instead of each using its own hardcoded
+- **DONE (built 09:50 — see the top entry for this date) — one service list shared across all the apps:**
+  *(originally planned earlier this day; now implemented.)* the categories and services
+  you pick in Setup are now the **single source of truth** for the whole app — the **scheduler** and
+  the **invoice/receipt** screens read your selections instead of each using its own hardcoded
   Automotive/Residential/Commercial list. *(To answer the question that prompted this: yes — that shared
   "file" already exists. It's the cloud `shop_config` record every screen loads; the apps just aren't all
   reading from it yet. Nothing about Commercial is being removed — every category you select still shows;

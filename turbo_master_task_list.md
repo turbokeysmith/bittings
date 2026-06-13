@@ -3,7 +3,7 @@
 Keep this updated after each work session. Status key: ✅ done · 🔨 in progress ·
 ⏸️ parked (waiting on a decision/credential) · ⬜ not started.*
 
-Last updated: 2026-06-13 09:32 CDT (Claude Code) — verified against the live Supabase project this pass
+Last updated: 2026-06-13 09:50 CDT (Claude Code) — A5 (Setup as single source of truth) built this pass
 
 > **Canonical doc:** `PROJECT_HANDOFF.md` is the owner-facing source of truth (the file uploaded
 > to Claude Desktop). This task list defers to it — **if the two ever conflict, the handoff wins.**
@@ -61,32 +61,40 @@ first — it's what every other tile leans on.*
   via the VIN API; **ignition type required** (push-to-start / keyed)
 - ✅ **Job photo slots** on a booking — **built but dormant** (hidden until real photos exist)
 
-### A5 — One service list shared across ALL apps (Setup = single source of truth)  ·  🔨 in progress (planned 2026-06-13)
-*The services + categories the owner picks in Setup should drive every app, instead of each app
-hardcoding its own Automotive/Residential/Commercial list. The cloud "file" already exists — Supabase
-`shop_config` (one row) via `TKS.Config`; the work is making the scheduler + invoice **read** from it.*
+### A5 — One service list shared across ALL apps (Setup = single source of truth)  ·  ✅ BUILT 2026-06-13 — ⏳ pending mobile sign-off
+*The services + categories the owner picks in Setup now drive every app, instead of each app
+hardcoding its own Automotive/Residential/Commercial list. The cloud "file" is Supabase
+`shop_config` (one row) via `TKS.Config`; the scheduler + invoice now **read** from it.*
 - ✅ **Per-category "+ Add a service" (2026-06-13)** — in Setup → Services each category has its own
   add button that adds a custom row **to that category** (was a single bottom button that always landed
   in Automotive). Logic-verified end-to-end.
-- ⬜ **Shared category helper in `app/store.js` (`TKS.ServiceCats`)** — one canonical list of the 7
-  categories with labels (EN/ES), scheduler short-code mapping (`automotive↔auto`, etc.), `active()`
-  (the owner's selected categories, fallback to the 3 core when un-configured), and `servicesFor(cat)`.
-  Extend `Services.fromJob` so new categories (safe/emergency/…) keep their real `cat`.
-- ⬜ **Scheduler reads it** — job-type **tiles** (training) + **quick-form** options come from the
-  owner's selected categories (Safe & Vault etc. appear when selected; unselected ones hide). New
-  categories appear **"not in detail"** — a job type without the full sub-step coaching (auto/res/com
-  keep theirs). Confirm screen / job list / calendar label them properly.
-- ⬜ **Scheduler scripts personalized** — call scripts stop hardcoding **"Turbo Keysmith"**; the
-  business name auto-fills from `identity().name` and the signed-in tech's **first name** from the
-  employees list (collapses cleanly when blank).
-- ⬜ **Invoice picker combined + category-filtered** (`bittings.html`) — the "What type of service?"
-  options come from the owner's categories; the line picker shows the owner's **Setup services with
-  their set prices** (★, price pre-filled) **combined with** the built-in catalog's tax + Labor/Materials
-  bookkeeping tags, filtered to the chosen category so there's no scrolling past unrelated services.
+- ✅ **Shared category helper in `app/store.js` (`TKS.ServiceCats`)** — canonical 7-category table with
+  labels (EN/ES), scheduler short-code mapping (`automotive↔auto`, etc.), `active()` (owner's selected
+  categories, fallback to the 3 core when un-configured), `invoiceActive()`, `keyForInvoice()`,
+  `servicesFor(cat)`, `hasDetail(code)`. `Services.fromJob` extended so new categories
+  (safe/emergency/…) keep their real `cat`. Mirrored to `site/app/store.js`. Logic-tested in node
+  (unconfigured→3 core; configured→exact set; `fromJob('safe')`→`cat:'safe'`).
+- ✅ **Scheduler reads it** — job-type **tiles** + **quick-form** options come from
+  `ServiceCats.active()` (Safe & Vault etc. appear when selected; unselected hide). New categories book
+  **"not in detail"** — the subtype + upsell steps are skipped (Car/House/Business keep full coaching +
+  VIN/ignition). `subLabel` falls back to the shared category label so confirm / day view / job list /
+  calendar read e.g. "Safe & vault", not "safe".
+- ✅ **Scheduler scripts personalized** — greeting + closing (and the ICS PRODID) no longer hardcode
+  **"Turbo Keysmith"**; `{biz}` = `Config.identity().name` (fallback "our shop"/"nuestra cerrajería") and
+  `{techClause}` = the signed-in tech's first name from `Config.access().employees` (collapses when
+  blank). EN + ES.
+- ✅ **Invoice picker combined + category-filtered** (`bittings.html`) — the "What type of service?"
+  options come from `ServiceCats.invoiceActive()`; the line picker **floats the owner's Setup services
+  to the top with a ★ and the set price pre-filled**, alongside the built-in common jobs. A service's
+  Labor/Materials + taxable come from a matching built-in seed by name; **custom-named** services fall to
+  a keyword heuristic (parts→Materials/taxable, else Labor/non-taxable) — *verify the taxable flag on
+  those until confirmed on real receipts.* The "Edit common job" admin svc dropdown also reads the
+  owner's categories.
 - 📝 No data migration: existing bookings (`jobType=auto/res/com`) and receipts
-  (`serviceType=Automotive/…`) keep their stored values; only new categories use new values.
-- 📝 Plan file: `~/.claude/plans/eventual-stirring-puffin.md`. **Status after build = code-complete,
-  pending mobile sign-off** (iPhone Safari + Android Chrome, owner + staff) per CLAUDE.md.
+  (`serviceType=Automotive/…`) keep their stored values; only new categories use new values. Offline /
+  un-configured shop falls back to exactly the 3 core categories everywhere.
+- 📝 Plan file: `~/.claude/plans/eventual-stirring-puffin.md`. **Status = code-complete, pending mobile
+  sign-off** (iPhone Safari + Android Chrome, owner + staff) per CLAUDE.md.
 
 ### A3 — Scheduler still to do
 - ✅ **Force the guided flow (2026-06-10)** — the question-by-question intake is now the ONLY way to

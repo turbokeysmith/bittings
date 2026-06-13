@@ -452,13 +452,76 @@
     { value: 'Rekey / new locks',               en: 'Rekey / new locks',               es: 'Recodificar / cerraduras nuevas',        cat: 'residential' },
     { value: 'Other (describe)',                en: 'Other (describe)',                es: 'Otro (describe)',                        cat: 'other' }
   ];
+  // ===================== SERVICE CATEGORIES (the single source of truth) =====================
+  // Canonical category table. Keys match setup.html's SVC_CATS2 EXACTLY. This is the
+  // one place that maps the owner's Setup selections (Config.serviceCats / Config.services)
+  // into the labels, scheduler job-codes, and invoice serviceType strings that every app
+  // uses — so the scheduler and the invoice builder stop hardcoding their own auto/res/com
+  // lists. All accessors read getConfig() synchronously (cloud-synced, localStorage
+  // fallback) — no network.
+  //   key            scheduler code   invoice serviceType
+  //   automotive  ↔  auto         →   "Automotive"
+  //   residential ↔  res          →   "Residential"
+  //   commercial  ↔  com          →   "Commercial"
+  //   safe        ↔  safe         →   "Safe & Vault"
+  //   emergency   ↔  emergency    →   "Emergency"
+  //   accesscontrol ↔ accesscontrol → "Access Control"
+  //   other       ↔  other        →   "Other"
+  var SERVICE_CATS = [
+    { key: 'automotive',    code: 'auto',          en: 'Car / vehicle',         es: 'Carro / vehículo',   invoice: 'Automotive',     emoji: '🚗' },
+    { key: 'residential',   code: 'res',           en: 'House / home',          es: 'Casa / hogar',       invoice: 'Residential',    emoji: '🏠' },
+    { key: 'commercial',    code: 'com',           en: 'Business / commercial', es: 'Negocio / comercial', invoice: 'Commercial',    emoji: '🏢' },
+    { key: 'safe',          code: 'safe',          en: 'Safe & vault',          es: 'Caja fuerte',        invoice: 'Safe & Vault',   emoji: '🔐' },
+    { key: 'emergency',     code: 'emergency',     en: 'Emergency',             es: 'Emergencia',         invoice: 'Emergency',      emoji: '🚨' },
+    { key: 'accesscontrol', code: 'accesscontrol', en: 'Access control',        es: 'Control de acceso',  invoice: 'Access Control', emoji: '🎛️' },
+    { key: 'other',         code: 'other',         en: 'Something else',        es: 'Otra cosa',          invoice: 'Other',          emoji: '➕' }
+  ];
+  var CORE_CAT_KEYS = ['automotive', 'residential', 'commercial'];
+  var _catByKey = {}, _catByCode = {};
+  SERVICE_CATS.forEach(function (c) { _catByKey[c.key] = c; _catByCode[c.code] = c; });
+  var ServiceCats = {
+    all: function () { return SERVICE_CATS.slice(); },
+    byKey: function (k) { return _catByKey[k] || null; },
+    byCode: function (c) { return _catByCode[c] || null; },
+    keyToCode: function (k) { var c = _catByKey[k]; return c ? c.code : k; },
+    codeToKey: function (c) { var x = _catByCode[c]; return x ? x.key : c; },
+    // The categories the shop OFFERS (Setup step 1), in canonical order. Falls back to
+    // the 3 core categories when the shop hasn't configured any (a fresh install behaves
+    // exactly like before).
+    active: function () {
+      var sel; try { sel = getConfig().serviceCats; } catch (e) { sel = null; }
+      if (!Array.isArray(sel) || !sel.length) sel = CORE_CAT_KEYS.slice();
+      var set = {}; sel.forEach(function (k) { set[k] = 1; });
+      return SERVICE_CATS.filter(function (c) { return set[c.key]; });
+    },
+    label: function (key, lang) { var c = _catByKey[key]; return c ? (lang === 'es' ? c.es : c.en) : (key || ''); },
+    invoiceLabel: function (key) { var c = _catByKey[key]; return c ? c.invoice : (key || ''); },
+    // The category KEY for an invoice serviceType label ("Safe & Vault" → "safe").
+    keyForInvoice: function (label) { var f = SERVICE_CATS.filter(function (c) { return c.invoice === label; })[0]; return f ? f.key : null; },
+    // Option list for the invoice "What type of service?" — the offered categories'
+    // invoice labels, e.g. ["Automotive","Residential","Safe & Vault"].
+    invoiceActive: function () { return this.active().map(function (c) { return c.invoice; }); },
+    // The owner's Setup services (with prices) filtered to one category key.
+    servicesFor: function (key) {
+      var svcs; try { svcs = getConfig().services; } catch (e) { svcs = []; }
+      if (!Array.isArray(svcs)) return [];
+      return svcs.filter(function (s) { return s && (s.cat || 'other') === key; });
+    },
+    // Only the 3 core categories have full step-by-step coaching/subtypes in the
+    // scheduler; everything else books "not in detail" (a job type, no sub-steps).
+    hasDetail: function (code) { return code === 'auto' || code === 'res' || code === 'com'; }
+  };
+
   var Services = {
     // The owner's configured catalog (Setup → Services) when set, else the canonical default.
     list: function () { try { var s = getConfig().services; if (Array.isArray(s) && s.length) return s.slice(); } catch (e) {} return SERVICES.slice(); },
     // map the scheduler's coaching tiles (jobType auto/res/com + subType) to a
     // canonical service { value, cat } — no double entry for the trainee.
     fromJob: function (jobType, subType) {
-      var cat = jobType === 'auto' ? 'automotive' : jobType === 'com' ? 'commercial' : jobType === 'res' ? 'residential' : 'other';
+      // core auto/res/com map as before; any other scheduler code (safe/emergency/…)
+      // keeps its real category via the canonical table (not lumped into 'other').
+      var cat = jobType === 'auto' ? 'automotive' : jobType === 'com' ? 'commercial' : jobType === 'res' ? 'residential'
+        : (_catByCode[jobType] ? _catByCode[jobType].key : 'other');
       var value;
       if (jobType === 'auto') value = (subType === 'lost' || subType === 'spare') ? 'Car key replacement / lost key'
         : subType === 'lockout' ? 'Car lockout' : 'Car key replacement / lost key';
@@ -629,7 +692,7 @@
     KEYS: KEYS, uid: uid, read: read, write: write,
     adapter: function () { return ADAPTER.name; },
     Customers: Customers, Inventory: Inventory, Bookings: Bookings,
-    Services: Services, decodeVin: decodeVin,
+    Services: Services, ServiceCats: ServiceCats, decodeVin: decodeVin,
 
     /* ---------------------------------------------------------------- *
      *  auth — who is signed in, and are they the owner?                 *
