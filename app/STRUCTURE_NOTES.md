@@ -197,6 +197,20 @@ Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
 - **Typed-card key:** replaced the `prompt()` paste with an inline `#pnPK` input (16px) in `renderKeyed`
   — in **both** `app/pay.js` and the `bittings.html` inline Pay Now; `startKeyed` reads/saves it.
 
+## Update 2026-06-12 PM11 — quick links split into categories; Services its own step
+- **Config:** `config.vendors` (flat) → `config.quickLinks` = array of CATEGORIES
+  `{key,label,icon,links:[{label,url}]}` (`DEFAULT_QUICKLINKS`: vendors, nastf, programming, reference,
+  associations, other). `normalizeQuickLinks(saved, legacyVendors)` keeps the predefined skeleton, fills
+  saved links (empty stays empty), and migrates a legacy flat `vendors` once. `mergeConfig` →
+  `quickLinks: normalizeQuickLinks(...)`. `TKS.Config.quickLinks()` + `vendors()` (back-compat = vendors
+  category links). save() array-replace list swaps `vendors`→`quickLinks`.
+- **setup.html:** the `catalog` step is now TWO steps — `quicklinks` (`renderQuickLinks()`: per-category
+  link rows + "Add link") and `services` (the existing grouped editor). `gather` split accordingly;
+  Review shows link-count + service-count separately.
+- **index.html:** `#quickTiles` rendered by `renderQuickTiles()` (in `updateAuthUI`): built-in **Keycodes**
+  tile (always) + a tile per config category **with ≥1 link** (empty → no tile). `openLinks(cat)`:
+  `keycodes` → `KEYCODES`; `ql:<key>` → that config category's links. Old `renderVendorTiles` removed.
+
 ## Update 2026-06-12 PM10 — Setup: structured business hours (dropdowns)
 - `config.hours` is now a per-day object `{mon..sun:{mode:'open'|'closed'|'24', open:'HH:MM', close:'HH:MM'}}`.
   `store.js` `normalizeHours()` coerces/migrates (old free-text string → default object); `mergeConfig`

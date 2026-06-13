@@ -54,6 +54,7 @@
   .tile.t-vendor::before{background:linear-gradient(180deg,#3ba3a0,#1f6f6c);}
   .tile.t-keycodes::before{background:linear-gradient(180deg,#d98a3a,#a35e16);}
   .tile.t-nastf::before{background:linear-gradient(180deg,#6b8cff,#3a4fb0);}
+  .tile.t-quick::before{background:linear-gradient(180deg,#7c8694,#4a525e);}
   a.tile{text-decoration:none;color:inherit;display:block;}
   /* link-list overlay (Vendors / Keycodes / NASTF) */
   .ll-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99997;display:flex;align-items:flex-end;justify-content:center;}
@@ -286,17 +287,7 @@
     </div>
 
     <div class="vendor-h">Vendor tools</div>
-    <div class="tiles">
-      <button class="tile t-vendor" data-links="vendors">
-        <div class="ic">🔧</div><h2>Vendors</h2><p>Suppliers — order keys, fobs &amp; tools.</p>
-      </button>
-      <button class="tile t-keycodes" data-links="keycodes">
-        <div class="ic">🔑</div><h2>Keycodes</h2><p>Dealer/OEM keycode portals by make.</p>
-      </button>
-      <button class="tile t-nastf" data-links="nastf">
-        <div class="ic">🛡️</div><h2>NASTF</h2><p>Secure registry — SDRM login.</p>
-      </button>
-    </div>
+    <div class="tiles" id="quickTiles"><!-- Keycodes (built-in) + non-empty quick-link categories from config --></div>
 
     <p class="note" id="homeNote">Customers, bookings &amp; receipts are shared across every tool here.
     Sign in (Staff Login) to sync them to the cloud across devices.</p>
@@ -495,14 +486,13 @@ document.querySelectorAll('[data-go]').forEach(b=>{
 document.querySelectorAll('[data-open]').forEach(b=>{
   b.onclick = ()=>{ location.href = b.dataset.open; };
 });
-document.querySelectorAll('[data-links]').forEach(b=>{ b.onclick = ()=> openLinks(b.dataset.links); });
-
-/* ====================== FIELD LINK LISTS (Vendors / Keycodes / NASTF) ======================
-   Three Home tiles each open a tappable list that opens links in a new tab.
-   Available to ANY signed-in staff (field tools, not owner-only). Keycodes are
-   DEALER/OEM portals only (no third-party aggregators), labeled by make with a
-   per-make logo: a real image from app/assets/keycode-logos/<slug>.png if you
-   drop one there, otherwise the site's favicon, otherwise the make's initial. */
+/* ====================== FIELD QUICK LINKS (Home "Vendor tools") ======================
+   Home tiles each open a tappable list that opens links in a new tab. Available to
+   ANY signed-in staff (field tools, not owner-only). Keycodes is a BUILT-IN dealer/
+   OEM list (no third-party aggregators), labeled by make with a per-make logo:
+   app/assets/keycode-logos/<slug>.png if present, else the site favicon, else the
+   make's initial. Every other category comes from the owner config (Setup → Quick
+   links) and only gets a Home tile when it has at least one link. */
 const KEYCODES = [
   { make:'Toyota',                          slug:'toyota',     url:'https://techinfo.toyota.com/' },
   { make:'Honda',                           slug:'honda',      url:'https://techinfo.honda.com/rjanisis/logon.aspx' },
@@ -538,14 +528,28 @@ function llRow(item){
   a.appendChild(img); a.appendChild(nm); a.appendChild(go);
   return a;
 }
+// Render the Home "Vendor tools" tiles: built-in Keycodes + every config quick-link
+// category that has at least one link (empty categories => no tile).
+function renderQuickTiles(){
+  const box=document.getElementById('quickTiles'); if(!box) return;
+  const tiles=[{cat:'keycodes', cls:'t-keycodes', ic:'🔑', label:'Keycodes', sub:'Dealer/OEM portals by make.'}];
+  let cats=[]; try{ cats=TKS.Config.quickLinks()||[]; }catch(e){}
+  cats.forEach(c=>{
+    const links=(c.links||[]).filter(l=>l&&(l.url||'').trim());
+    if(!links.length) return;
+    const cls = c.key==='vendors'?'t-vendor':c.key==='nastf'?'t-nastf':'t-quick';
+    tiles.push({cat:'ql:'+c.key, cls, ic:c.icon||'🔗', label:c.label, sub:links.length+' link'+(links.length>1?'s':'')});
+  });
+  box.innerHTML = tiles.map(t=>'<button class="tile '+t.cls+'" data-links="'+esc2(t.cat)+'"><div class="ic">'+t.ic+'</div><h2>'+esc2(t.label)+'</h2><p>'+esc2(t.sub)+'</p></button>').join('');
+  box.querySelectorAll('[data-links]').forEach(b=> b.onclick=()=> openLinks(b.dataset.links));
+}
 function openLinks(cat){
   let title='', note='', items=[];
-  if(cat==='vendors'){ title='Vendors'; note='Your suppliers. Edit this list in ⚙ Setup → Vendors & services.';
-    try{ items=(TKS.Config.vendors()||[]).filter(v=>v&&(v.url||'').trim()).map(v=>({label:v.label||v.url, url:v.url})); }catch(e){} }
-  else if(cat==='keycodes'){ title='Keycodes — dealer / OEM'; note='Official manufacturer keycode portals. Sign in with your dealer/OEM credentials.';
+  if(cat==='keycodes'){ title='Keycodes — dealer / OEM'; note='Official manufacturer keycode portals. Sign in with your dealer/OEM credentials.';
     items=KEYCODES.map(k=>({label:k.make, url:k.url, slug:k.slug})); }
-  else if(cat==='nastf'){ title='NASTF'; note='Secure Data Release Model registry.';
-    items=[{label:'NASTF SDRM', url:'https://sdrm.nastfsecurityregistry.org/login?dotOrg=yes'}]; }
+  else if(cat.indexOf('ql:')===0){ const key=cat.slice(3); let c=null;
+    try{ c=(TKS.Config.quickLinks()||[]).filter(x=>x.key===key)[0]; }catch(e){}
+    title=(c&&c.label)||'Links'; items=((c&&c.links)||[]).filter(l=>l&&(l.url||'').trim()).map(l=>({label:l.label||l.url, url:l.url})); }
   const ov=document.createElement('div'); ov.className='ll-ov';
   const sheet=document.createElement('div'); sheet.className='ll-sheet';
   const head=document.createElement('div'); head.className='ll-head';
@@ -1197,19 +1201,10 @@ function updateAuthUI(){
       setupLinkHTML()+
       '<a href="cloud-test.html" rel="nofollow">Staff Login</a>';
   }
-  renderVendorTiles();
+  renderQuickTiles();
 }
 // "⚙ Setup" relaunch link — owner, or signed-out/first-run (soft). Hidden for staff.
 function setupLinkHTML(){ return ownerSoft() ? '<a href="setup.html" rel="nofollow" style="background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--dim)">⚙ Setup</a>' : ''; }
-// Home vendor tiles come from the owner config (Setup → Vendors); fall back to defaults.
-function renderVendorTiles(){
-  const box=document.getElementById('vendorTiles'); if(!box) return;
-  let vendors=[]; try{ vendors=TKS.Config.vendors()||[]; }catch(e){}
-  vendors=vendors.filter(v=>v && (v.url||'').trim());
-  document.getElementById('vendorH').style.display = vendors.length ? '' : 'none';
-  box.innerHTML = vendors.map(v=>'<a class="tile t-vendor" href="'+esc2(v.url)+'" target="_blank" rel="noopener noreferrer">'+
-    '<div class="ic">🔧</div><h2>'+esc2(v.label||v.url)+' ↗</h2><p>Vendor site</p></a>').join('');
-}
 // First-run / incomplete setup → guide the owner (or a fresh signed-out device) to
 // the wizard before Home. Never sends staff; "Finish later" sets a per-session skip.
 function maybeRedirectToSetup(){

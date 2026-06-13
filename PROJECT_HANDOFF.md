@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 22:32 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 22:51 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -351,7 +351,13 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
-- **Setup: business hours are now day/time dropdowns (22:32):** the free-text hours box is replaced by a
+- **Quick links split from Services + organized into categories (22:51):** in Setup, **Vendors/links**
+  and **Services** are now **two separate steps**. Quick links are grouped into **categories** — Vendors,
+  NASTF / Registry, Programming & Tools, Reference & Lookups, Associations, Other — each with its own
+  editable list (add/remove links). On the **Home screen**, each category only shows a tile **when it has
+  at least one link** — **empty categories have no tile** (no clutter). **Keycodes** stays a built-in
+  tile (the dealer/OEM portal list) and is always shown. Your existing vendor links carry over
+  automatically. Stored in the cloud-synced config. the free-text hours box is replaced by a
   proper **per-day editor** — for each day (Mon–Sun) pick **Open / Closed / 24 hours**, and when open,
   pick the **open and close times** from dropdowns. Stored as structured data in the cloud config (any
   old free-text hours migrate automatically). First of a few "make it a dropdown where it makes sense"
