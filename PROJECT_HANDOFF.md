@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-13 00:47 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-13 09:32 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -132,7 +132,8 @@ customer list across all tools.
   only in the cloud (never in the app or the website). *(Going live = swapping to live keys after you
   rehearse with test cards — see "Suggested next steps".)*
   - **Two owner-only money tiles** on the Home screen (a trainee won't see them): **🧮 Closeout** counts
-    **today's drawer** (collected, split by card/cash/check, surcharge, refunds), and **📊 Transaction
+    **today's drawer** (collected, split by card/cash/check, surcharge, refunds — *a count/summary only;
+    there is no separate printable "deposit slip" generator yet*), and **📊 Transaction
     History** opens on **today** (older sales stay filed under each customer; nothing is deleted) with a
     **period dropdown** (Today / Week / Month / Quarter / Year), a **switchable graph** (bar / line /
     area / pie / doughnut), and **Total Jobs / Sales / Cost / Profit** cards you can turn on and off.
@@ -300,7 +301,9 @@ app/STRUCTURE_NOTES.md  Detailed notes on the staff-app build + cloud + payments
 supabase/customers_setup.sql      Customers table SQL
 supabase/app_tables_setup.sql     Inventory/Bookings/Receipts table SQL
 supabase/payments_setup.sql       Payments tables (transactions + events) SQL
-supabase/functions/               The 6 Stripe edge functions (version-controlled) + README
+supabase/functions/               The 7 Stripe edge functions (version-controlled) + README
+                                  (pay-create-intent, pay-record, pay-refund, pay-status,
+                                   pay-terminal, pay-void, stripe-webhook — all deployed + ACTIVE)
 supabase/PAYMENTS.md              Payments architecture + operations + go-live steps
 TurboStripe_AUDIT.md              Audit of the old desktop POS + why we chose the portal build
 turbo_master_task_list.md         The deep task list (every track, statuses, next steps)
@@ -351,6 +354,38 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-13
+- **Full status-report verification pass (09:32, report-only — no features changed):** audited the whole
+  codebase against these docs and against the **live Supabase project**. Findings: all 7 cloud tables
+  (`customers`, `inventory`, `bookings`, `receipts`, `payment_transactions`, `payment_events`,
+  `shop_config`) exist with the documented columns (incl. `cost_cents`/`technician`/`tax_cents` and the
+  lead fields), RLS on; all **7 payment edge functions are deployed and ACTIVE**, plus the webhook
+  (`verify_jwt:false`, correct). Doc corrections made this pass: edge-function count **6 → 7** (pay-void
+  was added but uncounted in the file map + task list). Two truths surfaced for the planning assistant:
+  **(1)** Closeout is a **drawer count/summary only — there is no printable "deposit slip" generator**
+  (never built; not previously noted anywhere). **(2)** Two leftover verification functions
+  (`spike-stripe`, `spike-terminal`) are still deployed live and should be **deleted at go-live cutover**.
+  Security advisors: leaked-password protection still off (Pro-only, deferred) and the per-table RLS
+  policies are `authenticated = full access` (correct/by-design for single-shop; **must become per-org
+  for the multi-tenant Track F**). No code was modified.
+- **"+ Add a service" now lives under each category:** in Setup → Services, every category has its own
+  **"+ Add a service"** button that adds a blank custom row **to that category**. (Before, a single button
+  at the bottom always dropped the new service into Automotive.) Verified end-to-end.
+- **PLANNED — one service list shared across all the apps (not yet built):** the categories and services
+  you pick in Setup will become the **single source of truth** for the whole app — the **scheduler** and
+  the **invoice/receipt** screens will read your selections instead of each using its own hardcoded
+  Automotive/Residential/Commercial list. *(To answer the question that prompted this: yes — that shared
+  "file" already exists. It's the cloud `shop_config` record every screen loads; the apps just aren't all
+  reading from it yet. Nothing about Commercial is being removed — every category you select still shows;
+  ones you don't select simply won't clutter the screens.)* What this will do once built: **(1)** if you
+  offer **Safe & Vault** (or Emergency / Access Control), it shows up as a job type in the scheduler and
+  as a service type on invoices; categories you don't offer disappear. **(2)** On an invoice, after you
+  pick a service type, the pick list shows **your Setup services with the prices you set** (pre-filled),
+  **combined with** the built-in catalog's tax + Labor/Materials bookkeeping tags, and **filtered to that
+  category** so you're not scrolling past car-key services to bill a house rekey. **(3)** The scheduler's
+  call scripts stop saying "Turbo Keysmith" — they auto-fill **your** business name and the signed-in
+  tech's **first name**. New categories appear "not in detail" (a job type, without the full step-by-step
+  coaching that Automotive/Residential/Commercial have). Plan saved; **status when built = code-complete,
+  pending your phone sign-off** (iPhone + Android, owner + staff).
 - **Services rebuilt as a pick-and-price flow (00:42):** the confusing services grid is replaced by a
   clear **2-step** flow. **Step 1 — Service types:** tick the categories you work in (Automotive,
   Residential, Commercial, Safe & Vault, Emergency, Access Control, Other). **Step 2 — Services:** for
