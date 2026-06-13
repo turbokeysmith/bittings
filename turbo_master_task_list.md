@@ -3,7 +3,7 @@
 Keep this updated after each work session. Status key: ✅ done · 🔨 in progress ·
 ⏸️ parked (waiting on a decision/credential) · ⬜ not started.*
 
-Last updated: 2026-06-13 10:22 CDT (Claude Code) — end-of-day Deposit Slip added to Closeout this pass
+Last updated: 2026-06-13 10:37 CDT (Claude Code) — Deposit Slip: carryover float + shortfall + Settings float
 
 > **Canonical doc:** `PROJECT_HANDOFF.md` is the owner-facing source of truth (the file uploaded
 > to Claude Desktop). This task list defers to it — **if the two ever conflict, the handoff wins.**
@@ -170,15 +170,21 @@ Netlify tile is fully superseded. Full design + ops in `supabase/PAYMENTS.md`. E
 ### B3 — Money tools / reporting ✅ (2026-06-12)
 - ✅ **Closeout** — owner-only Home tile: today's **drawer count** (collected, split card/cash/check,
   surcharge, refunds).
-- ✅ **End-of-day Deposit Slip (2026-06-13) — ⏳ pending mobile sign-off.** Closeout now has a
-  **denomination drawer count** (bills + coins) that builds a deposit slip: **total counted**, **float
-  retained** (default $120, persisted in `tks_drawer_float`), **deposit = counted − float**, and
-  **over/short = deposit − expected cash** (expected = the day's recorded cash sales). On-screen
-  copyable summary **and** a **branded PDF** (jsPDF, receipt-style header/logo via `TKS.Config.identity`)
-  **shared via `navigator.share`** (download fallback), mirroring `bittings.html`'s `shareDocument`.
-  Integer-cents math throughout; **owner-gated** (`ownerHard()`); PDF degrades to copy-summary if jsPDF
-  is unavailable offline. In `index.html`: `renderDrawer`/`recalcDrawer`/`depositData`/`makeDepositPDF`/
-  `shareDepositSlip`; jsPDF added via CDN.
+- ✅ **End-of-day Deposit Slip (2026-06-13) — ⏳ pending mobile sign-off.** Closeout has a
+  **denomination drawer count** (bills + coins) that builds a deposit slip: **total counted**,
+  **starting float**, **deposit = max(0, counted − starting float)**, and **over/short = counted −
+  starting float − expected cash** (expected = the day's recorded cash sales). On-screen copyable summary
+  **and** a **branded PDF** (jsPDF, receipt-style header/logo via `TKS.Config.identity`) **shared via
+  `navigator.share`** (download fallback), mirroring `bittings.html`'s `shareDocument`. Integer-cents;
+  **owner-gated** (`ownerHard()`); PDF degrades to copy-summary if jsPDF is unavailable offline.
+- ✅ **Carryover starting float + shortfall + Settings float (2026-06-13).** The retained float carries
+  to the next open: `finalizeCloseout` writes `tks_drawer_float_carry = retained` (= counted − deposit)
+  on share/copy; the Closeout **starting-float input is owner-editable per day** and prefills from the
+  carry, else the **Settings float** (`config.payments.drawerFloatCents`, new field in Setup → Payments,
+  default $120). If counted < starting float, a **shortfall warning** shows how much cash to add to
+  restore it (or continue → deposit $0, slip notes the shortfall). `settingsFloatCents`/
+  `startingFloatPrefill`/`finalizeCloseout` in `index.html`; `f_float` field + gather in `setup.html`;
+  `payments.drawerFloatCents` default in `store.js` (mirrored to `site/app/store.js`).
 - ✅ **Transaction History** — owner-only Home tile: lands on **today** (daily-reset default; nothing
   deleted, stays filed under customer). **Period** dropdown (Today/Week/Month/Quarter/Year) +
   **graph type** dropdown (bar/line/area/pie/doughnut, Chart.js). **Total Jobs / Sales / Cost /

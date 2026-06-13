@@ -225,6 +225,26 @@ Audited the repo + the **live Supabase project** for a status report.
   the 1 "fail" was a stale test assertion (priced then Cleared+Select-all'd a category → price reset,
   which is correct). Committed `db8479e`.
 
+## Update 2026-06-13 10:37 — Deposit Slip: carryover float, shortfall, Settings float
+*The float is now a carryover (previous close → next open), editable per-day at Closeout (owner-only),
+defaulting to a configurable Settings float. Plus a shortfall check. Math re-tested in node.*
+- **Settings float:** `store.js` `CONFIG_DEFAULTS.payments.drawerFloatCents = 12000` (mirrored to
+  `site/app/store.js`). `setup.html` Payments step gains `#f_float` (dollars) → `gather('payments')`
+  writes `cfg.payments.drawerFloatCents` (cents); Review line shows it.
+- **index.html:** `settingsFloatCents()` = `Config.payments().drawerFloatCents` (default 12000).
+  `startingFloatPrefill()` = `tks_drawer_float_carry` (localStorage) ?? settings float. The Closeout
+  float input (`#drawerFloat`) is relabeled **"Starting float"**, prefilled from the carry/settings, and
+  **owner-editable** (read live by `floatCents()`).
+- **`depositData()` (new fields):** `deposit = max(0, counted − startFloat)`,
+  `floatShort = max(0, startFloat − counted)`, `retained = counted − deposit` (= next opening float),
+  `overShort = counted − startFloat − expected`.
+- **Shortfall UI** (`recalcDrawer`): when `floatShort>0`, a `.float-warn` block tells the owner exactly
+  how much cash to add to restore the starting float, or to continue (deposit $0; the slip/summary note
+  the shortfall — `depositSummaryText` + `makeDepositPDF` print a "Float shortfall" line).
+- **Carryover:** `finalizeCloseout(d)` (owner-gated) writes `tks_drawer_float_carry = d.retained`; called
+  by `shareDepositSlip` and `copyDepositSummary` so the day's retained float becomes tomorrow's opening
+  float. Removed the old per-keystroke `tks_drawer_float` write.
+
 ## Update 2026-06-13 10:22 — Closeout: end-of-day Deposit Slip (BUILT)
 *A denomination drawer count in Closeout (`index.html` `view-history`) that produces a branded PDF
 deposit slip + copyable summary. Owner-only; integer-cents; receipt-style PDF. Syntax-checked; math
