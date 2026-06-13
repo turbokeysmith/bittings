@@ -557,9 +557,27 @@
     access: { employees: [], ownerEmails: [], staffEmails: [], quickFormPin: '', quickInvoiceEnabled: true, quickInvoiceDefault: true },
     vendors: DEFAULT_VENDORS.slice(),
     services: DEFAULT_SERVICES.slice(),
-    hours: '',                          // freeform for now, e.g. "Mon–Sat, 24-hour emergency"
+    // hours: per-day { mode:'open'|'closed'|'24', open:'HH:MM', close:'HH:MM' }
+    hours: { mon:{mode:'open',open:'08:00',close:'17:00'}, tue:{mode:'open',open:'08:00',close:'17:00'},
+             wed:{mode:'open',open:'08:00',close:'17:00'}, thu:{mode:'open',open:'08:00',close:'17:00'},
+             fri:{mode:'open',open:'08:00',close:'17:00'}, sat:{mode:'open',open:'08:00',close:'17:00'},
+             sun:{mode:'closed',open:'08:00',close:'17:00'} },
     setup: { completed: false, done: {}, skipped: {} }   // per-step progress
   };
+  // Coerce hours to the structured per-day object (migrates the old free-text string).
+  function normalizeHours(h) {
+    var days = ['mon','tue','wed','thu','fri','sat','sun'], def = CONFIG_DEFAULTS.hours, out = {};
+    var src = (h && typeof h === 'object' && !Array.isArray(h)) ? h : {};
+    days.forEach(function (d) {
+      var dd = src[d] || {};
+      out[d] = {
+        mode: (dd.mode === 'open' || dd.mode === 'closed' || dd.mode === '24') ? dd.mode : def[d].mode,
+        open: dd.open || def[d].open,
+        close: dd.close || def[d].close
+      };
+    });
+    return out;
+  }
   var configCache = null;
   function mergeConfig(c) {
     c = c || {};
@@ -572,7 +590,7 @@
       access: Object.assign({}, d.access, c.access || {}),
       vendors: Array.isArray(c.vendors) && c.vendors.length ? c.vendors : d.vendors.slice(),
       services: Array.isArray(c.services) && c.services.length ? c.services : d.services.slice(),
-      hours: (c.hours != null) ? c.hours : d.hours,
+      hours: normalizeHours(c.hours),
       setup: Object.assign({ completed: false, done: {}, skipped: {} }, c.setup || {})
     };
   }

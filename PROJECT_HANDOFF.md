@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 22:24 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 22:32 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -351,7 +351,11 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
-- **Setup page fixes — fuller catalog, structured employees, inventory import, tighter & private (22:24):**
+- **Setup: business hours are now day/time dropdowns (22:32):** the free-text hours box is replaced by a
+  proper **per-day editor** — for each day (Mon–Sun) pick **Open / Closed / 24 hours**, and when open,
+  pick the **open and close times** from dropdowns. Stored as structured data in the cloud config (any
+  old free-text hours migrate automatically). First of a few "make it a dropdown where it makes sense"
+  passes (one at a time).
   six fixes to the guided Setup page. **(1) Services:** replaced the short list with a **full locksmith
   catalog grouped by category** (Automotive, Residential, Commercial, Safe & Vault, Emergency/Other) —
   pre-filled and fully **add / remove / rename / reorder** (▲▼), stored in the cloud config (the old

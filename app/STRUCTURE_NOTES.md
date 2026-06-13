@@ -197,6 +197,14 @@ Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
 - **Typed-card key:** replaced the `prompt()` paste with an inline `#pnPK` input (16px) in `renderKeyed`
   — in **both** `app/pay.js` and the `bittings.html` inline Pay Now; `startKeyed` reads/saves it.
 
+## Update 2026-06-12 PM10 — Setup: structured business hours (dropdowns)
+- `config.hours` is now a per-day object `{mon..sun:{mode:'open'|'closed'|'24', open:'HH:MM', close:'HH:MM'}}`.
+  `store.js` `normalizeHours()` coerces/migrates (old free-text string → default object); `mergeConfig`
+  runs `normalizeHours(c.hours)`. `setup.html` `renderHoursEditor()` (per-day mode + open/close
+  `<select>` via `timeOpts()`), live-bound to `cfg.hours`; `gather('hours')` only reads the footer now.
+  Review uses `hoursSummary()` (groups consecutive same-schedule days, e.g. "Mon–Sat 8a–5p · Sun closed").
+  (First of a planned "dropdown where sensible" pass.)
+
 ## Update 2026-06-12 PM9 — Setup fixes: catalog, employees, inventory import, sizing
 - **Services (store.js `DEFAULT_SERVICES`):** full grouped catalog (cats automotive/residential/
   commercial/safe/emergency/other, incl. "Other (describe)"); `CONFIG_DEFAULTS.services` uses it.
