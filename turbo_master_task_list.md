@@ -3,7 +3,7 @@
 Keep this updated after each work session. Status key: ✅ done · 🔨 in progress ·
 ⏸️ parked (waiting on a decision/credential) · ⬜ not started.*
 
-Last updated: 2026-06-12 (Claude Code)
+Last updated: 2026-06-13 09:32 CDT (Claude Code) — verified against the live Supabase project this pass
 
 > **Canonical doc:** `PROJECT_HANDOFF.md` is the owner-facing source of truth (the file uploaded
 > to Claude Desktop). This task list defers to it — **if the two ever conflict, the handoff wins.**
@@ -61,6 +61,33 @@ first — it's what every other tile leans on.*
   via the VIN API; **ignition type required** (push-to-start / keyed)
 - ✅ **Job photo slots** on a booking — **built but dormant** (hidden until real photos exist)
 
+### A5 — One service list shared across ALL apps (Setup = single source of truth)  ·  🔨 in progress (planned 2026-06-13)
+*The services + categories the owner picks in Setup should drive every app, instead of each app
+hardcoding its own Automotive/Residential/Commercial list. The cloud "file" already exists — Supabase
+`shop_config` (one row) via `TKS.Config`; the work is making the scheduler + invoice **read** from it.*
+- ✅ **Per-category "+ Add a service" (2026-06-13)** — in Setup → Services each category has its own
+  add button that adds a custom row **to that category** (was a single bottom button that always landed
+  in Automotive). Logic-verified end-to-end.
+- ⬜ **Shared category helper in `app/store.js` (`TKS.ServiceCats`)** — one canonical list of the 7
+  categories with labels (EN/ES), scheduler short-code mapping (`automotive↔auto`, etc.), `active()`
+  (the owner's selected categories, fallback to the 3 core when un-configured), and `servicesFor(cat)`.
+  Extend `Services.fromJob` so new categories (safe/emergency/…) keep their real `cat`.
+- ⬜ **Scheduler reads it** — job-type **tiles** (training) + **quick-form** options come from the
+  owner's selected categories (Safe & Vault etc. appear when selected; unselected ones hide). New
+  categories appear **"not in detail"** — a job type without the full sub-step coaching (auto/res/com
+  keep theirs). Confirm screen / job list / calendar label them properly.
+- ⬜ **Scheduler scripts personalized** — call scripts stop hardcoding **"Turbo Keysmith"**; the
+  business name auto-fills from `identity().name` and the signed-in tech's **first name** from the
+  employees list (collapses cleanly when blank).
+- ⬜ **Invoice picker combined + category-filtered** (`bittings.html`) — the "What type of service?"
+  options come from the owner's categories; the line picker shows the owner's **Setup services with
+  their set prices** (★, price pre-filled) **combined with** the built-in catalog's tax + Labor/Materials
+  bookkeeping tags, filtered to the chosen category so there's no scrolling past unrelated services.
+- 📝 No data migration: existing bookings (`jobType=auto/res/com`) and receipts
+  (`serviceType=Automotive/…`) keep their stored values; only new categories use new values.
+- 📝 Plan file: `~/.claude/plans/eventual-stirring-puffin.md`. **Status after build = code-complete,
+  pending mobile sign-off** (iPhone Safari + Android Chrome, owner + staff) per CLAUDE.md.
+
 ### A3 — Scheduler still to do
 - ✅ **Force the guided flow (2026-06-10)** — the question-by-question intake is now the ONLY way to
   book. Removed the Day-view "+ Book" shortcut (Day view is view/open-only); each step must be
@@ -111,10 +138,12 @@ Netlify tile is fully superseded. Full design + ops in `supabase/PAYMENTS.md`. E
 - ✅ Verified spikes (stripe-node in Deno edge; server-driven Terminal from edge; **credit-only 2%
   surcharge enforceable** via manual-capture funding detection).
 - ✅ Schema (`payment_transactions` / `payment_events`, integer cents, RLS, service_role grants) +
-  **6 edge functions, version-controlled in `supabase/functions/`**: `pay-create-intent` (invoice-id
-  → authoritative base, idempotent), `stripe-webhook` (verified, source of truth, credit-only
-  capture), `pay-status`, `pay-refund`, `pay-terminal`, **`pay-record`** (cash/check, no Stripe/no
-  surcharge).
+  **7 edge functions, version-controlled in `supabase/functions/`** (all deployed + ACTIVE, verified
+  2026-06-13): `pay-create-intent` (invoice-id → authoritative base, idempotent), `stripe-webhook`
+  (verified, source of truth, credit-only capture), `pay-status`, `pay-refund`, `pay-terminal`,
+  **`pay-record`** (cash/check, no Stripe/no surcharge), and **`pay-void`** (cash/check void → refunded).
+  *(Two leftover verification functions — `spike-stripe`, `spike-terminal` — are also still deployed
+  live; delete them at cutover.)*
 - ✅ **Rehearsal PASSED end-to-end through the live webhook** — credit $102 (2%), debit $100 (none),
   refund, idempotency, keyed client_secret; cash path recorded ($25).
 
@@ -133,6 +162,8 @@ Netlify tile is fully superseded. Full design + ops in `supabase/PAYMENTS.md`. E
 ### B3 — Money tools / reporting ✅ (2026-06-12)
 - ✅ **Closeout** — owner-only Home tile: today's **drawer count** (collected, split card/cash/check,
   surcharge, refunds).
+- ⬜ **Printable "deposit slip" — NOT built.** Closeout is an on-screen count/summary only. If the owner
+  wants a printable/shareable end-of-day deposit slip (cash to bank), that is a separate, unbuilt task.
 - ✅ **Transaction History** — owner-only Home tile: lands on **today** (daily-reset default; nothing
   deleted, stays filed under customer). **Period** dropdown (Today/Week/Month/Quarter/Year) +
   **graph type** dropdown (bar/line/area/pie/doughnut, Chart.js). **Total Jobs / Sales / Cost /
@@ -171,7 +202,8 @@ Netlify tile is fully superseded. Full design + ops in `supabase/PAYMENTS.md`. E
   **refund**; confirm stock dropped then came back on refund. Confirm amounts in the Stripe **test**
   dashboard.
 - ⬜ **Cutover to LIVE:** swap `sk_live_`/`pk_live_` (same secret slot), register the LIVE webhook,
-  one real charge, **retire `TurboStripe.exe` + rotate the old leaked key.**
+  one real charge, **retire `TurboStripe.exe` + rotate the old leaked key**, and **delete the leftover
+  `spike-stripe` / `spike-terminal` edge functions** (verification leftovers, still deployed).
 - ⏸️ **FUTURE (do NOT build yet): thermal receipt printer** — print a real receipt to the shop's
   thermal printer instead of a PDF. Separate hardware/driver job (ESC/POS or the printer's web/USB
   bridge); revisit after go-live.

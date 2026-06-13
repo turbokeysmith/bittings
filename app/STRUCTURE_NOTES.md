@@ -197,6 +197,58 @@ Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
 - **Typed-card key:** replaced the `prompt()` paste with an inline `#pnPK` input (16px) in `renderKeyed`
   — in **both** `app/pay.js` and the `bittings.html` inline Pay Now; `startKeyed` reads/saves it.
 
+## Update 2026-06-13 09:32 CDT — live verification pass (report-only, no code changed)
+Audited the repo + the **live Supabase project** for a status report.
+- **Tables (live, RLS on):** `customers` (2 rows), `inventory` (0), `bookings` (1, jsonb `data`),
+  `receipts` (0, jsonb), `payment_transactions` (1; has `description`, `cost_cents`, `technician`,
+  `tax_cents`, plus dormant `org_id`/`connected_account_id` for the future Connect/multi-tenant path),
+  `payment_events` (0), `shop_config` (1; `tax_rate`, `taxable_categories`, jsonb `data` = the full
+  cloud-synced owner config). All columns match these notes.
+- **Edge functions (live, ACTIVE):** `pay-create-intent` v6, `pay-record` v3, `pay-refund` v3,
+  `pay-status` v2, `pay-terminal` v3, `pay-void` v1, `stripe-webhook` v2 (`verify_jwt:false`, correct).
+  **Also still deployed:** `spike-stripe`, `spike-terminal` (verification leftovers) — delete at cutover.
+- **Security advisors:** leaked-password protection off (Pro-only, deferred); `payment_events` has RLS
+  on but no policy (fine — service-role/webhook-only); every table's INSERT/UPDATE/DELETE policy is
+  `authenticated = true` (full access to any signed-in user) — **correct for single-shop, must become
+  per-org RLS for Track F**.
+- **Confirmed NOT built:** `TKS.ServiceCats` (A5 still planned); a printable Closeout **deposit slip**
+  (drawer count is on-screen only); `bittings.html` `sendByText`/`sendByEmail` (removed in the PM2
+  cleanup, as intended — share is via `navigator.share`). The `connectCloud` docblock in `store.js`
+  still says "NOT wired yet, on purpose" — that comment is stale (cloud IS wired); cosmetic only.
+
+## Update 2026-06-13 — per-category "+ Add a service" (setup.html)
+- `renderServices()` now emits a `.svc-addone` button (`data-cat`) inside **each** category group;
+  click pushes `{value:'',en:'',es:'',cat:b.dataset.cat,price:''}` to `cfg.services` and re-renders.
+  Removed the single bottom button that always used `cats[0]` (Automotive). Services logic
+  (pre-check seed, Select-all/Clear, per-category add, `gather` shape) logic-tested in node: 11/12,
+  the 1 "fail" was a stale test assertion (priced then Cleared+Select-all'd a category → price reset,
+  which is correct). Committed `db8479e`.
+
+## PLANNED (not yet built) 2026-06-13 — `TKS.ServiceCats`: Setup as single source of truth cross-app
+*Goal: the owner's `serviceCats` + `services` drive the scheduler AND invoice instead of each app
+hardcoding auto/res/com. The cloud "file" is the existing `shop_config` row via `TKS.Config`; the work
+is making consumers READ it. Plan: `~/.claude/plans/eventual-stirring-puffin.md`.*
+- **store.js — new `TKS.ServiceCats` module** (after `Services`, exported on `global.TKS`): canonical
+  `SERVICE_CATS` table — `{key, code, en, es, invoice, emoji}` for the 7 keys (`automotive↔auto`,
+  `residential↔res`, `commercial↔com`, `safe`, `emergency`, `accesscontrol`, `other`). API: `all()`,
+  `byKey/byCode`, `keyToCode/codeToKey`, `active()` (= `Config.serviceCats()`, fallback core 3 when
+  empty, canonical order), `label(key,lang)`, `invoiceLabel/invoiceActive()`, `servicesFor(key)` (=
+  `Config.services().filter(cat===key)`), `hasDetail(code)` (true only auto/res/com). Extend
+  `Services.fromJob` so unknown codes set `cat=codeToKey(code)` (not lumped to `other`).
+- **scheduler.html:** `stepJobType` tiles + quick-form `<option>`s loop `ServiceCats.active()`
+  (`jobChoice(code, emoji, label)`); `hasSub(code)=!!SUBTYPES[code]` → skip the `subtype` step + relax
+  `validateStep`/upsell-required for no-detail cats; `subLabel` falls back to `ServiceCats.label(...)`.
+  Personalization: `{biz}`/`{techClause}` tokens in `SCRIPT.greeting/closing`, substituted in `line()` —
+  `{biz}=identity().name` (fallback "our shop"/"nuestra cerrajería"), `{techClause}` = signed-in tech's
+  first name from `Config.access().employees` matched on `auth.rememberedEmail()`.
+- **bittings.html:** `askServiceType` options ← `ServiceCats.invoiceActive()` (keep literal
+  `"Automotive"` test for the NASTF/vehicle branch + saved receipts). `showJobPickerForCategory` becomes
+  **combined**: owner's `servicesFor(key)` floated to top (★, Setup `price` pre-filled) inheriting
+  `taxable`+accounting `category` from the matching `COMMON_JOBS_SEED` row (custom→default from the line
+  category) + the remaining built-in common jobs below.
+- **No migration:** core `jobType` (auto/res/com) + `serviceType` ("Automotive"/…) stored values
+  unchanged; new categories use new values old records never had.
+
 ## Update 2026-06-13 PM12 — Services: 2-step pick-and-price (catalog) flow
 - **Config:** `config.services` default now **[]** (offered services `{value,cat,price,en,es}`);
   `config.serviceCats` = the categories the shop offers (Setup step 1). `mergeConfig` defaults services
