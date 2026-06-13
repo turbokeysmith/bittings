@@ -58,7 +58,9 @@
     font-weight:700;cursor:pointer;min-height:40px;margin-top:2px;}
   /* grouped services editor */
   .svc-group{margin-bottom:8px;}
-  .svc-cat{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--amber);margin:8px 2px 4px;}
+  .svc-cat{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--amber);margin:10px 2px 5px;display:flex;align-items:center;}
+  .svc-allbtn{margin-left:auto;background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--dim);
+    border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;letter-spacing:0;text-transform:none;cursor:pointer;min-height:32px;}
   .svc-row{display:flex;gap:6px;align-items:center;margin-bottom:6px;}
   .svc-row input{flex:1;}
   /* pick-and-price service rows */
@@ -248,7 +250,13 @@ function renderPanel(key){
   else if(key==='servicetypes'){
     p.innerHTML='<h2>Service types</h2><div class="sub">What kinds of work do you do? Pick your categories — the next step lists the common services in each so you can check what you offer and set pricing.</div>'+
       SVC_CATS2.map(([ck,cl])=>'<label class="toggle"><input type="checkbox" class="stype" data-c="'+ck+'" '+(((cfg.serviceCats||[]).indexOf(ck)>=0)?'checked':'')+'> '+esc(cl)+'</label>').join('');
-    p.querySelectorAll('.stype').forEach(cb=> cb.onchange=()=>{ const c=cb.dataset.c; cfg.serviceCats=(cfg.serviceCats||[]).filter(x=>x!==c); if(cb.checked) cfg.serviceCats.push(c); });
+    p.querySelectorAll('.stype').forEach(cb=> cb.onchange=()=>{ const c=cb.dataset.c;
+      cfg.serviceCats=(cfg.serviceCats||[]).filter(x=>x!==c);
+      if(cb.checked){ cfg.serviceCats.push(c);
+        // pre-check: offer every common service in this category (skip any already there)
+        (CATALOG[c]||[]).forEach(name=>{ if(svcIndex(name,c)<0) cfg.services.push({value:name,en:name,es:'',cat:c,price:''}); });
+      } else { cfg.services=cfg.services.filter(s=>(s.cat||'')!==c); }   // dropping the type drops its services
+    });
   }
   else if(key==='services'){
     p.innerHTML='<h2>Services</h2><div class="sub">Check the services you offer and add a standard price (or leave blank for per-job pricing). Add specialty work at the bottom.</div>'+
@@ -315,8 +323,11 @@ function renderServices(){
   let html='';
   SVC_CATS2.forEach(([ck,clabel])=>{
     if(cats.indexOf(ck)<0) return;
-    html+='<div class="svc-group"><div class="svc-cat">'+esc(clabel)+'</div>';
-    (CATALOG[ck]||[]).forEach(name=>{
+    const catNames=CATALOG[ck]||[];
+    const allOn=catNames.length>0 && catNames.every(n=> svcIndex(n,ck)>=0);
+    html+='<div class="svc-group"><div class="svc-cat">'+esc(clabel)+
+      '<button type="button" class="svc-allbtn" data-cat="'+ck+'">'+(allOn?'Clear':'Select all')+'</button></div>';
+    catNames.forEach(name=>{
       const i=svcIndex(name,ck), off=i>=0, price=off?(cfg.services[i].price||''):'';
       html+='<div class="svc-pick"><label class="sp_l"><input type="checkbox" class="sp_off" data-val="'+esc(name)+'" data-cat="'+ck+'" '+(off?'checked':'')+'> '+esc(name)+'</label>'+
         '<input class="sp_price" data-val="'+esc(name)+'" data-cat="'+ck+'" inputmode="decimal" placeholder="$ / job" value="'+esc(price)+'"'+(off?'':' disabled')+'></div>';
@@ -330,6 +341,10 @@ function renderServices(){
     html+='</div>';
   });
   el.innerHTML=html;
+  el.querySelectorAll('.svc-allbtn').forEach(b=> b.onclick=()=>{ const ck=b.dataset.cat, names=CATALOG[ck]||[];
+    const on=names.length>0 && names.every(n=> svcIndex(n,ck)>=0);   // all currently checked? -> Clear, else Select all
+    names.forEach(n=>{ if(on){ const i=svcIndex(n,ck); if(i>=0) cfg.services.splice(i,1); } else if(svcIndex(n,ck)<0){ cfg.services.push({value:n,en:n,es:'',cat:ck,price:''}); } });
+    renderServices(); });
   el.querySelectorAll('.sp_off').forEach(cb=> cb.onchange=()=>{ toggleSvc(cb.dataset.val, cb.dataset.cat, cb.checked); renderServices(); });
   el.querySelectorAll('.sp_price').forEach(x=> x.oninput=()=> setSvcPrice(x.dataset.val, x.dataset.cat, x.value));
   el.querySelectorAll('.cs_name').forEach(x=> x.oninput=()=>{ const s=cfg.services[+x.dataset.i]; s.value=x.value; s.en=x.value; });

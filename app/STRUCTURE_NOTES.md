@@ -208,6 +208,10 @@ Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
   as checkboxes + a price box each; `toggleSvc`/`setSvcPrice` live-bind to `cfg.services`; specialty/
   custom rows + "+ Add a service"). `gather` for both; Review shows types + offered/priced counts.
   Old `SVC_CATS`/`renderServices` grid + `moveSvc` removed.
+  - **Pre-check:** the step-1 `.stype` onchange seeds all `CATALOG[cat]` services into `cfg.services` when
+    a category is checked (and removes them when unchecked). Step-2 each category header has a
+    `.svc-allbtn` (Select all / Clear) that adds/removes the whole catalog group **without** touching
+    `serviceCats` (the category stays selected even when emptied). No auto-seed on render, so Clear sticks.
 
 ## Update 2026-06-12 PM11 — quick links split into categories; Services its own step
 - **Config:** `config.vendors` (flat) → `config.quickLinks` = array of CATEGORIES
