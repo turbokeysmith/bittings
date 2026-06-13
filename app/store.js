@@ -453,7 +453,8 @@
     { value: 'Other (describe)',                en: 'Other (describe)',                es: 'Otro (describe)',                        cat: 'other' }
   ];
   var Services = {
-    list: function () { return SERVICES.slice(); },
+    // The owner's configured catalog (Setup → Services) when set, else the canonical default.
+    list: function () { try { var s = getConfig().services; if (Array.isArray(s) && s.length) return s.slice(); } catch (e) {} return SERVICES.slice(); },
     // map the scheduler's coaching tiles (jobType auto/res/com + subType) to a
     // canonical service { value, cat } — no double entry for the trainee.
     fromJob: function (jobType, subType) {
@@ -575,10 +576,14 @@
       // This is what gates owner UI, so offline ≠ "not owner".
       email: function () { return this.liveEmail() || this.rememberedEmail(); },
       isSignedIn: function () { return !!this.email(); },
+      // Owner allowlist = the cloud-config.js bootstrap owners (always owner — can't
+      // lock yourself out) UNION any owners added in the Setup wizard (cloud config).
       ownerEmails: function () {
+        var list = [];
         var o = global.TKS_OWNER && global.TKS_OWNER.OWNER_EMAILS;
-        if (!Array.isArray(o)) return [];
-        return o.map(function (e) { return String(e || '').trim().toLowerCase(); }).filter(Boolean);
+        if (Array.isArray(o)) list = list.concat(o);
+        try { var ce = getConfig().access.ownerEmails; if (Array.isArray(ce)) list = list.concat(ce); } catch (e) {}
+        return list.map(function (e) { return String(e || '').trim().toLowerCase(); }).filter(Boolean);
       },
       isOwner: function () {
         var e = this.email(); if (!e) return false;
@@ -597,13 +602,39 @@
     Config: {
       get: function () { return getConfig(); },
       taxableDefault: function (category) { return !!getConfig().taxableByCategory[category]; },
-      save: function (cfg) {
-        configCache = mergeConfig(cfg);
+      // group accessors (used by the Setup wizard + consumers)
+      identity: function () { return getConfig().identity; },
+      access: function () { return getConfig().access; },
+      payments: function () { return getConfig().payments; },
+      vendors: function () { return getConfig().vendors; },
+      services: function () { return getConfig().services; },
+      hours: function () { return getConfig().hours; },
+      setupState: function () { return getConfig().setup; },
+      isSetupComplete: function () { return !!getConfig().setup.completed; },
+      // Owner PIN: wizard value wins, else the cloud-config.js bootstrap default.
+      ownerPin: function () {
+        var p = getConfig().access.quickFormPin;
+        if (p) return String(p);
+        return (global.TKS_OWNER && global.TKS_OWNER.QUICK_FORM_PIN) ? String(global.TKS_OWNER.QUICK_FORM_PIN) : '';
+      },
+      // save(partial): deep-merge the partial onto the current config (so a single
+      // group/step doesn't clobber the others), persist locally + to shop_config.data.
+      save: function (partial) {
+        partial = partial || {};
+        var cur = getConfig();
+        var merged = Object.assign({}, cur);
+        ['identity', 'payments', 'access', 'setup'].forEach(function (g) {
+          if (partial[g]) merged[g] = Object.assign({}, cur[g], partial[g]);
+        });
+        if (partial.taxableByCategory) merged.taxableByCategory = Object.assign({}, cur.taxableByCategory, partial.taxableByCategory);
+        ['taxRate', 'vendors', 'services', 'hours'].forEach(function (k) { if (partial[k] !== undefined) merged[k] = partial[k]; });
+        configCache = mergeConfig(merged);
         write(CONFIG_LSKEY, configCache);
         if (authState.sb) {
           try {
             authState.sb.from('shop_config').upsert({
-              id: 1, tax_rate: configCache.taxRate, taxable_categories: configCache.taxableByCategory,
+              id: 1, data: configCache,
+              tax_rate: configCache.taxRate, taxable_categories: configCache.taxableByCategory,
               updated_by: (authState.user ? authState.user.id : null), updated_at: new Date().toISOString()
             }).then(function () {}, function () {});
           } catch (e) {}
@@ -616,7 +647,11 @@
         try {
           return authState.sb.from('shop_config').select('*').eq('id', 1).limit(1).then(function (res) {
             var row = res && res.data && res.data[0];
-            if (row) { configCache = mergeConfig({ taxRate: row.tax_rate, taxableByCategory: row.taxable_categories }); write(CONFIG_LSKEY, configCache); }
+            if (row) {
+              var src = (row.data && Object.keys(row.data).length) ? row.data
+                : { taxRate: row.tax_rate, taxableByCategory: row.taxable_categories };
+              configCache = mergeConfig(src); write(CONFIG_LSKEY, configCache);
+            }
             return configCache;
           }, function () { return getConfig(); });
         } catch (e) { return Promise.resolve(getConfig()); }

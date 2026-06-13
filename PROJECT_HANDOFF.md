@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 18:14 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 21:42 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -351,6 +351,20 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
+- **Guided first-run Setup wizard (also your editable Settings) (21:42):** a new **setup.html** walks a
+  fresh install through everything in plain steps — **(1)** business identity + logo, **(2)** sales tax
+  rate + which categories are taxed, **(3)** payments (the credit surcharge %, and a clear note that
+  Stripe keys are *never* typed into the app — the secret lives in Supabase, the publishable key on the
+  Pay screen), **(4)** access (owner email(s), staff, owner PIN, Quick-invoice switches), **(5)** vendor
+  quick-links + the service list, **(6)** business hours + an optional receipt footer, and **(7)** a
+  review that flags anything you skipped. Every step is **optional and saved as you go**, with a
+  progress indicator and **"Finish later"** so an unfinished setup never blocks work. It opens
+  **before Home on first run / when setup is incomplete**, and you can relaunch it anytime from the
+  **⚙ Setup** link (Home) or the gear in Receipts. Everything is stored in the **cloud-synced owner
+  config** so all your devices match, and it's owner-only. It feeds the real app: your **identity flows
+  onto receipts/PDF**, **vendor links become the Home tiles**, your **owner emails/PIN** drive who sees
+  owner tools, the **service list** feeds the booking form/scheduler, and the **footer** prints on
+  receipts. (Built so it can later become per-shop onboarding for a sellable multi-tenant version.)
 - **Owner-only tools are now hidden (not just disabled) for non-owners — and survive going offline
   (18:14):** Closeout, Transaction History, the Payments/New Charge tile, and the Receipts Settings
   gear are **removed from view** for a signed-in staff member, so trainees never see owner tools.

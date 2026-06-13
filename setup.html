@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#14171b">
+<title>Turbo Keysmith — Setup</title>
+<link rel="icon" href="tks_mark.png">
+<!-- cloud config early so the gate can read it before render -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app/cloud-config.js"></script>
+<style>
+  :root{--bg:#14171b;--bg2:#1b1f25;--card:#1f232a;--edge:#2c313a;--ink:#f4f5f7;--dim:#9aa1ac;
+    --red:#c8323c;--red-deep:#8f1f27;--amber:#f2b43a;--green:#22994a;--blue:#4aa3ff;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1100px 520px at 50% -10%,#23272f 0%,rgba(35,39,47,0) 60%),linear-gradient(180deg,var(--bg),var(--bg2));
+    background-attachment:fixed;color:var(--ink);min-height:100vh;min-height:100dvh;
+    padding:calc(18px + env(safe-area-inset-top)) 16px calc(22px + env(safe-area-inset-bottom));}
+  .wrap{max-width:640px;margin:0 auto;}
+  header.app{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  header.app img{height:36px;width:auto;max-width:130px;object-fit:contain;}
+  header.app h1{margin:0;font-size:19px;font-weight:800;}
+  header.app .sp{margin-left:auto;}
+  .ghost{background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--dim);border-radius:10px;
+    padding:9px 13px;font-weight:700;font-size:13px;cursor:pointer;min-height:40px;text-decoration:none;display:inline-flex;align-items:center;}
+  .intro{color:var(--dim);font-size:13px;line-height:1.5;margin:0 0 14px;}
+  /* step chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+  .chip{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--edge);
+    color:var(--dim);border-radius:999px;padding:8px 12px;font-weight:700;font-size:12.5px;cursor:pointer;min-height:40px;}
+  .chip.cur{border-color:var(--amber);color:var(--ink);}
+  .chip .st{font-size:12px;}
+  .chip.done .st{color:#7fd49b;} .chip.skip .st{color:var(--amber);}
+  .panel{background:var(--card);border:1px solid var(--edge);border-radius:16px;padding:18px;margin-bottom:14px;}
+  .panel h2{margin:0 0 4px;font-size:18px;font-weight:800;}
+  .panel .sub{color:var(--dim);font-size:13px;line-height:1.5;margin:0 0 14px;}
+  label{display:block;font-size:12.5px;color:var(--dim);font-weight:600;margin:12px 0 6px;}
+  input,select,textarea{width:100%;background:#11141a;border:1px solid var(--edge);border-radius:11px;
+    padding:12px 14px;color:var(--ink);font-size:16px;outline:none;font-family:inherit;}
+  textarea{min-height:64px;resize:vertical;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .toggle{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink);margin:10px 0;cursor:pointer;}
+  .toggle input{width:20px;height:20px;flex:0 0 auto;}
+  .hint{font-size:12px;color:#9a9a9a;margin-top:6px;line-height:1.5;}
+  .note{background:rgba(242,180,58,.10);border:1px dashed rgba(242,180,58,.45);border-radius:11px;
+    padding:12px 14px;font-size:12.5px;line-height:1.5;color:#f2d18a;margin:10px 0;}
+  .note code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:5px;color:var(--ink);}
+  .rowlist .item{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .rowlist .item input{flex:1;}
+  .rowlist .item select{flex:0 0 130px;}
+  .del{background:transparent;border:1px solid rgba(200,50,60,.5);color:#f0a0a6;border-radius:9px;
+    min-width:44px;min-height:44px;font-size:18px;cursor:pointer;}
+  .addbtn{background:#2a2f3a;border:none;color:#cbd2da;border-radius:9px;padding:9px 13px;font-size:13px;
+    font-weight:700;cursor:pointer;min-height:40px;}
+  .logo-prev{display:flex;align-items:center;gap:12px;margin:6px 0;}
+  .logo-prev img{height:46px;width:auto;max-width:150px;object-fit:contain;background:#11141a;border:1px solid var(--edge);border-radius:8px;padding:4px;}
+  .nav{display:flex;gap:8px;flex-wrap:wrap;}
+  .btn{border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;min-height:48px;}
+  .btn.save{flex:1;background:linear-gradient(180deg,var(--red),var(--red-deep));color:#fff;}
+  .btn.skip{background:transparent;border:1px solid var(--edge);color:var(--dim);}
+  .btn.back{background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--dim);}
+  .review .rv{border-top:1px solid var(--edge);padding:11px 0;}
+  .review .rv:first-child{border-top:none;}
+  .review .rv b{display:block;font-size:14px;}
+  .review .rv .v{font-size:13px;color:var(--dim);margin-top:2px;overflow-wrap:anywhere;}
+  .review .rv .miss{color:var(--amber);}
+  .saved{font-size:12.5px;color:#7fd49b;min-height:16px;margin-top:8px;}
+  .block{max-width:460px;margin:60px auto;text-align:center;color:var(--dim);}
+  .block h2{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap"><div class="block">Loading…</div></div>
+
+<script src="app/store.js"></script>
+<script>
+/* ===================== TURBO KEYSMITH — GUIDED SETUP / SETTINGS =====================
+   One page, two modes: a first-run WIZARD (stepped, before Home) and the editable
+   SETTINGS (jump to any step) later. Saves to the cloud-synced owner config
+   (TKS.Config) so every signed-in device shares it. Owner-gated. Each step is
+   skippable with progress saved + a completion indicator + finish-later; the
+   Review step surfaces anything skipped. Grouped so a multi-tenant version can
+   reuse it as per-shop onboarding (nothing hardcoded into one shop). */
+
+const TAX_CATS = [
+  {key:'Labor', label:'Labor / Service'},
+  {key:'Materials', label:'Materials / Parts'},
+  {key:'Travel', label:'Travel / Mileage'},
+  {key:'Programming', label:'Programming'},
+  {key:'AfterHours', label:'After-Hours'}
+];
+const STEPS = [
+  {key:'identity', title:'Business identity'},
+  {key:'tax',      title:'Sales tax'},
+  {key:'payments', title:'Payments'},
+  {key:'access',   title:'Access & owner'},
+  {key:'catalog',  title:'Vendors & services'},
+  {key:'hours',    title:'Hours & footer'},
+  {key:'review',   title:'Review & finish'}
+];
+let cur = 0;            // current step index
+let cfg = null;         // working copy of config
+const wrap = document.getElementById('wrap');
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function isStaff(){ try{ return TKS.auth.isSignedIn() && !TKS.auth.isOwner(); }catch(e){ return false; } }
+
+/* ---- boot: connect cloud (so config syncs), gate, then render ---- */
+(function boot(){
+  function go(){
+    if(isStaff()){ wrap.innerHTML = '<div class="block"><h2>Owner only</h2><p>Setup &amp; Settings are owner-only. Ask the owner to make changes.</p><p><a class="ghost" href="index.html">‹ Back to the app</a></p></div>'; return; }
+    cfg = JSON.parse(JSON.stringify(TKS.Config.get()));
+    // jump to first incomplete step on first run; else start at identity
+    if(!TKS.Config.isSetupComplete()){
+      const st = TKS.Config.setupState();
+      const idx = STEPS.findIndex(s=> s.key!=='review' && !(st.done&&st.done[s.key]) && !(st.skipped&&st.skipped[s.key]));
+      cur = idx>=0 ? idx : 0;
+    }
+    render();
+  }
+  const c = window.TKS_CLOUD;
+  if(c && c.AUTO_CONNECT!==false && window.supabase && window.supabase.createClient){
+    try{
+      const probe = window.supabase.createClient(c.url, c.anonKey);
+      probe.auth.getSession().then(({data})=>{
+        if(data && data.session){ TKS.connectCloud({url:c.url, anonKey:c.anonKey}).then(go).catch(go); }
+        else go();
+      }).catch(go);
+      return;
+    }catch(e){}
+  }
+  go();
+})();
+
+function status(key){ const st=cfg.setup||{}; if(st.done&&st.done[key]) return 'done'; if(st.skipped&&st.skipped[key]) return 'skip'; return ''; }
+function statusIcon(s){ return s==='done'?'✓':s==='skip'?'⤼':'•'; }
+
+function render(){
+  const step = STEPS[cur];
+  let html = '<header class="app"><img src="tks_logo.png" alt="Turbo Keysmith">'+
+    '<div class="sp"></div><a class="ghost" id="laterBtn" href="#">Finish later</a></header>';
+  html += '<p class="intro">Set up your shop. Every step is optional and saved as you go — you can come back here anytime from the app to edit. Skipped items are listed at the end.</p>';
+  // chips
+  html += '<div class="chips">'+ STEPS.map((s,i)=>{
+    const st = (s.key==='review')?'':status(s.key);
+    return '<div class="chip '+(i===cur?'cur ':'')+st+'" data-i="'+i+'"><span class="st">'+(s.key==='review'?'★':statusIcon(st))+'</span>'+esc(s.title)+'</div>';
+  }).join('') +'</div>';
+  html += '<div class="panel" id="panel"></div>';
+  if(step.key!=='review'){
+    html += '<div class="nav">'+
+      (cur>0?'<button class="btn back" id="backBtn">‹ Back</button>':'')+
+      '<button class="btn skip" id="skipBtn">Skip</button>'+
+      '<button class="btn save" id="saveBtn">Save &amp; continue ›</button></div>';
+  } else {
+    html += '<div class="nav">'+
+      '<button class="btn back" id="backBtn">‹ Back</button>'+
+      '<button class="btn save" id="finishBtn">Finish setup ✓</button></div>';
+  }
+  html += '<div class="saved" id="saved"></div>';
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.chip').forEach(c=> c.onclick=()=>{ cur=+c.dataset.i; render(); });
+  document.getElementById('laterBtn').onclick=(e)=>{ e.preventDefault(); finishLater(); };
+  const bk=document.getElementById('backBtn'); if(bk) bk.onclick=()=>{ cur=Math.max(0,cur-1); render(); };
+  const sk=document.getElementById('skipBtn'); if(sk) sk.onclick=()=> skipStep();
+  const sv=document.getElementById('saveBtn'); if(sv) sv.onclick=()=> saveStep(true);
+  const fn=document.getElementById('finishBtn'); if(fn) fn.onclick=()=> finishSetup();
+  renderPanel(step.key);
+  window.scrollTo(0,0);
+}
+
+function renderPanel(key){
+  const p = document.getElementById('panel');
+  const id = cfg.identity, ac = cfg.access, pay = cfg.payments;
+  if(key==='identity'){
+    p.innerHTML = '<h2>Business identity</h2><div class="sub">Prints on your receipts, invoices &amp; PDFs.</div>'+
+      '<label>Business name</label><input id="f_name" value="'+esc(id.name)+'" placeholder="Turbo Keysmith">'+
+      '<label>Address</label><input id="f_address" value="'+esc(id.address)+'" placeholder="Street, City, ST ZIP">'+
+      '<div class="row2"><div><label>Phone</label><input id="f_phone" value="'+esc(id.phone)+'" placeholder="(405) 555-0123"></div>'+
+      '<div><label>Email</label><input id="f_email" value="'+esc(id.email)+'" placeholder="you@shop.com"></div></div>'+
+      '<label>License # (printed on receipts)</label><input id="f_license" value="'+esc(id.license)+'" placeholder="OK #AC441081">'+
+      '<label>Logo</label><div class="logo-prev"><img id="logoPrev" src="'+esc(id.logo||'tks_mark.png')+'" alt="logo">'+
+      '<button type="button" class="addbtn" id="logoBtn">Upload logo</button><input type="file" id="logoFile" accept="image/*" style="display:none"></div>'+
+      '<div class="hint">Use a square-ish PNG with a transparent background for the crispest result. Leave it to keep the Turbo Keysmith mark.</div>';
+    document.getElementById('logoBtn').onclick=()=>document.getElementById('logoFile').click();
+    document.getElementById('logoFile').addEventListener('change', onLogoPick);
+  }
+  else if(key==='tax'){
+    p.innerHTML = '<h2>Sales tax</h2><div class="sub">Default rate for taxable goods. Oklahoma exempts separately-stated labor — keep labor on its own line and it\'s excluded automatically. You can override the rate per receipt.</div>'+
+      '<label>Default tax rate (%)</label><input id="f_taxRate" type="number" step="0.001" inputmode="decimal" value="'+(cfg.taxRate||'')+'" placeholder="e.g. 8.625">'+
+      '<label>Taxable line categories</label>'+
+      TAX_CATS.map(c=>'<label class="toggle"><input type="checkbox" class="taxcat" data-k="'+c.key+'" '+(cfg.taxableByCategory[c.key]?'checked':'')+'> '+esc(c.label)+'</label>').join('');
+  }
+  else if(key==='payments'){
+    p.innerHTML = '<h2>Payments</h2><div class="sub">How charges are taken. Card processing runs through Stripe.</div>'+
+      '<label>Card surcharge shown to customers (%)</label><input id="f_surcharge" type="number" step="0.01" inputmode="decimal" value="'+(pay.surchargePct!=null?pay.surchargePct:2)+'" placeholder="2">'+
+      '<div class="hint">Oklahoma allows up to <b>2% on credit cards only</b> (never debit/prepaid, never cash/check). The 2% is enforced on the server at capture; this field is the figure shown on screen/receipt.</div>'+
+      '<div class="note"><b>Stripe keys — never typed into this page.</b> Your <b>secret key</b> lives only as a Supabase Edge Function secret (<code>STRIPE_SECRET_KEY</code>) — set it in the Supabase dashboard, never here. Your <b>publishable key</b> (<code>pk_…</code>) is entered once on the Pay screen when you take a typed-card payment. This keeps you PCI-safe (no card data or secret ever touches the app).</div>';
+  }
+  else if(key==='access'){
+    p.innerHTML = '<h2>Access &amp; owner</h2><div class="sub">Who can see owner-only tools (Closeout, Transaction History, taking payments, this Setup). Staff sign-ins get the everyday tools only.</div>'+
+      '<label>Owner email(s) — one per line</label><textarea id="f_owners" placeholder="you@shop.com">'+esc((ac.ownerEmails||[]).join('\n'))+'</textarea>'+
+      '<div class="hint">A signed-in user whose email is here gets owner powers. (The bootstrap owner in cloud-config.js is always an owner — you can\'t lock yourself out.)</div>'+
+      '<label>Staff email(s) — one per line (optional, for your reference)</label><textarea id="f_staff" placeholder="tech@shop.com">'+esc((ac.staffEmails||[]).join('\n'))+'</textarea>'+
+      '<label>Owner PIN (fallback when nobody is signed in)</label><input id="f_pin" value="'+esc(ac.quickFormPin||'')+'" placeholder="e.g. 4071" inputmode="numeric">'+
+      '<div class="hint">Unlocks owner actions (New Charge, Quick invoice) on a signed-out/offline device. Leave blank to require owner sign-in.</div>'+
+      '<label class="toggle"><input type="checkbox" id="f_qiEnabled" '+(ac.quickInvoiceEnabled!==false?'checked':'')+'> Enable the Receipts <b>Quick invoice</b> shortcut</label>'+
+      '<label class="toggle"><input type="checkbox" id="f_qiDefault" '+(ac.quickInvoiceDefault?'checked':'')+'> Open Quick invoice automatically for the owner</label>';
+  }
+  else if(key==='catalog'){
+    p.innerHTML = '<h2>Vendors &amp; services</h2><div class="sub">Quick-link vendor sites for the Home screen, and the service options customers/staff pick from.</div>'+
+      '<label>Vendor quick-links</label><div class="rowlist" id="vlist"></div><button type="button" class="addbtn" id="vAdd">+ Add vendor</button>'+
+      '<label style="margin-top:16px">Service options</label><div class="rowlist" id="slist"></div><button type="button" class="addbtn" id="sAdd">+ Add service</button>'+
+      '<div class="hint">Services feed the public booking form and the scheduler. Category drives where a booking is filed.</div>';
+    renderVendors(); renderServices();
+    document.getElementById('vAdd').onclick=()=>{ cfg.vendors.push({label:'',url:''}); renderVendors(); };
+    document.getElementById('sAdd').onclick=()=>{ cfg.services.push({value:'',en:'',es:'',cat:'other'}); renderServices(); };
+  }
+  else if(key==='hours'){
+    p.innerHTML = '<h2>Hours &amp; receipt footer</h2><div class="sub">Optional. Hours can show on the app; the footer prints at the bottom of receipts.</div>'+
+      '<label>Business hours</label><input id="f_hours" value="'+esc(cfg.hours||'')+'" placeholder="e.g. Mon–Sat · 24-hour emergency">'+
+      '<label>Receipt footer line (optional)</label><input id="f_footer" value="'+esc(id.footer||'')+'" placeholder="Insured &amp; Bonded · Thank you!">';
+  }
+  else if(key==='review'){
+    renderReview(p);
+  }
+}
+
+function renderVendors(){
+  const el=document.getElementById('vlist'); if(!el) return;
+  el.innerHTML = cfg.vendors.map((v,i)=>'<div class="item"><input class="v_label" data-i="'+i+'" placeholder="Name" value="'+esc(v.label)+'"><input class="v_url" data-i="'+i+'" placeholder="https://…" value="'+esc(v.url)+'"><button type="button" class="del" data-i="'+i+'">&times;</button></div>').join('');
+  el.querySelectorAll('.v_label').forEach(x=> x.oninput=()=> cfg.vendors[+x.dataset.i].label=x.value);
+  el.querySelectorAll('.v_url').forEach(x=> x.oninput=()=> cfg.vendors[+x.dataset.i].url=x.value);
+  el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.vendors.splice(+b.dataset.i,1); renderVendors(); });
+}
+function renderServices(){
+  const el=document.getElementById('slist'); if(!el) return;
+  const cats=[['automotive','Auto'],['residential','Residential'],['commercial','Commercial'],['other','Other']];
+  el.innerHTML = cfg.services.map((s,i)=>'<div class="item"><input class="s_val" data-i="'+i+'" placeholder="Service name" value="'+esc(s.value)+'"><select class="s_cat" data-i="'+i+'">'+cats.map(c=>'<option value="'+c[0]+'"'+(s.cat===c[0]?' selected':'')+'>'+c[1]+'</option>').join('')+'</select><button type="button" class="del" data-i="'+i+'">&times;</button></div>').join('');
+  el.querySelectorAll('.s_val').forEach(x=> x.oninput=()=>{ cfg.services[+x.dataset.i].value=x.value; cfg.services[+x.dataset.i].en=x.value; });
+  el.querySelectorAll('.s_cat').forEach(x=> x.onchange=()=> cfg.services[+x.dataset.i].cat=x.value);
+  el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.services.splice(+b.dataset.i,1); renderServices(); });
+}
+
+function onLogoPick(e){
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{ const img=new Image(); img.onload=()=>{
+    const max=400; let w=img.width,h=img.height; if(w>max||h>max){ if(w>h){h=h*max/w;w=max;}else{w=w*max/h;h=max;} }
+    const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
+    const data=cv.toDataURL('image/png'); cfg.identity.logo=data; cfg.identity.logoCustom=true;
+    const pv=document.getElementById('logoPrev'); if(pv) pv.src=data;
+  }; img.src=ev.target.result; };
+  reader.readAsDataURL(f);
+}
+
+/* ---- gather the current step's fields into cfg ---- */
+function gather(key){
+  const g=id=>{ const el=document.getElementById(id); return el?el.value.trim():''; };
+  if(key==='identity'){ cfg.identity.name=g('f_name'); cfg.identity.address=g('f_address'); cfg.identity.phone=g('f_phone'); cfg.identity.email=g('f_email'); cfg.identity.license=g('f_license'); }
+  else if(key==='tax'){ const r=g('f_taxRate'); cfg.taxRate=r!==''?(parseFloat(r)||0):0; document.querySelectorAll('.taxcat').forEach(cb=> cfg.taxableByCategory[cb.dataset.k]=cb.checked); }
+  else if(key==='payments'){ const s=g('f_surcharge'); cfg.payments.surchargePct=s!==''?(parseFloat(s)||0):2; }
+  else if(key==='access'){ cfg.access.ownerEmails=g('f_owners').split(/[\n,]+/).map(x=>x.trim()).filter(Boolean);
+    cfg.access.staffEmails=g('f_staff').split(/[\n,]+/).map(x=>x.trim()).filter(Boolean);
+    cfg.access.quickFormPin=g('f_pin'); cfg.access.quickInvoiceEnabled=document.getElementById('f_qiEnabled').checked; cfg.access.quickInvoiceDefault=document.getElementById('f_qiDefault').checked; }
+  else if(key==='catalog'){ /* vendors/services already live-bound in cfg */ cfg.vendors=cfg.vendors.filter(v=>(v.label||'').trim()||(v.url||'').trim()); cfg.services=cfg.services.filter(s=>(s.value||'').trim()); }
+  else if(key==='hours'){ cfg.hours=g('f_hours'); cfg.identity.footer=g('f_footer'); }
+}
+
+function persist(extraSetup){
+  const setup = Object.assign({}, cfg.setup, extraSetup||{});
+  const saved = TKS.Config.save(Object.assign({}, cfg, { setup }));
+  cfg = JSON.parse(JSON.stringify(saved));
+  return saved;
+}
+
+function saveStep(advance){
+  const key = STEPS[cur].key;
+  gather(key);
+  const done=Object.assign({}, cfg.setup.done); done[key]=true;
+  const skipped=Object.assign({}, cfg.setup.skipped); delete skipped[key];
+  persist({ done, skipped });
+  flash('Saved.');
+  if(advance){ cur=Math.min(STEPS.length-1, cur+1); render(); } else render();
+}
+function skipStep(){
+  const key = STEPS[cur].key;
+  const skipped=Object.assign({}, cfg.setup.skipped); skipped[key]=true;
+  const done=Object.assign({}, cfg.setup.done); delete done[key];
+  persist({ skipped, done });
+  cur=Math.min(STEPS.length-1, cur+1); render();
+}
+function finishLater(){ try{ const key=STEPS[cur].key; if(key!=='review'){ gather(key); persist(); } }catch(e){} try{ sessionStorage.setItem('tks_setup_later','1'); }catch(e){} location.href='index.html'; }
+function finishSetup(){ persist({ completed:true }); location.href='index.html'; }
+function flash(m){ const s=document.getElementById('saved'); if(s){ s.textContent=m; setTimeout(()=>{ if(s) s.textContent=''; },1800); } }
+
+function renderReview(p){
+  const id=cfg.identity, ac=cfg.access;
+  const rows=[
+    ['Business identity','identity', id.name? (id.name+(id.phone?(' · '+id.phone):'')) : ''],
+    ['Sales tax','tax', cfg.taxRate? (cfg.taxRate+'%') : 'No rate set'],
+    ['Payments','payments', (cfg.payments.surchargePct!=null?cfg.payments.surchargePct:2)+'% credit surcharge'],
+    ['Access & owner','access', (ac.ownerEmails&&ac.ownerEmails.length? ac.ownerEmails.join(', ') : '') + (ac.quickFormPin?' · PIN set':'')],
+    ['Vendors & services','catalog', cfg.vendors.length+' vendor(s), '+cfg.services.length+' service(s)'],
+    ['Hours & footer','hours', [cfg.hours, id.footer].filter(Boolean).join(' · ')]
+  ];
+  let h='<h2>Review &amp; finish</h2><div class="sub">Anything you skipped is flagged — you can fix it now or finish and come back later.</div><div class="review">';
+  rows.forEach(r=>{
+    const st=status(r[1]); const skipped=st==='skip'||(!r[2] && st!=='done');
+    h+='<div class="rv"><b>'+esc(r[0])+' <span class="st" style="font-weight:400;color:'+(st==='done'?'#7fd49b':'var(--amber)')+'">'+(st==='done'?'✓':'⤼ skipped/empty')+'</span></b>'+
+       '<div class="v '+(skipped?'miss':'')+'">'+(r[2]?esc(r[2]):'Not set — tap the step above to fill it in')+'</div></div>';
+  });
+  h+='</div>';
+  p.innerHTML=h;
+}
+</script>
+</body>
+</html>
