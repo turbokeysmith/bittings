@@ -259,10 +259,9 @@ function renderPanel(key){
     });
   }
   else if(key==='services'){
-    p.innerHTML='<h2>Services</h2><div class="sub">Check the services you offer and add a standard price (or leave blank for per-job pricing). Add specialty work at the bottom.</div>'+
-      '<div id="slist"></div><button type="button" class="addbtn" id="sAdd">+ Add a service</button>';
+    p.innerHTML='<h2>Services</h2><div class="sub">Check the services you offer and add a standard price (or leave blank for per-job pricing). Use "+ Add a service" under a category for specialty work.</div>'+
+      '<div id="slist"></div>';
     renderServices();
-    document.getElementById('sAdd').onclick=()=>{ const cats=(cfg.serviceCats&&cfg.serviceCats.length)?cfg.serviceCats:['other']; cfg.services.push({value:'',en:'',es:'',cat:cats[0],price:''}); renderServices(); };
   }
   else if(key==='hours'){
     p.innerHTML = '<h2>Hours &amp; receipt footer</h2><div class="sub">Optional. Set the days you\'re open and the times. The footer prints at the bottom of receipts.</div>'+
@@ -338,6 +337,7 @@ function renderServices(){
         '<input class="cs_price" data-i="'+i+'" inputmode="decimal" placeholder="$ / job" value="'+esc(s.price||'')+'">'+
         '<button type="button" class="del" data-i="'+i+'">&times;</button></div>';
     });
+    html+='<button type="button" class="addbtn svc-addone" data-cat="'+ck+'">+ Add a service</button>';
     html+='</div>';
   });
   el.innerHTML=html;
@@ -350,6 +350,7 @@ function renderServices(){
   el.querySelectorAll('.cs_name').forEach(x=> x.oninput=()=>{ const s=cfg.services[+x.dataset.i]; s.value=x.value; s.en=x.value; });
   el.querySelectorAll('.cs_price').forEach(x=> x.oninput=()=> cfg.services[+x.dataset.i].price=x.value);
   el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.services.splice(+b.dataset.i,1); renderServices(); });
+  el.querySelectorAll('.svc-addone').forEach(b=> b.onclick=()=>{ cfg.services.push({value:'',en:'',es:'',cat:b.dataset.cat,price:''}); renderServices(); });
 }
 function renderEmployees(){
   const el=document.getElementById('emplist'); if(!el) return;
