@@ -546,6 +546,17 @@
     { value: 'Security audit / consultation', cat: 'emergency' },
     { value: 'Other (describe)', cat: 'other' }
   ];
+  // Quick-link CATEGORIES for the Home screen (common locksmith bookmark groups).
+  // Pre-filled where we have known links; empty categories are hidden on Home but
+  // still editable in Setup. (Keycodes is a separate built-in OEM list in the app.)
+  var DEFAULT_QUICKLINKS = [
+    { key: 'vendors',      label: 'Vendors',              icon: '🔧', links: DEFAULT_VENDORS.slice() },
+    { key: 'nastf',        label: 'NASTF / Registry',     icon: '🛡️', links: [{ label: 'NASTF SDRM', url: 'https://sdrm.nastfsecurityregistry.org/login?dotOrg=yes' }] },
+    { key: 'programming',  label: 'Programming & Tools',  icon: '🧰', links: [] },
+    { key: 'reference',    label: 'Reference & Lookups',  icon: '🔎', links: [] },
+    { key: 'associations', label: 'Associations',         icon: '🤝', links: [] },
+    { key: 'other',        label: 'Other',                icon: '🔗', links: [] }
+  ];
   var CONFIG_DEFAULTS = {
     // tax (kept at top level for back-compat with existing tax wiring)
     taxRate: 0,
@@ -555,7 +566,7 @@
     payments: { surchargePct: 2 },     // DISPLAY ONLY — server enforces 2% credit-only
     // employees: [{name,email,owner}]; ownerEmails is derived from owner=true rows.
     access: { employees: [], ownerEmails: [], staffEmails: [], quickFormPin: '', quickInvoiceEnabled: true, quickInvoiceDefault: true },
-    vendors: DEFAULT_VENDORS.slice(),
+    quickLinks: DEFAULT_QUICKLINKS.map(function (c) { return { key: c.key, label: c.label, icon: c.icon, links: c.links.slice() }; }),
     services: DEFAULT_SERVICES.slice(),
     // hours: per-day { mode:'open'|'closed'|'24', open:'HH:MM', close:'HH:MM' }
     hours: { mon:{mode:'open',open:'08:00',close:'17:00'}, tue:{mode:'open',open:'08:00',close:'17:00'},
@@ -578,6 +589,20 @@
     });
     return out;
   }
+  // Quick-link categories: keep the predefined category skeleton, fill each with the
+  // owner's saved links (empty stays empty); migrate a legacy flat `vendors` list once.
+  function normalizeQuickLinks(saved, legacyVendors) {
+    var bykey = {};
+    if (Array.isArray(saved)) saved.forEach(function (c) { if (c && c.key) bykey[c.key] = c; });
+    var hasSaved = Array.isArray(saved) && saved.length;
+    return DEFAULT_QUICKLINKS.map(function (d) {
+      var s = bykey[d.key], links;
+      if (s && Array.isArray(s.links)) links = s.links;
+      else if (!hasSaved && d.key === 'vendors' && Array.isArray(legacyVendors) && legacyVendors.length) links = legacyVendors;
+      else links = d.links;
+      return { key: d.key, label: d.label, icon: d.icon, links: links.map(function (l) { return { label: (l && l.label) || '', url: (l && l.url) || '' }; }) };
+    });
+  }
   var configCache = null;
   function mergeConfig(c) {
     c = c || {};
@@ -588,7 +613,7 @@
       identity: Object.assign({}, d.identity, c.identity || {}),
       payments: Object.assign({}, d.payments, c.payments || {}),
       access: Object.assign({}, d.access, c.access || {}),
-      vendors: Array.isArray(c.vendors) && c.vendors.length ? c.vendors : d.vendors.slice(),
+      quickLinks: normalizeQuickLinks(c.quickLinks, c.vendors),
       services: Array.isArray(c.services) && c.services.length ? c.services : d.services.slice(),
       hours: normalizeHours(c.hours),
       setup: Object.assign({ completed: false, done: {}, skipped: {} }, c.setup || {})
@@ -670,7 +695,9 @@
       identity: function () { return getConfig().identity; },
       access: function () { return getConfig().access; },
       payments: function () { return getConfig().payments; },
-      vendors: function () { return getConfig().vendors; },
+      quickLinks: function () { return getConfig().quickLinks; },
+      // back-compat: the links in the "vendors" category
+      vendors: function () { var q = getConfig().quickLinks.filter(function (c) { return c.key === 'vendors'; })[0]; return q ? q.links : []; },
       services: function () { return getConfig().services; },
       hours: function () { return getConfig().hours; },
       setupState: function () { return getConfig().setup; },
@@ -691,7 +718,7 @@
           if (partial[g]) merged[g] = Object.assign({}, cur[g], partial[g]);
         });
         if (partial.taxableByCategory) merged.taxableByCategory = Object.assign({}, cur.taxableByCategory, partial.taxableByCategory);
-        ['taxRate', 'vendors', 'services', 'hours'].forEach(function (k) { if (partial[k] !== undefined) merged[k] = partial[k]; });
+        ['taxRate', 'quickLinks', 'services', 'hours'].forEach(function (k) { if (partial[k] !== undefined) merged[k] = partial[k]; });
         configCache = mergeConfig(merged);
         write(CONFIG_LSKEY, configCache);
         if (authState.sb) {

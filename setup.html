@@ -116,7 +116,8 @@ const STEPS = [
   {key:'tax',      title:'Sales tax'},
   {key:'payments', title:'Payments'},
   {key:'access',   title:'Access & owner'},
-  {key:'catalog',  title:'Vendors & services'},
+  {key:'quicklinks',title:'Quick links'},
+  {key:'services', title:'Services'},
   {key:'hours',    title:'Hours & footer'},
   {key:'inventory',title:'Inventory (optional)'},
   {key:'review',   title:'Review & finish'}
@@ -230,13 +231,16 @@ function renderPanel(key){
     renderEmployees();
     document.getElementById('empAdd').onclick=()=>{ cfg.access.employees.push({name:'',email:'',owner:false}); renderEmployees(); };
   }
-  else if(key==='catalog'){
-    p.innerHTML = '<h2>Vendors &amp; services</h2><div class="sub">Quick-link vendor sites for the Home screen, and the service options customers/staff pick from.</div>'+
-      '<label>Vendor quick-links</label><div class="rowlist" id="vlist"></div><button type="button" class="addbtn" id="vAdd">+ Add vendor</button>'+
-      '<label style="margin-top:16px">Service options</label><div class="rowlist" id="slist"></div><button type="button" class="addbtn" id="sAdd">+ Add service</button>'+
-      '<div class="hint">Services feed the public booking form and the scheduler. Category drives where a booking is filed.</div>';
-    renderVendors(); renderServices();
-    document.getElementById('vAdd').onclick=()=>{ cfg.vendors.push({label:'',url:''}); renderVendors(); };
+  else if(key==='quicklinks'){
+    p.innerHTML = '<h2>Quick links</h2><div class="sub">Optional bookmark groups for the Home screen, organized by category. Empty groups are hidden — add a link to a group and its tile appears.</div>'+
+      '<div id="qlEditor"></div>'+
+      '<div class="hint"><b>Keycodes</b> (the dealer/OEM portals) are built in and always shown on Home — no need to add them here.</div>';
+    renderQuickLinks();
+  }
+  else if(key==='services'){
+    p.innerHTML = '<h2>Services</h2><div class="sub">The full service list, grouped by category. Add, rename, reorder (▲▼), or recategorize. These feed the booking form and scheduler.</div>'+
+      '<div class="rowlist" id="slist"></div><button type="button" class="addbtn" id="sAdd">+ Add service</button>';
+    renderServices();
     document.getElementById('sAdd').onclick=()=>{ cfg.services.push({value:'',en:'',es:'',cat:'other'}); renderServices(); };
   }
   else if(key==='hours'){
@@ -258,12 +262,21 @@ function renderPanel(key){
 }
 function appAlertLite(t,m){ alert(t+(m?('\n\n'+m):'')); }
 
-function renderVendors(){
-  const el=document.getElementById('vlist'); if(!el) return;
-  el.innerHTML = cfg.vendors.map((v,i)=>'<div class="item"><input class="v_label" data-i="'+i+'" placeholder="Name" value="'+esc(v.label)+'"><input class="v_url" data-i="'+i+'" placeholder="https://…" value="'+esc(v.url)+'"><button type="button" class="del" data-i="'+i+'">&times;</button></div>').join('');
-  el.querySelectorAll('.v_label').forEach(x=> x.oninput=()=> cfg.vendors[+x.dataset.i].label=x.value);
-  el.querySelectorAll('.v_url').forEach(x=> x.oninput=()=> cfg.vendors[+x.dataset.i].url=x.value);
-  el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.vendors.splice(+b.dataset.i,1); renderVendors(); });
+function renderQuickLinks(){
+  const el=document.getElementById('qlEditor'); if(!el) return;
+  if(!Array.isArray(cfg.quickLinks)) cfg.quickLinks=[];
+  el.innerHTML = cfg.quickLinks.map((c,ci)=>{
+    const links=(c.links||[]).map((l,li)=>'<div class="item">'+
+      '<input class="ql_label" data-c="'+ci+'" data-l="'+li+'" placeholder="Name" value="'+esc(l.label||'')+'">'+
+      '<input class="ql_url" data-c="'+ci+'" data-l="'+li+'" placeholder="https://…" value="'+esc(l.url||'')+'">'+
+      '<button type="button" class="del" data-c="'+ci+'" data-l="'+li+'">&times;</button></div>').join('');
+    return '<div class="svc-group"><div class="svc-cat">'+esc((c.icon||'')+' '+c.label)+'</div>'+links+
+      '<button type="button" class="addbtn ql_add" data-c="'+ci+'">+ Add link</button></div>';
+  }).join('');
+  el.querySelectorAll('.ql_label').forEach(x=> x.oninput=()=> cfg.quickLinks[+x.dataset.c].links[+x.dataset.l].label=x.value);
+  el.querySelectorAll('.ql_url').forEach(x=> x.oninput=()=> cfg.quickLinks[+x.dataset.c].links[+x.dataset.l].url=x.value);
+  el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.quickLinks[+b.dataset.c].links.splice(+b.dataset.l,1); renderQuickLinks(); });
+  el.querySelectorAll('.ql_add').forEach(b=> b.onclick=()=>{ cfg.quickLinks[+b.dataset.c].links.push({label:'',url:''}); renderQuickLinks(); });
 }
 const SVC_CATS=[['automotive','Automotive'],['residential','Residential'],['commercial','Commercial'],['safe','Safe & Vault'],['emergency','Emergency / Other'],['other','Other']];
 function renderServices(){
@@ -368,8 +381,9 @@ function gather(key){
     const qe=document.getElementById('f_qiEnabled'); if(qe) cfg.access.quickInvoiceEnabled=qe.checked;
     const qd=document.getElementById('f_qiDefault'); if(qd) cfg.access.quickInvoiceDefault=qd.checked;
   }
-  else if(key==='catalog'){ cfg.vendors=cfg.vendors.filter(v=>(v.label||'').trim()||(v.url||'').trim());
-    cfg.services=cfg.services.filter(s=>(s.value||'').trim()).map(s=>({ value:s.value, en:s.en||s.value, es:s.es||'', cat:s.cat||'other' })); }
+  else if(key==='quicklinks'){ cfg.quickLinks=(cfg.quickLinks||[]).map(c=>({ key:c.key, label:c.label, icon:c.icon,
+    links:(c.links||[]).filter(l=>(l.url||'').trim()).map(l=>({label:(l.label||'').trim(), url:(l.url||'').trim()})) })); }
+  else if(key==='services'){ cfg.services=cfg.services.filter(s=>(s.value||'').trim()).map(s=>({ value:s.value, en:s.en||s.value, es:s.es||'', cat:s.cat||'other' })); }
   else if(key==='inventory'){ /* import is its own modal; nothing to gather here */ }
   else if(key==='hours'){ /* hours live-bound to cfg.hours via the editor */ cfg.identity.footer=g('f_footer'); }
 }
@@ -413,7 +427,8 @@ function renderReview(p){
     ['Sales tax','tax', cfg.taxRate? (cfg.taxRate+'%') : 'No rate set'],
     ['Payments','payments', (cfg.payments.surchargePct!=null?cfg.payments.surchargePct:2)+'% credit surcharge'],
     ['Access & owner','access', (emps.length? (emps.length+' user(s), '+owners+' owner(s)') : '') + (ac.quickFormPin?' · PIN set':'')],
-    ['Vendors & services','catalog', cfg.vendors.length+' vendor(s), '+cfg.services.length+' service(s)'],
+    ['Quick links','quicklinks', (function(){ let n=0; (cfg.quickLinks||[]).forEach(c=>n+=(c.links||[]).length); return n+' link(s)'; })()],
+    ['Services','services', cfg.services.length+' service(s)'],
     ['Hours & footer','hours', [hoursSummary(cfg.hours), id.footer].filter(Boolean).join('  ·  ')],
     ['Inventory','inventory', invCount+' part(s) in stock']
   ];
