@@ -514,14 +514,14 @@ const SCRIPT = {
   /* GREETING — how he answers the phone (before we know anything). */
   greeting:{
     en:[
-      "Thanks for calling Turbo Keysmith! What can I help you with today?",
-      "Turbo Keysmith! Thanks for calling — what do you need a hand with?",
-      "Hi, thanks for calling Turbo Keysmith! What's going on today?"
+      "Thanks for calling {biz}{techClause}! What can I help you with today?",
+      "{biz}{techClause}! Thanks for calling — what do you need a hand with?",
+      "Hi, thanks for calling {biz}{techClause}! What's going on today?"
     ],
     es:[
-      "¡Gracias por llamar a Turbo Keysmith! ¿En qué le puedo ayudar hoy?",
-      "¡Turbo Keysmith! Gracias por llamar — ¿en qué le doy una mano?",
-      "¡Hola, gracias por llamar a Turbo Keysmith! ¿Qué se le ofrece hoy?"
+      "¡Gracias por llamar a {biz}{techClause}! ¿En qué le puedo ayudar hoy?",
+      "¡{biz}{techClause}! Gracias por llamar — ¿en qué le doy una mano?",
+      "¡Hola, gracias por llamar a {biz}{techClause}! ¿Qué se le ofrece hoy?"
     ]
   },
   /* ASK INFO — gets name + number FIRST, before any small talk. */
@@ -594,12 +594,12 @@ const SCRIPT = {
     en:[
       "You're all set! We've got you down, and we'll text you if anything changes. Thanks again!",
       "Perfect, you're booked. We'll see you then — call us if anything comes up!",
-      "All done! You're on the schedule. Thanks for choosing Turbo Keysmith!"
+      "All done! You're on the schedule. Thanks for choosing {biz}!"
     ],
     es:[
       "¡Listo! Quedó agendado, y le avisamos por mensaje si algo cambia. ¡Gracias de nuevo!",
       "Perfecto, quedó agendado. ¡Nos vemos — llámenos si surge algo!",
-      "¡Todo listo! Está en el calendario. ¡Gracias por elegir Turbo Keysmith!"
+      "¡Todo listo! Está en el calendario. ¡Gracias por elegir {biz}!"
     ]
   }
 };
@@ -692,11 +692,53 @@ function pickIdx(slot, len){
   lastLineIdx[slot]=i; writeLS(K_LASTLINE, lastLineIdx);
   return i;
 }
-/* returns the chosen line text for a slot, in the current language */
+/* returns the chosen line text for a slot, in the current language,
+   with {biz}/{techClause}/{tech} personalized from the Setup config */
 function line(slot, variants){
   const arr = variants[LANG] || variants.en;
-  return arr[pickIdx(slot, arr.length)];
+  return personalize(arr[pickIdx(slot, arr.length)]);
 }
+/* ---- script personalization (single source = Setup config, no hardcoded brand) ---- */
+function bizName(){
+  try{ const n=((window.TKS&&TKS.Config)?(TKS.Config.identity().name||''):'').trim(); if(n) return n; }catch(e){}
+  return LANG==='es' ? 'nuestra cerrajería' : 'our shop';
+}
+function techFirstName(){
+  try{
+    if(!(window.TKS&&TKS.Config&&TKS.auth)) return '';
+    const email=(TKS.auth.email()||'').toLowerCase();
+    if(!email) return '';
+    const emps=(TKS.Config.access().employees)||[];
+    const me=emps.find(e=> e && String(e.email||'').toLowerCase()===email);
+    const nm=me && String(me.name||'').trim();
+    return nm ? nm.split(/\s+/)[0] : '';
+  }catch(e){ return ''; }
+}
+function personalize(str){
+  if(!str) return str;
+  const tech=techFirstName();
+  const techClause = tech ? (LANG==='es' ? `, le habla ${tech}` : `, this is ${tech}`) : '';
+  return String(str).replace(/\{biz\}/g, bizName()).replace(/\{techClause\}/g, techClause).replace(/\{tech\}/g, tech);
+}
+/* ---- shared service categories (Setup = single source of truth) ----
+   The job-type tiles + quick-form options come from TKS.ServiceCats.active()
+   (the categories the owner offers), NOT a hardcoded auto/res/com list. */
+function schedCats(){
+  try{ if(window.TKS&&TKS.ServiceCats) return TKS.ServiceCats.active(); }catch(e){}
+  // offline / TKS-absent fallback = the 3 core categories (unchanged behavior)
+  return [{key:'automotive',code:'auto',emoji:'🚗'},{key:'residential',code:'res',emoji:'🏠'},{key:'commercial',code:'com',emoji:'🏢'}];
+}
+function catLabelSched(c){
+  // keep the scheduler's own localized core labels (Car/House/Business);
+  // new categories use the shared ServiceCats label.
+  if(c.code==='auto') return t('auto');
+  if(c.code==='res')  return t('res');
+  if(c.code==='com')  return t('com');
+  try{ if(window.TKS&&TKS.ServiceCats) return TKS.ServiceCats.label(c.key, LANG); }catch(e){}
+  return c.key;
+}
+/* only the 3 core categories have step-by-step coaching (subtypes + tailored upsell) */
+function hasSub(code){ return !!SUBTYPES[code]; }
 /* emergency jobs get reassurance instead of cheerful small talk */
 function isUrgent(){
   return booking.subType==='lockout' || (booking.jobType==='auto' && booking.subType==='lost');
@@ -1034,11 +1076,9 @@ function renderQuickForm(){
       <label>${t('jobtype')}</label>
       <select onchange="setQuickJob(this.value)">
         <option value="" ${!b.jobType?'selected':''}>—</option>
-        <option value="auto" ${b.jobType==='auto'?'selected':''}>${t('auto')}</option>
-        <option value="res" ${b.jobType==='res'?'selected':''}>${t('res')}</option>
-        <option value="com" ${b.jobType==='com'?'selected':''}>${t('com')}</option>
+        ${schedCats().map(c=>`<option value="${c.code}" ${b.jobType===c.code?'selected':''}>${esc(catLabelSched(c))}</option>`).join('')}
       </select>
-      ${b.jobType?`<label>${t('subtype')}</label>
+      ${(b.jobType && (SUBTYPES[b.jobType]||[]).length)?`<label>${t('subtype')}</label>
         <select onchange="setPath('subType',this.value)"><option value="">—</option>${subOpts}</select>`:''}
       ${isAuto?`
         <label>${t('veh_id')}</label>
@@ -1159,11 +1199,11 @@ function stepCustomer(){
 }
 
 function stepJobType(){
+  // tiles come from the owner's offered categories (Setup → Service types)
+  const tiles = schedCats().map(c=>jobChoice(c.code, c.emoji, catLabelSched(c))).join('');
   return tipCard(TIPS.jobtype[LANG]) +
     `<p class="step-title">${t('jobtype')}</p><div class="choices">
-      ${jobChoice('auto','🚗',t('auto'))}
-      ${jobChoice('res','🏠',t('res'))}
-      ${jobChoice('com','🏢',t('com'))}
+      ${tiles}
     </div>`;
 }
 function jobChoice(v,emo,label){
@@ -1334,15 +1374,24 @@ function useCust(c){
   render();
 }
 
+/* Non-core categories (Safe & Vault, Emergency, Access control, Other) are booked
+   "not in detail" — no SUBTYPES and no tailored upsell — so skip those two steps. */
+function shouldSkipStep(step){
+  return (step==='subtype' || step==='upsell') && !hasSub(booking.jobType);
+}
 function goBack(){
   if(stepIndex===0){ VIEW='home'; render(); return; }
-  stepIndex--; render();
+  stepIndex--;
+  while(stepIndex>0 && shouldSkipStep(STEPS[stepIndex])) stepIndex--;
+  render();
 }
 function goNext(){
   const step = STEPS[stepIndex];
   if(!validateStep(step)) return;
   if(step==='confirm'){ saveBooking(); return; }
-  stepIndex++; render();
+  stepIndex++;
+  while(stepIndex < STEPS.length-1 && shouldSkipStep(STEPS[stepIndex])) stepIndex++;
+  render();
 }
 
 /* required-field validation with red highlight (matches Bittings behavior) */
@@ -1355,8 +1404,9 @@ function validateStep(step){
     if(!booking.customer.phone.trim()) bad('f_phone');
   }
   if(step==='jobtype' && !booking.jobType){ ok=false; stepMsgSet(t('need_jobtype')); }
-  if(step==='subtype' && !booking.subType){ ok=false; stepMsgSet(t('need_subtype')); }
-  if(step==='upsell'){
+  // subtype + upsell are only required for the core categories that have them
+  if(step==='subtype' && hasSub(booking.jobType) && !booking.subType){ ok=false; stepMsgSet(t('need_subtype')); }
+  if(step==='upsell' && hasSub(booking.jobType)){
     if(booking.upsell.offered===null){ ok=false; stepMsgSet(t('need_upsell')); }
     else if(booking.upsell.offered===true && booking.upsell.accepted===null){ ok=false; stepMsgSet(t('need_upsell_acc')); }
   }
@@ -1563,7 +1613,7 @@ function downloadICS(){
   if(!booking.date||!booking.time){ alert(t('err')); return; }
   const {start,end}=eventTimes();
   const ics = [
-    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Turbo Keysmith//Scheduler//EN','BEGIN:VEVENT',
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//'+(bizName().replace(/[^\x20-\x7E]/g,'')||'Locksmith')+'//Scheduler//EN','BEGIN:VEVENT',
     'UID:'+(booking.id||Date.now())+'@turbokeysmith',
     'DTSTAMP:'+fmtCompact(new Date()),
     'DTSTART:'+fmtCompact(start),
@@ -1587,7 +1637,11 @@ function icsEsc(s){return String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;'
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function subLabel(type,sub){
   const list = SUBTYPES[type]||[]; const row = list.find(r=>r[0]===sub);
-  if(!row) return type||'';
+  if(!row){
+    // no-detail category (or unknown sub): fall back to the shared category label
+    try{ if(window.TKS&&TKS.ServiceCats){ return TKS.ServiceCats.label(TKS.ServiceCats.codeToKey(type), LANG); } }catch(e){}
+    return type||'';
+  }
   return LANG==='es'?row[3]:row[2];
 }
 function fmt12(t24){

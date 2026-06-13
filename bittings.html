@@ -1459,7 +1459,12 @@ function startInterview(){
 function askServiceType(){
   pushUndo("serviceType", askServiceType);
   botSay("What type of service?");
-  botOptions(["Automotive","Residential","Commercial"], v=>{
+  // Options come from the owner's offered categories (Setup → Service types), the
+  // single source of truth. Falls back to the 3 core types when unconfigured/offline.
+  let svcOpts;
+  try{ svcOpts = (window.TKS&&TKS.ServiceCats) ? TKS.ServiceCats.invoiceActive() : null; }catch(e){ svcOpts=null; }
+  if(!Array.isArray(svcOpts) || !svcOpts.length) svcOpts = ["Automotive","Residential","Commercial"];
+  botOptions(svcOpts, v=>{
     applyAnswer("serviceType");
     receipt.serviceType=v;
     if(v==="Automotive" && docType!=="estimate"){
@@ -1845,6 +1850,50 @@ function showJobPickerForCategory(catKey){
     };
     opts.appendChild(pk);
   }
+
+  // --- Owner's Setup services (single source of truth), priced, floated to the top ---
+  // For the current service type's category, surface the owner's services that belong
+  // to THIS line category. A service's line category + taxable come from a matching
+  // built-in seed (by name); unmatched custom services use a small keyword heuristic
+  // (obvious parts → Materials/taxable, else Labor/non-taxable). Each shows a ★ with
+  // its Setup price pre-filled. (Verify taxability on custom-named services — see notes.)
+  try{
+    if(window.TKS && TKS.ServiceCats && svc){
+      const catKeyForSvc = TKS.ServiceCats.keyForInvoice(svc);
+      const ownerSvcs = catKeyForSvc ? TKS.ServiceCats.servicesFor(catKeyForSvc) : [];
+      const seen={}; jobs.forEach(j=>{ seen[j.desc.toLowerCase()]=1; });
+      const resolveLine=(name)=>{
+        const seed=COMMON_JOBS_SEED.find(j=> j.desc.toLowerCase()===String(name).toLowerCase());
+        if(seed) return {category:seed.category, taxable:seed.taxable};
+        const n=String(name).toLowerCase();
+        const isMaterial=/(lock|deadbolt|key blank|cut key|fob|remote|cylinder|exit bar|panic|hardware|smart lock|keypad|card reader|reader|mailbox|cabinet)/.test(n);
+        return isMaterial ? {category:'Materials', taxable:true} : {category:'Labor', taxable:false};
+      };
+      ownerSvcs.forEach(s=>{
+        const name=(s && (s.value||s.en))||'';
+        if(!name) return;
+        const rc=resolveLine(name);
+        if(rc.category!==catKey) return;          // shows under its proper line category only
+        if(seen[name.toLowerCase()]) return;      // already covered by a built-in job
+        seen[name.toLowerCase()]=1;
+        const price=(s.price!=='' && s.price!=null) ? Number(s.price) : null;
+        const b=document.createElement("button");
+        b.className="opt"; b.style.background="#2b2718"; b.style.borderColor="#6b5a2f";
+        b.textContent="★ "+name+(price!=null ? "  · $"+price : "");
+        b.onclick=()=>{
+          opts.querySelectorAll(".opt").forEach(x=>x.disabled=true);
+          applyAnswer("jobPick:"+name);
+          meSay(name);
+          itemDraft.desc=name;
+          itemDraft.taxable=rc.taxable;
+          if(price!=null) itemDraft.lastPrice=price;
+          itemDraft.fromCommon=false;
+          setTimeout(askItemAmount,200);
+        };
+        opts.appendChild(b);
+      });
+    }
+  }catch(e){}
 
   jobs.forEach(j=>{
     const b=document.createElement("button");
@@ -3235,7 +3284,12 @@ function cjEditForm(job, idx){
   const catOptions = LINE_CATEGORIES.filter(c=>!c.isDiscount).map(c=>
     '<option value="'+c.key+'"'+(c.key===job.category?' selected':'')+'>'+escapeHtml(c.label)+'</option>'
   ).join("");
-  const svcOptions = ["Automotive","Residential","Commercial","Any"].map(s=>
+  // Service-type options come from the owner's offered categories (Setup), + "Any".
+  let svcList; try{ svcList=(window.TKS&&TKS.ServiceCats)?TKS.ServiceCats.invoiceActive():null; }catch(e){ svcList=null; }
+  if(!Array.isArray(svcList)||!svcList.length) svcList=["Automotive","Residential","Commercial"];
+  // keep the job's current svc selectable even if that category isn't currently offered
+  if(job.svc && job.svc!=="Any" && svcList.indexOf(job.svc)<0) svcList=svcList.concat([job.svc]);
+  const svcOptions = svcList.concat(["Any"]).map(s=>
     '<option value="'+s+'"'+((job.svc||"Any")===s?' selected':'')+'>'+s+(s==="Any"?" (all jobs)":"")+'</option>'
   ).join("");
   const selStyle = 'style="width:100%;background:#222;border:1px solid #555;color:#fff;padding:10px;border-radius:8px;font-size:14px;"';

@@ -224,30 +224,43 @@ Audited the repo + the **live Supabase project** for a status report.
   the 1 "fail" was a stale test assertion (priced then Cleared+Select-all'd a category → price reset,
   which is correct). Committed `db8479e`.
 
-## PLANNED (not yet built) 2026-06-13 — `TKS.ServiceCats`: Setup as single source of truth cross-app
-*Goal: the owner's `serviceCats` + `services` drive the scheduler AND invoice instead of each app
-hardcoding auto/res/com. The cloud "file" is the existing `shop_config` row via `TKS.Config`; the work
-is making consumers READ it. Plan: `~/.claude/plans/eventual-stirring-puffin.md`.*
-- **store.js — new `TKS.ServiceCats` module** (after `Services`, exported on `global.TKS`): canonical
-  `SERVICE_CATS` table — `{key, code, en, es, invoice, emoji}` for the 7 keys (`automotive↔auto`,
-  `residential↔res`, `commercial↔com`, `safe`, `emergency`, `accesscontrol`, `other`). API: `all()`,
-  `byKey/byCode`, `keyToCode/codeToKey`, `active()` (= `Config.serviceCats()`, fallback core 3 when
-  empty, canonical order), `label(key,lang)`, `invoiceLabel/invoiceActive()`, `servicesFor(key)` (=
-  `Config.services().filter(cat===key)`), `hasDetail(code)` (true only auto/res/com). Extend
-  `Services.fromJob` so unknown codes set `cat=codeToKey(code)` (not lumped to `other`).
-- **scheduler.html:** `stepJobType` tiles + quick-form `<option>`s loop `ServiceCats.active()`
-  (`jobChoice(code, emoji, label)`); `hasSub(code)=!!SUBTYPES[code]` → skip the `subtype` step + relax
-  `validateStep`/upsell-required for no-detail cats; `subLabel` falls back to `ServiceCats.label(...)`.
-  Personalization: `{biz}`/`{techClause}` tokens in `SCRIPT.greeting/closing`, substituted in `line()` —
-  `{biz}=identity().name` (fallback "our shop"/"nuestra cerrajería"), `{techClause}` = signed-in tech's
-  first name from `Config.access().employees` matched on `auth.rememberedEmail()`.
-- **bittings.html:** `askServiceType` options ← `ServiceCats.invoiceActive()` (keep literal
-  `"Automotive"` test for the NASTF/vehicle branch + saved receipts). `showJobPickerForCategory` becomes
-  **combined**: owner's `servicesFor(key)` floated to top (★, Setup `price` pre-filled) inheriting
-  `taxable`+accounting `category` from the matching `COMMON_JOBS_SEED` row (custom→default from the line
-  category) + the remaining built-in common jobs below.
+## Update 2026-06-13 09:50 — `TKS.ServiceCats`: Setup as single source of truth (BUILT)
+*The owner's `serviceCats` + `services` now drive the scheduler AND invoice; the hardcoded auto/res/com
+lists are gone. Source = the `shop_config` row via `TKS.Config`. Plan: `~/.claude/plans/eventual-stirring-puffin.md`.
+All four files syntax-checked (`new Function` per inline script) + ServiceCats logic-tested in node.*
+- **store.js — `SERVICE_CATS` table + `TKS.ServiceCats` module** (defined just before `Services`,
+  exported on `global.TKS`): canonical `{key, code, en, es, invoice, emoji}` for the 7 keys
+  (`automotive↔auto`, `residential↔res`, `commercial↔com`, `safe`, `emergency`, `accesscontrol`,
+  `other`) — keys match `setup.html` `SVC_CATS2` exactly. API: `all`, `byKey/byCode`,
+  `keyToCode/codeToKey`, `active()` (= `getConfig().serviceCats`, fallback `CORE_CAT_KEYS` when empty,
+  canonical order), `label(key,lang)`, `invoiceLabel(key)`, `keyForInvoice(label)`, `invoiceActive()`,
+  `servicesFor(key)` (= offered services filtered by `cat`), `hasDetail(code)` (true only auto/res/com).
+  `Services.fromJob` now sets `cat = _catByCode[jobType].key` for non-core codes (so `fromJob('safe')` →
+  `cat:'safe'`, not `'other'`). **Mirrored verbatim to `site/app/store.js`** (the two are kept identical).
+- **scheduler.html:** `schedCats()` (= `ServiceCats.active()`, with a 3-core offline fallback) +
+  `catLabelSched(c)` (keeps the scheduler's own Car/House/Business labels for core, `ServiceCats.label`
+  for new cats). `stepJobType` tiles + the Quick-form `<select>` loop `schedCats()`. `hasSub(code)=
+  !!SUBTYPES[code]`; `shouldSkipStep` skips **both** the `subtype` and `upsell` steps for no-detail cats
+  (so they don't get the auto-only upsell script), and `goNext`/`goBack` step over skipped steps;
+  `validateStep` requires subtype/upsell only when `hasSub`. `subLabel` falls back to
+  `ServiceCats.label(codeToKey(type),LANG)`. **Personalization:** `{biz}`/`{techClause}`/`{tech}` tokens
+  substituted in `line()` via `personalize()` — `bizName()` = `Config.identity().name` (fallback
+  "our shop"/"nuestra cerrajería"), `techFirstName()` = first name from `Config.access().employees`
+  matched on `TKS.auth.email()`. Tokens added to `SCRIPT.greeting` (×3 EN/ES) + `SCRIPT.closing`; ICS
+  `PRODID` uses `bizName()` (ASCII-stripped). No literal "Turbo Keysmith" remains.
+- **bittings.html:** `askServiceType` options ← `ServiceCats.invoiceActive()` (try/catch → 3-core
+  fallback; keeps the literal `"Automotive"` test for the NASTF/vehicle branch + saved receipts).
+  `showJobPickerForCategory` is now **combined**: for `ServiceCats.keyForInvoice(receipt.serviceType)`,
+  the owner's `servicesFor(key)` are floated to the top (★, Setup `price` → `itemDraft.lastPrice`),
+  resolving each to a line category + `taxable` via a `COMMON_JOBS_SEED` name match, else a keyword
+  heuristic (parts→Materials/taxable, else Labor/non-taxable); shown only when the resolved line
+  category === the picker's `catKey`, de-duped against built-in jobs. The "Edit common job" admin
+  `svcOptions` dropdown also reads `invoiceActive()` (+ keeps the job's current svc selectable).
+  **Caveat:** the custom-name heuristic can mis-tag taxability on a service not in the built-in catalog —
+  flagged in the handoff for receipt verification.
 - **No migration:** core `jobType` (auto/res/com) + `serviceType` ("Automotive"/…) stored values
-  unchanged; new categories use new values old records never had.
+  unchanged; new categories use new values old records never had. Offline/un-configured → 3 core
+  categories everywhere (identical to pre-A5 behavior).
 
 ## Update 2026-06-13 PM12 — Services: 2-step pick-and-price (catalog) flow
 - **Config:** `config.services` default now **[]** (offered services `{value,cat,price,en,es}`);
