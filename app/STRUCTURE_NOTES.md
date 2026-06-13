@@ -197,6 +197,18 @@ Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
 - **Typed-card key:** replaced the `prompt()` paste with an inline `#pnPK` input (16px) in `renderKeyed`
   — in **both** `app/pay.js` and the `bittings.html` inline Pay Now; `startKeyed` reads/saves it.
 
+## Update 2026-06-12 PM8 — Vendor tools: Vendors / Keycodes / NASTF link lists
+- `index.html`: replaced the two direct vendor tiles with three `data-links` tiles (`t-vendor`/
+  `t-keycodes`/`t-nastf`). `openLinks(cat)` builds a bottom-sheet overlay (`.ll-ov`/`.ll-sheet`) of
+  `.ll-row` anchors (`target=_blank`, ≥56px). **Not owner-gated** (field tools for any signed-in staff).
+- **Vendors** = `TKS.Config.vendors()` (editable in Setup; defaults now `www.americankeysupply.com/`
+  + `keyinnovations.com/`). **Keycodes** = `KEYCODES[]` (11 dealer/OEM portals, by make — no
+  aggregators). **NASTF** = SDRM login.
+- **Per-make icon:** `llRow()` tries `app/assets/keycode-logos/<slug>.png` → site favicon
+  (`google.com/s2/favicons`) → initial-letter chip, via chained `img.onerror`. Slugs: toyota, honda,
+  hyundai, nissan, mazda, gm, ford, mopar, kia, mitsubishi, subaru (README in that folder).
+- `renderVendorTiles()` is now a harmless no-op (its `#vendorTiles` container was removed).
+
 ## Update 2026-06-12 PM7 — guided Setup wizard (= Settings), cloud-synced config
 - **Config store (`store.js` `TKS.Config`):** `CONFIG_DEFAULTS` is now a grouped object — `taxRate`/
   `taxableByCategory` (top-level, back-compat) + `identity`, `payments`, `access`

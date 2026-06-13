@@ -502,8 +502,8 @@
   // per-shop onboarding for a multi-tenant version without hardcoding.
   var CONFIG_LSKEY = 'tks_shop_config';
   var DEFAULT_VENDORS = [
-    { label: 'American Key Supply', url: 'https://americankeysupply.com' },
-    { label: 'Key Innovations', url: 'https://keyinnovations.com' }
+    { label: 'American Key Supply', url: 'https://www.americankeysupply.com/' },
+    { label: 'Key Innovations', url: 'https://keyinnovations.com/' }
   ];
   var CONFIG_DEFAULTS = {
     // tax (kept at top level for back-compat with existing tax wiring)
