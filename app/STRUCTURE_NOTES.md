@@ -197,6 +197,26 @@ Consolidated fixes for the audit findings (CSS/markup only; logic untouched):
 - **Typed-card key:** replaced the `prompt()` paste with an inline `#pnPK` input (16px) in `renderKeyed`
   — in **both** `app/pay.js` and the `bittings.html` inline Pay Now; `startKeyed` reads/saves it.
 
+## Update 2026-06-12 PM9 — Setup fixes: catalog, employees, inventory import, sizing
+- **Services (store.js `DEFAULT_SERVICES`):** full grouped catalog (cats automotive/residential/
+  commercial/safe/emergency/other, incl. "Other (describe)"); `CONFIG_DEFAULTS.services` uses it.
+  `setup.html` `renderServices()` groups by `SVC_CATS` with per-row ▲▼ (`moveSvc` reorders within cat),
+  rename, category select, delete; `+ Add service`.
+- **Employees (`access.employees=[{name,email,owner}]`):** `renderEmployees()` rows (Name+Email+Owner+
+  delete) + "Add user". `gather('access')` derives `access.ownerEmails`/`staffEmails` from rows.
+  `TKS.auth.ownerEmails()` now = cloud-config bootstrap ∪ `access.ownerEmails` ∪ employees where
+  `owner`.
+- **Inventory import (`app/inventory-import.js`, `window.TKImport.open({onDone})`):** shared by the
+  Setup `inventory` step and the Inventory-tile `#invImport` button (built once). SheetJS (CDN) for
+  `.xlsx`, hand CSV parser otherwise. `FIELDS[]` mirrors the Inventory schema (name*, sku, category,
+  qty, lowAt, unit, cost, location, supplier, reorderQty, fitment, notes); `autoMap()` guesses from
+  headers; preview; dedupe by SKU (else name) vs `TKS.Inventory.all()`; `TKS.Inventory.save` per row;
+  reports imported/skipped/blank. Loaded in `setup.html` + `index.html`.
+- **Sizing:** trimmed paddings/margins/font-sizes in `setup.html` (inputs stay 16px → no iOS zoom) so
+  short steps fit above the fold. **Placeholders** genericized (no real business data).
+- **Persistence:** `persistCurrent()` (gather+save) runs on chip-jump and Back, plus the existing
+  Save/Skip/Finish-later. Stored in `shop_config.data` (jsonb) + localStorage `tks_shop_config`.
+
 ## Update 2026-06-12 PM8 — Vendor tools: Vendors / Keycodes / NASTF link lists
 - `index.html`: replaced the two direct vendor tiles with three `data-links` tiles (`t-vendor`/
   `t-keycodes`/`t-nastf`). `openLinks(cat)` builds a bottom-sheet overlay (`.ll-ov`/`.ll-sheet`) of
