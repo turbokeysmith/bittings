@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-12 21:42 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-12 21:54 CDT &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -351,6 +351,15 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-12
+- **Vendor tools → three tiles, each opening a tappable link list (21:54):** the Home "Vendor tools"
+  area now has **Vendors**, **Keycodes**, and **NASTF** tiles; tapping one opens a list that opens each
+  link in a new tab. **Vendors** holds American Key Supply + Key Innovations (from your config, editable
+  in Setup). **Keycodes** is the dealer/OEM keycode portals, labeled by make (Toyota, Honda, Hyundai,
+  Nissan, Mazda, GM, Ford, Chrysler/Jeep/Dodge/Ram, Kia, Mitsubishi, Subaru) — **dealer/OEM only, no
+  third-party sites**. **NASTF** is the SDRM login. Each keycode row shows a per-make logo: it uses a
+  real image from **`app/assets/keycode-logos/<make>.png`** if you drop one there, else the site's
+  favicon, else the make's initial (filename guide is in that folder's README). These are **field tools
+  available to any signed-in staff** (not owner-only). Lists are big, one-handed-tappable rows.
 - **Guided first-run Setup wizard (also your editable Settings) (21:42):** a new **setup.html** walks a
   fresh install through everything in plain steps — **(1)** business identity + logo, **(2)** sales tax
   rate + which categories are taxed, **(3)** payments (the credit surcharge %, and a clear note that
