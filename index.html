@@ -129,6 +129,33 @@
     padding:10px 12px;text-align:center;font-size:12.5px;color:var(--dim);font-weight:700;}
   .invsummary .chip b{display:block;font-size:18px;color:var(--ink);font-weight:800;}
   .invsummary .chip.low b{color:var(--amber);}
+  /* ---- Drawer count + deposit slip (Closeout) ---- */
+  .drawer-card{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:14px;margin-bottom:14px;}
+  .drawer-card h3{margin:0 0 4px;font-size:15px;color:var(--ink);font-weight:800;}
+  .drawer-card .dsub{font-size:12px;color:var(--dim);margin:0 0 12px;line-height:1.45;}
+  .denoms{display:flex;flex-direction:column;gap:7px;}
+  .denom-row{display:flex;align-items:center;gap:10px;}
+  .denom-row .dlbl{flex:0 0 78px;font-size:14px;color:var(--ink);font-weight:700;}
+  .denom-row .dx{flex:0 0 14px;color:var(--dim);text-align:center;}
+  .denom-row input.dcount{flex:1 1 60px;min-width:0;background:#11141a;border:1px solid var(--edge);border-radius:10px;
+    color:var(--ink);padding:10px;font-size:16px;text-align:right;box-sizing:border-box;}
+  .denom-row .damt{flex:0 0 92px;text-align:right;font-size:14px;color:var(--dim);font-weight:700;font-variant-numeric:tabular-nums;}
+  .drawer-tot{margin-top:14px;border-top:1px dashed var(--edge);padding-top:12px;display:flex;flex-direction:column;gap:7px;}
+  .drawer-tot .tr{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--dim);font-weight:700;}
+  .drawer-tot .tr b{color:var(--ink);font-variant-numeric:tabular-nums;}
+  .drawer-tot .tr.big{font-size:16px;}
+  .drawer-tot .tr.big b{font-size:19px;color:var(--ink);}
+  .drawer-tot .tr.over b{color:#7fd49b;}
+  .drawer-tot .tr.short b{color:#f0a0a6;}
+  .floatrow{display:flex;align-items:center;gap:10px;margin-top:12px;}
+  .floatrow label{flex:1;font-size:14px;color:var(--ink);font-weight:700;}
+  .floatrow .amountwrap{flex:0 0 130px;display:flex;align-items:center;background:#11141a;border:1px solid var(--edge);border-radius:10px;padding:0 10px;}
+  .floatrow .amountwrap span{color:var(--dim);font-size:15px;}
+  .floatrow input{flex:1;min-width:0;background:transparent;border:0;color:var(--ink);padding:10px 4px;font-size:16px;text-align:right;box-sizing:border-box;}
+  .drawer-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
+  .drawer-actions button{flex:1 1 45%;min-width:140px;min-height:44px;border-radius:11px;border:1px solid var(--edge);
+    background:#1b2330;color:var(--ink);font-weight:800;font-size:14px;cursor:pointer;}
+  .drawer-actions button.primary{background:#1c2f24;border-color:#2f6b46;}
   .crow.part{align-items:center;}
   .crow.part .pinfo{flex:1;min-width:0;}
   .crow.part .pinfo .nm{display:flex;align-items:center;gap:8px;}
@@ -366,6 +393,7 @@
       <button class="add" id="histReload" title="Refresh">↻</button>
     </div>
     <div class="invsummary" id="histSummary"></div>
+    <div id="drawerWrap"></div>
     <div class="clist" id="histList"></div>
     <p class="note">Card, cash &amp; check for the selected day — the drawer count. Card totals come from Stripe; cash/check are recorded here.</p>
   </div>
@@ -450,6 +478,10 @@
 <script src="https://js.stripe.com/v3/"></script>
 <!-- Chart.js — the Transaction History graphs (bar/line/area/pie/doughnut). -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<!-- jsPDF — branded end-of-day Deposit Slip PDF (Closeout). Same library the
+     receipt builder uses; if it fails to load, Closeout still shows the on-screen
+     copyable summary (PDF just degrades to download/copy). -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="app/cloud-config.js"></script>
 <!-- Shared data layer (localStorage today; flips to cloud via TKS.connectCloud) -->
 <script src="app/store.js"></script>
@@ -951,10 +983,10 @@ async function renderHistory(){
   const date=document.getElementById('histDate').value||localDayISO(new Date());
   const sum=document.getElementById('histSummary'), list=document.getElementById('histList');
   sum.innerHTML=''; list.innerHTML='<div class="empty">Loading…</div>';
-  if(!window.TKPay || !TKPay.dayTransactions){ list.innerHTML='<div class="empty">Payment engine not loaded.</div>'; return; }
+  if(!window.TKPay || !TKPay.dayTransactions){ list.innerHTML='<div class="empty">Payment engine not loaded.</div>'; setCloseoutAndDrawer(date,0); return; }
   const start=new Date(date+'T00:00:00'), end=new Date(start.getTime()+86400000);
   const res=await TKPay.dayTransactions(start.toISOString(), end.toISOString());
-  if(res.error){ list.innerHTML='<div class="empty">'+esc2(res.error)+'</div>'; return; }
+  if(res.error){ list.innerHTML='<div class="empty">'+esc2(res.error)+'</div>'; setCloseoutAndDrawer(date,0); return; }
   const rows=res.rows||[]; const money=c=>'$'+((c||0)/100).toFixed(2);
   let collected=0,sur=0,tax=0,refunds=0; const byM={card:0,cash:0,check:0};
   rows.forEach(t=>{ if(t.status==='completed'){ const amt=t.captured_cents||0; collected+=amt; if(t.surcharge_applied) sur+=(t.surcharge_cents||0); tax+=(t.tax_cents||0);
@@ -965,6 +997,7 @@ async function renderHistory(){
     '<div class="chip"><b>'+money(byM.check)+'</b>check</div><div class="chip"><b>'+money(sur)+'</b>surcharge</div>'+
     '<div class="chip"><b>'+money(tax)+'</b>sales tax</div>'+
     (refunds?'<div class="chip low"><b>'+refunds+'</b>refunded</div>':'');
+  setCloseoutAndDrawer(date, byM.cash);   // expected cash = today's recorded cash sales
   if(!rows.length){ list.innerHTML='<div class="empty">No transactions on this day.</div>'; return; }
   list.innerHTML=rows.map(t=>{
     const time=new Date(t.created_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
@@ -974,6 +1007,184 @@ async function renderHistory(){
       '<div class="sub">'+time+' · '+ml+(t.card_funding?(' · '+t.card_funding):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
       '<span class="tag" style="color:'+col+'">'+money(t.captured_cents||t.base_cents)+'</span></div>';
   }).join('');
+}
+
+/* ============================ END-OF-DAY DEPOSIT SLIP ============================
+   Built on the Closeout drawer count. Owner-only. The owner enters how many of each
+   bill/coin are in the drawer; we compute (all integer-cents):
+     counted   = Σ count × face-value
+     deposit   = counted − float retained (default $120)
+     over/short= deposit − expected cash  (expected = today's recorded cash sales)
+   Output: an on-screen copyable summary AND a branded PDF (same style as the receipt
+   PDF — dark header, logo fit-to-aspect, business identity) shared via the device's
+   Share sheet (download fallback), exactly like a receipt. If jsPDF didn't load
+   (offline), the PDF button falls back to copying the text summary so it never dead-ends. */
+const DENOMS=[
+  {id:'b100',label:'$100 bills',cents:10000},{id:'b50',label:'$50 bills',cents:5000},
+  {id:'b20',label:'$20 bills',cents:2000},{id:'b10',label:'$10 bills',cents:1000},
+  {id:'b5',label:'$5 bills',cents:500},{id:'b2',label:'$2 bills',cents:200},
+  {id:'b1',label:'$1 bills',cents:100},{id:'c100',label:'$1 coins',cents:100},
+  {id:'c50',label:'50¢',cents:50},{id:'c25',label:'25¢',cents:25},
+  {id:'c10',label:'10¢',cents:10},{id:'c5',label:'5¢',cents:5},{id:'c1',label:'1¢',cents:1}
+];
+const DEFAULT_FLOAT_CENTS=12000;   // $120 default float
+let lastCloseout={date:'', cashCents:0};
+function dMoney(c){ const n=(c||0)/100; return (n<0?'-$':'$')+Math.abs(n).toFixed(2); }
+function setCloseoutAndDrawer(date, cashCents){
+  lastCloseout={date:date||localDayISO(new Date()), cashCents:cashCents||0};
+  renderDrawer();
+}
+function floatCents(){
+  const v=document.getElementById('drawerFloat');
+  if(!v) { const s=readLS('tks_drawer_float',null); return (s!=null)?s:DEFAULT_FLOAT_CENTS; }
+  const s=String(v.value).trim();
+  if(s==='') return DEFAULT_FLOAT_CENTS;
+  const n=parseFloat(s.replace(/[^0-9.]/g,''));
+  return isFinite(n)?Math.max(0,Math.round(n*100)):DEFAULT_FLOAT_CENTS;
+}
+function renderDrawer(){
+  const wrap=document.getElementById('drawerWrap'); if(!wrap) return;
+  if(!ownerHard()){ wrap.innerHTML=''; return; }     // owner-only (belt-and-suspenders; the tile is owner-only too)
+  const savedFloat=readLS('tks_drawer_float', null);
+  const floatVal=(((savedFloat!=null?savedFloat:DEFAULT_FLOAT_CENTS))/100).toFixed(2);
+  const rows=DENOMS.map(d=>
+    '<div class="denom-row"><span class="dlbl">'+d.label+'</span><span class="dx">×</span>'+
+    '<input class="dcount" type="number" inputmode="numeric" min="0" step="1" data-id="'+d.id+'" data-cents="'+d.cents+'" placeholder="0" oninput="recalcDrawer()">'+
+    '<span class="damt" id="da_'+d.id+'">$0.00</span></div>').join('');
+  wrap.innerHTML=
+    '<div class="drawer-card">'+
+      '<h3>🧮 Count the drawer</h3>'+
+      '<p class="dsub">Enter how many of each bill &amp; coin are in the drawer. The deposit slip below is built from this count.</p>'+
+      '<div class="denoms">'+rows+'</div>'+
+      '<div class="floatrow"><label for="drawerFloat">Float to keep in the drawer</label>'+
+        '<div class="amountwrap"><span>$</span><input id="drawerFloat" type="number" inputmode="decimal" step="0.01" min="0" value="'+floatVal+'" oninput="recalcDrawer()" aria-label="Float to keep in the drawer, in dollars"></div></div>'+
+      '<div class="drawer-tot" id="drawerTotals"></div>'+
+      '<div class="drawer-actions">'+
+        '<button class="primary" onclick="shareDepositSlip()">📤 Deposit slip (Share / Save)</button>'+
+        '<button onclick="copyDepositSummary()">📋 Copy summary</button>'+
+      '</div>'+
+    '</div>';
+  recalcDrawer();
+}
+function readDrawer(){
+  let counted=0; const lines=[];
+  document.querySelectorAll('#drawerWrap .dcount').forEach(inp=>{
+    const n=Math.max(0,parseInt(inp.value,10)||0), cents=parseInt(inp.dataset.cents,10)||0, id=inp.dataset.id, amt=n*cents;
+    const damt=document.getElementById('da_'+id); if(damt) damt.textContent=dMoney(amt);
+    if(n>0){ const d=DENOMS.find(x=>x.id===id); lines.push({label:d.label, cents:cents, count:n, amount:amt}); counted+=amt; }
+  });
+  return {counted, lines};
+}
+function depositData(){
+  const {counted, lines}=readDrawer();
+  const flt=floatCents();
+  const deposit=counted-flt;
+  const expected=lastCloseout.cashCents||0;
+  return {date:lastCloseout.date||localDayISO(new Date()), lines, counted, float:flt, deposit, expected, overShort:deposit-expected};
+}
+function recalcDrawer(){
+  const t=document.getElementById('drawerTotals'); if(!t) return;
+  try{ writeLS('tks_drawer_float', floatCents()); }catch(e){}   // remember the float
+  const d=depositData();
+  const osClass=d.overShort===0?'':(d.overShort>0?'over':'short');
+  const osLabel=d.overShort>0?'Over':d.overShort<0?'Short':'Balanced';
+  t.innerHTML=
+    '<div class="tr"><span>Total cash counted</span><b>'+dMoney(d.counted)+'</b></div>'+
+    '<div class="tr"><span>Less float retained</span><b>−'+dMoney(d.float).replace('-','')+'</b></div>'+
+    '<div class="tr big"><span>Deposit amount</span><b>'+dMoney(d.deposit)+'</b></div>'+
+    '<div class="tr"><span>Expected cash (today’s cash sales)</span><b>'+dMoney(d.expected)+'</b></div>'+
+    '<div class="tr '+osClass+'"><span>'+osLabel+' vs expected</span><b>'+dMoney(d.overShort)+'</b></div>';
+}
+function depositSummaryText(d){
+  const id=(window.TKS&&TKS.Config)?(TKS.Config.identity()||{}):{};
+  const lines=d.lines.length?d.lines.map(l=>'  '+l.label+' × '+l.count+' = '+dMoney(l.amount)).join('\n'):'  (none counted)';
+  return (id.name||'Deposit slip')+' — Deposit slip\nDate: '+d.date+'\n\n'+
+    'Drawer count:\n'+lines+'\n\n'+
+    'Total cash counted: '+dMoney(d.counted)+'\n'+
+    'Less float retained: -'+dMoney(d.float).replace('-','')+'\n'+
+    'Deposit amount: '+dMoney(d.deposit)+'\n'+
+    'Expected cash (cash sales): '+dMoney(d.expected)+'\n'+
+    (d.overShort>0?'Over':d.overShort<0?'Short':'Balanced')+' vs expected: '+dMoney(d.overShort)+'\n';
+}
+function fallbackCopy(txt){
+  try{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('Deposit summary copied.'); }
+  catch(e){ alert('Copy not supported here — long-press the on-screen totals to select.'); }
+}
+function copyDepositSummary(){
+  if(!ownerHard()){ alert('Owner only.'); return; }
+  const txt=depositSummaryText(depositData());
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(()=>alert('Deposit summary copied.'), ()=>fallbackCopy(txt)); }
+  else fallbackCopy(txt);
+}
+function makeDepositPDF(d){
+  if(!(window.jspdf&&window.jspdf.jsPDF)) return null;
+  const id=(window.TKS&&TKS.Config)?(TKS.Config.identity()||{}):{};
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF({unit:'pt', format:'letter'});
+  const W=612, DARK=[42,42,42], RED=[200,50,50], GREEN=[34,153,74], GRAY=[115,115,115];
+  // header bar (mirrors the receipt PDF)
+  doc.setFillColor(...DARK); doc.rect(0,0,W,150,'F');
+  try{ if(id.logo){
+    let lw=96,lh=96;
+    try{ const ip=doc.getImageProperties(id.logo); const ar=(ip.width||1)/(ip.height||1), boxW=120, boxH=96;
+      if(ar>=boxW/boxH){ lw=boxW; lh=Math.round(boxW/ar); } else { lh=boxH; lw=Math.round(boxH*ar); } }catch(_){}
+    doc.addImage(id.logo,'PNG',40,30+Math.max(0,(96-lh)/2),lw,lh);
+  } }catch(e){}
+  doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255); doc.setFontSize(22);
+  doc.text(id.name||'Deposit Slip',175,64,{maxWidth:300});
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(216,216,216);
+  let ay=86;
+  if(id.address){ doc.text(id.address,175,ay,{maxWidth:300}); ay+=13; }
+  const cl=[id.phone,id.email].filter(Boolean).join('  |  '); if(cl){ doc.text(cl,175,ay,{maxWidth:300}); ay+=13; }
+  if(id.license){ doc.text(id.license,175,ay,{maxWidth:300}); }
+  doc.setFont('helvetica','bold'); doc.setFontSize(19); doc.setTextColor(...RED);
+  doc.text('DEPOSIT SLIP',572,64,{align:'right'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(216,216,216);
+  doc.text('Date: '+d.date,572,86,{align:'right'});
+  // drawer-count table
+  let y=190;
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...RED);
+  doc.text('DRAWER COUNT',40,y); doc.setLineWidth(1.5); doc.setDrawColor(...RED); doc.line(40,y+6,250,y+6); y+=24;
+  doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...GRAY);
+  doc.text('Denomination',40,y); doc.text('Count',360,y,{align:'right'}); doc.text('Amount',572,y,{align:'right'});
+  y+=4; doc.setDrawColor(220,220,220); doc.setLineWidth(.7); doc.line(40,y,572,y); y+=15;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(50,50,50);
+  if(d.lines.length){ d.lines.forEach(l=>{ doc.text(l.label,40,y); doc.text(String(l.count),360,y,{align:'right'}); doc.text(dMoney(l.amount),572,y,{align:'right'}); y+=16; }); }
+  else { doc.setTextColor(...GRAY); doc.text('No cash counted.',40,y); y+=16; doc.setTextColor(50,50,50); }
+  y+=6; doc.setDrawColor(150,150,150); doc.setLineWidth(.8); doc.line(330,y,572,y); y+=18;
+  function rowT(label,val,bold,color){
+    doc.setFont('helvetica',bold?'bold':'normal'); doc.setFontSize(bold?12:10.5);
+    doc.setTextColor(...(color||[50,50,50])); doc.text(label,330,y); doc.text(val,572,y,{align:'right'}); y+=bold?20:16;
+  }
+  rowT('Total cash counted', dMoney(d.counted));
+  rowT('Less float retained', '-'+dMoney(d.float).replace('-',''));
+  rowT('Deposit amount', dMoney(d.deposit), true, GREEN);
+  y+=4; doc.setDrawColor(220,220,220); doc.setLineWidth(.7); doc.line(330,y,572,y); y+=18;
+  rowT('Expected cash (cash sales)', dMoney(d.expected));
+  rowT((d.overShort>0?'Over':d.overShort<0?'Short':'Balanced')+' vs expected', dMoney(d.overShort), true, d.overShort<0?RED:GREEN);
+  // footer
+  const by=(window.TKS&&TKS.auth)?(TKS.auth.email()||''):'';
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
+  const fy=y+30; doc.text('Counted by: '+(by||'—'),40,fy);
+  if(id.footer){ doc.text(String(id.footer),40,fy+13,{maxWidth:520}); }
+  return {blob:doc.output('blob'), filename:'deposit-slip-'+d.date+'.pdf'};
+}
+function downloadBlob(res){
+  const a=document.createElement('a'); a.href=URL.createObjectURL(res.blob); a.download=res.filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function shareDepositSlip(){
+  if(!ownerHard()){ alert('Owner only.'); return; }
+  const d=depositData();
+  const id=(window.TKS&&TKS.Config)?(TKS.Config.identity()||{}):{};
+  const res=makeDepositPDF(d);
+  if(!res){ copyDepositSummary(); alert('PDF engine not loaded (offline?). The text summary was copied instead.'); return; }
+  const file=new File([res.blob], res.filename, {type:'application/pdf'});
+  const shareData={ files:[file], title:'Deposit slip — '+d.date,
+    text:'Deposit slip from '+(id.name||'the shop')+' for '+d.date+' — deposit '+dMoney(d.deposit) };
+  const canFiles=(typeof navigator!=='undefined' && navigator.canShare && navigator.canShare({files:[file]}));
+  if(canFiles){ navigator.share(shareData).catch(err=>{ if(err&&err.name==='AbortError')return; downloadBlob(res); }); }
+  else downloadBlob(res);
 }
 
 /* ============================ TRANSACTION HISTORY (reports) ============================

@@ -211,8 +211,9 @@ Audited the repo + the **live Supabase project** for a status report.
   on but no policy (fine — service-role/webhook-only); every table's INSERT/UPDATE/DELETE policy is
   `authenticated = true` (full access to any signed-in user) — **correct for single-shop, must become
   per-org RLS for Track F**.
-- **Confirmed NOT built:** `TKS.ServiceCats` (A5 still planned); a printable Closeout **deposit slip**
-  (drawer count is on-screen only); `bittings.html` `sendByText`/`sendByEmail` (removed in the PM2
+- **Confirmed NOT built (at the time of this audit):** `TKS.ServiceCats` (A5 — *built later same day*);
+  a printable Closeout **deposit slip** (*built later same day — see the 10:22 note below*);
+  `bittings.html` `sendByText`/`sendByEmail` (removed in the PM2
   cleanup, as intended — share is via `navigator.share`). The `connectCloud` docblock in `store.js`
   still says "NOT wired yet, on purpose" — that comment is stale (cloud IS wired); cosmetic only.
 
@@ -223,6 +224,31 @@ Audited the repo + the **live Supabase project** for a status report.
   (pre-check seed, Select-all/Clear, per-category add, `gather` shape) logic-tested in node: 11/12,
   the 1 "fail" was a stale test assertion (priced then Cleared+Select-all'd a category → price reset,
   which is correct). Committed `db8479e`.
+
+## Update 2026-06-13 10:22 — Closeout: end-of-day Deposit Slip (BUILT)
+*A denomination drawer count in Closeout (`index.html` `view-history`) that produces a branded PDF
+deposit slip + copyable summary. Owner-only; integer-cents; receipt-style PDF. Syntax-checked; math
+logic-tested in node (balanced/over/short + float parsing).*
+- **jsPDF** added to `index.html` via CDN (`jspdf@2.5.1/dist/jspdf.umd.min.js`) — same lib the receipt
+  builder uses. If it doesn't load (offline), `shareDepositSlip()` falls back to copying the text summary.
+- **`DENOMS`** = 13 US denominations `{id,label,cents}` ($100…1¢; integer cents). **`DEFAULT_FLOAT_CENTS`
+  = 12000**. `lastCloseout = {date, cashCents}` is set by `setCloseoutAndDrawer(date, cashCents)`, called
+  from `renderHistory` in all branches (`cashCents` = `byM.cash` = the day's recorded cash sales =
+  "expected cash"; 0 in the no-engine/error branches).
+- **UI:** `#drawerWrap` (between `#histSummary` and `#histList`). `renderDrawer()` builds the
+  denomination rows (count inputs, live per-row amount), a **float** input (persisted in
+  `tks_drawer_float`), a live totals block (`#drawerTotals` via `recalcDrawer()`), and two buttons
+  (📤 Share/Save, 📋 Copy). Owner-gated by `ownerHard()` (renders empty for non-owners).
+- **Math (`depositData()`):** `counted = Σ count×cents`; `deposit = counted − floatCents()`;
+  `overShort = deposit − expected`. `floatCents()` parses the dollars input → cents (default 12000).
+- **PDF (`makeDepositPDF`):** mirrors `bittings.html` `makePDF` — dark header bar, logo fit-to-aspect via
+  `getImageProperties`, business identity from `TKS.Config.identity()`, red "DEPOSIT SLIP" label, a
+  Denomination/Count/Amount table (nonzero rows), totals (counted / −float / **deposit** / expected /
+  over-short), and a "Counted by <signed-in email>" + footer line. `shareDepositSlip()` mirrors
+  `shareDocument` (`navigator.canShare`/`share` with the File, download fallback). `filename =
+  deposit-slip-<date>.pdf`. `copyDepositSummary()` uses `navigator.clipboard` with a textarea fallback.
+- **No schema change** — the slip is computed client-side from the existing day totals + the live count;
+  nothing new is persisted to the cloud (only the float preference, locally).
 
 ## Update 2026-06-13 09:50 — `TKS.ServiceCats`: Setup as single source of truth (BUILT)
 *The owner's `serviceCats` + `services` now drive the scheduler AND invoice; the hardcoded auto/res/com
