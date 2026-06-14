@@ -638,11 +638,12 @@
              fri:{mode:'open',open:'08:00',close:'17:00'}, sat:{mode:'open',open:'08:00',close:'17:00'},
              sun:{mode:'closed',open:'08:00',close:'17:00'} },
     // serviceHours: MOBILE/field service hours (when you take jobs) — separate from the
-    // storefront. Same per-day shape; an overnight window is open<close (e.g. 00:00–04:00).
+    // storefront. Same per-day shape; an overnight window is open<close. Default matches
+    // the public site: Mon–Sat 24h, Sun open 00:00–05:00 (Saturday-night/club crowd).
     serviceHours: { mon:{mode:'24',open:'00:00',close:'23:30'}, tue:{mode:'24',open:'00:00',close:'23:30'},
              wed:{mode:'24',open:'00:00',close:'23:30'}, thu:{mode:'24',open:'00:00',close:'23:30'},
              fri:{mode:'24',open:'00:00',close:'23:30'}, sat:{mode:'24',open:'00:00',close:'23:30'},
-             sun:{mode:'closed',open:'00:00',close:'04:00'} },
+             sun:{mode:'open',open:'00:00',close:'05:00'} },
     setup: { completed: false, done: {}, skipped: {} }   // per-step progress
   };
   // Coerce hours to the structured per-day object (migrates the old free-text string).
