@@ -95,8 +95,12 @@ section.surface{background:var(--surface);}
 .sec-head p{color:var(--dim);margin:0;font-size:16px;}
 
 /* ---------- Service cards (with icons) ---------- */
-.cards{display:grid;grid-template-columns:1fr;gap:16px;}
-.scard{background:#fff;border:1px solid var(--edge);border-radius:var(--r);padding:22px;box-shadow:var(--shadow);
+/* Flex (not grid) so a partial last row (e.g. 2 of 4 cards) stays CENTERED
+   instead of left-aligned. Cards grow to fill a full row and cap so a short
+   row doesn't stretch too wide. */
+.cards{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;}
+.scard{flex:1 1 240px;max-width:340px;
+  background:#fff;border:1px solid var(--edge);border-radius:var(--r);padding:22px;box-shadow:var(--shadow);
   display:block;color:inherit;transition:transform .1s ease,box-shadow .15s ease;}
 .scard:hover{text-decoration:none;transform:translateY(-2px);box-shadow:0 10px 28px rgba(20,30,45,.12);}
 .scard .icon{width:52px;height:52px;border-radius:13px;background:var(--surface);display:flex;align-items:center;
