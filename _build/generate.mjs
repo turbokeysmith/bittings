@@ -15,7 +15,9 @@ import {
   schema, REVIEWS_WIDGET, IMAGES_WIDGET, LOCAL_POSTS_WIDGET
 } from './engine.mjs';
 import { CITIES, TIER_LABELS } from './cities.mjs';
-import { GLOSSARY, U, SVC, METRO, HOME, HUB, GROUP_LABELS, CONTACT, CITIES_ES } from './es.mjs';
+import { GLOSSARY, U, SVC, METRO, HOME, HUB, GROUP_LABELS, CONTACT, CITIES_ES,
+         FINANCING as ES_FIN, WARRANTY as ES_WAR, TERMS as ES_TERMS, FAQ as ES_FAQ,
+         FAQ_META as ES_FAQ_META, FINTEASER as ES_FINTEASER, WARRTEASER as ES_WARRTEASER } from './es.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SITE_DIR = join(__dirname, '..', 'site');
@@ -486,7 +488,8 @@ function esHeader(d) {
       <a href="${e}residential/">${esc(N.residential)}</a>
       <a href="${e}commercial/">${esc(N.commercial)}</a>
       <a href="${e}emergency/">${esc(N.emergency)}</a>
-      <a href="${a}faq/">${esc(N.faq)}</a>
+      <a href="${e}financing/">${esc(N.financing)}</a>
+      <a href="${e}faq/">${esc(N.faq)}</a>
       <a href="${a}pay-now/">${esc(N.payNow)}</a>
     </nav>
     <a class="head-call" href="tel:${PHONE_E164}"><span class="btn btn-call">📞 ${PHONE_DISPLAY}</span></a>
@@ -498,9 +501,11 @@ function esHeader(d) {
     <a href="${e}residential/">${esc(N.residential)}</a>
     <a href="${e}commercial/">${esc(N.commercial)}</a>
     <a href="${e}emergency/">${esc(N.emergency)}</a>
+    <a href="${e}financing/">${esc(N.financing)}</a>
+    <a href="${e}warranty/">${esc(N.warranty)}</a>
     <a href="${a}blog/">${esc(N.blog)}</a>
     <a href="${a}certifications/">${esc(N.certifications)}</a>
-    <a href="${a}faq/">${esc(N.faq)}</a>
+    <a href="${e}faq/">${esc(N.faq)}</a>
     <a href="${a}pay-now/">${esc(N.payNow)}</a>
   </nav>
 </header>`;
@@ -521,8 +526,9 @@ function esFooter(d) {
       <a href="${e}automotive/">${esc(N.automotive)}</a><a href="${e}residential/">${esc(N.residential)}</a>
       <a href="${e}commercial/">${esc(N.commercial)}</a><a href="${e}emergency/">${esc(N.emergency)}</a></div>
     <div><h4>${esc(F.company)}</h4>
+      <a href="${e}financing/">${esc(N.financing)}</a><a href="${e}warranty/">${esc(N.warranty)}</a>
       <a href="${a}blog/">${esc(N.blog)}</a><a href="${a}certifications/">${esc(N.certifications)}</a>
-      <a href="${a}faq/">${esc(N.faq)}</a><a href="${e}contact/">${esc(N.contact)}</a></div>
+      <a href="${e}faq/">${esc(N.faq)}</a><a href="${e}contact/">${esc(N.contact)}</a></div>
     <div><h4>${esc(F.areas)}</h4>
       <a href="${e}service-areas/"><strong style="color:#fff">${esc(F.allAreas)}</strong></a>
       <a href="${e}oklahoma-city/">Oklahoma City</a><a href="${e}edmond/">Edmond</a>
@@ -532,7 +538,7 @@ function esFooter(d) {
     <a href="https://www.facebook.com/247826765080233">Facebook</a><a href="https://www.instagram.com/turbokeysmith/">Instagram</a>
     <a href="https://www.tiktok.com/@turbokeysmith">TikTok</a><a href="https://www.youtube.com/@TurboKeysmith">YouTube</a>
   </div>
-  <div class="legal"><span>${esc(F.copyright)}</span>
+  <div class="legal"><span>${esc(F.copyright)} · <a href="${e}terms/" style="color:inherit">${esc(N.terms)}</a></span>
     <a class="staff-login" href="${a}../cloud-test.html" rel="nofollow">${esc(F.staff)}</a></div>
 </div></footer>`;
 }
@@ -700,10 +706,21 @@ ${groups}
   return esWrap(h, d, body);
 }
 function esService(key) {
-  const d = 2, m = METRO[key];
+  const d = 2, e = '../', m = METRO[key];
   const h = esHeadCommon({ title:m.title, desc:m.desc, enPath:'/'+m.slug, esPath:'/es/'+m.slug, esDepth:d });
   const leads = m.leads.map(p => `  <p>${esc(p)}</p>`).join('\n');
   const sect = m.sections.map(([t,p]) => `  <h2>${esc(t)}</h2>\n  <p>${esc(p)}</p>`).join('\n');
+  const warrSection = key === 'automotive' ? `
+<section class="surface"><div class="wrap"><div class="prose">
+  <h2>${esc(ES_WAR.h1)}</h2>
+  <p>${esc(ES_WAR.intro)}</p>
+  <p><strong>${esc(ES_WAR.coveredHead)}:</strong> ${esc(ES_WAR.coveredBody)} <strong>${esc(ES_WAR.notCoveredHead)}:</strong> ${esc(ES_WAR.notCoveredBody)}</p>
+  <p><a href="${e}warranty/">Leer la garantía completa →</a></p>
+</div></div></section>` : '';
+  const finTeaser = `
+<section><div class="wrap"><div class="cards">
+  <a class="scard" href="${e}financing/"><div class="icon">💳</div><h3>${esc(ES_FINTEASER.title)}</h3><p>${esc(ES_FINTEASER.body)}</p><span class="more">${esc(ES_FINTEASER.more)}</span></a>
+</div></div></section>`;
   const body = `${ANNOTATE}
 <section><div class="wrap"><div class="prose">
   <h1>${esc(m.h1)}</h1>
@@ -711,6 +728,8 @@ ${leads}
 ${sect}
   <p style="text-align:center;margin:26px 0 0"><a class="btn btn-call btn-lg" href="${tel}">${esc(m.cta)}</a></p>
 </div></div></section>
+${warrSection}
+${finTeaser}
 ${esPhotoSlots(U.nav[key] || key)}`;
   return esWrap(h, d, body);
 }
@@ -737,6 +756,11 @@ ${card('commercial/', '🏢', 'commercial', U.cardDesc.commSub('OKC'))}
 ${card('emergency/', '🚨', 'emergency', U.cardDesc.emerSub('OKC'))}
   </div>
 </div></section>
+
+<section><div class="wrap"><div class="cards">
+  <a class="scard" href="financing/"><div class="icon">💳</div><h3>${esc(ES_FINTEASER.title)}</h3><p>${esc(ES_FINTEASER.body)}</p><span class="more">${esc(ES_FINTEASER.more)}</span></a>
+  <a class="scard" href="warranty/"><div class="icon">🛡️</div><h3>${esc(ES_WARRTEASER.title)}</h3><p>${esc(ES_WARRTEASER.body)}</p><span class="more">${esc(ES_WARRTEASER.more)}</span></a>
+</div></div></section>
 
 ${esSteps('OKC')}
 
@@ -871,6 +895,95 @@ function patchEnHreflang() {
   }
 }
 
+// ---- NEW Spanish pages (mirrored from English; DRAFT, noindex) ----
+function esFinancing() {
+  const d = 2, e = '../', a = '../../', F = ES_FIN;
+  const h = esHeadCommon({ title:F.title, desc:F.desc, enPath:'/financing', esPath:'/es/financing', esDepth:d });
+  const body = `${ANNOTATE}
+<section><div class="wrap"><div class="prose">
+  <h1>${esc(F.h1)}</h1>
+  <p>${esc(F.intro)}</p>
+  <h2>${esc(F.payHead)}</h2>
+  <p>${esc(F.payBody)}</p>
+  <p>${esc(F.oneOf)}</p>
+  <h2>${esc(F.cheapHead)}</h2>
+  <p>${esc(F.cheapBody)}</p>
+  <h2>${esc(F.whenHead)}</h2>
+  <p>${esc(F.whenBody)}</p>
+  <p style="text-align:center;margin:26px 0 0"><a class="btn btn-call btn-lg" href="${e}contact/">${esc(F.ctaQuote)}</a></p>
+  <p style="text-align:center;margin:14px 0 0"><a class="btn btn-call btn-lg" href="${tel}">📞 ${PHONE_DISPLAY}</a> &nbsp; <a href="${a}pay-now/">${esc(F.payNow)}</a></p>
+</div></div></section>`;
+  return esWrap(h, d, body);
+}
+function esWarranty() {
+  const d = 2, e = '../', W = ES_WAR;
+  const h = esHeadCommon({ title:W.title, desc:W.desc, enPath:'/warranty', esPath:'/es/warranty', esDepth:d });
+  const bullets = W.bullets.map(b => `    <li>${esc(b)}</li>`).join('\n');
+  const body = `${ANNOTATE}
+<div style="background:#7a1f1f;color:#fff;text-align:center;font-weight:700;font-size:13px;padding:8px 14px">${esc(W.reviewNote)}</div>
+<section><div class="wrap"><div class="prose">
+  <h1>${esc(W.h1)}</h1>
+  <p>${esc(W.intro)}</p>
+  <h2>${esc(W.coveredHead)}</h2>
+  <p>${esc(W.coveredBody)}</p>
+  <h2>${esc(W.notCoveredHead)}</h2>
+  <p>${esc(W.notCoveredBody)}</p>
+  <h2>${esc(W.howHead)}</h2>
+  <p>${esc(W.howIntro)}</p>
+  <ul>
+${bullets}
+  </ul>
+  <p style="text-align:center;margin:26px 0 0"><a class="btn btn-call btn-lg" href="${tel}">${esc(W.cta)}</a></p>
+  <p style="text-align:center;margin:14px 0 0"><a href="${e}terms/">${esc(W.seeTerms)}</a></p>
+</div></div></section>`;
+  return esWrap(h, d, body);
+}
+function esTerms() {
+  const d = 2, e = '../', a = '../../', T = ES_TERMS;
+  const h = esHeadCommon({ title:T.title, desc:T.desc, enPath:'/terms', esPath:'/es/terms', esDepth:d });
+  const body = `<!-- LEGAL (ES): traduccion BORRADOR — requiere revision profesional bilingue antes de usarse. -->
+<div style="background:#7a1f1f;color:#fff;text-align:center;font-weight:700;font-size:13px;padding:8px 14px">${esc(T.reviewNote)}</div>
+<section><div class="wrap"><div class="prose">
+  <div class="tc-brand"><img src="${a}assets/logo.png" alt="Turbo Keysmith"><div><strong>Turbo Keysmith</strong><br>4201 N MacArthur Blvd, Warr Acres, OK 73122 · ${PHONE_DISPLAY} · OK Lic. #AC441081</div></div>
+  <h1>${esc(T.h1)}</h1>
+  <p class="noprint" style="text-align:right"><button class="btn btn-call" onclick="window.print()">${esc(T.printBtn)}</button></p>
+  <h2>${esc(T.s1h)}</h2><p>${esc(T.s1)}</p>
+  <h2>${esc(T.s2h)}</h2><p>${esc(T.s2)}</p>
+  <h2>${esc(T.s3h)}</h2><p>${esc(T.s3)} <a href="${e}warranty/">Garantía →</a></p>
+  <h2>${esc(T.s4h)}</h2><p>${esc(T.s4)}</p>
+  <h2>${esc(T.s5h)}</h2><p>${esc(T.s5)}</p>
+  <p style="color:var(--dim);font-size:13px;margin-top:24px">${esc(T.footLine)}</p>
+</div></div></section>
+<style>
+  .tc-brand{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .tc-brand img{height:46px;width:auto}
+  @media print{ header.site,.trust,.mobilebar,footer.site,.noprint,button{display:none!important} body{background:#fff;color:#000} }
+</style>`;
+  return esWrap(h, d, body);
+}
+function esFaq() {
+  const d = 2, e = '../', a = '../../', M = ES_FAQ_META;
+  const h = esHeadCommon({ title:M.title, desc:M.desc, enPath:'/faq', esPath:'/es/faq', esDepth:d });
+  // FAQPage schema — built from the same array as the visible Q&As (kept in sync).
+  const faqLd = { '@context':'https://schema.org', '@type':'FAQPage',
+    mainEntity: ES_FAQ.map(f => ({ '@type':'Question', name:f.q, acceptedAnswer:{ '@type':'Answer', text:f.a } })) };
+  const faqSchema = '<script type="application/ld+json">\n' + JSON.stringify(faqLd, null, 2) + '\n</script>';
+  const linkHref = (key) => key === 'pay-now' ? `${a}pay-now/` : `${e}${key}/`;
+  const items = ES_FAQ.map(f => {
+    const lnk = f.link ? ` <a href="${linkHref(f.link.href)}">${esc(f.link.label)}</a>` : '';
+    return `  <div class="faq-item"><h3>${esc(f.q)}</h3><p>${esc(f.a)}${lnk}</p></div>`;
+  }).join('\n');
+  const body = `${ANNOTATE}
+${faqSchema}
+<section><div class="wrap"><div class="prose">
+  <h1>${esc(M.h1)}</h1>
+  <p>${esc(M.intro)}</p>
+${items}
+  <p style="text-align:center;margin:26px 0 0"><a class="btn btn-call btn-lg" href="${tel}">${esc(M.still)}</a></p>
+</div></div></section>`;
+  return esWrap(h, d, body);
+}
+
 function buildEs() {
   const esBuilt = built.map(c => ({ ...c, es: CITIES_ES[c.slug] }));
   const missing = esBuilt.filter(c => !c.es).map(c => c.slug);
@@ -880,6 +993,10 @@ function buildEs() {
   for (const key of ['automotive','residential','commercial','emergency']) { write(`es/${key}/index.html`, esService(key)); n++; }
   write('es/service-areas/index.html', esHub(esBuilt)); n++;
   write('es/contact/index.html', esContact()); n++;
+  write('es/financing/index.html', esFinancing()); n++;
+  write('es/warranty/index.html', esWarranty()); n++;
+  write('es/terms/index.html', esTerms()); n++;
+  write('es/faq/index.html', esFaq()); n++;
   for (const c of esBuilt) {
     write(`es/${c.slug}/index.html`, esCity(c)); n++;
     if (c.hasSub) for (const svc of ['automotive','residential','commercial']) { write(`es/${c.slug}/${svc}/index.html`, esSub(c, svc)); n++; }

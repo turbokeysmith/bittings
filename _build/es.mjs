@@ -36,8 +36,9 @@ export const GLOSSARY = [
 // Shared UI strings (chrome, sections, buttons)
 export const U = {
   nav: { home:'Inicio', automotive:'Automotriz', residential:'Residencial', commercial:'Comercial',
-         emergency:'Emergencia', faq:'Preguntas frecuentes', payNow:'Pagar', blog:'Blog',
-         certifications:'Certificaciones', contact:'Contacto' },
+         emergency:'Emergencia', financing:'Financiamiento', warranty:'Garantía',
+         faq:'Preguntas frecuentes', payNow:'Pagar', blog:'Blog',
+         certifications:'Certificaciones', contact:'Contacto', terms:'Términos y Condiciones' },
   trust: [['⭐','5.0 ★','250+ reseñas de Google'], ['🛡️','Con licencia','Oklahoma #AC441081'],
           ['🕒','24 horas','Lunes a sábado'], ['🚐','Móvil','Vamos a usted']],
   footer: { tagline:'Tu cerrajero móvil de confianza — siempre ahí cuando lo necesitas.',
@@ -318,3 +319,91 @@ export const CITIES_ES = {
     h1:'Cerrajero Móvil que Sirve Blanchard',
     intro:'Esta comunidad dormitorio en crecimiento del suroeste recibe servicio de cerrajería móvil completo de un equipo local con licencia — llaves de auto cortadas y programadas en sitio, recodificaciones de casa, cerraduras de negocio y ayuda por bloqueo. Hacemos el viaje a Blanchard para que tú no tengas que ir a la ciudad.' }
 };
+
+// ============================================================================
+//  NEW pages/sections mirrored from English (2026-06). All DRAFT / machine-quality.
+//  ⚠️ WARRANTY and TERMS especially MUST be proofread by a bilingual professional
+//  (locksmith + legal terms) before /es/ is published.
+// ============================================================================
+
+// Financing / Payment-Options page (/es/financing/)
+export const FINANCING = {
+  title:'Cerrajero Económico y Planes de Pago en OKC | Turbo Keysmith',
+  desc:'Cerrajero económico en Oklahoma City, hecho bien — con licencia, autorizado por NASTF, trabajo de calidad con planes de pago flexibles y sin intereses (Klarna, Afterpay, Zip) en pago seguro. No el más barato; el de mejor valor. Llama 405-870-5397.',
+  h1:'Servicio de Cerrajería Económico en OKC — Sin Atajos',
+  intro:'¿Buscas un cerrajero barato o económico en Oklahoma City? Respuesta honesta: no somos los más baratos — y cuando se trata de tu auto, tu casa o la seguridad de tu familia, probablemente no quieres lo más barato. Somos el de mejor valor: trabajo con licencia, autorizado por NASTF y de alta calidad, junto con opciones de pago flexibles, para que un bloqueo inesperado nunca tenga que esperar al día de pago.',
+  payHead:'Trabajo de calidad, pagado a tu manera',
+  payBody:'A través de nuestro pago seguro puedes dividir tu cuenta en 4 pagos sin intereses en trabajos que califican con Klarna, Afterpay o Zip — la aprobación toma segundos y el trabajo se hace hoy. También aceptamos todas las tarjetas principales, efectivo y pago digital rápido con Amazon Pay, Cash App Pay y Link. (PayPal Pay-in-4 disponible si lo solicitas.)',
+  oneOf:'Somos uno de los pocos cerrajeros del área metro de OKC que ofrece financiamiento de pago a plazos.',
+  cheapHead:'Por qué lo «barato» puede costar más',
+  cheapBody:'Una programación de llave mal hecha, una cerradura perforada sin necesidad o una pieza barata que falla pronto — el cerrajero más barato a menudo termina siendo el más caro. Lo hacemos bien a la primera, y los pagos flexibles hacen que obtengas esa calidad sin el golpe por adelantado.',
+  whenHead:'Cuándo ayuda más el financiamiento',
+  whenBody:'Ideal para trabajos grandes e inesperados — reemplazo de llave de auto cuando se perdieron todas, instalación de cerraduras inteligentes, recodificación de toda la casa y mejoras de seguridad comercial.',
+  ctaQuote:'Obtén una cotización al instante', payNow:'Pagar →'
+};
+
+// 6-Month Key Warranty page (/es/warranty/) — ⚠️ NEEDS HUMAN PROOFREADING
+export const WARRANTY = {
+  reviewNote:'⚠️ BORRADOR — Esta traducción de la garantía debe ser revisada por un hablante nativo de español con conocimiento de cerrajería antes de publicar. No confiar en la traducción automática para los términos técnicos.',
+  title:'Garantía de Llaves de 6 Meses | Turbo Keysmith — Cerrajero de OKC',
+  desc:'Cada llave y control de auto que programamos está respaldado por una garantía de mano de obra de 6 meses — programación, función del control / botón de encendido y el corte. Consulta la cobertura, exclusiones y cómo funciona. Llama 405-870-5397.',
+  h1:'Garantía de Llaves de 6 Meses — Respaldamos Nuestro Trabajo',
+  intro:'Cada llave y control de auto que programamos está respaldado por una garantía de mano de obra de 6 meses. Si una llave o control que hicimos falla por un defecto — pierde su programación, los botones dejan de funcionar, el botón de encendido o el arranque remoto deja de ser reconocido, o la llave no gira por un corte defectuoso — la repararemos o reprogramaremos sin cargo por piezas ni mano de obra durante seis meses.',
+  coveredHead:'Qué cubre',
+  coveredBody:'Programación / reconocimiento del inmovilizador, función del control y de proximidad (botón de encendido), cualquier arranque remoto que configuremos, el corte mecánico y los defectos en la llave o el control que suministramos.',
+  notCoveredHead:'Qué no cubre',
+  notCoveredBody:'Llaves perdidas o robadas; daño físico o por agua (caída, atropello, aplastamiento, mordeduras, líquidos); baterías agotadas del control (un artículo de desgaste normal); y problemas causados por el vehículo y no por la llave — una batería de auto descargada, cableado o inmovilizador defectuoso del vehículo, o actualizaciones de software del fabricante/concesionario que borran la programación.',
+  howHead:'Cómo funciona',
+  howIntro:'Si ocurre un defecto cubierto dentro de los 6 meses, llámanos.',
+  bullets:[
+    'Si tu vehículo se puede conducir, tráelo y repararemos o reprogramaremos gratis un defecto cubierto. Si prefieres que vayamos a ti, está bien — pero aplica una tarifa por visita.',
+    'Si tu vehículo no se puede conducir, iremos a ti gratis por un defecto cubierto, en cualquier lugar dentro de nuestra zona de servicio del área de OKC (un radio de unas 30 millas).',
+    'Fuera de nuestra zona de servicio, el defecto sigue cubierto pero el viaje no — no ofrecemos servicio móvil, no reembolsamos a otro cerrajero ni cubrimos grúa para vehículos a más de ~30 millas o fuera de la ciudad. Eres bienvenido a traerlo con nosotros.',
+    'Aplica una tarifa por visita y no se exime si vamos y el problema resulta ser daño, una batería de auto descargada o que no es un problema de la llave.'
+  ],
+  cta:'📞 ¿Preguntas? Llama 405-870-5397', seeTerms:'Ver los Términos y Condiciones completos →'
+};
+
+// Terms & Conditions page (/es/terms/) — ⚠️ NEEDS HUMAN LEGAL PROOFREADING
+export const TERMS = {
+  reviewNote:'⚠️ BORRADOR LEGAL — Esta traducción debe ser revisada por un profesional bilingüe (términos legales y de cerrajería) antes de usarse o publicarse. No usar como contrato hasta su revisión.',
+  title:'Términos y Condiciones / Acuerdo de Servicio | Turbo Keysmith',
+  desc:'Acuerdo de servicio de Turbo Keysmith: autorización y propiedad, precios y pago, la garantía de llaves de auto de 6 meses, limitación de responsabilidad y aceptación. Con licencia OK #AC441081.',
+  h1:'Términos y Condiciones — Acuerdo de Servicio',
+  printBtn:'⬇ Descargar / Imprimir PDF',
+  s1h:'1. Autorización y Propiedad',
+  s1:'Al solicitar el servicio y firmar, confirmas que eres dueño del vehículo o la propiedad, o que estás autorizado para aprobar este trabajo, y que cualquier identificación o prueba de propiedad solicitada se proporcionó con veracidad. Podemos rechazar o detener el servicio si no se puede verificar la propiedad/autorización.',
+  s2h:'2. Precios y Pago',
+  s2:'Damos un precio antes de comenzar el trabajo; el pago vence al completarse. Aceptamos efectivo, tarjetas de débito/crédito, billeteras digitales (Amazon Pay, Cash App Pay, Link) y financiamiento de pago a plazos (Klarna, Afterpay, Zip; PayPal Pay-in-4 si lo solicitas). Aplica un recargo de hasta el 2% solo a los pagos con tarjeta de crédito — nunca a débito ni a financiamiento — y se informa antes de cobrar. El financiamiento lo proporcionan terceros bajo sus propios términos; a nosotros se nos paga en su totalidad al momento del servicio.',
+  s3h:'3. Garantía de Llaves de Auto de 6 Meses',
+  s3:'Cada llave y control de auto que programamos está respaldado por una garantía de mano de obra de 6 meses. Cubre: programación/reconocimiento del inmovilizador, función del control y de proximidad (botón de encendido), cualquier arranque remoto que configuremos, el corte mecánico y los defectos en la llave o el control que suministramos. No cubre: llaves perdidas o robadas; daño físico o por agua; baterías agotadas del control; y problemas del lado del vehículo (batería descargada, cableado o inmovilizador defectuoso, o actualizaciones de software del fabricante/concesionario que borran la programación). Servicio: si tu vehículo se puede conducir, tráelo y un defecto cubierto se repara o reprograma gratis; si no se puede conducir, vamos a ti gratis dentro de nuestra zona de servicio del área de OKC (radio de ~30 millas). Fuera de esa zona, el defecto está cubierto pero el viaje no. Aplica una tarifa por visita y no se exime si el problema resulta ser daño, una batería de auto descargada o que no es un problema de la llave. Términos completos: nuestra página de Garantía.',
+  s4h:'4. Limitación de Responsabilidad',
+  s4:'No somos responsables de condiciones preexistentes, daños previos ni fallas mecánicas/eléctricas no causadas por nuestro trabajo. Nuestra responsabilidad total por cualquier reclamo se limita al monto pagado por el servicio. No somos responsables de pérdidas indirectas o consecuentes.',
+  s5h:'5. Aceptación',
+  s5:'Al firmar nuestra factura/recibo, reconoces que has leído y aceptas estos Términos y Condiciones.',
+  footLine:'Turbo Keysmith · OK Lic. #AC441081 · 405-870-5397 · turbokeysmith.com/terms'
+};
+
+// FAQ (/es/faq/) — visible Q&As + FAQPage schema. `link` (optional) is appended to
+// the VISIBLE answer only; the schema "text" uses the plain `a` to stay in sync.
+export const FAQ_META = {
+  title:'Preguntas Frecuentes | Turbo Keysmith — Cerrajero del Área de OKC',
+  desc:'Respuestas rápidas sobre el servicio de cerrajería móvil de Turbo Keysmith en el área de OKC — horario, zonas, llaves de auto, pagos, financiamiento y garantía. Llama 405-870-5397.',
+  h1:'Preguntas Frecuentes',
+  intro:'Respuestas rápidas sobre el servicio de cerrajería móvil de Turbo Keysmith en el área metropolitana de OKC.',
+  still:'📞 ¿Aún tienes una pregunta? Llama: 405-870-5397'
+};
+export const FAQ = [
+  { q:'¿Son un cerrajero móvil?', a:'Sí. Turbo Keysmith es totalmente móvil — vamos a ti en cualquier parte del área metropolitana de Oklahoma City, ya sea en casa, en el trabajo o varado en un estacionamiento.' },
+  { q:'¿Cuál es su horario?', a:'Estamos abiertos las 24 horas, de lunes a sábado, para emergencias, y el domingo hasta las 5:00 a. m. Llama o envía un texto al 405-870-5397 a cualquier hora.' },
+  { q:'¿Qué zonas atienden?', a:'Atendemos Oklahoma City, Edmond, Moore, Norman, Yukon, Warr Acres, Bethany, Midwest City, Del City y el área metropolitana circundante.' },
+  { q:'¿Pueden hacer una llave de auto si perdí todas las mías?', a:'Sí. Como cerrajero autorizado por NASTF con herramientas a nivel de concesionario, podemos cortar y programar llaves y controles de repuesto para la mayoría de las marcas y modelos en sitio — normalmente más rápido y por menos que el concesionario.' },
+  { q:'¿Cómo puedo pagar?', a:'Aceptamos efectivo, todas las tarjetas de crédito y débito principales, y opciones digitales rápidas como Amazon Pay, Cash App Pay y Link. ¿Quieres dividir el costo? En trabajos que califican puedes pagar a plazos, sin intereses, dividiéndolo en 4 pagos con Klarna, Afterpay o Zip — directamente en nuestro pago en línea seguro en la página de Pagar. PayPal Pay-in-4 está disponible si lo solicitas.', link:{ href:'pay-now', label:'Ir a Pagar →' } },
+  { q:'¿Ofrecen financiamiento o planes de pago?', a:'Sí. El trabajo de cerrajería de calidad no debería tener que esperar al día de pago. En trabajos que califican puedes dividir tu cuenta en 4 pagos sin intereses con Klarna, Afterpay o Zip directamente en nuestro pago seguro — la aprobación toma segundos. Así hacemos accesible el trabajo a nivel de concesionario y autorizado por NASTF: no somos el cerrajero más barato, somos el de mejor valor, con la flexibilidad de pagar a plazos. PayPal Pay-in-4 está disponible si lo solicitas.', link:{ href:'financing', label:'Ver opciones de pago →' } },
+  { q:'¿Dan garantía a sus llaves de auto?', a:'Sí — cada llave y control de auto que programamos lleva una garantía de mano de obra de 6 meses que cubre la programación, la función del control / botón de encendido y el corte. No cubre llaves perdidas, robadas o dañadas, baterías agotadas del control, ni problemas del vehículo. Si tu auto se puede conducir, tráelo y un defecto cubierto se arregla gratis; si no se puede conducir, vamos a ti dentro de nuestra zona de servicio de OKC. Consulta nuestra página de Garantía para los términos completos.', link:{ href:'warranty', label:'Ver la Garantía →' } },
+  { q:'¿Tienen licencia?', a:'Sí — Turbo Keysmith es un cerrajero con licencia de Oklahoma, OK Lic. #AC441081.' }
+];
+
+// Teasers (homepage + service pages)
+export const FINTEASER = { title:'Financiamiento flexible disponible', body:'Divide los trabajos que califican en 4 pagos sin intereses con Klarna, Afterpay o Zip — trabajo de calidad que no tiene que esperar al día de pago.', more:'Ver opciones de pago →' };
+export const WARRTEASER = { title:'Garantía de Llaves de 6 Meses', body:'Cada llave y control de auto que programamos está respaldado por 6 meses — programación, botón de encendido, control y el corte.', more:'Ver la garantía →' };
