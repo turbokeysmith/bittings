@@ -148,9 +148,9 @@ export function header(depth) {
       <a href="${r}pay-now/">Pay Now</a>
     </nav>
     <a class="head-call" href="tel:${PHONE_E164}"><span class="btn btn-call">📞 ${PHONE_DISPLAY}</span></a>
-    ${socialIcons('bar-social')}
     <button class="navtoggle" aria-label="Menu" onclick="document.getElementById('m').classList.toggle('open')">☰</button>
   </div>
+  <div class="subbar"><div class="wrap">${socialIcons('subbar-icons')}</div></div>
   <nav class="mobile" id="m">
     <a href="${r}index.html">Home</a>
     <a href="${r}automotive/">Automotive</a>
@@ -163,7 +163,6 @@ export function header(depth) {
     <a href="${r}certifications/">Certifications</a>
     <a href="${r}faq/">FAQ</a>
     <a href="${r}pay-now/">Pay Now</a>
-    ${socialIcons('mobile-social')}
   </nav>
 </header>`;
 }
@@ -197,7 +196,7 @@ export function footer(depth) {
       <a href="${r}oklahoma-city/">Oklahoma City</a><a href="${r}edmond/">Edmond</a>
       <a href="${r}norman/">Norman</a><a href="${r}yukon/">Yukon</a></div>
   </div>
-  <div style="margin-top:22px">${socialIcons()}</div>
+  <div class="footer-social">${socialIcons('subbar-icons')}</div>
   <div class="legal">
     <span>Copyright © 2026 Turbo KeySmith — All Rights Reserved. · Licensed OK #AC441081 · <a href="${r}terms/" style="color:inherit">Terms &amp; Conditions</a></span>
     <a class="staff-login" href="${r}../cloud-test.html" rel="nofollow">Staff Login</a>
