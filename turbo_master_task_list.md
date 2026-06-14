@@ -3,7 +3,15 @@
 Keep this updated after each work session. Status key: ✅ done · 🔨 in progress ·
 ⏸️ parked (waiting on a decision/credential) · ⬜ not started.*
 
-Last updated: 2026-06-14 00:22 CDT (Claude Code) — Spanish /es/ mirrored with new content (still draft/noindex); Financing/Warranty/Terms pages + FAQ/payment/signature; public site finalized; Cloudflare decided; owner→manager + per-manager PINs
+Last updated: 2026-06-14 05:08 CDT (Claude Code) — Certifications hub + 6 credential pages + BusinessRate social proof (EN + ES draft); Cloudflare preview live; Spanish /es/ mirror; Financing/Warranty/Terms; owner→manager + per-manager PINs
+
+> **Certifications (2026-06-14):** ✅ Rebuilt `/certifications/` into a hub (Licenses & Credentials vs
+> Professional Associations) + **6 dedicated pages** (google-verified, oklahoma-license, nastf, keyless2go,
+> omla→omla.com, okbfaa→okbfaa.org), 3-part bios, "Google Verified" wording. **BusinessRate** = plain-text
+> social proof (homepage reviews area + hub "Recognition"), NOT in the credentials group, no link/badge.
+> Certifications added to main nav. Full Spanish `/es/` mirror, noindex/draft. 🚩 **All 6 ES credential
+> pages need a fluent reviewer before publish** (extra red banner). EN cred pages live in the generator
+> (`CREDS` in generate.mjs); ES in `es.mjs` (`CREDS`).
 
 > **Spanish /es/ mirror (2026-06-14):** ✅ New `/es/financing/`, `/es/warranty/`, `/es/terms/` (print-to-PDF),
 > `/es/faq/` (new, + Spanish FAQPage schema, 8 Q). Teasers on /es/ home + service pages; warranty section on

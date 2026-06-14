@@ -120,6 +120,7 @@ export function header(depth) {
       <a href="${r}commercial/">Commercial</a>
       <a href="${r}emergency/">Emergency</a>
       <a href="${r}financing/">Financing</a>
+      <a href="${r}certifications/">Certifications</a>
       <a href="${r}faq/">FAQ</a>
       <a href="${r}pay-now/">Pay Now</a>
     </nav>

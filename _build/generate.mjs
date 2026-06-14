@@ -17,7 +17,8 @@ import {
 import { CITIES, TIER_LABELS } from './cities.mjs';
 import { GLOSSARY, U, SVC, METRO, HOME, HUB, GROUP_LABELS, CONTACT, CITIES_ES,
          FINANCING as ES_FIN, WARRANTY as ES_WAR, TERMS as ES_TERMS, FAQ as ES_FAQ,
-         FAQ_META as ES_FAQ_META, FINTEASER as ES_FINTEASER, WARRTEASER as ES_WARRTEASER } from './es.mjs';
+         FAQ_META as ES_FAQ_META, FINTEASER as ES_FINTEASER, WARRTEASER as ES_WARRTEASER,
+         CREDS as ES_CREDS, CERTHUB as ES_CERTHUB, BUSINESSRATE as ES_BUSINESSRATE, CRED_REVIEW_NOTE as ES_CRED_NOTE } from './es.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SITE_DIR = join(__dirname, '..', 'site');
@@ -376,6 +377,120 @@ function renderTerms() {
   return wrap(h, 1, body);
 }
 
+// ---------- Certifications hub + dedicated credential pages ----------
+// BusinessRate = review-based recognition (NOT a license) — plain text, no link/badge.
+const BUSINESSRATE = 'Top-Rated Locksmith — BusinessRate (based on verified customer reviews).';
+const CREDS = [
+  { slug:'certifications/google-verified', group:'license', featured:true, name:'Google Verified',
+    title:'Google Verified Locksmith in OKC | Turbo Keysmith',
+    metaDesc:"Turbo Keysmith carries Google's Verified badge — Google background-checks, license-validates and insurance-verifies the business. What the badge means for you. Call 405-870-5397.",
+    h1:'Google Verified — Independently Vetted by Google',
+    teaser:"Google's trust mark for businesses that pass its Local Services vetting — background, license and insurance checks.",
+    whatIs:"We carry Google's Google Verified badge — the trust mark Google displays for businesses that pass its Local Services vetting.",
+    whatTakes:'To earn it, Google vets the business through background checks, license validation, and insurance verification.',
+    whatMeans:"Google itself has confirmed we're a real, licensed, insured, background-checked locksmith — an independent third-party vote of confidence before you ever pick up the phone." },
+  { slug:'oklahoma-license', group:'license', featured:true, name:'Oklahoma Locksmith License #AC441081',
+    title:'Oklahoma Locksmith License #AC441081 | Turbo Keysmith',
+    metaDesc:'Turbo Keysmith holds Oklahoma Locksmith License #AC441081 (Oklahoma Dept. of Labor) — fingerprinting, FBI background check and a state exam. Why a licensed locksmith matters. Call 405-870-5397.',
+    h1:'Oklahoma Locksmith License #AC441081',
+    teaser:'State-issued license #AC441081 — Oklahoma is one of ~15 states that require fingerprinting, an FBI background check and a competency exam.',
+    whatIs:"Oklahoma is one of only about 15 states that legally require locksmiths to be licensed — most don't, meaning anyone can claim the title. Licensing runs through the Oklahoma Department of Labor's Alarm, Locksmith & Fire Sprinkler program.",
+    whatTakes:'Earning it requires fingerprinting, an FBI background check, and passing the state competency exam.',
+    whatMeans:"You're trusting your home, vehicle, or business security to someone the state has background-checked, tested, and holds accountable — your first protection against the locksmith scams on the rise." },
+  { slug:'nastf', group:'license', name:'NASTF Vehicle Security Professional (VSP)',
+    title:'NASTF Vehicle Security Professional (VSP) Locksmith | Turbo Keysmith',
+    metaDesc:'Turbo Keysmith is NASTF VSP–credentialed with a personal LSID — dealer-level, vetted access to manufacturer key codes and immobilizer data. What it means for your car keys. Call 405-870-5397.',
+    h1:'NASTF Vehicle Security Professional (VSP) — LSID Credentialed',
+    teaser:'Vetted, dealer-level access to manufacturer key codes and immobilizer data, with a personal LSID.',
+    whatIs:'The National Automotive Service Task Force is a non-profit founded in 2000 by the automakers and the independent repair industry, and its Vehicle Security Professional Registry vets and credentials professional locksmiths to access manufacturer security systems.',
+    whatTakes:"Getting credentialed means passing a background check and agreeing to strict terms, after which you're issued a personal Locksmith Identification (LSID) number assigned one-to-one to the individual.",
+    whatMeans:'This is legitimate, dealer-level access — it lets us pull the same secure key codes and immobilizer data the dealership uses, so we can make and program keys for virtually any make, the right way, as a vetted professional rather than a sketchy code broker.' },
+  { slug:'keyless2go', group:'license', name:'Keyless2Go Certified Locksmith',
+    title:'Keyless2Go Certified Locksmith | Turbo Keysmith — OKC',
+    metaDesc:'Turbo Keysmith is a Keyless2Go Certified locksmith — OE-grade, FCC-registered car key fobs with transparent upfront pricing, up to 70% under dealer. Call 405-870-5397.',
+    h1:'Keyless2Go Certified Locksmith',
+    teaser:'Certified installer of OE-grade, FCC-registered key fobs — transparent pricing, up to 70% under the dealership.',
+    whatIs:"Keyless2Go is one of the nation's leading aftermarket car-key remote brands, with over 5 million fobs sold, known for OE-grade, FCC-registered components.",
+    whatTakes:'Their Certified Installer Network verifies participants are genuine professional locksmiths and holds them to a code of conduct with transparent upfront pricing, no surprise upcharges, and a customer review system you must keep a satisfactory rating in to stay certified.',
+    whatMeans:'Premium, dealer-quality key parts covering the vast majority of vehicles, at savings of up to 70% versus the dealership — with pricing you see before any work begins.' },
+  { slug:'omla', group:'assoc', name:'Oklahoma Master Locksmith Association (OMLA)', link:'https://omla.com',
+    title:'Oklahoma Master Locksmith Association (OMLA) Member | Turbo Keysmith',
+    metaDesc:'Turbo Keysmith is a member of the Oklahoma Master Locksmith Association (OMLA) — ongoing training and higher professional standards. Call 405-870-5397.',
+    h1:'Oklahoma Master Locksmith Association (OMLA)',
+    teaser:"The state's professional locksmith association — ongoing training and higher security standards.",
+    whatIs:"OMLA is the state's professional locksmith association, dedicated to cooperation among Oklahoma locksmiths and promoting higher standards of security and professionalism.",
+    whatTakes:'Members have access to ODOL-sanctioned license-prep and continuing-education classes covering locksmithing and access control.',
+    whatMeans:'Membership signals a locksmith who invests in ongoing training and holds themselves to the profession’s standards rather than just winging it.' },
+  { slug:'okbfaa', group:'assoc', name:'Oklahoma Burglar & Fire Alarm Association (OKBFAA)', link:'https://okbfaa.org',
+    title:'Oklahoma Burglar & Fire Alarm Association (OKBFAA) Member | Turbo Keysmith',
+    metaDesc:'Turbo Keysmith is a member of the Oklahoma Burglar & Fire Alarm Association (OKBFAA) — current on electronic security codes and standards for commercial work. Call 405-870-5397.',
+    h1:'Oklahoma Burglar & Fire Alarm Association (OKBFAA)',
+    teaser:'Membership in the state electronic-security association — current on access-control codes and standards.',
+    whatIs:'OKBFAA is committed to promoting licensed professionals in the electronic security industry and educating members on the latest products, codes, and standards, working closely with the Oklahoma Department of Labor.',
+    whatMeans:'It shows we stay current on electronic security and access-control standards — especially relevant for business and commercial security work.' }
+];
+const credHref = (slug) => slug.startsWith('certifications/') ? slug.slice('certifications/'.length) + '/' : '../' + slug + '/';
+
+function renderCredPage(c) {
+  const depth = c.slug.split('/').length;
+  const r = rel(depth);
+  const canonical = `${SITE}/${c.slug}`;
+  const h = head({ title:c.title, desc:c.metaDesc, canonical, depth });
+  const parts = [`  <h2>What it is</h2>\n  <p>${esc(c.whatIs)}</p>`];
+  if (c.whatTakes) parts.push(`  <h2>What it takes to earn</h2>\n  <p>${esc(c.whatTakes)}</p>`);
+  parts.push(`  <h2>What it means for you</h2>\n  <p>${esc(c.whatMeans)}</p>`);
+  const extLink = c.link ? `\n  <p><a href="${c.link}" target="_blank" rel="noopener">${esc(c.link.replace('https://',''))} →</a></p>` : '';
+  const body = `${ANNOTATE}
+<section><div class="wrap"><div class="prose">
+  <p style="font-size:13px;color:var(--dim);margin:0 0 6px"><a href="${r}certifications/">Certifications</a> › ${esc(c.name)}</p>
+  <h1>${esc(c.h1)}</h1>
+${parts.join('\n')}${extLink}
+  <p style="text-align:center;margin:26px 0 0"><a class="btn btn-call btn-lg" href="${tel}">📞 ${PHONE_DISPLAY}</a></p>
+  <p style="text-align:center;margin:14px 0 0"><a href="${r}certifications/">← All certifications &amp; credentials</a></p>
+</div></div></section>`;
+  return wrap(h, depth, body);
+}
+function renderCertHub() {
+  const canonical = `${SITE}/certifications`;
+  const h = head({ title:'Certifications, Licenses & Credentials | Turbo Keysmith — OKC Locksmith',
+    desc:'Turbo Keysmith is a fully licensed, vetted Oklahoma locksmith: Google Verified, OK License #AC441081, NASTF VSP, Keyless2Go Certified, plus OMLA & OKBFAA membership. What each credential means for you. Call 405-870-5397.',
+    canonical, depth:1 });
+  const teaser = (c) => `    <a class="scard" href="${credHref(c.slug)}"><h3>${esc(c.name)}</h3><p>${esc(c.teaser)}</p><span class="more">Learn more →</span></a>`;
+  const lic = CREDS.filter(c => c.group === 'license');
+  const licOrdered = [...lic.filter(c => c.featured), ...lic.filter(c => !c.featured)]; // Google Verified + OK license first
+  const assoc = CREDS.filter(c => c.group === 'assoc');
+  const body = `${ANNOTATE}
+<section><div class="wrap"><div class="prose" style="text-align:center">
+  <h1>Certifications, Licenses &amp; Credentials</h1>
+  <p>When you let a locksmith into your home, car, or business, credentials matter. Turbo Keysmith is a
+  fully licensed, vetted, local Oklahoma locksmith — here's the proof, and what each one means for you.</p>
+</div></div></section>
+
+<section class="surface"><div class="wrap">
+  <div class="sec-head"><h2>Licenses &amp; Credentials</h2><p>Independently verified — the credentials that take real vetting to earn.</p></div>
+  <div class="cards">
+${licOrdered.map(teaser).join('\n')}
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head"><h2>Professional Associations</h2><p>Memberships that signal ongoing training and professional standards.</p></div>
+  <div class="cards">
+${assoc.map(teaser).join('\n')}
+  </div>
+</div></section>
+
+<section class="surface"><div class="wrap">
+  <div class="sec-head"><h2>Recognition</h2></div>
+  <p style="text-align:center;color:var(--dim);margin:0">${esc(BUSINESSRATE)}</p>
+</div></section>
+
+<section><div class="wrap">
+  <p style="text-align:center;margin:0"><a class="btn btn-call btn-lg" href="${tel}">📞 Call Turbo Keysmith: ${PHONE_DISPLAY}</a></p>
+</div></section>`;
+  return wrap(h, 1, body);
+}
+
 // ---------- sitemap.xml + robots.txt ----------
 function renderSitemap() {
   const urls = [];
@@ -383,6 +498,7 @@ function renderSitemap() {
   // core pages
   ['','automotive/','residential/','commercial/','emergency/','financing/','warranty/','terms/','faq/','blog/','certifications/','pay-now/','service-areas/','contact/']
     .forEach(p => urls.push(`${SITE}/${p}`));
+  CREDS.forEach(c => urls.push(`${SITE}/${c.slug}/`));   // 6 dedicated credential pages
   built.forEach(c => {
     urls.push(`${SITE}/${c.slug}/`);
     if (c.hasSub) ['automotive','residential','commercial'].forEach(s => urls.push(`${SITE}/${c.slug}/${s}/`));
@@ -409,7 +525,8 @@ Sitemap: ${SITE}/sitemap.xml
 // ---------- patch hand-maintained pages (footer + areaServed) ----------
 const HAND_PAGES = [
   'index.html','automotive/index.html','residential/index.html','commercial/index.html',
-  'emergency/index.html','faq/index.html','blog/index.html','certifications/index.html','pay-now/index.html'
+  'emergency/index.html','faq/index.html','blog/index.html','pay-now/index.html'
+  // NOTE: certifications/index.html is now GENERATED (renderCertHub), not hand-maintained.
 ];
 function patchHandPages() {
   // Standard "Our Work" section (real on-domain photos belong on generated city
@@ -489,6 +606,7 @@ function esHeader(d) {
       <a href="${e}commercial/">${esc(N.commercial)}</a>
       <a href="${e}emergency/">${esc(N.emergency)}</a>
       <a href="${e}financing/">${esc(N.financing)}</a>
+      <a href="${e}certifications/">${esc(N.certifications)}</a>
       <a href="${e}faq/">${esc(N.faq)}</a>
       <a href="${a}pay-now/">${esc(N.payNow)}</a>
     </nav>
@@ -504,7 +622,7 @@ function esHeader(d) {
     <a href="${e}financing/">${esc(N.financing)}</a>
     <a href="${e}warranty/">${esc(N.warranty)}</a>
     <a href="${a}blog/">${esc(N.blog)}</a>
-    <a href="${a}certifications/">${esc(N.certifications)}</a>
+    <a href="${e}certifications/">${esc(N.certifications)}</a>
     <a href="${e}faq/">${esc(N.faq)}</a>
     <a href="${a}pay-now/">${esc(N.payNow)}</a>
   </nav>
@@ -527,7 +645,7 @@ function esFooter(d) {
       <a href="${e}commercial/">${esc(N.commercial)}</a><a href="${e}emergency/">${esc(N.emergency)}</a></div>
     <div><h4>${esc(F.company)}</h4>
       <a href="${e}financing/">${esc(N.financing)}</a><a href="${e}warranty/">${esc(N.warranty)}</a>
-      <a href="${a}blog/">${esc(N.blog)}</a><a href="${a}certifications/">${esc(N.certifications)}</a>
+      <a href="${a}blog/">${esc(N.blog)}</a><a href="${e}certifications/">${esc(N.certifications)}</a>
       <a href="${e}faq/">${esc(N.faq)}</a><a href="${e}contact/">${esc(N.contact)}</a></div>
     <div><h4>${esc(F.areas)}</h4>
       <a href="${e}service-areas/"><strong style="color:#fff">${esc(F.allAreas)}</strong></a>
@@ -984,6 +1102,58 @@ ${items}
   return esWrap(h, d, body);
 }
 
+function esCredPage(c) {
+  const d = 1 + c.slug.split('/').length, e = '../'.repeat(d-1), L = ES_CERTHUB;
+  const h = esHeadCommon({ title:c.title, desc:c.metaDesc, enPath:'/'+c.slug, esPath:'/es/'+c.slug, esDepth:d });
+  const parts = [`  <h2>${esc(L.whatIs)}</h2>\n  <p>${esc(c.whatIs)}</p>`];
+  if (c.whatTakes) parts.push(`  <h2>${esc(L.whatTakes)}</h2>\n  <p>${esc(c.whatTakes)}</p>`);
+  parts.push(`  <h2>${esc(L.whatMeans)}</h2>\n  <p>${esc(c.whatMeans)}</p>`);
+  const extLink = c.link ? `\n  <p><a href="${c.link}" target="_blank" rel="noopener">${esc(c.link.replace('https://',''))} →</a></p>` : '';
+  const body = `${ANNOTATE}
+<div style="background:#7a1f1f;color:#fff;text-align:center;font-weight:700;font-size:13px;padding:8px 14px">${esc(ES_CRED_NOTE)}</div>
+<section><div class="wrap"><div class="prose">
+  <p style="font-size:13px;color:var(--dim);margin:0 0 6px"><a href="${e}certifications/">${esc(L.crumb)}</a> › ${esc(c.name)}</p>
+  <h1>${esc(c.h1)}</h1>
+${parts.join('\n')}${extLink}
+  <p style="text-align:center;margin:26px 0 0"><a class="btn btn-call btn-lg" href="${tel}">📞 ${PHONE_DISPLAY}</a></p>
+  <p style="text-align:center;margin:14px 0 0"><a href="${e}certifications/">${esc(L.backHub)}</a></p>
+</div></div></section>`;
+  return esWrap(h, d, body);
+}
+function esCertHub() {
+  const d = 2, L = ES_CERTHUB;
+  const h = esHeadCommon({ title:L.title, desc:L.desc, enPath:'/certifications', esPath:'/es/certifications', esDepth:d });
+  const teaser = (c) => `    <a class="scard" href="${credHref(c.slug)}"><h3>${esc(c.name)}</h3><p>${esc(c.teaser)}</p><span class="more">${esc(L.learnMore)}</span></a>`;
+  const lic = ES_CREDS.filter(c => c.group === 'license');
+  const licOrdered = [...lic.filter(c => c.featured), ...lic.filter(c => !c.featured)];
+  const assoc = ES_CREDS.filter(c => c.group === 'assoc');
+  const body = `${ANNOTATE}
+<section><div class="wrap"><div class="prose" style="text-align:center">
+  <h1>${esc(L.h1)}</h1>
+  <p>${esc(L.intro)}</p>
+</div></div></section>
+<section class="surface"><div class="wrap">
+  <div class="sec-head"><h2>${esc(L.licHead)}</h2><p>${esc(L.licSub)}</p></div>
+  <div class="cards">
+${licOrdered.map(teaser).join('\n')}
+  </div>
+</div></section>
+<section><div class="wrap">
+  <div class="sec-head"><h2>${esc(L.assocHead)}</h2><p>${esc(L.assocSub)}</p></div>
+  <div class="cards">
+${assoc.map(teaser).join('\n')}
+  </div>
+</div></section>
+<section class="surface"><div class="wrap">
+  <div class="sec-head"><h2>${esc(L.recHead)}</h2></div>
+  <p style="text-align:center;color:var(--dim);margin:0">${esc(ES_BUSINESSRATE)}</p>
+</div></section>
+<section><div class="wrap">
+  <p style="text-align:center;margin:0"><a class="btn btn-call btn-lg" href="${tel}">📞 ${PHONE_DISPLAY}</a></p>
+</div></section>`;
+  return esWrap(h, d, body);
+}
+
 function buildEs() {
   const esBuilt = built.map(c => ({ ...c, es: CITIES_ES[c.slug] }));
   const missing = esBuilt.filter(c => !c.es).map(c => c.slug);
@@ -997,6 +1167,8 @@ function buildEs() {
   write('es/warranty/index.html', esWarranty()); n++;
   write('es/terms/index.html', esTerms()); n++;
   write('es/faq/index.html', esFaq()); n++;
+  write('es/certifications/index.html', esCertHub()); n++;
+  for (const c of ES_CREDS) { write(`es/${c.slug}/index.html`, esCredPage(c)); n++; }
   for (const c of esBuilt) {
     write(`es/${c.slug}/index.html`, esCity(c)); n++;
     if (c.hasSub) for (const svc of ['automotive','residential','commercial']) { write(`es/${c.slug}/${svc}/index.html`, esSub(c, svc)); n++; }
@@ -1020,6 +1192,8 @@ write('service-areas/index.html', renderHub());
 write('financing/index.html', renderFinancing());
 write('warranty/index.html', renderWarranty());
 write('terms/index.html', renderTerms());
+write('certifications/index.html', renderCertHub());
+for (const c of CREDS) write(`${c.slug}/index.html`, renderCredPage(c));
 write('sitemap.xml', renderSitemap());
 write('robots.txt', renderRobots());
 console.log(`Wrote ${count} city pages + hub + sitemap + robots`);
