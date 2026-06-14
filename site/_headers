@@ -13,7 +13,8 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
 
-# Static assets (logo, CSS, images). Not fingerprinted, so keep the browser cache
-# modest (1 day) — the edge/CDN still serves them fast and a deploy purges it.
+# Static assets (logo, CSS, images). Not fingerprinted and still iterating, so keep
+# the browser cache SHORT so style/script updates show without a hard refresh.
+# (Bump this back up at go-live once the design is stable.)
 /assets/*
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=300, must-revalidate

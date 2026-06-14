@@ -295,8 +295,11 @@ function renderFinancing() {
   <h2>When financing helps most</h2>
   <p>Best for bigger, unexpected jobs — lost-all-keys car key replacement, smart-lock installs, whole-home rekeys, and commercial security upgrades.</p>
 
-  <p style="text-align:center;margin:26px 0 0"><a class="btn btn-call btn-lg" href="${r}contact/">Get an Instant Quote</a></p>
-  <p style="text-align:center;margin:14px 0 0"><a class="btn btn-call btn-lg" href="${tel}">📞 Call ${PHONE_DISPLAY}</a> &nbsp; <a href="${r}pay-now/">Pay Now →</a></p>
+  <div class="btnrow" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:26px">
+    <a class="btn btn-call btn-lg" href="${r}contact/">Get an Instant Quote</a>
+    <a class="btn btn-call btn-lg" href="${tel}">📞 Call ${PHONE_DISPLAY}</a>
+    <a class="btn btn-ghost btn-lg" href="${r}pay-now/">Pay Now</a>
+  </div>
 </div></div></section>`;
   return wrap(h, 1, body);
 }
@@ -1031,8 +1034,11 @@ function esFinancing() {
   <p>${esc(F.cheapBody)}</p>
   <h2>${esc(F.whenHead)}</h2>
   <p>${esc(F.whenBody)}</p>
-  <p style="text-align:center;margin:26px 0 0"><a class="btn btn-call btn-lg" href="${e}contact/">${esc(F.ctaQuote)}</a></p>
-  <p style="text-align:center;margin:14px 0 0"><a class="btn btn-call btn-lg" href="${tel}">📞 ${PHONE_DISPLAY}</a> &nbsp; <a href="${a}pay-now/">${esc(F.payNow)}</a></p>
+  <div class="btnrow" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:26px">
+    <a class="btn btn-call btn-lg" href="${e}contact/">${esc(F.ctaQuote)}</a>
+    <a class="btn btn-call btn-lg" href="${tel}">📞 ${PHONE_DISPLAY}</a>
+    <a class="btn btn-ghost btn-lg" href="${a}pay-now/">${esc(F.payNow)}</a>
+  </div>
 </div></div></section>`;
   return esWrap(h, d, body);
 }

@@ -45,7 +45,7 @@ export const SOCIAL = [
 ];
 export function socialIcons(extraClass) {
   return `<div class="social-icons${extraClass ? ' ' + extraClass : ''}">` +
-    SOCIAL.map(s => `<a href="${s.url}" target="_blank" rel="noopener noreferrer" aria-label="${esc(s.name)}" title="${esc(s.name)}"><svg viewBox="0 0 24 24" aria-hidden="true">${s.svg}</svg></a>`).join('') +
+    SOCIAL.map(s => `<a href="${s.url}" target="_blank" rel="noopener noreferrer" aria-label="${esc(s.name)}" title="${esc(s.name)}"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">${s.svg}</svg></a>`).join('') +
     `</div>`;
 }
 
