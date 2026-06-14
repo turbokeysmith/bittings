@@ -3,7 +3,14 @@
 Keep this updated after each work session. Status key: ✅ done · 🔨 in progress ·
 ⏸️ parked (waiting on a decision/credential) · ⬜ not started.*
 
-Last updated: 2026-06-14 05:08 CDT (Claude Code) — Certifications hub + 6 credential pages + BusinessRate social proof (EN + ES draft); Cloudflare preview live; Spanish /es/ mirror; Financing/Warranty/Terms; owner→manager + per-manager PINs
+Last updated: 2026-06-14 11:00 CDT (Claude Code) — Images widget removed → social icons (header/footer/in-place) + "Best of 2026" award badge beside reviews; Certifications hub + 6 pages; Cloudflare preview; /es/ mirror; owner→manager + per-manager PINs
+
+> **Social + award (2026-06-14):** ✅ Removed the localmarketingmanager Images/"Our Work" widget everywhere
+> (generator). Added on-brand **social icon links** (IG, TikTok, FB, YouTube, Nextdoor, Google) in header +
+> footer + in place of the old widget; schema **sameAs** now lists all 6. Added a text **award badge**
+> "🏆 Best of 2026 · Ranked #1 Locksmith in Western Oklahoma — BusinessRate" beside every reviews section
+> (homepage + 91 city/sub pages) + cert hub Recognition (no link/graphic). Spanish mirrored (draft). New
+> `.social-icons`/`.award-badge` CSS. Single source: `SOCIAL`/`socialIcons()`/`AWARD_BADGE` in engine.mjs.
 
 > **Certifications (2026-06-14):** ✅ Rebuilt `/certifications/` into a hub (Licenses & Credentials vs
 > Professional Associations) + **6 dedicated pages** (google-verified, oklahoma-license, nastf, keyless2go,

@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-14 05:08 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-14 11:00 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -381,6 +381,24 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-14
+- **Removed the Images/"Our Work" widget; added social icons + a "Best of 2026" award badge (11:00):**
+  - **Images widget gone everywhere** (homepage, service pages, all city/sub pages) — in the generator
+    (`engine.photoSlots` no longer emits it; the hand-page "Our Work" section is replaced). City pages with
+    real on-domain photos keep that gallery; others render nothing.
+  - **Social icons** (Instagram, TikTok, Facebook, YouTube, Nextdoor, Google) — clean inline-SVG links that
+    open in a new tab — now in the **header** (desktop bar + mobile menu) and **footer** site-wide, and **in
+    place of the old "Our Work" widget** on the homepage + service pages. Single source: `SOCIAL` /
+    `socialIcons()` in `engine.mjs`. **schema `sameAs` updated to all six** (new Facebook `/turbokeysmith/`,
+    Nextdoor, Google Maps profile) so the structured data matches what's shown.
+  - **Award badge** — "🏆 Best of 2026 · Ranked #1 Locksmith in Western Oklahoma — BusinessRate" — a clean
+    text pill (no link, no plaque graphic) **beside every reviews section**: homepage + all 91 city/sub
+    pages (baked into `REVIEWS_WIDGET`), paired with the "⭐ 250+ Five-Star Reviews" headline; also under the
+    certifications hub **Recognition** heading (kept separate from Licenses & Credentials). Replaced the old
+    plain "Top-Rated — BusinessRate" homepage line.
+  - **Spanish:** mirrored — social icons in es header/footer, Spanish award badge beside es reviews + es
+    cert hub Recognition (DRAFT). New `.social-icons` + `.award-badge` styles in `assets/styles.css`.
+  - *Checks:* 0 image-widget refs site-wide; JSON-LD valid (sameAs:6) on EN + ES; award badge on 93 EN
+    pages; social icons in header+footer+in-place. Pending: phone sign-off.
 - **Certifications rebuilt into a hub + 6 dedicated credential pages; BusinessRate as social proof (05:08):**
   all in the `_build/` generator (`CREDS` data + `renderCertHub`/`renderCredPage`; Spanish in `es.mjs`).
   - **`/certifications/` hub** split into **Licenses & Credentials** (Google Verified + OK License #AC441081

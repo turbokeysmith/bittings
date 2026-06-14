@@ -12,13 +12,14 @@ import { dirname, join } from 'node:path';
 import {
   PHONE_E164, PHONE_DISPLAY, SITE, AREA_SERVED, rel, esc,
   head, header, trust, footer, mobilebar, reviewSlot, photoSlots,
-  schema, REVIEWS_WIDGET, IMAGES_WIDGET, LOCAL_POSTS_WIDGET
+  schema, REVIEWS_WIDGET, LOCAL_POSTS_WIDGET, socialIcons, AWARD_BADGE
 } from './engine.mjs';
 import { CITIES, TIER_LABELS } from './cities.mjs';
 import { GLOSSARY, U, SVC, METRO, HOME, HUB, GROUP_LABELS, CONTACT, CITIES_ES,
          FINANCING as ES_FIN, WARRANTY as ES_WAR, TERMS as ES_TERMS, FAQ as ES_FAQ,
          FAQ_META as ES_FAQ_META, FINTEASER as ES_FINTEASER, WARRTEASER as ES_WARRTEASER,
-         CREDS as ES_CREDS, CERTHUB as ES_CERTHUB, BUSINESSRATE as ES_BUSINESSRATE, CRED_REVIEW_NOTE as ES_CRED_NOTE } from './es.mjs';
+         CREDS as ES_CREDS, CERTHUB as ES_CERTHUB, BUSINESSRATE as ES_BUSINESSRATE, CRED_REVIEW_NOTE as ES_CRED_NOTE,
+         AWARD as ES_AWARD } from './es.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SITE_DIR = join(__dirname, '..', 'site');
@@ -481,8 +482,9 @@ ${assoc.map(teaser).join('\n')}
 </div></section>
 
 <section class="surface"><div class="wrap">
-  <div class="sec-head"><h2>Recognition</h2></div>
-  <p style="text-align:center;color:var(--dim);margin:0">${esc(BUSINESSRATE)}</p>
+  <div class="sec-head"><h2>Recognition</h2><p>Earned from our verified customer reviews — separate from the licenses above.</p></div>
+  ${AWARD_BADGE}
+  <p style="text-align:center;color:var(--dim);margin:6px 0 0">${esc(BUSINESSRATE)}</p>
 </div></section>
 
 <section><div class="wrap">
@@ -529,12 +531,13 @@ const HAND_PAGES = [
   // NOTE: certifications/index.html is now GENERATED (renderCertHub), not hand-maintained.
 ];
 function patchHandPages() {
-  // Standard "Our Work" section (real on-domain photos belong on generated city
-  // pages; the hand pages get the live Google images widget only).
-  const ourWork = `<section class="surface"><div class="wrap">
-  <div class="sec-head"><h2>Our Work</h2><p>Recent jobs and photos from our Google Business Profile.</p></div>
-  ${IMAGES_WIDGET}
-</div></section>`;
+  // The Google images widget was removed; in its place the hand pages (homepage +
+  // service pages) get an on-brand "Follow us" social row. (The regex still keys
+  // on the old "Our Work" heading to find the section to replace.)
+  const ourWork = `<section class="surface"><div class="wrap"><div class="social-follow">
+  <div class="sec-head"><h2>See Our Work — Follow Turbo Keysmith</h2><p>Latest jobs, tips, and reviews on social.</p></div>
+  ${socialIcons()}
+</div></div></section>`;
   for (const rp of HAND_PAGES) {
     const full = join(SITE_DIR, rp);
     if (!existsSync(full)) { console.warn('  skip (missing):', rp); continue; }
@@ -611,6 +614,7 @@ function esHeader(d) {
       <a href="${a}pay-now/">${esc(N.payNow)}</a>
     </nav>
     <a class="head-call" href="tel:${PHONE_E164}"><span class="btn btn-call">📞 ${PHONE_DISPLAY}</span></a>
+    ${socialIcons('bar-social')}
     <button class="navtoggle" aria-label="Menú" onclick="document.getElementById('m').classList.toggle('open')">☰</button>
   </div>
   <nav class="mobile" id="m">
@@ -625,6 +629,7 @@ function esHeader(d) {
     <a href="${e}certifications/">${esc(N.certifications)}</a>
     <a href="${e}faq/">${esc(N.faq)}</a>
     <a href="${a}pay-now/">${esc(N.payNow)}</a>
+    ${socialIcons('mobile-social')}
   </nav>
 </header>`;
 }
@@ -652,10 +657,7 @@ function esFooter(d) {
       <a href="${e}oklahoma-city/">Oklahoma City</a><a href="${e}edmond/">Edmond</a>
       <a href="${e}norman/">Norman</a><a href="${e}yukon/">Yukon</a></div>
   </div>
-  <div class="social" style="margin-top:22px">
-    <a href="https://www.facebook.com/247826765080233">Facebook</a><a href="https://www.instagram.com/turbokeysmith/">Instagram</a>
-    <a href="https://www.tiktok.com/@turbokeysmith">TikTok</a><a href="https://www.youtube.com/@TurboKeysmith">YouTube</a>
-  </div>
+  <div style="margin-top:22px">${socialIcons()}</div>
   <div class="legal"><span>${esc(F.copyright)} · <a href="${e}terms/" style="color:inherit">${esc(N.terms)}</a></span>
     <a class="staff-login" href="${a}../cloud-test.html" rel="nofollow">${esc(F.staff)}</a></div>
 </div></footer>`;
@@ -680,7 +682,8 @@ ${esMobilebar()}
 </body></html>
 `;
 }
-const esReviewSlot = (label) => `<div class="widget-slot"><b>${tt(U.reviewSlot, label)}</b>
+const esReviewSlot = (label) => `<div class="award-wrap"><span class="award-badge">${esc(ES_AWARD)}</span></div>
+  <div class="widget-slot"><b>${tt(U.reviewSlot, label)}</b>
     <small>${tt(U.reviewSlotSub, label)}</small></div>`;
 function esPhotoSlots(label, photos) {
   const W = U.work;
@@ -1146,7 +1149,8 @@ ${assoc.map(teaser).join('\n')}
 </div></section>
 <section class="surface"><div class="wrap">
   <div class="sec-head"><h2>${esc(L.recHead)}</h2></div>
-  <p style="text-align:center;color:var(--dim);margin:0">${esc(ES_BUSINESSRATE)}</p>
+  <div class="award-wrap"><span class="award-badge">${esc(ES_AWARD)}</span></div>
+  <p style="text-align:center;color:var(--dim);margin:6px 0 0">${esc(ES_BUSINESSRATE)}</p>
 </div></section>
 <section><div class="wrap">
   <p style="text-align:center;margin:0"><a class="btn btn-call btn-lg" href="${tel}">📞 ${PHONE_DISPLAY}</a></p>

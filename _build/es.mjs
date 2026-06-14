@@ -412,6 +412,8 @@ export const WARRTEASER = { title:'Garantía de Llaves de 6 Meses', body:'Cada l
 // ⚠️ Credential pages — accuracy matters; MUST be proofread by a fluent reviewer.
 export const CRED_REVIEW_NOTE = '⚠️ BORRADOR — Página de credenciales: la exactitud importa. Esta traducción debe ser revisada por un hablante nativo de español antes de publicar.';
 export const BUSINESSRATE = 'Cerrajero Mejor Calificado — BusinessRate (según reseñas verificadas de clientes).';
+// ⚠️ DRAFT — award claim, proofread before publish.
+export const AWARD = '🏆 Lo Mejor de 2026 · Cerrajero #1 en el Oeste de Oklahoma — BusinessRate';
 export const CERTHUB = {
   title:'Certificaciones, Licencias y Credenciales | Turbo Keysmith — Cerrajero de OKC',
   desc:'Turbo Keysmith es un cerrajero de Oklahoma con licencia y verificado: Google Verified, Licencia OK #AC441081, NASTF VSP, Certificado Keyless2Go, además de membresía en OMLA y OKBFAA. Llama 405-870-5397.',
