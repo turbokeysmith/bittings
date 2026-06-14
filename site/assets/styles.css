@@ -226,13 +226,18 @@ nav.mobile a,.mobilebar a{min-height:48px;}
    Social icon links (header / footer / "follow us")
    ============================================================ */
 .social-icons{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
-.social-icons a{display:inline-flex;align-items:center;justify-content:center;width:54px;height:54px;
+.social-icons a{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;
   border-radius:50%;border:1px solid var(--edge);background:#fff;color:var(--ink);padding:0;
   transition:background .15s,color .15s,border-color .15s;}
 .social-icons a:hover{background:var(--red);border-color:var(--red);color:#fff;}
-.social-icons svg{width:28px;height:28px;fill:currentColor;display:block;}
+.social-icons svg{width:24px;height:24px;fill:currentColor;display:block;}
+/* "Follow us" row (above the map): one row spanning the full width, icons sized
+   up to fill it. flex:1 lets all six share the width equally; aspect-ratio keeps
+   them circular; the cap stops them ballooning on wide desktops. */
 .social-follow{text-align:center;}
-.social-follow .social-icons{justify-content:center;margin-top:12px;}
+.social-follow .social-icons{flex-wrap:nowrap;justify-content:space-between;gap:10px;width:100%;margin-top:14px;}
+.social-follow .social-icons a{flex:1 1 0;width:auto;height:auto;max-width:96px;aspect-ratio:1/1;}
+.social-follow .social-icons svg{width:46%;height:46%;}
 /* dark footer variant */
 footer.site .social-icons a{background:transparent;border-color:rgba(255,255,255,.22);color:#c2cad3;}
 footer.site .social-icons a:hover{background:#fff;color:#15181c;border-color:#fff;}
