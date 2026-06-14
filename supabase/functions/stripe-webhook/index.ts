@@ -31,12 +31,21 @@ Deno.serve(async (req) => {
       const pi = event.data.object as Stripe.PaymentIntent;
       const full = await stripe.paymentIntents.retrieve(pi.id, { expand: ["latest_charge"] });
       const det: any = (full.latest_charge as any)?.payment_method_details || {};
+      const pmType = det.type ?? "unknown";                       // card | card_present | link | klarna | afterpay_clearpay | zip | amazon_pay | cashapp | ...
       const funding = det.card_present?.funding ?? det.card?.funding ?? "unknown";
       const brand = det.card_present?.brand ?? det.card?.brand ?? null;
+      // A digital wallet shows up as a card charge with card.wallet set
+      // (link / apple_pay / google_pay / amazon_pay / samsung_pay). Treat those as
+      // wallets, NOT a credit card, so they are never surcharged.
+      const wallet = det.card?.wallet?.type ?? null;
       const base = parseInt(full.metadata.base_cents || "0", 10);
       const surcharge = parseInt(full.metadata.surcharge_cents || "0", 10);
-      const isCredit = funding === "credit";
-      const captureAmount = isCredit ? base + surcharge : base;   // never surcharge debit/prepaid/unknown
+      // 2% applies to a genuine CREDIT CARD only — never debit/prepaid/unknown,
+      // never a wallet (Link/Apple/Google/Amazon Pay), and never a BNPL/non-card
+      // method (Klarna/Afterpay/Zip/Cash App Pay → their own pmType, funding "unknown").
+      const isPlainCard = (pmType === "card" || pmType === "card_present") && !wallet;
+      const isCredit = isPlainCard && funding === "credit";
+      const captureAmount = isCredit ? base + surcharge : base;
       if (full.status === "requires_capture") {
         await stripe.paymentIntents.capture(pi.id, { amount_to_capture: captureAmount });
       }

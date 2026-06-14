@@ -119,6 +119,7 @@ export function header(depth) {
       <a href="${r}residential/">Residential</a>
       <a href="${r}commercial/">Commercial</a>
       <a href="${r}emergency/">Emergency</a>
+      <a href="${r}financing/">Financing</a>
       <a href="${r}faq/">FAQ</a>
       <a href="${r}pay-now/">Pay Now</a>
     </nav>
@@ -131,6 +132,8 @@ export function header(depth) {
     <a href="${r}residential/">Residential</a>
     <a href="${r}commercial/">Commercial</a>
     <a href="${r}emergency/">Emergency</a>
+    <a href="${r}financing/">Financing</a>
+    <a href="${r}warranty/">Warranty</a>
     <a href="${r}blog/">Blog</a>
     <a href="${r}certifications/">Certifications</a>
     <a href="${r}faq/">FAQ</a>
@@ -160,6 +163,7 @@ export function footer(depth) {
       <a href="${r}automotive/">Automotive</a><a href="${r}residential/">Residential</a>
       <a href="${r}commercial/">Commercial</a><a href="${r}emergency/">Emergency</a></div>
     <div><h4>Company</h4>
+      <a href="${r}financing/">Financing</a><a href="${r}warranty/">Key Warranty</a>
       <a href="${r}blog/">Blog</a><a href="${r}certifications/">Certifications</a>
       <a href="${r}faq/">FAQ</a><a href="${r}pay-now/">Pay Now</a></div>
     <div><h4>Service Areas</h4>
@@ -174,7 +178,7 @@ export function footer(depth) {
     <a href="https://www.youtube.com/@TurboKeysmith">YouTube</a>
   </div>
   <div class="legal">
-    <span>Copyright © 2026 Turbo KeySmith — All Rights Reserved. · Licensed OK #AC441081</span>
+    <span>Copyright © 2026 Turbo KeySmith — All Rights Reserved. · Licensed OK #AC441081 · <a href="${r}terms/" style="color:inherit">Terms &amp; Conditions</a></span>
     <a class="staff-login" href="${r}../cloud-test.html" rel="nofollow">Staff Login</a>
   </div>
 </div></footer>`;

@@ -1186,6 +1186,7 @@ function askSignature(onDone){
   const row=document.createElement("div");
   row.className="row bot";
   row.innerHTML='<div class="sigwrap"><div class="il-title">CUSTOMER SIGNATURE</div>'+
+    '<div class="sig-auth" style="font-size:12px;color:#9aa3af;margin:0 0 8px;line-height:1.4">By signing, I authorize the work described and agree to Turbo Keysmith\'s <a href="https://turbokeysmith.com/terms" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Terms &amp; Conditions</a> (turbokeysmith.com/terms).</div>'+
     '<canvas id="sigCanvas" width="600" height="280"></canvas>'+
     '<div class="sig-actions">'+
       '<button class="sig-clear" id="sigClear">Clear</button>'+
@@ -2924,6 +2925,8 @@ function makePDF(r, lang, forCustomer){
     }else{
       try{ doc.addImage(r.signature,"PNG",40,sY+5,260,60); }catch(e){}
     }
+    doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(140,140,140);
+    doc.text("By signing, the customer authorized the work described and agreed to Turbo Keysmith's Terms & Conditions (turbokeysmith.com/terms).",40,sY+78,{maxWidth:520});
   }
 
   // footer

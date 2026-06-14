@@ -3,7 +3,16 @@
 Keep this updated after each work session. Status key: ✅ done · 🔨 in progress ·
 ⏸️ parked (waiting on a decision/credential) · ⬜ not started.*
 
-Last updated: 2026-06-13 22:55 CDT (Claude Code) — Public site finalized (Google widgets, schema/hours/cities, placeholders removed); Hosting decided (Cloudflare); Hours "Copy to…"; owner→manager + per-manager PINs
+Last updated: 2026-06-13 23:49 CDT (Claude Code) — Financing/Warranty/Terms pages + FAQ/payment/signature updates; public site finalized (widgets/schema/hours/cities); Cloudflare decided; Hours "Copy to…"; owner→manager + per-manager PINs
+
+> **New pages + payments/warranty (2026-06-13 late):** ✅ `/financing/` (nav+footer), `/warranty/`
+> (Automotive section + homepage teaser + footer), `/terms/` (footer + print-to-PDF) — all in the
+> generator. Financing teaser on homepage + 4 service pages. FAQ rewritten + 2 new Q&As (financing,
+> warranty) in visible page **and** FAQPage schema (8 Q). Nav/footer now single-source across all pages.
+> App: 2% surcharge confirmed **credit-card-only** and tightened so wallet-backed cards (Link/Apple/
+> Google Pay) are never surcharged (`stripe-webhook` — ⬜ redeploy needed). Invoice signature now carries
+> the T&C authorization line (screen + PDF). ⬜ Pending: attorney review of /terms/, real-device + Rich
+> Results once deployed.
 
 > **Public website (2026-06-13 PM):** ✅ **Finalized in the generator + regenerated.** localmarketingmanager
 > Google widgets wired in — **Reviews + Photos site-wide** (homepage + all city/sub pages, lazy-loaded),

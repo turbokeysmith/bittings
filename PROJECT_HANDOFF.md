@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-13 22:55 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-13 23:49 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -368,6 +368,40 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-13
+- **New pages: Financing, Warranty, Terms + FAQ/payment/warranty/signature updates (23:49):** all built
+  in the `_build/` generator and regenerated (sitemap now 105 URLs).
+  - **`/financing/` — "Affordable Locksmith & Payment Plans":** new page in the **main nav + footer**,
+    unique Title/Meta/H1, same schema/header/footer. Positions on value (not cheapest, best value) and
+    explains pay-later (Klarna/Afterpay/Zip, interest-free 4 payments) + wallets (Amazon Pay/Cash App
+    Pay/Link) + PayPal Pay-in-4 on request. Honest claim: "one of the only" locksmiths offering pay-later.
+    A **"Flexible financing available" teaser** links to it from the **homepage and all 4 service pages**.
+  - **`/warranty/` — "6-Month Key Warranty":** dedicated page (full coverage / exclusions / how-it-works
+    logistics), a **prominent warranty section on the Automotive page**, and a **homepage teaser**. Footer
+    + mobile-nav link. Positioned as a differentiator (local competitors don't publish defined warranties).
+  - **`/terms/` — Terms & Conditions / Service Agreement:** new page linked in the **footer legal line**,
+    with a **Download/Print PDF** button (browser print-to-PDF with a branded print header). Covers
+    authorization & ownership, pricing & payment, the 6-month key warranty, limitation of liability, and
+    agreement. ⚠️ **Have an attorney review** the authorization/warranty/liability clauses before relying
+    on it (flagged in an HTML comment too).
+  - **FAQ:** rewrote "How can I pay?" (cash, all cards, Amazon Pay/Cash App Pay/Link, + pay-later
+    Klarna/Afterpay/Zip, PayPal Pay-in-4 on request); **added** "Do you offer financing or payment plans?"
+    and "Do you warranty your car keys?". Visible page **and** FAQPage schema both updated (now 8 Q&As,
+    matched).
+  - **Nav/footer are now single-source:** `patchHandPages()` overwrites each hand page's header + footer
+    with the canonical `engine.header()/footer()`, so the Financing nav link + the Financing/Warranty/Terms
+    footer links appear on every page and stay consistent on regenerate.
+  - **App — surcharge (confirmed + tightened):** the 2% is **credit-card only** and always was for
+    cash/check and BNPL/wallet *types* (Klarna/Afterpay/Zip/Amazon Pay/Cash App Pay resolve to non-card
+    types → never surcharged). Closed one gap: a **wallet-backed card** (Link/Apple/Google Pay shows as a
+    card with `card.wallet` set) is now explicitly treated as a wallet and **never surcharged** — only a
+    genuine credit card (`type=card`/`card_present`, no wallet, `funding=credit`) gets the 2%. Edit is in
+    `supabase/functions/stripe-webhook/index.ts`; **needs redeploy** to take effect (still TEST mode).
+  - **App — invoice signature:** added the authorization line by the signature pad **and** on the printed
+    receipt/PDF: "By signing, I authorize the work described and agree to Turbo Keysmith's Terms &
+    Conditions (turbokeysmith.com/terms)." Kept in agreement with the website Warranty + Terms.
+  - *Checks:* JSON-LD parses on the new pages + FAQ (8 Q); nav/footer links verified; bittings.html JS
+    syntax-clean. **Pending:** real-device look (iPhone/Android) + Google Rich Results Test once deployed;
+    redeploy the webhook for the surcharge tightening; attorney review of `/terms/`.
 - **Public site finalized — Google widgets integrated, schema/hours/cities locked, placeholders gone (22:55):**
   Did it all in the generator (`_build/`) and regenerated, so it survives future rebuilds.
   - **Widgets (localmarketingmanager.com Live Google Business):** the three iframe widgets are now

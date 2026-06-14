@@ -17,7 +17,7 @@ function walk(dir){
 walk(ROOT);
 
 const SERVICES = {automotive:'Automotive', residential:'Residential', commercial:'Commercial', emergency:'Emergency'};
-const INFO = {faq:'FAQ', blog:'Blog', certifications:'Certifications', 'pay-now':'Pay Now', 'service-areas':'Service Areas hub', contact:'Contact'};
+const INFO = {faq:'FAQ', blog:'Blog', certifications:'Certifications', 'pay-now':'Pay Now', 'service-areas':'Service Areas hub', contact:'Contact', financing:'Financing', warranty:'Warranty', terms:'Terms & Conditions'};
 const titleCase = s => s.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
 function target(rel){
   const segs = rel.split('/').filter(Boolean);
