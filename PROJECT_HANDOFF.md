@@ -395,13 +395,14 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
     types → never surcharged). Closed one gap: a **wallet-backed card** (Link/Apple/Google Pay shows as a
     card with `card.wallet` set) is now explicitly treated as a wallet and **never surcharged** — only a
     genuine credit card (`type=card`/`card_present`, no wallet, `funding=credit`) gets the 2%. Edit is in
-    `supabase/functions/stripe-webhook/index.ts`; **needs redeploy** to take effect (still TEST mode).
+    `supabase/functions/stripe-webhook/index.ts` and is now **DEPLOYED LIVE** (2026-06-14, version 3,
+    `verify_jwt:false` preserved; still TEST mode).
   - **App — invoice signature:** added the authorization line by the signature pad **and** on the printed
     receipt/PDF: "By signing, I authorize the work described and agree to Turbo Keysmith's Terms &
     Conditions (turbokeysmith.com/terms)." Kept in agreement with the website Warranty + Terms.
   - *Checks:* JSON-LD parses on the new pages + FAQ (8 Q); nav/footer links verified; bittings.html JS
-    syntax-clean. **Pending:** real-device look (iPhone/Android) + Google Rich Results Test once deployed;
-    redeploy the webhook for the surcharge tightening; attorney review of `/terms/`.
+    syntax-clean; **stripe-webhook redeployed live (v3) and verified**. **Pending:** real-device look
+    (iPhone/Android) + Google Rich Results Test once the site is deployed; attorney review of `/terms/`.
 - **Public site finalized — Google widgets integrated, schema/hours/cities locked, placeholders gone (22:55):**
   Did it all in the generator (`_build/`) and regenerated, so it survives future rebuilds.
   - **Widgets (localmarketingmanager.com Live Google Business):** the three iframe widgets are now
