@@ -226,11 +226,11 @@ nav.mobile a,.mobilebar a{min-height:48px;}
    Social icon links (header / footer / "follow us")
    ============================================================ */
 .social-icons{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
-.social-icons a{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;
+.social-icons a{display:inline-flex;align-items:center;justify-content:center;width:54px;height:54px;
   border-radius:50%;border:1px solid var(--edge);background:#fff;color:var(--ink);padding:0;
   transition:background .15s,color .15s,border-color .15s;}
 .social-icons a:hover{background:var(--red);border-color:var(--red);color:#fff;}
-.social-icons svg{width:24px;height:24px;fill:currentColor;display:block;}
+.social-icons svg{width:28px;height:28px;fill:currentColor;display:block;}
 .social-follow{text-align:center;}
 .social-follow .social-icons{justify-content:center;margin-top:12px;}
 /* dark footer variant */
@@ -238,8 +238,8 @@ footer.site .social-icons a{background:transparent;border-color:rgba(255,255,255
 footer.site .social-icons a:hover{background:#fff;color:#15181c;border-color:#fff;}
 /* compact set in the sticky header bar — desktop only */
 .bar-social{display:none;}
-.bar-social a{width:38px;height:38px;}
-.bar-social svg{width:20px;height:20px;}
+.bar-social a{width:42px;height:42px;}
+.bar-social svg{width:22px;height:22px;}
 @media (min-width:960px){ .bar-social{display:flex;} }
 /* social row inside the mobile menu */
 .mobile-social{padding:12px 18px;border-bottom:1px solid var(--edge);}
