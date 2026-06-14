@@ -632,16 +632,23 @@
     quickLinks: DEFAULT_QUICKLINKS.map(function (c) { return { key: c.key, label: c.label, icon: c.icon, links: c.links.slice() }; }),
     serviceCats: [],                    // categories the shop offers (Setup step 1)
     services: [],                       // the offered services [{value,cat,price,en,es}] (Setup step 2)
-    // hours: per-day { mode:'open'|'closed'|'24', open:'HH:MM', close:'HH:MM' }
+    // hours: STOREFRONT/walk-in hours. per-day { mode:'open'|'closed'|'24', open:'HH:MM', close:'HH:MM' }
     hours: { mon:{mode:'open',open:'08:00',close:'17:00'}, tue:{mode:'open',open:'08:00',close:'17:00'},
              wed:{mode:'open',open:'08:00',close:'17:00'}, thu:{mode:'open',open:'08:00',close:'17:00'},
              fri:{mode:'open',open:'08:00',close:'17:00'}, sat:{mode:'open',open:'08:00',close:'17:00'},
              sun:{mode:'closed',open:'08:00',close:'17:00'} },
+    // serviceHours: MOBILE/field service hours (when you take jobs) — separate from the
+    // storefront. Same per-day shape; an overnight window is open<close (e.g. 00:00–04:00).
+    serviceHours: { mon:{mode:'24',open:'00:00',close:'23:30'}, tue:{mode:'24',open:'00:00',close:'23:30'},
+             wed:{mode:'24',open:'00:00',close:'23:30'}, thu:{mode:'24',open:'00:00',close:'23:30'},
+             fri:{mode:'24',open:'00:00',close:'23:30'}, sat:{mode:'24',open:'00:00',close:'23:30'},
+             sun:{mode:'closed',open:'00:00',close:'04:00'} },
     setup: { completed: false, done: {}, skipped: {} }   // per-step progress
   };
   // Coerce hours to the structured per-day object (migrates the old free-text string).
-  function normalizeHours(h) {
-    var days = ['mon','tue','wed','thu','fri','sat','sun'], def = CONFIG_DEFAULTS.hours, out = {};
+  function normalizeHours(h, def) {
+    var days = ['mon','tue','wed','thu','fri','sat','sun'], out = {};
+    def = def || CONFIG_DEFAULTS.hours;
     var src = (h && typeof h === 'object' && !Array.isArray(h)) ? h : {};
     days.forEach(function (d) {
       var dd = src[d] || {};
@@ -682,7 +689,8 @@
       // categories offered: explicit list, else derived from the saved services' cats
       serviceCats: (Array.isArray(c.serviceCats) && c.serviceCats.length) ? c.serviceCats
         : (Array.isArray(c.services) ? Object.keys(c.services.reduce(function (a, s) { if (s && s.cat) a[s.cat] = 1; return a; }, {})) : []),
-      hours: normalizeHours(c.hours),
+      hours: normalizeHours(c.hours, d.hours),
+      serviceHours: normalizeHours(c.serviceHours, d.serviceHours),
       setup: Object.assign({ completed: false, done: {}, skipped: {} }, c.setup || {})
     };
   }
@@ -746,6 +754,42 @@
         return this.ownerEmails().indexOf(e.toLowerCase()) !== -1;
       },
       role: function () { var e = this.email(); return !e ? 'guest' : (this.isOwner() ? 'owner' : 'staff'); },
+      // --- Per-manager PINs (no-login fallback) -------------------------------
+      // Each manager (an employee row marked as a manager) can have their OWN PIN.
+      // managerByPin(entered) returns the matching manager {name,email} if the
+      // entered digits equal ANY manager's personal PIN, OR a generic {name:'Manager'}
+      // if they equal the shared fallback PIN (Setup quickFormPin / cloud-config
+      // default). Returns null on no match. This lets several managers each have a
+      // distinct PIN while keeping the old single-PIN fallback working.
+      managerByPin: function (entered) {
+        entered = String(entered == null ? '' : entered).trim();
+        if (!entered) return null;
+        try {
+          var emps = getConfig().access.employees || [];
+          for (var i = 0; i < emps.length; i++) {
+            var e = emps[i];
+            if (e && e.owner && e.pin && String(e.pin).trim() === entered)
+              return { name: (e.name || e.email || 'Manager'), email: (e.email || '') };
+          }
+        } catch (e) {}
+        var shared = '';
+        try { shared = getConfig().access.quickFormPin || ''; } catch (e) {}
+        if (!shared && global.TKS_OWNER && global.TKS_OWNER.QUICK_FORM_PIN) shared = String(global.TKS_OWNER.QUICK_FORM_PIN);
+        if (shared && String(shared).trim() === entered) return { name: 'Manager', email: '' };
+        return null;
+      },
+      // True if ANY PIN gate exists (a manager has a personal PIN, or a shared
+      // fallback PIN is configured). Used to decide whether to offer a PIN prompt.
+      hasManagerPin: function () {
+        try {
+          var emps = getConfig().access.employees || [];
+          for (var i = 0; i < emps.length; i++) { if (emps[i] && emps[i].owner && String(emps[i].pin || '').trim()) return true; }
+        } catch (e) {}
+        var shared = '';
+        try { shared = getConfig().access.quickFormPin || ''; } catch (e) {}
+        if (!shared && global.TKS_OWNER && global.TKS_OWNER.QUICK_FORM_PIN) shared = String(global.TKS_OWNER.QUICK_FORM_PIN);
+        return !!String(shared).trim();
+      },
       signOut: function () { return (authState.sb && authState.sb.auth) ? authState.sb.auth.signOut() : Promise.resolve(); }
     },
 
@@ -768,6 +812,7 @@
       services: function () { return getConfig().services; },
       serviceCats: function () { return getConfig().serviceCats; },
       hours: function () { return getConfig().hours; },
+      serviceHours: function () { return getConfig().serviceHours; },
       setupState: function () { return getConfig().setup; },
       isSetupComplete: function () { return !!getConfig().setup.completed; },
       // Owner PIN: wizard value wins, else the cloud-config.js bootstrap default.
@@ -786,7 +831,7 @@
           if (partial[g]) merged[g] = Object.assign({}, cur[g], partial[g]);
         });
         if (partial.taxableByCategory) merged.taxableByCategory = Object.assign({}, cur.taxableByCategory, partial.taxableByCategory);
-        ['taxRate', 'quickLinks', 'services', 'serviceCats', 'hours'].forEach(function (k) { if (partial[k] !== undefined) merged[k] = partial[k]; });
+        ['taxRate', 'quickLinks', 'services', 'serviceCats', 'hours', 'serviceHours'].forEach(function (k) { if (partial[k] !== undefined) merged[k] = partial[k]; });
         configCache = mergeConfig(merged);
         write(CONFIG_LSKEY, configCache);
         if (authState.sb) {

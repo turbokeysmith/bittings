@@ -307,11 +307,11 @@
         <div class="ic">📦</div><h2>Inventory</h2><p>Parts, stock &amp; low-stock alerts.</p>
       </button>
       <button class="tile t-closeout owner-only" data-go="history" style="display:none">
-        <span class="owner-pin">OWNER</span>
+        <span class="owner-pin">MANAGER</span>
         <div class="ic">🧮</div><h2>Closeout</h2><p>Count today’s drawer.</p>
       </button>
       <button class="tile t-reports owner-only" data-go="reports" style="display:none">
-        <span class="owner-pin">OWNER</span>
+        <span class="owner-pin">MANAGER</span>
         <div class="ic">📊</div><h2>Transaction History</h2><p>Totals, profit &amp; graphs.</p>
       </button>
     </div>
@@ -888,15 +888,15 @@ function chgGate(){
   _chgUnlocked=false; const e=chgEls();
   try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn()){
     if(TKS.auth.isOwner()){ chgShowForm(); return; }
-    e.form.style.display='none'; e.gate.style.display='block'; e.gate.textContent="Taking payments is owner-only — you're signed in as staff."; return;
+    e.form.style.display='none'; e.gate.style.display='block'; e.gate.textContent="Taking payments is manager-only — you're signed in as staff."; return;
   } }catch(_){}
-  const pin=(window.TKS && TKS.Config) ? TKS.Config.ownerPin() : (window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN);
+  const hasPin=(window.TKS && TKS.auth) ? TKS.auth.hasManagerPin() : !!(window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN);
   e.form.style.display='none'; e.gate.style.display='block';
-  if(!pin){ e.gate.textContent='Owner sign-in required to take a payment.'; return; }
-  function pinPrompt(){ const v=prompt('Owner PIN to take a payment:'); if(v===null) return;
-    if(String(v)===String(pin)) chgShowForm();
+  if(!hasPin){ e.gate.textContent='Manager sign-in required to take a payment.'; return; }
+  function pinPrompt(){ const v=prompt('Manager PIN to take a payment:'); if(v===null) return;
+    if(window.TKS && TKS.auth && TKS.auth.managerByPin(v)) chgShowForm();
     else { e.gate.innerHTML='Wrong PIN. <button class="btn ghostbtn" id="chgPinBtn">Try again</button>'; document.getElementById('chgPinBtn').onclick=pinPrompt; } }
-  e.gate.innerHTML='Owner-only. <button class="btn ghostbtn" id="chgPinBtn">Unlock with PIN</button>';
+  e.gate.innerHTML='Manager-only. <button class="btn ghostbtn" id="chgPinBtn">Unlock with PIN</button>';
   document.getElementById('chgPinBtn').onclick=pinPrompt;
 }
 function chgAmounts(){ const e=chgEls(); const sub=parseFloat(e.amt.value)||0; const sur=Math.round(sub*2)/100; return { sub, sur, total:Math.round((sub+sur)*100)/100, cents:Math.round(sub*100) }; }
@@ -1073,7 +1073,7 @@ function renderDrawer(){
       '<div class="denoms">'+rows+'</div>'+
       '<div class="floatrow"><label for="drawerFloat">Starting float'+(carried?' (carried from last close)':' (from Settings)')+'</label>'+
         '<div class="amountwrap"><span>$</span><input id="drawerFloat" type="number" inputmode="decimal" step="0.01" min="0" value="'+floatVal+'" oninput="recalcDrawer()" aria-label="Starting float, in dollars"></div></div>'+
-      '<p class="dsub" style="margin:6px 2px 0">This is what the drawer opened with (you keep it for tomorrow). Edit it to change the starting float — owner only. The standard float lives in Settings → Payments.</p>'+
+      '<p class="dsub" style="margin:6px 2px 0">This is what the drawer opened with (you keep it for tomorrow). Edit it to change the starting float — managers only. The standard float lives in Settings → Payments.</p>'+
       '<div class="drawer-tot" id="drawerTotals"></div>'+
       '<div class="drawer-actions">'+
         '<button class="primary" onclick="openDepositSlip()">⬇ View / Download PDF</button>'+
@@ -1140,7 +1140,7 @@ function fallbackCopy(txt){
   catch(e){ alert('Copy not supported here — long-press the on-screen totals to select.'); }
 }
 function copyDepositSummary(){
-  if(!ownerHard()){ alert('Owner only.'); return; }
+  if(!ownerHard()){ alert('Managers only.'); return; }
   const d=depositData();
   finalizeCloseout(d);
   const txt=depositSummaryText(d);
@@ -1209,7 +1209,7 @@ function downloadBlob(res){
 // Opens the PDF in a new tab (so it's viewable inline); falls back to a direct
 // download if the tab is blocked.
 function openDepositSlip(){
-  if(!ownerHard()){ alert('Owner only.'); return; }
+  if(!ownerHard()){ alert('Managers only.'); return; }
   const d=depositData();
   finalizeCloseout(d);
   const res=makeDepositPDF(d);
@@ -1220,7 +1220,7 @@ function openDepositSlip(){
   setTimeout(()=>URL.revokeObjectURL(url), 60000);
 }
 function shareDepositSlip(){
-  if(!ownerHard()){ alert('Owner only.'); return; }
+  if(!ownerHard()){ alert('Managers only.'); return; }
   const d=depositData();
   finalizeCloseout(d);
   const id=(window.TKS&&TKS.Config)?(TKS.Config.identity()||{}):{};
@@ -1449,7 +1449,7 @@ function updateAuthUI(){
   if(a && a.isSignedIn()){
     const owner = a.isOwner();
     bar.innerHTML = '<span>Signed in: <b>'+esc2(a.email())+'</b></span>'+
-      '<span class="rolebadge '+(owner?'owner':'staff')+'">'+(owner?'OWNER':'STAFF')+'</span>'+
+      '<span class="rolebadge '+(owner?'owner':'staff')+'">'+(owner?'MANAGER':'STAFF')+'</span>'+
       setupLinkHTML()+
       '<button id="signOutBtn">Sign out</button>';
     const so = document.getElementById('signOutBtn');

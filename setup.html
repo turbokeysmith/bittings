@@ -75,11 +75,13 @@
   .emp-row input.tx{flex:1 1 40%;min-width:120px;}
   .emp-own{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim);white-space:nowrap;}
   .emp-own input{width:18px;height:18px;flex:0 0 auto;min-width:0;}
+  .emp-row input.e_pin{flex:0 0 92px;min-width:72px;}
   /* business hours editor */
   .hours-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;}
   .hours-row .hd{flex:0 0 38px;font-weight:700;font-size:13px;color:var(--ink);}
   .hours-row select{width:auto;flex:1 1 90px;min-width:84px;padding:8px 9px;}
   .hours-row .h_to{color:var(--dim);font-size:13px;flex:0 0 auto;}
+  .hours-row select.h_copy{flex:0 0 auto;min-width:104px;width:auto;font-size:12px;color:var(--dim);}
   .logo-prev{display:flex;align-items:center;gap:12px;margin:5px 0;}
   .logo-prev img{height:42px;width:auto;max-width:140px;object-fit:contain;background:#11141a;border:1px solid var(--edge);border-radius:8px;padding:4px;}
   .nav{display:flex;gap:8px;flex-wrap:wrap;}
@@ -124,7 +126,7 @@ const STEPS = [
   {key:'identity', title:'Business identity'},
   {key:'tax',      title:'Sales tax'},
   {key:'payments', title:'Payments'},
-  {key:'access',   title:'Access & owner'},
+  {key:'access',   title:'Access & managers'},
   {key:'quicklinks',title:'Quick links'},
   {key:'servicetypes',title:'Service types'},
   {key:'services', title:'Services'},
@@ -141,7 +143,7 @@ function isStaff(){ try{ return TKS.auth.isSignedIn() && !TKS.auth.isOwner(); }c
 /* ---- boot: connect cloud (so config syncs), gate, then render ---- */
 (function boot(){
   function go(){
-    if(isStaff()){ wrap.innerHTML = '<div class="block"><h2>Owner only</h2><p>Setup &amp; Settings are owner-only. Ask the owner to make changes.</p><p><a class="ghost" href="index.html">‹ Back to the app</a></p></div>'; return; }
+    if(isStaff()){ wrap.innerHTML = '<div class="block"><h2>Managers only</h2><p>Setup &amp; Settings are manager-only. Ask a manager to make changes.</p><p><a class="ghost" href="index.html">‹ Back to the app</a></p></div>'; return; }
     cfg = JSON.parse(JSON.stringify(TKS.Config.get()));
     // jump to first incomplete step on first run; else start at identity
     if(!TKS.Config.isSetupComplete()){
@@ -232,13 +234,13 @@ function renderPanel(key){
       '<div class="note"><b>Stripe keys — never typed into this page.</b> Your <b>secret key</b> lives only as a Supabase Edge Function secret (<code>STRIPE_SECRET_KEY</code>) — set it in the Supabase dashboard, never here. Your <b>publishable key</b> (<code>pk_…</code>) is entered once on the Pay screen when you take a typed-card payment. This keeps you PCI-safe (no card data or secret ever touches the app).</div>';
   }
   else if(key==='access'){
-    p.innerHTML = '<h2>Access &amp; owner</h2><div class="sub">Your team. Tick <b>Owner</b> for anyone who should see owner-only tools (Closeout, Transaction History, taking payments, Setup); everyone else gets the everyday tools.</div>'+
+    p.innerHTML = '<h2>Access &amp; managers</h2><div class="sub">Your team. Tick <b>Manager</b> for anyone who should see manager-only tools (Closeout, Transaction History, taking payments, Setup); everyone else gets the everyday tools. Give each manager their <b>own PIN</b> — it unlocks those tools on a signed-out/offline device.</div>'+
       '<label>Employees</label><div id="emplist"></div><button type="button" class="addbtn" id="empAdd">+ Add user</button>'+
-      '<div class="hint">Owner powers follow the email of any row marked Owner. (The bootstrap owner in cloud-config.js is always an owner — you can\'t lock yourself out.)</div>'+
-      '<label>Owner PIN (fallback when nobody is signed in)</label><input id="f_pin" value="'+esc(ac.quickFormPin||'')+'" placeholder="e.g. 1234" inputmode="numeric">'+
-      '<div class="hint">Unlocks owner actions (New Charge, Quick invoice) on a signed-out/offline device. Leave blank to require owner sign-in.</div>'+
+      '<div class="hint">Manager powers follow the email of any row marked Manager. (The bootstrap manager in cloud-config.js is always a manager — you can\'t lock yourself out.) Each manager\'s PIN is personal; any manager\'s PIN unlocks manager actions when nobody is signed in.</div>'+
+      '<label>Shared fallback PIN (optional)</label><input id="f_pin" value="'+esc(ac.quickFormPin||'')+'" placeholder="e.g. 1234" inputmode="numeric">'+
+      '<div class="hint">An extra PIN that also unlocks manager actions when nobody is signed in — handy if you\'d rather use one shop PIN instead of (or alongside) personal manager PINs. Leave blank to require a personal manager PIN or sign-in.</div>'+
       '<label class="toggle"><input type="checkbox" id="f_qiEnabled" '+(ac.quickInvoiceEnabled!==false?'checked':'')+'> Enable the Receipts <b>Quick invoice</b> shortcut</label>'+
-      '<label class="toggle"><input type="checkbox" id="f_qiDefault" '+(ac.quickInvoiceDefault?'checked':'')+'> Open Quick invoice automatically for the owner</label>';
+      '<label class="toggle"><input type="checkbox" id="f_qiDefault" '+(ac.quickInvoiceDefault?'checked':'')+'> Open Quick invoice automatically for a signed-in manager</label>';
     if(!cfg.access.employees || !cfg.access.employees.length){ cfg.access.employees = (cfg.access.employees&&cfg.access.employees.length)?cfg.access.employees:[{name:'',email:'',owner:true}]; }
     renderEmployees();
     document.getElementById('empAdd').onclick=()=>{ cfg.access.employees.push({name:'',email:'',owner:false}); renderEmployees(); };
@@ -266,10 +268,12 @@ function renderPanel(key){
     renderServices();
   }
   else if(key==='hours'){
-    p.innerHTML = '<h2>Hours &amp; receipt footer</h2><div class="sub">Optional. Set the days you\'re open and the times. The footer prints at the bottom of receipts.</div>'+
-      '<label>Business hours</label><div id="hoursEd"></div>'+
-      '<label style="margin-top:12px">Receipt footer line (optional)</label><input id="f_footer" value="'+esc(id.footer||'')+'" placeholder="Insured &amp; Bonded · Thank you!">';
-    renderHoursEditor();
+    p.innerHTML = '<h2>Hours &amp; receipt footer</h2><div class="sub">Optional. Keep two separate schedules: when your <b>shop/storefront</b> is open for walk-ins, and when you <b>take service jobs</b> in the field (these often differ — e.g. a shop open 10–6 but service running overnight). For an overnight window, set the close time past midnight on the next day (e.g. Sunday 12:00 AM–4:00 AM covers Saturday night). <b>Tip:</b> set one day, then use <b>⧉ Copy to…</b> on that row to reuse it for all days, weekdays (Mon–Fri), or the weekend.</div>'+
+      '<label>🏪 Shop / storefront hours <span class="hint" style="font-weight:400">(walk-ins)</span></label><div id="hoursEd"></div>'+
+      '<label style="margin-top:14px">🚐 Service hours <span class="hint" style="font-weight:400">(when you take jobs)</span></label><div id="svcHoursEd"></div>'+
+      '<label style="margin-top:14px">Receipt footer line (optional)</label><input id="f_footer" value="'+esc(id.footer||'')+'" placeholder="Insured &amp; Bonded · Thank you!">';
+    renderHoursEditor('hoursEd','hours');
+    renderHoursEditor('svcHoursEd','serviceHours');
   }
   else if(key==='inventory'){
     p.innerHTML='<h2>Inventory (optional)</h2><div class="sub">Already have a parts list in a spreadsheet? Import it now — upload an .xlsx or .csv, match your columns to the app\'s fields, preview, and import. Duplicates are skipped.</div>'+
@@ -360,20 +364,24 @@ function renderEmployees(){
   el.innerHTML = cfg.access.employees.map((e,i)=>'<div class="emp-row">'+
     '<input class="tx e_name" data-i="'+i+'" placeholder="Name" value="'+esc(e.name||'')+'">'+
     '<input class="tx e_email" data-i="'+i+'" type="email" placeholder="name@example.com" value="'+esc(e.email||'')+'">'+
-    '<label class="emp-own"><input type="checkbox" class="e_owner" data-i="'+i+'" '+(e.owner?'checked':'')+'>Owner</label>'+
+    '<label class="emp-own"><input type="checkbox" class="e_owner" data-i="'+i+'" '+(e.owner?'checked':'')+'>Manager</label>'+
+    '<input class="tx e_pin" data-i="'+i+'" inputmode="numeric" placeholder="PIN" value="'+esc(e.pin||'')+'"'+(e.owner?'':' style="display:none"')+'>'+
     '<button type="button" class="del" data-i="'+i+'">&times;</button></div>').join('');
   el.querySelectorAll('.e_name').forEach(x=> x.oninput=()=> cfg.access.employees[+x.dataset.i].name=x.value);
   el.querySelectorAll('.e_email').forEach(x=> x.oninput=()=> cfg.access.employees[+x.dataset.i].email=x.value);
-  el.querySelectorAll('.e_owner').forEach(x=> x.onchange=()=> cfg.access.employees[+x.dataset.i].owner=x.checked);
+  el.querySelectorAll('.e_owner').forEach(x=> x.onchange=()=>{ cfg.access.employees[+x.dataset.i].owner=x.checked; renderEmployees(); });
+  el.querySelectorAll('.e_pin').forEach(x=> x.oninput=()=> cfg.access.employees[+x.dataset.i].pin=x.value.trim());
   el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.access.employees.splice(+b.dataset.i,1); renderEmployees(); });
 }
 const HOURS_DAYS=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri'],['sat','Sat'],['sun','Sun']];
 function timeOpts(sel){ let o=''; for(let h=0;h<24;h++){ for(const m of [0,30]){ const v=(h<10?'0':'')+h+':'+(m<10?'0':'')+m; const ap=h<12?'AM':'PM'; const hh=h%12||12; o+='<option value="'+v+'"'+(sel===v?' selected':'')+'>'+hh+':'+(m<10?'0':'')+m+' '+ap+'</option>'; } } return o; }
-function renderHoursEditor(){
-  const el=document.getElementById('hoursEd'); if(!el) return;
-  if(!cfg.hours || typeof cfg.hours!=='object') cfg.hours={};
+function renderHoursEditor(elId, key){
+  const el=document.getElementById(elId); if(!el) return;
+  if(!cfg[key] || typeof cfg[key]!=='object') cfg[key]={};
+  const H=cfg[key];
   el.innerHTML = HOURS_DAYS.map(([dk,dl])=>{
-    const d = cfg.hours[dk] || {mode:'closed',open:'08:00',close:'17:00'};
+    if(!H[dk] || typeof H[dk]!=='object') H[dk]={mode:'closed',open:'08:00',close:'17:00'};
+    const d = H[dk];
     const open = d.mode==='open';
     return '<div class="hours-row"><span class="hd">'+dl+'</span>'+
       '<select class="h_mode" data-d="'+dk+'"><option value="open"'+(d.mode==='open'?' selected':'')+'>Open</option>'+
@@ -381,11 +389,25 @@ function renderHoursEditor(){
         '<option value="24"'+(d.mode==='24'?' selected':'')+'>24 hours</option></select>'+
       '<select class="h_open" data-d="'+dk+'"'+(open?'':' style="display:none"')+'>'+timeOpts(d.open)+'</select>'+
       '<span class="h_to"'+(open?'':' style="display:none"')+'>to</span>'+
-      '<select class="h_close" data-d="'+dk+'"'+(open?'':' style="display:none"')+'>'+timeOpts(d.close)+'</select></div>';
+      '<select class="h_close" data-d="'+dk+'"'+(open?'':' style="display:none"')+'>'+timeOpts(d.close)+'</select>'+
+      '<select class="h_copy" data-d="'+dk+'" title="Copy this day\'s hours to other days">'+
+        '<option value="">⧉ Copy to…</option>'+
+        '<option value="all">All days</option>'+
+        '<option value="weekdays">Mon–Fri</option>'+
+        '<option value="weekend">Sat–Sun</option></select></div>';
   }).join('');
-  el.querySelectorAll('.h_mode').forEach(s=> s.onchange=()=>{ cfg.hours[s.dataset.d].mode=s.value; renderHoursEditor(); });
-  el.querySelectorAll('.h_open').forEach(s=> s.onchange=()=> cfg.hours[s.dataset.d].open=s.value);
-  el.querySelectorAll('.h_close').forEach(s=> s.onchange=()=> cfg.hours[s.dataset.d].close=s.value);
+  el.querySelectorAll('.h_mode').forEach(s=> s.onchange=()=>{ H[s.dataset.d].mode=s.value; renderHoursEditor(elId,key); });
+  el.querySelectorAll('.h_open').forEach(s=> s.onchange=()=> H[s.dataset.d].open=s.value);
+  el.querySelectorAll('.h_close').forEach(s=> s.onchange=()=> H[s.dataset.d].close=s.value);
+  el.querySelectorAll('.h_copy').forEach(s=> s.onchange=()=>{
+    const src=s.dataset.d, v=s.value; if(!v){ return; }
+    const groups={all:['mon','tue','wed','thu','fri','sat','sun'], weekdays:['mon','tue','wed','thu','fri'], weekend:['sat','sun']};
+    const targets=(groups[v]||[]).filter(dk=>dk!==src);
+    const sd=H[src]; let n=0;
+    targets.forEach(dk=>{ H[dk]={mode:sd.mode, open:sd.open, close:sd.close}; n++; });
+    renderHoursEditor(elId,key);
+    try{ flash('Copied '+(HOURS_DAYS.find(x=>x[0]===src)||[,src])[1]+'’s hours to '+n+' day'+(n===1?'':'s')+'.'); }catch(e){}
+  });
 }
 // Compact readable summary for the Review step, grouping consecutive same-schedule days.
 function hoursSummary(h){
@@ -473,11 +495,15 @@ function renderReview(p){
     ['Business identity','identity', id.name? (id.name+(id.phone?(' · '+id.phone):'')) : ''],
     ['Sales tax','tax', cfg.taxRate? (cfg.taxRate+'%') : 'No rate set'],
     ['Payments','payments', (cfg.payments.surchargePct!=null?cfg.payments.surchargePct:2)+'% credit surcharge · $'+(((cfg.payments.drawerFloatCents!=null?cfg.payments.drawerFloatCents:12000)/100).toFixed(2))+' drawer float'],
-    ['Access & owner','access', (emps.length? (emps.length+' user(s), '+owners+' owner(s)') : '') + (ac.quickFormPin?' · PIN set':'')],
+    ['Access & managers','access', (emps.length? (emps.length+' user(s), '+owners+' manager(s)') : '') + (emps.filter(e=>e.owner && (e.pin||'').trim()).length?(' · '+emps.filter(e=>e.owner && (e.pin||'').trim()).length+' personal PIN(s)'):'') + (ac.quickFormPin?' · shared PIN set':'')],
     ['Quick links','quicklinks', (function(){ let n=0; (cfg.quickLinks||[]).forEach(c=>n+=(c.links||[]).length); return n+' link(s)'; })()],
     ['Service types','servicetypes', (cfg.serviceCats||[]).map(c=>SVC_CAT_LABEL[c]||c).join(', ')],
     ['Services','services', cfg.services.length+' offered'+(cfg.services.filter(s=>(s.price||'').trim()).length?(' · '+cfg.services.filter(s=>(s.price||'').trim()).length+' priced'):'')],
-    ['Hours & footer','hours', [hoursSummary(cfg.hours), id.footer].filter(Boolean).join('  ·  ')],
+    ['Hours & footer','hours', [
+        (hoursSummary(cfg.hours)? ('🏪 Shop: '+hoursSummary(cfg.hours)) : ''),
+        (hoursSummary(cfg.serviceHours)? ('🚐 Service: '+hoursSummary(cfg.serviceHours)) : ''),
+        id.footer
+      ].filter(Boolean).join('  ·  ')],
     ['Inventory','inventory', invCount+' part(s) in stock']
   ];
   let h='<h2>Review &amp; finish</h2><div class="sub">Anything you skipped is flagged — you can fix it now or finish and come back later.</div><div class="review">';

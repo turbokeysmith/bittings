@@ -11,7 +11,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
   PHONE_E164, PHONE_DISPLAY, SITE, AREA_SERVED, rel, esc,
-  head, header, trust, footer, mobilebar, reviewSlot, photoSlots
+  head, header, trust, footer, mobilebar, reviewSlot, photoSlots,
+  schema, REVIEWS_WIDGET, IMAGES_WIDGET, LOCAL_POSTS_WIDGET
 } from './engine.mjs';
 import { CITIES, TIER_LABELS } from './cities.mjs';
 import { GLOSSARY, U, SVC, METRO, HOME, HUB, GROUP_LABELS, CONTACT, CITIES_ES } from './es.mjs';
@@ -33,8 +34,7 @@ const altPair = (enPath, esPath) => [
   { hreflang:'x-default', href:`${SITE}${enPath}` }
 ];
 const ANNOTATE = `<!-- Local facts (landmarks/highways/distances) are best-effort from general
-     OKC-metro knowledge; verify before relying. Review & photo slots are labeled
-     placeholders — not shown as live testimonials until a real one is pasted in. -->`;
+     OKC-metro knowledge; verify before relying. -->`;
 
 // Resolve a city's "Our Work" photos to relative <img> srcs, or null if the
 // city has none yet (so the gallery stays hidden — no empty boxes).
@@ -303,23 +303,52 @@ const HAND_PAGES = [
   'emergency/index.html','faq/index.html','blog/index.html','certifications/index.html','pay-now/index.html'
 ];
 function patchHandPages() {
-  const areaItems = AREA_SERVED.map(n => `    { "@type": "Place", "name": ${JSON.stringify(n)} }`).join(',\n');
-  const areaBlock = `"areaServed": [\n${areaItems}\n  ]`;
+  // Standard "Our Work" section (real on-domain photos belong on generated city
+  // pages; the hand pages get the live Google images widget only).
+  const ourWork = `<section class="surface"><div class="wrap">
+  <div class="sec-head"><h2>Our Work</h2><p>Recent jobs and photos from our Google Business Profile.</p></div>
+  ${IMAGES_WIDGET}
+</div></section>`;
   for (const rp of HAND_PAGES) {
     const full = join(SITE_DIR, rp);
     if (!existsSync(full)) { console.warn('  skip (missing):', rp); continue; }
     let html = readFileSync(full, 'utf8');
     const depth = rp.includes('/') ? 1 : 0;
     const r = rel(depth);
-    // 1) areaServed array -> full list
-    html = html.replace(/"areaServed":\s*\[[\s\S]*?\]/, areaBlock);
-    // 2) footer Service Areas column -> hub link + featured
+
+    // 1) SCHEMA: replace the page's first (Locksmith) JSON-LD block with the
+    //    canonical schema() — one source for hours, full 25-city areaServed, and
+    //    no aggregateRating/review. (On /faq/ this leaves the 2nd FAQPage block
+    //    untouched.) Function replacer avoids $-pattern interpretation.
+    html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, () => schema());
+
+    // 2) WIDGETS + placeholder cleanup (each is a no-op where the marker is absent)
+    //    a) "Our Work" placeholder slots -> live images widget (homepage + service pages)
+    html = html.replace(/<section[^>]*><div class="wrap">\s*<div class="sec-head"><h2>Our Work<\/h2>[\s\S]*?<\/section>/, () => ourWork);
+    //    a2) Certifications "Credentials & Badges" empty photo-slots -> removed
+    //        (the info-grid above already lists the real credentials)
+    html = html.replace(/\s*<h2>Credentials[\s\S]*?<div class="ba">[\s\S]*?<\/div>\s*<\/div>/, '');
+    //    b) Reviews carousel placeholder -> live reviews widget (homepage)
+    html = html.replace(/<div class="widget-slot"><b>⭐ GOOGLE REVIEWS CAROUSEL[\s\S]*?<\/div>/, () => REVIEWS_WIDGET);
+    //    c) Redundant "Google photos" section removed (photos now live in "Our Work")
+    html = html.replace(/\s*<!-- =====+ Google photos[\s\S]*?<\/section>/, '');
+    //    d) Local-posts placeholder -> live local-posts widget (homepage only)
+    html = html.replace(/<div class="widget-slot"><b>📰 GOOGLE LOCAL POSTS[\s\S]*?<\/div>/, () => LOCAL_POSTS_WIDGET);
+    //    e) Google FAQ widget placeholder -> removed (native FAQ + FAQPage schema stay)
+    html = html.replace(/<div class="widget-slot"[^>]*><b>❓ GOOGLE FAQ[\s\S]*?<\/div>\s*/, '');
+    //    f) Blog "POST SLOT" placeholders -> removed (real posts are a later task)
+    html = html.replace(/<div class="scard"><div class="icon">📝<\/div><h3>POST SLOT \d<\/h3><p>[^<]*<\/p><\/div>\s*/g, '');
+    html = html.replace(/<div class="cards" style="margin-top:8px">\s*<\/div>/, '');
+    //    g) Owner-facing dev NOTE comments removed
+    html = html.replace(/<!-- NOTE[\s\S]*?-->\s*/g, '');
+
+    // 3) footer Service Areas column -> hub link + featured
     const newCol = `<div><h4>Service Areas</h4>
       <a href="${r}service-areas/"><strong style="color:#fff">All Service Areas →</strong></a>
       <a href="${r}oklahoma-city/">Oklahoma City</a><a href="${r}edmond/">Edmond</a>
       <a href="${r}norman/">Norman</a><a href="${r}yukon/">Yukon</a></div>`;
     html = html.replace(/<div><h4>Service Areas<\/h4>[\s\S]*?<\/div>/, newCol);
-    // 3) language toggle script (idempotent)
+    // 4) language toggle script (idempotent)
     if (!/assets\/i18n\.js/.test(html)) {
       html = html.replace('</body>', `<script src="${r}assets/i18n.js" defer></script>\n</body>`);
     }

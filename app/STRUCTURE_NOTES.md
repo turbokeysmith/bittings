@@ -28,6 +28,42 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 10. **A11y + mobile pass** — labels associated, keyboard-operable rows, focus-visible outlines,
     16px inputs, ≥40px tap targets, reduced-motion, aria-live messages.
 
+## Update 2026-06-13 12:56 — "owner"→"manager" relabel + per-manager PINs + two hours sets
+- **Terminology (UI text only):** every **user-visible** "owner" is now "**manager**". Changed strings
+  only — the role badge (`index.html` `MANAGER`/`STAFF`), tile PIN badges (`MANAGER`), "Managers only"
+  alerts (index/bittings/setup), scheduler EN/ES `t()` **values** (`owner_quick`, `owner_only`,
+  `pin_title`, `owner_denied`, `owner_unlocked`; ES `dueño`→`gerente`), and Setup's Access step +
+  Review label. **Code identifiers are unchanged** (`TKS.auth.isOwner/ownerEmails/role()=='owner'`,
+  `e.owner`, `.owner-only`/`.owner-soft` CSS, `requestOwnerAccess`, `TKS_OWNER.OWNER_EMAILS`,
+  `quickFormPin`, `ownerPin()`) to avoid breaking saved cloud configs + cross-file refs. cloud-config.js
+  comments reworded to "manager" (keys kept). Vehicle-**owner** copy in `bittings.html` (NASTF) and the
+  jsPDF `ownerPassword` lib left untouched.
+- **Per-manager PINs:** each employee row marked as a manager can have its **own PIN**.
+  - `store.js` (both copies): employee objects gain a `pin`. New `TKS.auth.managerByPin(entered)` →
+    returns the matching manager `{name,email}` if `entered` equals ANY manager's personal PIN, OR a
+    generic `{name:'Manager'}` if it equals the **shared fallback** (`access.quickFormPin` /
+    `TKS_OWNER.QUICK_FORM_PIN`); else `null`. `TKS.auth.hasManagerPin()` → any PIN gate exists.
+    `ownerPin()` kept for back-compat.
+  - **PIN consumers switched** from `entered === ownerPin()` to `managerByPin()`: `index.html` `chgGate`
+    (payments), `scheduler.html` `submitOwnerPin`/`ownerPinConfigured`, `bittings.html`
+    `requestQuickInvoice`. So any manager's PIN unlocks; the old single shared PIN still works as a
+    fallback.
+  - **setup.html Access step:** `renderEmployees()` row gains a narrow **PIN** input (`.e_pin`, shown
+    only when the row's Manager box is ticked; toggling re-renders). The old single "Owner PIN" field is
+    relabeled **"Shared fallback PIN (optional)"** (still `access.quickFormPin`). Review shows
+    `N personal PIN(s)` + `shared PIN set`. `pin` survives `gather`/`save`/`mergeConfig` (rides on the
+    employees array).
+- **Two hours sets (12:47):** `store.js` config gains **`serviceHours`** alongside `hours` (same per-day
+  `{mode,open,close}` shape; `normalizeHours(h, def)` now takes a default set; added to `mergeConfig`,
+  `save()` merge list, and a `Config.serviceHours()` accessor; both store.js copies). `hours` = 🏪
+  storefront/walk-in; `serviceHours` = 🚐 field/service (overnight = open<close, e.g. Sun 00:00–04:00).
+  `setup.html` hours step renders **two** editors (`renderHoursEditor(elId,key)` generalized); Review
+  lists both (🏪 Shop / 🚐 Service). No consumer reads hours yet — capture only.
+- **Hours "Copy to…" (15:10):** each row in `renderHoursEditor` has a `.h_copy` `<select>` (All days /
+  Mon–Fri / Sat–Sun). On change it clones the source day's `{mode,open,close}` onto the target days
+  (excluding itself), re-renders, and `flash()`es a confirmation. Native select (mobile-safe);
+  `.hours-row select.h_copy` is width-constrained so the row stays tidy.
+
 ## Update 2026-06-10 — scheduler/forms/VIN/images
 
 **`app/store.js` (data layer) — new API**

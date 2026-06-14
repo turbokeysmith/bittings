@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-13 10:37 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-13 22:55 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -252,8 +252,13 @@ These are the open items an advisor should focus on:
    **Prerequisite sequence (must happen first, in order):** (1) proofread `/es/` — especially
    technical locksmith terms; (2) publish `/es/` — remove `noindex`, add to the sitemap, unblock
    `robots.txt`, drop the DRAFT banners; (3) then rewire the toggle. *Queued, not built yet.*
-6. **Nothing is deployed/published.** *Decision: where to host, and is the public site on the
-   same web address as the staff app?*
+6. **Nothing is deployed/published yet — but the host is now DECIDED: Cloudflare.** Public site →
+   **Cloudflare Pages** (deploy the `site/` folder); domain DNS → **moved to Cloudflare** for speed +
+   free SSL; **GoDaddy stays only as the registrar** (and keeps hosting email). Full step-by-step in
+   **`DEPLOY_CLOUDFLARE.md`** (account → verify email/MX records → switch nameservers → deploy → verify
+   on a temp `*.pages.dev` URL → flip the domain, reversibly). The **staff app** goes later on its own
+   subdomain (`app.turbokeysmith.com`), kept `noindex`. *Still to do: actually run the deploy (needs the
+   owner's Cloudflare account + the GoDaddy nameserver change).*
 7. **Optional security hardening** flagged by Supabase: set a fixed search_path on the
    `touch_updated_at` function; enable leaked-password protection in Auth settings. Both minor.
 8. **Local → cloud migration** of any existing demo data was intentionally NOT done (avoids
@@ -327,6 +332,8 @@ site/                   The public website (115 pages)
 _build/                 Developer-only generator for the city pages
   _build/es.mjs         Spanish source: glossary, UI strings, and per-city translations (edit here)
 PROJECT_HANDOFF.md      This file
+DEPLOY_CLOUDFLARE.md    Step-by-step runbook to host on Cloudflare Pages + move DNS (deploy guide)
+site/_headers           Cloudflare Pages caching + security headers for the public site
 ```
 
 ---
@@ -361,6 +368,69 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-13
+- **Public site finalized — Google widgets integrated, schema/hours/cities locked, placeholders gone (22:55):**
+  Did it all in the generator (`_build/`) and regenerated, so it survives future rebuilds.
+  - **Widgets (localmarketingmanager.com Live Google Business):** the three iframe widgets are now
+    wired in as a single source in `engine.mjs`. **Reviews** (with a plain-text "⭐ 250+ Five-Star
+    Reviews on Google" backstop headline) and **Photos/"Our Work"** appear **site-wide** — homepage +
+    all 91 city/sub pages — via `reviewSlot()`/`photoSlots()`. **Local Posts** is **homepage only**.
+    All iframes are **lazy-loaded** (reviews loads after the page via its sizing script). On
+    Edmond/Moore/Norman/Midwest City the **real on-domain job photos are kept** above the photos widget.
+    Verified all three endpoints return HTTP 200.
+  - **Schema:** every page (generated + hand pages) now uses the **one canonical `schema()`** Locksmith
+    block (the generator overwrites each hand page's inline JSON-LD with it). **Removed
+    `aggregateRating` + the 4 `review` entries** (self-serving, iframe-backed — Google penalty risk).
+    **Hours** (Mon–Sat 24h `00:00–23:59`; Sun `00:00–05:00`) and the **full 25-city `areaServed`** now
+    flow to **all 102 pages** (was inconsistent before). JSON-LD validated as parsing on samples.
+  - **FAQ:** native `/faq/` page + `FAQPage` schema kept as the visible, primary FAQ; the
+    localmarketingmanager FAQ widget was **not** added (removed its placeholder). FAQ hours text + the
+    Locksmith schema + the homepage Hours card all agree (Sun until 5:00 am).
+  - **Cleanup:** every owner-facing placeholder is gone from the live English pages — "Our Work" empty
+    slots, the 3 homepage widget placeholders, the redundant "From Our Google Profile" section, the FAQ
+    widget slot, the blog "POST SLOT" cards, the certifications "Credentials & Badges" empty slots, and
+    dev NOTE comments. All enforced in `_build/` so they stay gone on regenerate.
+  - *Checks:* JSON-LD parses + correct types on samples (homepage/service/faq/city/sub); widget
+    endpoints 200; iframes responsive by design (width:100% + the reviews widget's resize breakpoints)
+    and lazy-loaded. **Pending:** a real-device look (iPhone Safari + Android Chrome) on the deployed
+    temp URL and Google's **Rich Results Test** on a live URL (needs the site deployed first).
+- **Hosting DECIDED + deploy prepped — Cloudflare (17:22):** chose **Cloudflare Pages** for the public
+  site + **Cloudflare DNS** (move nameservers; GoDaddy stays registrar + email). Reason: free, fastest
+  CDN, unlimited bandwidth, free SSL. Prepped the repo: added **`site/_headers`** (asset caching +
+  security headers), verified the `site/` folder is self-contained/depth-correct (serves on Pages as-is),
+  and wrote a full **`DEPLOY_CLOUDFLARE.md`** runbook (with the email/MX-records safety check, a
+  verify-on-temp-URL-before-cutover sequence, the speed toggles, and a reversible domain flip). Staff app
+  deferred to its own `app.turbokeysmith.com` Pages project (needs Supabase auth-redirect + edge-function
+  CORS updates first). **Not deployed yet** — needs the owner's Cloudflare account + GoDaddy nameserver
+  change. See §7 item 6.
+- **Hours — "Copy to…" shortcut so you don't set every day (15:10):** each day row in Setup → Hours now
+  has a **⧉ Copy to…** dropdown. Set one day (say Monday 10–6), pick **All days**, **Mon–Fri**, or
+  **Sat–Sun**, and it copies that day's whole schedule (open/closed/24 + times) onto those days
+  instantly. Works on both the 🏪 Shop and 🚐 Service editors. *Code-complete, pending mobile sign-off.*
+- **"Owner" is now called "Manager" everywhere you see it + each manager gets their own PIN (12:56):**
+  Two changes the owner asked for. **(1) Wording:** every place the app used to say **Owner** now says
+  **Manager** — the role badge in the top bar, the little badge on the Closeout/Reports tiles, the
+  "managers only" messages, the scheduler's Quick-form labels (English **and** Spanish — *dueño* →
+  *gerente*), and the Setup → **Access & managers** step. (This is purely the *word* you see; nothing
+  about who-can-do-what changed, and "vehicle owner" wording on car paperwork is untouched.) **(2) A PIN
+  per manager:** before, there was **one** shared PIN that unlocked manager-only things (taking a
+  payment, the quick forms) when nobody was signed in. Now, in **Setup → Access**, each person you mark
+  as a **Manager** gets their **own PIN** box — give each manager a different PIN. **Any** manager's PIN
+  unlocks those actions, so you can tell who's who and change one person's PIN without affecting the
+  others. The old single PIN still exists as an optional **"Shared fallback PIN"** (use it instead of,
+  or alongside, personal PINs — or leave it blank). Works the same on the payments screen, the
+  scheduler quick form, and the Receipts quick invoice. **Status = code-complete, pending mobile
+  sign-off** (iPhone Safari + Android Chrome, manager + staff).
+- **Two separate hour sets — Shop hours vs Service hours (12:47):** Setup → **Hours** now captures
+  **two** schedules instead of one: **🏪 Shop / storefront hours** (walk-ins) and **🚐 Service hours**
+  (when you take jobs in the field). They're independent per-day editors (Open / Closed / 24 hours, with
+  open/close time pickers), because a shop is often open limited hours while service runs much later. An
+  **overnight window** is entered as a normal open→close that ends after midnight on the **next** day —
+  e.g. Sunday **12:00 AM–4:00 AM** captures "Saturday night" service for the club/party crowd. Stored as
+  `serviceHours` in the cloud-synced config (mirrors the existing `hours` shape); existing configs get
+  sensible defaults (Service = 24h Mon–Sat + Sun 12–4 AM) and migrate automatically. The Review step now
+  lists both lines. *No screen shows hours to customers/staff yet — this is the data-capture step; a
+  "we're open / on call now" display can read these later.* **Status = code-complete, pending mobile
+  sign-off** (iPhone Safari + Android Chrome, owner + staff).
 - **Deposit Slip — carryover starting float + shortfall handling + Settings float (10:37):** the float
   is now a real **carryover** — what you keep at close becomes the **next day's opening (starting)
   float**. The Closeout "starting float" is **editable per day (owner-only)** and defaults to the carried

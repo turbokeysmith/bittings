@@ -3,7 +3,29 @@
 Keep this updated after each work session. Status key: ✅ done · 🔨 in progress ·
 ⏸️ parked (waiting on a decision/credential) · ⬜ not started.*
 
-Last updated: 2026-06-13 10:37 CDT (Claude Code) — Deposit Slip: carryover float + shortfall + Settings float
+Last updated: 2026-06-13 22:55 CDT (Claude Code) — Public site finalized (Google widgets, schema/hours/cities, placeholders removed); Hosting decided (Cloudflare); Hours "Copy to…"; owner→manager + per-manager PINs
+
+> **Public website (2026-06-13 PM):** ✅ **Finalized in the generator + regenerated.** localmarketingmanager
+> Google widgets wired in — **Reviews + Photos site-wide** (homepage + all city/sub pages, lazy-loaded),
+> **Local Posts homepage-only**; real on-domain photos kept on Edmond/Moore/Norman/Midwest City.
+> Canonical `schema()` on every page with **aggregateRating + review REMOVED**, **hours** (Mon–Sat 24h,
+> Sun 00:00–05:00) and **full 25-city areaServed** everywhere. Native `/faq/` + FAQPage kept (no LMM FAQ
+> widget). **All owner-facing placeholders removed** (enforced in `_build/`). JSON-LD validated; widget
+> endpoints 200. ⬜ Pending: real-device look + Google Rich Results Test once deployed.
+
+> **Hosting (2026-06-13):** ✅ **DECIDED — Cloudflare Pages + Cloudflare DNS** (GoDaddy = registrar +
+> email only). Prepped: `site/_headers`, verified `site/` deploys as-is, full **`DEPLOY_CLOUDFLARE.md`**
+> runbook. ⬜ **Not deployed yet** — needs the owner's Cloudflare account + GoDaddy nameserver change
+> (the email/MX verify step is the key safety gate). Staff app → later, own subdomain.
+
+> **Latest (2026-06-13 PM):** ✅ **"Owner" relabeled to "Manager"** throughout the UI (badges, alerts,
+> scheduler EN/ES, Setup) — wording only, role logic + code keys unchanged. ✅ **Per-manager PINs** —
+> each manager set in Setup → Access has their own PIN; any manager's PIN unlocks manager actions; the
+> old single PIN remains as an optional **shared fallback** (`TKS.auth.managerByPin`). ✅ **Two hour
+> sets** — Setup now captures **🏪 Shop/storefront hours** and **🚐 Service hours** separately
+> (`hours` + new `serviceHours`; overnight windows supported, e.g. Sun 12–4 AM), each day row with a
+> **⧉ Copy to…** shortcut (All days / Mon–Fri / Sat–Sun) so you set one day and reuse it. All are
+> **code-complete, pending mobile sign-off**. No screen displays hours to customers/staff yet (capture only).
 
 > **Canonical doc:** `PROJECT_HANDOFF.md` is the owner-facing source of truth (the file uploaded
 > to Claude Desktop). This task list defers to it — **if the two ever conflict, the handoff wins.**
