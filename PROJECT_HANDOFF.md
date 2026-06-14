@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-14 00:42 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-14 05:08 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -259,6 +259,9 @@ These are the open items an advisor should focus on:
      service pages, and the `/es/automotive/` warranty section. Spanish source for all of it is in
      `_build/es.mjs` (the proofreader edits there, then `node _build/generate.mjs`). Payment brand names
      (Klarna/Afterpay/Zip/Amazon Pay/Cash App Pay/Link/PayPal) stay in English on purpose.
+     **🚩 ALSO MUST (accuracy-critical):** the 6 Spanish credential pages — `/es/certifications/google-verified/`,
+     `/es/oklahoma-license/`, `/es/nastf/`, `/es/keyless2go/`, `/es/omla/`, `/es/okbfaa/` — each carries an
+     extra red "needs proofread" banner. Verify the credential facts/terms read correctly in Spanish.
 6. **Nothing is deployed/published yet — but the host is now DECIDED: Cloudflare.** Public site →
    **Cloudflare Pages** (deploy the `site/` folder); domain DNS → **moved to Cloudflare** for speed +
    free SSL; **GoDaddy stays only as the registrar** (and keeps hosting email). Full step-by-step in
@@ -378,6 +381,25 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-14
+- **Certifications rebuilt into a hub + 6 dedicated credential pages; BusinessRate as social proof (05:08):**
+  all in the `_build/` generator (`CREDS` data + `renderCertHub`/`renderCredPage`; Spanish in `es.mjs`).
+  - **`/certifications/` hub** split into **Licenses & Credentials** (Google Verified + OK License #AC441081
+    featured first, then NASTF VSP, Keyless2Go) and **Professional Associations** (OMLA, OKBFAA), each a
+    teaser linking to its own page. Now a **generated** page (removed from the hand-page list).
+  - **6 dedicated pages**, unique Title/Meta/H1, "what it is / what it takes to earn / what it means for
+    you": **/certifications/google-verified/**, **/oklahoma-license/**, **/nastf/**, **/keyless2go/**,
+    **/omla/** (→ omla.com), **/okbfaa/** (→ okbfaa.org). Wording uses **"Google Verified"** (never
+    "Google Guaranteed"/money-back).
+  - **BusinessRate** = review-based recognition, **kept OUT of the credentials group** — plain-text social
+    proof only (no link, no badge): on the homepage by the reviews widget, and under a **"Recognition"**
+    heading on the hub.
+  - **Nav/footer:** Certifications added to the main nav (footer/mobile already had it).
+  - **Spanish:** full `/es/` mirror — `/es/certifications/` hub + the 6 `/es/` credential pages — kept
+    `noindex`/draft; each credential page carries an extra red **"needs proofread (accuracy matters)"**
+    banner. ES nav/footer now point Certifications at the Spanish hub. **🚩 All 6 ES credential pages need a
+    fluent reviewer before publish** (added to the §7.5 proofreading checklist).
+  - *Checks:* JSON-LD parses on all 7 EN pages; 3-part structure on the 6 detail pages; hub teaser links
+    correct; sitemap +6; `/es/` still out of sitemap. Pending: phone sign-off.
 - **Public site deployed to a Cloudflare Pages PREVIEW (later 06-14):** `site/` uploaded to the Pages
   project **`turbokeysmith`** → **https://turbokeysmith.pages.dev** (free preview; per-deploy alias also
   issued). Used a **Pages:Edit-only** API token (kept in the owner's Windows user env via `setx`, never in

@@ -2,7 +2,7 @@
 
 _Live English pages in `site/`. Spanish `/es/` drafts excluded (unpublished, noindex). Read-only snapshot — nothing changed._
 
-Total: **105** pages.
+Total: **111** pages.
 
 ### /
 - **Targets:** Homepage
@@ -23,10 +23,10 @@ Total: **105** pages.
 - **H1:** Turbo Keysmith Blog
 
 ### /certifications/
-- **Targets:** Certifications
-- **Title:** Turbo KeySmith - Certified Locksmith, Certified Security Professional, Locksmith
-- **Meta:** Turbo Keysmith is a licensed Oklahoma locksmith (OK Lic. #AC441081) and NASTF-authorized, serving the Oklahoma City metro. Call 405-870-5397.
-- **H1:** Certifications & Licensing
+- **Targets:** Certifications hub
+- **Title:** Certifications, Licenses & Credentials | Turbo Keysmith — OKC Locksmith
+- **Meta:** Turbo Keysmith is a fully licensed, vetted Oklahoma locksmith: Google Verified, OK License #AC441081, NASTF VSP, Keyless2Go Certified, plus OMLA & OKBFAA membership. What each credential means for you. Call 405-870-5397.
+- **H1:** Certifications, Licenses & Credentials
 
 ### /commercial/
 - **Targets:** Metro service — Commercial
@@ -57,6 +57,36 @@ Total: **105** pages.
 - **Title:** Affordable Locksmith & Payment Plans in OKC | Turbo Keysmith
 - **Meta:** Affordable locksmith in Oklahoma City done right — licensed, NASTF-certified work with flexible, interest-free payment plans (Klarna, Afterpay, Zip) in secure checkout. Not the cheapest; the best value. Call 405-870-5397.
 - **H1:** Affordable Locksmith Service in OKC — Without Cutting Corners
+
+### /keyless2go/
+- **Targets:** Credential — Keyless2Go
+- **Title:** Keyless2Go Certified Locksmith | Turbo Keysmith — OKC
+- **Meta:** Turbo Keysmith is a Keyless2Go Certified locksmith — OE-grade, FCC-registered car key fobs with transparent upfront pricing, up to 70% under dealer. Call 405-870-5397.
+- **H1:** Keyless2Go Certified Locksmith
+
+### /nastf/
+- **Targets:** Credential — NASTF VSP
+- **Title:** NASTF Vehicle Security Professional (VSP) Locksmith | Turbo Keysmith
+- **Meta:** Turbo Keysmith is NASTF VSP–credentialed with a personal LSID — dealer-level, vetted access to manufacturer key codes and immobilizer data. What it means for your car keys. Call 405-870-5397.
+- **H1:** NASTF Vehicle Security Professional (VSP) — LSID Credentialed
+
+### /okbfaa/
+- **Targets:** Association — OKBFAA
+- **Title:** Oklahoma Burglar & Fire Alarm Association (OKBFAA) Member | Turbo Keysmith
+- **Meta:** Turbo Keysmith is a member of the Oklahoma Burglar & Fire Alarm Association (OKBFAA) — current on electronic security codes and standards for commercial work. Call 405-870-5397.
+- **H1:** Oklahoma Burglar & Fire Alarm Association (OKBFAA)
+
+### /oklahoma-license/
+- **Targets:** Credential — OK License
+- **Title:** Oklahoma Locksmith License #AC441081 | Turbo Keysmith
+- **Meta:** Turbo Keysmith holds Oklahoma Locksmith License #AC441081 (Oklahoma Dept. of Labor) — fingerprinting, FBI background check and a state exam. Why a licensed locksmith matters. Call 405-870-5397.
+- **H1:** Oklahoma Locksmith License #AC441081
+
+### /omla/
+- **Targets:** Association — OMLA
+- **Title:** Oklahoma Master Locksmith Association (OMLA) Member | Turbo Keysmith
+- **Meta:** Turbo Keysmith is a member of the Oklahoma Master Locksmith Association (OMLA) — ongoing training and higher professional standards. Call 405-870-5397.
+- **H1:** Oklahoma Master Locksmith Association (OMLA)
 
 ### /pay-now/
 - **Targets:** Pay Now
@@ -117,6 +147,12 @@ Total: **105** pages.
 - **Title:** Blanchard Locksmith OK | Car Keys, Home & Business
 - **Meta:** Mobile locksmith serving Blanchard, OK. Car key replacement, home rekeys, business locks & lockout help — we drive out to you. Call 405-870-5397.
 - **H1:** Mobile Locksmith Serving Blanchard
+
+### /certifications/google-verified/
+- **Targets:** certifications/google-verified/
+- **Title:** Google Verified Locksmith in OKC | Turbo Keysmith
+- **Meta:** Turbo Keysmith carries Google's Verified badge — Google background-checks, license-validates and insurance-verifies the business. What the badge means for you. Call 405-870-5397.
+- **H1:** Google Verified — Independently Vetted by Google
 
 ### /choctaw/
 - **Targets:** City — Choctaw

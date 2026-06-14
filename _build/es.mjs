@@ -407,3 +407,68 @@ export const FAQ = [
 // Teasers (homepage + service pages)
 export const FINTEASER = { title:'Financiamiento flexible disponible', body:'Divide los trabajos que califican en 4 pagos sin intereses con Klarna, Afterpay o Zip — trabajo de calidad que no tiene que esperar al día de pago.', more:'Ver opciones de pago →' };
 export const WARRTEASER = { title:'Garantía de Llaves de 6 Meses', body:'Cada llave y control de auto que programamos está respaldado por 6 meses — programación, botón de encendido, control y el corte.', more:'Ver la garantía →' };
+
+// ── Certifications (/es/certifications/ hub + dedicated pages) ──────────────
+// ⚠️ Credential pages — accuracy matters; MUST be proofread by a fluent reviewer.
+export const CRED_REVIEW_NOTE = '⚠️ BORRADOR — Página de credenciales: la exactitud importa. Esta traducción debe ser revisada por un hablante nativo de español antes de publicar.';
+export const BUSINESSRATE = 'Cerrajero Mejor Calificado — BusinessRate (según reseñas verificadas de clientes).';
+export const CERTHUB = {
+  title:'Certificaciones, Licencias y Credenciales | Turbo Keysmith — Cerrajero de OKC',
+  desc:'Turbo Keysmith es un cerrajero de Oklahoma con licencia y verificado: Google Verified, Licencia OK #AC441081, NASTF VSP, Certificado Keyless2Go, además de membresía en OMLA y OKBFAA. Llama 405-870-5397.',
+  h1:'Certificaciones, Licencias y Credenciales',
+  intro:'Cuando dejas entrar a un cerrajero a tu casa, auto o negocio, las credenciales importan. Turbo Keysmith es un cerrajero de Oklahoma con licencia, verificado y local — aquí está la prueba, y lo que cada una significa para ti.',
+  licHead:'Licencias y Credenciales', licSub:'Verificadas de forma independiente — las credenciales que cuesta ganarse.',
+  assocHead:'Asociaciones Profesionales', assocSub:'Membresías que reflejan capacitación continua y estándares profesionales.',
+  recHead:'Reconocimiento', learnMore:'Más información →', crumb:'Certificaciones',
+  whatIs:'Qué es', whatTakes:'Qué se necesita para obtenerla', whatMeans:'Qué significa para ti',
+  backHub:'← Todas las certificaciones y credenciales'
+};
+export const CREDS = [
+  { slug:'certifications/google-verified', group:'license', featured:true, name:'Google Verified (Verificado por Google)',
+    title:'Cerrajero Verificado por Google en OKC | Turbo Keysmith',
+    metaDesc:'Turbo Keysmith tiene la insignia Google Verified — Google verifica antecedentes, licencia y seguro del negocio. Qué significa para ti. Llama 405-870-5397.',
+    h1:'Google Verified — Verificado de Forma Independiente por Google',
+    teaser:'La marca de confianza de Google para negocios que pasan su verificación de Local Services — antecedentes, licencia y seguro.',
+    whatIs:'Tenemos la insignia Google Verified — la marca de confianza que Google muestra para los negocios que pasan su verificación de Local Services.',
+    whatTakes:'Para obtenerla, Google verifica el negocio mediante revisión de antecedentes, validación de licencia y verificación de seguro.',
+    whatMeans:'El propio Google ha confirmado que somos un cerrajero real, con licencia, asegurado y con antecedentes verificados — un voto de confianza independiente antes de que siquiera levantes el teléfono.' },
+  { slug:'oklahoma-license', group:'license', featured:true, name:'Licencia de Cerrajero de Oklahoma #AC441081',
+    title:'Licencia de Cerrajero de Oklahoma #AC441081 | Turbo Keysmith',
+    metaDesc:'Turbo Keysmith tiene la Licencia de Cerrajero de Oklahoma #AC441081 (Departamento de Trabajo de Oklahoma) — huellas, verificación de antecedentes del FBI y un examen estatal. Llama 405-870-5397.',
+    h1:'Licencia de Cerrajero de Oklahoma #AC441081',
+    teaser:'Licencia estatal #AC441081 — Oklahoma es uno de ~15 estados que exigen huellas, verificación de antecedentes del FBI y un examen de competencia.',
+    whatIs:'Oklahoma es uno de solo unos 15 estados que exigen legalmente que los cerrajeros tengan licencia — la mayoría no lo hace, lo que significa que cualquiera puede llamarse cerrajero. La licencia se tramita a través del programa de Alarmas, Cerrajería y Rociadores contra Incendios del Departamento de Trabajo de Oklahoma.',
+    whatTakes:'Obtenerla requiere toma de huellas, una verificación de antecedentes del FBI y aprobar el examen estatal de competencia.',
+    whatMeans:'Confías la seguridad de tu casa, vehículo o negocio a alguien a quien el estado ha verificado, examinado y responsabiliza — tu primera protección frente a las estafas de cerrajeros en aumento.' },
+  { slug:'nastf', group:'license', name:'Profesional de Seguridad Vehicular NASTF (VSP)',
+    title:'Cerrajero Profesional de Seguridad Vehicular NASTF (VSP) | Turbo Keysmith',
+    metaDesc:'Turbo Keysmith está acreditado como NASTF VSP con un LSID personal — acceso verificado a nivel de concesionario a códigos de llave e inmovilizador del fabricante. Llama 405-870-5397.',
+    h1:'Profesional de Seguridad Vehicular NASTF (VSP) — Acreditado con LSID',
+    teaser:'Acceso verificado, a nivel de concesionario, a los códigos de llave y datos del inmovilizador del fabricante, con un LSID personal.',
+    whatIs:'El National Automotive Service Task Force es una organización sin fines de lucro fundada en 2000 por los fabricantes de autos y la industria de reparación independiente, y su Registro de Profesionales de Seguridad Vehicular verifica y acredita a cerrajeros profesionales para acceder a los sistemas de seguridad del fabricante.',
+    whatTakes:'Acreditarse implica pasar una verificación de antecedentes y aceptar términos estrictos, tras lo cual se te asigna un número personal de Identificación de Cerrajero (LSID), asignado uno a uno a la persona.',
+    whatMeans:'Es acceso legítimo a nivel de concesionario — nos permite obtener los mismos códigos de llave seguros y datos del inmovilizador que usa el concesionario, para hacer y programar llaves de prácticamente cualquier marca, de la forma correcta, como profesionales verificados y no como intermediarios dudosos de códigos.' },
+  { slug:'keyless2go', group:'license', name:'Cerrajero Certificado Keyless2Go',
+    title:'Cerrajero Certificado Keyless2Go | Turbo Keysmith — OKC',
+    metaDesc:'Turbo Keysmith es un cerrajero Certificado Keyless2Go — controles de calidad de fábrica (OE), registrados ante la FCC, con precios claros por adelantado, hasta 70% menos que el concesionario. Llama 405-870-5397.',
+    h1:'Cerrajero Certificado Keyless2Go',
+    teaser:'Instalador certificado de controles de calidad de fábrica (OE), registrados ante la FCC — precios transparentes, hasta 70% menos que el concesionario.',
+    whatIs:'Keyless2Go es una de las principales marcas de controles de llave de auto del mercado de repuestos del país, con más de 5 millones de controles vendidos, conocida por componentes de calidad de fábrica (OE) y registrados ante la FCC.',
+    whatTakes:'Su Red de Instaladores Certificados verifica que los participantes sean cerrajeros profesionales genuinos y los somete a un código de conducta con precios claros por adelantado, sin cargos sorpresa, y un sistema de reseñas de clientes en el que debes mantener una calificación satisfactoria para seguir certificado.',
+    whatMeans:'Piezas de llave de calidad premium, equivalentes a las del concesionario, que cubren la gran mayoría de los vehículos, con ahorros de hasta 70% frente al concesionario — y con precios que ves antes de empezar cualquier trabajo.' },
+  { slug:'omla', group:'assoc', name:'Asociación de Cerrajeros Maestros de Oklahoma (OMLA)', link:'https://omla.com',
+    title:'Miembro de la Asociación de Cerrajeros Maestros de Oklahoma (OMLA) | Turbo Keysmith',
+    metaDesc:'Turbo Keysmith es miembro de la Asociación de Cerrajeros Maestros de Oklahoma (OMLA) — capacitación continua y estándares profesionales más altos. Llama 405-870-5397.',
+    h1:'Asociación de Cerrajeros Maestros de Oklahoma (OMLA)',
+    teaser:'La asociación profesional de cerrajeros del estado — capacitación continua y estándares de seguridad más altos.',
+    whatIs:'OMLA es la asociación profesional de cerrajeros del estado, dedicada a la cooperación entre los cerrajeros de Oklahoma y a promover estándares más altos de seguridad y profesionalismo.',
+    whatTakes:'Los miembros tienen acceso a clases de preparación para la licencia y de educación continua sancionadas por el ODOL, que cubren cerrajería y control de acceso.',
+    whatMeans:'La membresía indica un cerrajero que invierte en capacitación continua y se exige los estándares de la profesión, en lugar de improvisar.' },
+  { slug:'okbfaa', group:'assoc', name:'Asociación de Alarmas contra Robo e Incendio de Oklahoma (OKBFAA)', link:'https://okbfaa.org',
+    title:'Miembro de la Asociación de Alarmas contra Robo e Incendio de Oklahoma (OKBFAA) | Turbo Keysmith',
+    metaDesc:'Turbo Keysmith es miembro de la Asociación de Alarmas contra Robo e Incendio de Oklahoma (OKBFAA) — al día en códigos y estándares de seguridad electrónica para trabajos comerciales. Llama 405-870-5397.',
+    h1:'Asociación de Alarmas contra Robo e Incendio de Oklahoma (OKBFAA)',
+    teaser:'Membresía en la asociación estatal de seguridad electrónica — al día en códigos y estándares de control de acceso.',
+    whatIs:'OKBFAA se dedica a promover a profesionales con licencia en la industria de la seguridad electrónica y a educar a sus miembros sobre los últimos productos, códigos y estándares, trabajando de cerca con el Departamento de Trabajo de Oklahoma.',
+    whatMeans:'Demuestra que nos mantenemos al día en estándares de seguridad electrónica y control de acceso — especialmente relevante para el trabajo de seguridad comercial y de negocios.' }
+];
