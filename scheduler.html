@@ -415,18 +415,18 @@ const UI = {
     ign_need:"Choose the ignition type (push-to-start or keyed).",
     del_confirm:"Delete this booking entirely? (To just take it off the board, mark it Completed or Canceled instead.)",
     job_photos:"Job photos", edit_title:"Edit booking", open_booking:"Open",
-    owner_quick:"Quick form (owner)", owner_quick_sub:"PIN-protected one-off form — skips the guided steps",
-    quick_form:"Quick booking form", quick_sub:"Owner quick entry — all fields, no guided steps.",
-    owner_only:"Owner only", quick_need:"Please fill:",
-    pin_title:"Owner PIN", pin_prompt:"Enter the owner PIN to open a one-time quick form for this booking.",
+    owner_quick:"Quick form (manager)", owner_quick_sub:"PIN-protected one-off form — skips the guided steps",
+    quick_form:"Quick booking form", quick_sub:"Manager quick entry — all fields, no guided steps.",
+    owner_only:"Managers only", quick_need:"Please fill:",
+    pin_title:"Manager PIN", pin_prompt:"Enter a manager PIN to open a one-time quick form for this booking.",
     unlock:"Unlock", cancel:"Cancel", pin_wrong:"Wrong PIN — try again.",
-    pin_unset:"No owner PIN is set yet. Add one in app/cloud-config.js (TKS_OWNER.QUICK_FORM_PIN).",
+    pin_unset:"No manager PIN is set yet. Add one in Setup → Access (each manager can have a PIN), or a shared fallback PIN there / in app/cloud-config.js.",
     need_jobtype:"Pick what they need help with to continue.",
     need_subtype:"Pick the kind of job to continue.",
     need_upsell:"Mark whether you offered the add-on to continue.",
     need_upsell_acc:"Mark whether they accepted to continue.",
-    owner_denied:"That's an owner-only action. You're signed in as staff, so it's locked.",
-    owner_unlocked:"Owner signed in — quick form unlocked."
+    owner_denied:"That's a manager-only action. You're signed in as staff, so it's locked.",
+    owner_unlocked:"Manager signed in — quick form unlocked."
   },
   es:{
     home_sub:"Agenda un trabajo, paso a paso.", new_booking:"Nueva cita",
@@ -473,18 +473,18 @@ const UI = {
     ign_need:"Elige el tipo de encendido (botón de arranque o con llave).",
     del_confirm:"¿Eliminar esta cita por completo? (Para solo quitarla del tablero, márcala Completado o Cancelado.)",
     job_photos:"Fotos del trabajo", edit_title:"Editar cita", open_booking:"Abrir",
-    owner_quick:"Formulario rápido (dueño)", owner_quick_sub:"Formulario único protegido con PIN — sin los pasos guiados",
-    quick_form:"Formulario rápido de cita", quick_sub:"Entrada rápida del dueño — todos los campos, sin pasos guiados.",
-    owner_only:"Solo dueño", quick_need:"Completa:",
-    pin_title:"PIN del dueño", pin_prompt:"Ingresa el PIN del dueño para abrir un formulario rápido para esta cita.",
+    owner_quick:"Formulario rápido (gerente)", owner_quick_sub:"Formulario único protegido con PIN — sin los pasos guiados",
+    quick_form:"Formulario rápido de cita", quick_sub:"Entrada rápida del gerente — todos los campos, sin pasos guiados.",
+    owner_only:"Solo gerentes", quick_need:"Completa:",
+    pin_title:"PIN del gerente", pin_prompt:"Ingresa un PIN de gerente para abrir un formulario rápido para esta cita.",
     unlock:"Desbloquear", cancel:"Cancelar", pin_wrong:"PIN incorrecto — intenta de nuevo.",
-    pin_unset:"Aún no hay PIN del dueño. Agrégalo en app/cloud-config.js (TKS_OWNER.QUICK_FORM_PIN).",
+    pin_unset:"Aún no hay PIN de gerente. Agrégalo en Configuración → Acceso (cada gerente puede tener un PIN), o un PIN compartido ahí / en app/cloud-config.js.",
     need_jobtype:"Elige en qué necesita ayuda para continuar.",
     need_subtype:"Elige el tipo de trabajo para continuar.",
     need_upsell:"Indica si ofreciste el extra para continuar.",
     need_upsell_acc:"Indica si lo aceptó para continuar.",
-    owner_denied:"Esta acción es solo del dueño. Tu sesión es de empleado, así que está bloqueada.",
-    owner_unlocked:"Dueño con sesión — formulario rápido desbloqueado."
+    owner_denied:"Esta acción es solo para gerentes. Tu sesión es de empleado, así que está bloqueada.",
+    owner_unlocked:"Gerente con sesión — formulario rápido desbloqueado."
   }
 };
 /* Status display + colors (shared by day view, job list, booking detail). */
@@ -1007,6 +1007,7 @@ function editBooking(id){
    ========================================================================= */
 let _ownerGrant = null, pinError = '';
 function ownerPinConfigured(){
+  if(window.TKS && TKS.auth && TKS.auth.hasManagerPin) return TKS.auth.hasManagerPin();
   return !!String((window.TKS && TKS.Config ? TKS.Config.ownerPin() : (window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN)) || '').length;
 }
 function requestOwnerAccess(onGranted){
@@ -1026,8 +1027,9 @@ function requestOwnerAccess(onGranted){
 function submitOwnerPin(){
   const el = document.getElementById('pinInput');
   const entered = el ? el.value : '';
-  const pin = String((window.TKS && TKS.Config ? TKS.Config.ownerPin() : (window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN)) || '');
-  if(pin && entered === pin){
+  const match = (window.TKS && TKS.auth && TKS.auth.managerByPin) ? TKS.auth.managerByPin(entered)
+    : (entered && entered === String((window.TKS && TKS.Config ? TKS.Config.ownerPin() : (window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN)) || '') ? {name:'Manager'} : null);
+  if(match){
     const g = _ownerGrant; _ownerGrant = null; pinError = '';
     if(g) g();
   } else {

@@ -21,28 +21,34 @@ window.TKS_CLOUD = {
 };
 
 /* ----------------------------------------------------------------------------
-   Owner controls (staff scheduler)
+   Manager controls (staff scheduler)
+   NOTE: the code keys below are still named TKS_OWNER / OWNER_EMAILS for
+   back-compat (they're referenced across the app), but they mean "MANAGER".
+   Best practice now is to give each manager their OWN PIN in Setup → Access;
+   the shared QUICK_FORM_PIN here is just an optional extra fallback.
+
    QUICK_FORM_PIN unlocks the per-booking "Quick form" bypass in scheduler.html
    — a one-off plain form that skips the guided coaching steps for a SINGLE
    booking. The next booking goes back to the forced guided flow automatically.
 
    • Set it to whatever digits you want (e.g. '4071'). CHANGE THE DEFAULT BELOW.
-   • Set it to '' (empty) to disable the bypass entirely (guided-only).
+   • Set it to '' (empty) to disable this shared fallback (use personal PINs only).
    • Note: this is a client-side convenience gate, not bank-grade security — the
-     value is visible to anyone who can read the page source. It's an owner-only
-     shortcut until the real owner login replaces it (the scheduler's
+     value is visible to anyone who can read the page source. It's a manager-only
+     shortcut until the real manager login replaces it (the scheduler's
      requestOwnerAccess() is the single swap point for that upgrade).
    ---------------------------------------------------------------------------- */
 window.TKS_OWNER = {
-  // Who counts as the OWNER. A signed-in user whose email is in this list gets
-  // owner-only powers (e.g. the scheduler Quick form) WITHOUT a PIN. A regular
-  // employee's login does NOT — so their account can't unlock owner-only things.
+  // Who counts as a MANAGER. A signed-in user whose email is in this list gets
+  // manager-only powers (e.g. the scheduler Quick form) WITHOUT a PIN. A regular
+  // employee's login does NOT — so their account can't unlock manager-only things.
   OWNER_EMAILS: ['samer@turbokeysmith.com'],
 
-  // Fallback PIN for the owner-only quick forms (scheduler Quick booking AND the
-  // Receipts "Quick invoice") when NOBODY is signed in (running locally/offline).
-  // When the owner is signed in, the PIN isn't needed; a signed-in employee is
-  // always denied. Set to '' to disable the PIN fallback (owner-login only).
+  // SHARED fallback PIN for the manager-only quick forms (scheduler Quick booking
+  // AND the Receipts "Quick invoice") when NOBODY is signed in (local/offline).
+  // Prefer per-manager PINs in Setup → Access; this is an optional extra that also
+  // works. When a manager is signed in, no PIN is needed; a signed-in employee is
+  // always denied. Set to '' to disable this shared fallback.
   QUICK_FORM_PIN: '1234',   // <-- CHANGE THIS to your own PIN
 
   // Master ON/OFF switch for the Receipts "Quick invoice" form (the fast,

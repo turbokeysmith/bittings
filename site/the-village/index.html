@@ -172,63 +172,6 @@
     "https://www.tiktok.com/@turbokeysmith",
     "https://www.facebook.com/247826765080233",
     "https://www.youtube.com/@TurboKeysmith"
-  ],
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "5.0",
-    "reviewCount": 258,
-    "bestRating": 5,
-    "worstRating": 1
-  },
-  "review": [
-    {
-      "@type": "Review",
-      "author": {
-        "@type": "Person",
-        "name": "T thibo"
-      },
-      "reviewBody": "Outstanding customer service. What a great business! Sam really went the extra mile to get my 2015 Audi A6 key fob working. He even cleared about 20 other codes that the vehicle had that I have been researching and trying to fix for weeks! Highly recommended, they deserve your business and do outstanding work!",
-      "reviewRating": {
-        "@type": "Rating",
-        "ratingValue": 5
-      }
-    },
-    {
-      "@type": "Review",
-      "author": {
-        "@type": "Person",
-        "name": "Sheref Hill"
-      },
-      "reviewBody": "I don't leave reviews often, but Sam absolutely earned this one. I needed a new key and wasn't sure what the process would look like. From the moment I went to Sam, he made everything simple — friendly, professional, and he took the time to explain everything clearly. What I expected to be a frustrating experience ended up being one of the easiest service experiences I've had. He's honest, dependable, and genuinely invested in helping people. If I could give more than five stars, I would.",
-      "reviewRating": {
-        "@type": "Rating",
-        "ratingValue": 5
-      }
-    },
-    {
-      "@type": "Review",
-      "author": {
-        "@type": "Person",
-        "name": "Katrina Jim"
-      },
-      "reviewBody": "I am pleased with Turbo Keysmith. When I called he gave me an estimate and came out in a timely matter. Prices are reasonable. Sam is kind, honest, and reliable. Recommend using Turbo Keysmith.",
-      "reviewRating": {
-        "@type": "Rating",
-        "ratingValue": 5
-      }
-    },
-    {
-      "@type": "Review",
-      "author": {
-        "@type": "Person",
-        "name": "Stacy Geswender"
-      },
-      "reviewBody": "Sam came quickly and took care of me — they are amazing!!",
-      "reviewRating": {
-        "@type": "Rating",
-        "ratingValue": 5
-      }
-    }
   ]
 }
 </script>
@@ -268,8 +211,7 @@
   <div class="item"><span class="ic">🚐</span><span class="big">Mobile</span><span>We come to you</span></div>
 </div></div>
 <!-- Local facts (landmarks/highways/distances) are best-effort from general
-     OKC-metro knowledge; verify before relying. Review & photo slots are labeled
-     placeholders — not shown as live testimonials until a real one is pasted in. -->
+     OKC-metro knowledge; verify before relying. -->
 <section><div class="wrap"><div class="prose">
   <p style="font-size:13px;color:var(--dim);margin:0 0 6px"><a href="../service-areas/">Service Areas</a> › The Village</p>
   <h1>Locksmith Services in The Village</h1>
@@ -315,11 +257,24 @@
 
 <section class="surface"><div class="wrap">
   <div class="sec-head"><h2>What The Village Customers Say</h2><p>Real reviews from our Google Business Profile.</p></div>
-  <div class="widget-slot"><b>⭐ LOCAL REVIEW SLOT — The Village customer</b>
-    <small>Paste a real Google review from a The Village customer customer here, or leave for now. (Labeled slot — not shown to visitors as live until filled.)</small></div>
+  <p style="text-align:center;font-weight:800;font-size:18px;margin:0 0 16px">⭐ 250+ Five-Star Reviews on Google</p>
+<div id="reviewsWidgetContainer">
+  <iframe id="reviewsWidget" style="width: 100%; border: none; min-height: 300px;" title="Reviews Widget"></iframe>
+</div>
+<script>
+(function() {
+  function getPageSizeForWidth(width){if(width<450)return 1;if(width<675)return 2;if(width<918)return 3;if(width<1144)return 4;return 5;}
+  function setIframeSrc(){var iframe=document.getElementById("reviewsWidget");var container=document.getElementById("reviewsWidgetContainer");if(!iframe||!container){setTimeout(setIframeSrc,50);return;}var width=container.offsetWidth;if(width===0){setTimeout(setIframeSrc,50);return;}var pageSize=getPageSizeForWidth(width);var expectedSrc="https://www.localmarketingmanager.com/api/reviews/turbo-keysmith-review-widget?pageSize="+pageSize;if(iframe.src!==expectedSrc){iframe.src=expectedSrc;}}
+  function init(){setIframeSrc();setTimeout(setIframeSrc,50);window.addEventListener("resize",setIframeSrc);}
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+})();
+</script>
 </div></section>
 
-<!-- "Our Work" gallery: no The Village photos yet — section hidden until real images are added -->
+<section class="surface"><div class="wrap">
+  <div class="sec-head"><h2>Our Work</h2><p>Recent The Village jobs — photos from our Google Business Profile.</p></div>
+  <iframe src="https://www.localmarketingmanager.com/api/images/turbo-keysmith-image-widget" style="width: 100%; border: none; min-height: 480px;" title="Images Widget" loading="lazy"></iframe>
+</div></section>
 
 <section><div class="wrap">
   <div class="sec-head"><h2>Need a locksmith in The Village?</h2><p>Licensed OK #AC441081 · rated 5.0★ · mobile — we come to you.</p></div>

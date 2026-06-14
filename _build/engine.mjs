@@ -28,6 +28,29 @@ export const esc = (s) => String(s)
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
   .replace(/"/g,'&quot;');
 
+// ---- localmarketingmanager.com Live Google Business widgets ----------------
+// Single source for the embed code so the homepage (patched) and every
+// generated city/sub page use the identical markup. Iframes are lazy-loaded.
+// The Reviews widget sizes its src by container width, with a plain-text
+// "250+ Five-Star Reviews" headline above as a no-JS / load-failure backstop.
+export const IMAGES_WIDGET =
+  `<iframe src="https://www.localmarketingmanager.com/api/images/turbo-keysmith-image-widget" style="width: 100%; border: none; min-height: 480px;" title="Images Widget" loading="lazy"></iframe>`;
+export const LOCAL_POSTS_WIDGET =
+  `<iframe src="https://www.localmarketingmanager.com/api/local-posts/turbo-keysmith-local-posts-widget" style="width: 100%; min-height: 480px; border: none;" title="Local Posts Widget" loading="lazy"></iframe>`;
+export const REVIEWS_WIDGET =
+  `<p style="text-align:center;font-weight:800;font-size:18px;margin:0 0 16px">⭐ 250+ Five-Star Reviews on Google</p>
+<div id="reviewsWidgetContainer">
+  <iframe id="reviewsWidget" style="width: 100%; border: none; min-height: 300px;" title="Reviews Widget"></iframe>
+</div>
+<script>
+(function() {
+  function getPageSizeForWidth(width){if(width<450)return 1;if(width<675)return 2;if(width<918)return 3;if(width<1144)return 4;return 5;}
+  function setIframeSrc(){var iframe=document.getElementById("reviewsWidget");var container=document.getElementById("reviewsWidgetContainer");if(!iframe||!container){setTimeout(setIframeSrc,50);return;}var width=container.offsetWidth;if(width===0){setTimeout(setIframeSrc,50);return;}var pageSize=getPageSizeForWidth(width);var expectedSrc="https://www.localmarketingmanager.com/api/reviews/turbo-keysmith-review-widget?pageSize="+pageSize;if(iframe.src!==expectedSrc){iframe.src=expectedSrc;}}
+  function init(){setIframeSrc();setTimeout(setIframeSrc,50);window.addEventListener("resize",setIframeSrc);}
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+})();
+</script>`;
+
 // ---- schema.org Locksmith block (site-wide, full areaServed) ----
 export function schema() {
   const obj = {
@@ -44,14 +67,12 @@ export function schema() {
       {'@type':'OpeningHoursSpecification',dayOfWeek:['Sunday'],opens:'00:00',closes:'05:00'}
     ],
     areaServed: AREA_SERVED.map(n=>({'@type':'Place',name:n})),
-    sameAs:['https://www.instagram.com/turbokeysmith/','https://www.tiktok.com/@turbokeysmith','https://www.facebook.com/247826765080233','https://www.youtube.com/@TurboKeysmith'],
-    aggregateRating:{'@type':'AggregateRating',ratingValue:'5.0',reviewCount:258,bestRating:5,worstRating:1},
-    review:[
-      {'@type':'Review',author:{'@type':'Person',name:'T thibo'},reviewBody:'Outstanding customer service. What a great business! Sam really went the extra mile to get my 2015 Audi A6 key fob working. He even cleared about 20 other codes that the vehicle had that I have been researching and trying to fix for weeks! Highly recommended, they deserve your business and do outstanding work!',reviewRating:{'@type':'Rating',ratingValue:5}},
-      {'@type':'Review',author:{'@type':'Person',name:'Sheref Hill'},reviewBody:"I don't leave reviews often, but Sam absolutely earned this one. I needed a new key and wasn't sure what the process would look like. From the moment I went to Sam, he made everything simple — friendly, professional, and he took the time to explain everything clearly. What I expected to be a frustrating experience ended up being one of the easiest service experiences I've had. He's honest, dependable, and genuinely invested in helping people. If I could give more than five stars, I would.",reviewRating:{'@type':'Rating',ratingValue:5}},
-      {'@type':'Review',author:{'@type':'Person',name:'Katrina Jim'},reviewBody:'I am pleased with Turbo Keysmith. When I called he gave me an estimate and came out in a timely matter. Prices are reasonable. Sam is kind, honest, and reliable. Recommend using Turbo Keysmith.',reviewRating:{'@type':'Rating',ratingValue:5}},
-      {'@type':'Review',author:{'@type':'Person',name:'Stacy Geswender'},reviewBody:'Sam came quickly and took care of me — they are amazing!!',reviewRating:{'@type':'Rating',ratingValue:5}}
-    ]
+    // NOTE: aggregateRating + review were intentionally REMOVED. They were
+    // self-serving review markup backed only by an iframe widget (not visible
+    // on-page reviews), which violates Google's structured-data policy and is a
+    // manual-action risk. Visible reviews now come from the on-page Reviews
+    // widget; no review/rating structured data is emitted.
+    sameAs:['https://www.instagram.com/turbokeysmith/','https://www.tiktok.com/@turbokeysmith','https://www.facebook.com/247826765080233','https://www.youtube.com/@TurboKeysmith']
   };
   return '<script type="application/ld+json">\n'+JSON.stringify(obj,null,2)+'\n</script>';
 }
@@ -167,28 +188,25 @@ export function mobilebar() {
 </nav>`;
 }
 
-// labeled review slot (annotated placeholder — keeps content honest)
+// Reviews section body: the live Google reviews widget (with backstop headline).
+// Same widget on every page; `label` is unused now but kept for call-site compat.
 export function reviewSlot(label) {
-  return `<div class="widget-slot"><b>⭐ LOCAL REVIEW SLOT — ${esc(label)}</b>
-    <small>Paste a real Google review from a ${esc(label)} customer here, or leave for now. (Labeled slot — not shown to visitors as live until filled.)</small></div>`;
+  return REVIEWS_WIDGET;
 }
 
-// "Our Work" photos. Renders a real gallery ONLY when a city has images
-// (`photos` = array of resolved src paths). With no photos it returns a HIDDEN
-// placeholder comment — never an empty/broken photo box shown to visitors.
+// "Our Work" photos section. Always rendered now: the live Google images widget,
+// PLUS the city's real on-domain job photos above it when it has any (`photos` =
+// array of resolved src paths). No more hidden empty placeholder.
 export function photoSlots(label, photos) {
   const list = Array.isArray(photos) ? photos.filter(Boolean) : [];
-  if (!list.length) {
-    return `<!-- "Our Work" gallery: no ${esc(label)} photos yet — section hidden until real images are added -->`;
-  }
-  const cards = list.map(src =>
-    `<figure class="photo"><img src="${esc(src)}" alt="${esc(label)} locksmith work by Turbo Keysmith" loading="lazy"></figure>`
-  ).join('\n      ');
+  const realGallery = list.length
+    ? `\n  <div class="photo-grid">
+      ${list.map(src => `<figure class="photo"><img src="${esc(src)}" alt="${esc(label)} locksmith work by Turbo Keysmith" loading="lazy"></figure>`).join('\n      ')}
+  </div>`
+    : '';
   return `<section class="surface"><div class="wrap">
-  <div class="sec-head"><h2>Our Work in ${esc(label)}</h2><p>A look around ${esc(label)}, where we work every week.</p></div>
-  <div class="photo-grid">
-      ${cards}
-  </div>
+  <div class="sec-head"><h2>Our Work</h2><p>Recent ${esc(label)} jobs — photos from our Google Business Profile.</p></div>${realGallery}
+  ${IMAGES_WIDGET}
 </div></section>`;
 }
 

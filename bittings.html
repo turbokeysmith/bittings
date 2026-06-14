@@ -3189,7 +3189,7 @@ function hydrateIdentityFromConfig(){
   }catch(e){}
 }
 function openSettings(){
-  try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn() && !TKS.auth.isOwner()){ appAlert("Owner only","Settings are owner-only."); return; } }catch(e){}
+  try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn() && !TKS.auth.isOwner()){ appAlert("Managers only","Settings are manager-only."); return; } }catch(e){}
   loadSettingsForm(); document.getElementById("settingsPanel").classList.add("open");
 }
 function closeSettings(){ document.getElementById("settingsPanel").classList.remove("open"); }
@@ -3206,7 +3206,7 @@ function loadSettingsForm(){
   const owner = (typeof _isOwnerForCosts==="function") ? _isOwnerForCosts() : true;
   document.getElementById("setTaxRate").value = (cfg.taxRate!=null?cfg.taxRate:"");
   document.getElementById("setTaxRate").disabled = !owner;
-  document.getElementById("taxOwnerNote").textContent = owner ? "" : "Tax settings are owner-only.";
+  document.getElementById("taxOwnerNote").textContent = owner ? "" : "Tax settings are manager-only.";
   renderTaxToggles(cfg, owner);
   document.getElementById("setSurcharge").value=s.surcharge!==undefined?s.surcharge:"";
   cjRender();
@@ -3723,7 +3723,7 @@ function lineCost(unitCost, qty){
 /* Open a searchable Inventory picker (name / SKU / fitment / VIN — same search as
    the Inventory tile). Calls onPick(part) with the chosen part. Owner-gated. */
 function pickInventoryPart(onPick){
-  if(!_isOwnerForCosts()){ alert("Picking parts (and seeing cost) is owner-only."); return; }
+  if(!_isOwnerForCosts()){ alert("Picking parts (and seeing cost) is manager-only."); return; }
   if(!window.TKS || !TKS.Inventory){ alert("Inventory isn't available here yet."); return; }
   const ov=document.createElement("div");
   ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px";
@@ -3809,14 +3809,14 @@ function reverseStockForReceipt(r){
     try{
       if(window.TKS && TKS.auth && TKS.auth.isSignedIn()){
         if(TKS.auth.isOwner()){ onGranted(); return; }
-        onDenied("That's an owner-only tool — you're signed in as staff."); return;
+        onDenied("That's a manager-only tool — you're signed in as staff."); return;
       }
     }catch(e){}
-    const pin = (window.TKS && TKS.Config) ? TKS.Config.ownerPin() : (window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN);
-    if(!pin){ onDenied("Owner sign-in is required for the quick invoice."); return; }
-    const entered = prompt("Owner PIN to open the quick invoice form:");
+    const hasPin = (window.TKS && TKS.auth) ? TKS.auth.hasManagerPin() : !!(window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN);
+    if(!hasPin){ onDenied("Manager sign-in is required for the quick invoice."); return; }
+    const entered = prompt("Manager PIN to open the quick invoice form:");
     if(entered === null){ onDenied(""); return; }
-    if(String(entered) === String(pin)) onGranted(); else onDenied("Wrong PIN.");
+    if(window.TKS && TKS.auth && TKS.auth.managerByPin(entered)) onGranted(); else onDenied("Wrong PIN.");
   };
 
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }

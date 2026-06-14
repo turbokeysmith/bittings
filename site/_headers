@@ -1,0 +1,19 @@
+# Cloudflare Pages — HTTP response headers for turbokeysmith.com
+# (Cloudflare reads this file automatically from the deploy root.)
+#
+# Speed: Cloudflare's global CDN caches and serves these files from the edge
+# automatically, and purges that cache on every deploy — so the big speed win is
+# already on. The rules below add a sensible browser cache + security headers.
+
+# Site-wide security headers (safe defaults; no HSTS here — turn HSTS on in the
+# Cloudflare dashboard once you've confirmed HTTPS works, so it's reversible).
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+# Static assets (logo, CSS, images). Not fingerprinted, so keep the browser cache
+# modest (1 day) — the edge/CDN still serves them fast and a deploy purges it.
+/assets/*
+  Cache-Control: public, max-age=86400
