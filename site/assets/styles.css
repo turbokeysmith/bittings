@@ -245,14 +245,14 @@ nav.mobile a,.mobilebar a{min-height:48px;}
 /* dark footer variant */
 footer.site .social-icons a{background:transparent;border-color:rgba(255,255,255,.22);color:#c2cad3;}
 footer.site .social-icons a:hover{background:#fff;color:#15181c;border-color:#fff;}
-/* compact set in the sticky header bar — desktop only */
-.bar-social{display:none;}
-.bar-social a{width:42px;height:42px;}
-.bar-social svg{width:22px;height:22px;}
-@media (min-width:960px){ .bar-social{display:flex;} }
-/* social row inside the mobile menu */
-.mobile-social{padding:12px 18px;border-bottom:1px solid var(--edge);}
-@media (min-width:960px){ .mobile-social{display:none;} }
+/* sub-header strip: social icons run horizontally UNDER the nav tabs, like a thin
+   secondary bar (slightly shorter than the main header). Used in header + footer. */
+.subbar{border-top:1px solid var(--edge);background:var(--surface);}
+.subbar .wrap{display:flex;justify-content:center;padding:7px 18px;}
+.social-icons.subbar-icons{gap:16px;justify-content:center;flex-wrap:wrap;}
+.social-icons.subbar-icons a{width:34px;height:34px;}
+.social-icons.subbar-icons svg{width:18px;height:18px;}
+.footer-social{margin-top:22px;}
 
 /* ============================================================
    Award / recognition badge (sits beside the reviews)

@@ -617,9 +617,9 @@ function esHeader(d) {
       <a href="${a}pay-now/">${esc(N.payNow)}</a>
     </nav>
     <a class="head-call" href="tel:${PHONE_E164}"><span class="btn btn-call">📞 ${PHONE_DISPLAY}</span></a>
-    ${socialIcons('bar-social')}
     <button class="navtoggle" aria-label="Menú" onclick="document.getElementById('m').classList.toggle('open')">☰</button>
   </div>
+  <div class="subbar"><div class="wrap">${socialIcons('subbar-icons')}</div></div>
   <nav class="mobile" id="m">
     <a href="${e}index.html">${esc(N.home)}</a>
     <a href="${e}automotive/">${esc(N.automotive)}</a>
@@ -632,7 +632,6 @@ function esHeader(d) {
     <a href="${e}certifications/">${esc(N.certifications)}</a>
     <a href="${e}faq/">${esc(N.faq)}</a>
     <a href="${a}pay-now/">${esc(N.payNow)}</a>
-    ${socialIcons('mobile-social')}
   </nav>
 </header>`;
 }
@@ -660,7 +659,7 @@ function esFooter(d) {
       <a href="${e}oklahoma-city/">Oklahoma City</a><a href="${e}edmond/">Edmond</a>
       <a href="${e}norman/">Norman</a><a href="${e}yukon/">Yukon</a></div>
   </div>
-  <div style="margin-top:22px">${socialIcons()}</div>
+  <div class="footer-social">${socialIcons('subbar-icons')}</div>
   <div class="legal"><span>${esc(F.copyright)} · <a href="${e}terms/" style="color:inherit">${esc(N.terms)}</a></span>
     <a class="staff-login" href="${a}../cloud-test.html" rel="nofollow">${esc(F.staff)}</a></div>
 </div></footer>`;
