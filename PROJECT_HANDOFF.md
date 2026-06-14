@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-13 23:49 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-14 00:22 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -252,6 +252,13 @@ These are the open items an advisor should focus on:
    **Prerequisite sequence (must happen first, in order):** (1) proofread `/es/` — especially
    technical locksmith terms; (2) publish `/es/` — remove `noindex`, add to the sitemap, unblock
    `robots.txt`, drop the DRAFT banners; (3) then rewire the toggle. *Queued, not built yet.*
+   - **Proofreading checklist (Spanish pages needing a fluent reviewer before publish):**
+     **🚩 MUST (legal/technical, blocking):** `/es/warranty/` and `/es/terms/` — these carry an extra red
+     "needs professional review" banner. **Also proofread** (machine-translation drafts, like the rest of
+     `/es/`): `/es/financing/`, `/es/faq/`, the financing/warranty teasers on `/es/` home + the 4 `/es/`
+     service pages, and the `/es/automotive/` warranty section. Spanish source for all of it is in
+     `_build/es.mjs` (the proofreader edits there, then `node _build/generate.mjs`). Payment brand names
+     (Klarna/Afterpay/Zip/Amazon Pay/Cash App Pay/Link/PayPal) stay in English on purpose.
 6. **Nothing is deployed/published yet — but the host is now DECIDED: Cloudflare.** Public site →
    **Cloudflare Pages** (deploy the `site/` folder); domain DNS → **moved to Cloudflare** for speed +
    free SSL; **GoDaddy stays only as the registrar** (and keeps hosting email). Full step-by-step in
@@ -366,6 +373,28 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-14
+- **Spanish `/es/` mirrored with the new English content — still UNPUBLISHED draft (00:22):** brought the
+  recent English additions into the Spanish site, all in the `_build/` generator (`es.mjs` strings +
+  `es*` render functions), and regenerated. **`/es/` stays `noindex`, out of the sitemap, blocked in
+  `robots.txt`, with the DRAFT banner — and the 🌐 toggle was NOT changed** (still chrome-only; it points
+  at `/es/` only after proofreading).
+  - **New Spanish pages:** `/es/financing/`, `/es/warranty/`, `/es/terms/` (with print-to-PDF), and
+    `/es/faq/` (new — the Spanish site had no FAQ before; includes a Spanish **FAQPage schema**, 8 Q&As,
+    in sync with the visible page).
+  - **Updated Spanish pages:** `/es/` home (financing + warranty teasers), `/es/automotive/` (warranty
+    section + financing teaser), `/es/residential|commercial|emergency/` (financing teaser). **Every**
+    `/es/` page got the new **nav + footer** (Financiamiento, Garantía, and FAQ now point to the Spanish
+    pages instead of the English ones; Términos in the footer legal line).
+  - **FAQ content mirrored:** updated "¿Cómo puedo pagar?" (cash/cards/Amazon Pay/Cash App Pay/Link +
+    Klarna/Afterpay/Zip; PayPal Pay-in-4 on request), new "¿Ofrecen financiamiento o planes de pago?",
+    new "¿Dan garantía a sus llaves de auto?" — visible + schema.
+  - **⚠️ MUST be human-proofread before publish (extra red banner on the page itself):** **`/es/warranty/`**
+    and **`/es/terms/`** — locksmith + legal terms can't rely on machine translation. Also new
+    machine-translation copy to proofread with the rest of `/es/`: `/es/financing/`, `/es/faq/`, the
+    financing/warranty teasers, and the `/es/automotive/` warranty section. (The English originals are
+    unchanged.) See the full list in section 7 item 5.
 
 ### 2026-06-13
 - **New pages: Financing, Warranty, Terms + FAQ/payment/warranty/signature updates (23:49):** all built

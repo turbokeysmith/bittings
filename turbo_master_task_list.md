@@ -3,7 +3,14 @@
 Keep this updated after each work session. Status key: ✅ done · 🔨 in progress ·
 ⏸️ parked (waiting on a decision/credential) · ⬜ not started.*
 
-Last updated: 2026-06-13 23:49 CDT (Claude Code) — Financing/Warranty/Terms pages + FAQ/payment/signature updates; public site finalized (widgets/schema/hours/cities); Cloudflare decided; Hours "Copy to…"; owner→manager + per-manager PINs
+Last updated: 2026-06-14 00:22 CDT (Claude Code) — Spanish /es/ mirrored with new content (still draft/noindex); Financing/Warranty/Terms pages + FAQ/payment/signature; public site finalized; Cloudflare decided; owner→manager + per-manager PINs
+
+> **Spanish /es/ mirror (2026-06-14):** ✅ New `/es/financing/`, `/es/warranty/`, `/es/terms/` (print-to-PDF),
+> `/es/faq/` (new, + Spanish FAQPage schema, 8 Q). Teasers on /es/ home + service pages; warranty section on
+> /es/automotive. Every /es/ page's nav/footer now point Financiamiento/Garantía/FAQ at the Spanish pages.
+> **/es/ stays noindex + draft + out of sitemap; toggle NOT flipped.** 🚩 **MUST human-proofread before
+> publish:** `/es/warranty/` + `/es/terms/` (legal/locksmith). Also proofread: /es/financing, /es/faq,
+> teasers, /es/automotive warranty section. Spanish source = `_build/es.mjs`.
 
 > **New pages + payments/warranty (2026-06-13 late):** ✅ `/financing/` (nav+footer), `/warranty/`
 > (Automotive section + homepage teaser + footer), `/terms/` (footer + print-to-PDF) — all in the
