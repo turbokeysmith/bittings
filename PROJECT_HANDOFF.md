@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-14 00:22 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-14 00:42 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -264,8 +264,11 @@ These are the open items an advisor should focus on:
    free SSL; **GoDaddy stays only as the registrar** (and keeps hosting email). Full step-by-step in
    **`DEPLOY_CLOUDFLARE.md`** (account → verify email/MX records → switch nameservers → deploy → verify
    on a temp `*.pages.dev` URL → flip the domain, reversibly). The **staff app** goes later on its own
-   subdomain (`app.turbokeysmith.com`), kept `noindex`. *Still to do: actually run the deploy (needs the
-   owner's Cloudflare account + the GoDaddy nameserver change).*
+   subdomain (`app.turbokeysmith.com`), kept `noindex`. **PREVIEW IS LIVE (2026-06-14):** `site/` is
+   deployed to the Cloudflare Pages project **`turbokeysmith`** at **https://turbokeysmith.pages.dev**
+   (free `*.pages.dev` address) via a Pages:Edit API token — **no custom domain, no DNS; turbokeysmith.com
+   untouched**. All pages return 200; widgets/schema/hours verified. *Still to do: owner phone sign-off on
+   the preview, then the domain cutover together (add custom domain + DNS) per the runbook.*
 7. **Optional security hardening** flagged by Supabase: set a fixed search_path on the
    `touch_updated_at` function; enable leaked-password protection in Auth settings. Both minor.
 8. **Local → cloud migration** of any existing demo data was intentionally NOT done (avoids
@@ -375,6 +378,13 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-14
+- **Public site deployed to a Cloudflare Pages PREVIEW (later 06-14):** `site/` uploaded to the Pages
+  project **`turbokeysmith`** → **https://turbokeysmith.pages.dev** (free preview; per-deploy alias also
+  issued). Used a **Pages:Edit-only** API token (kept in the owner's Windows user env via `setx`, never in
+  chat/git). **No custom domain, no DNS, no nameservers — `turbokeysmith.com` and GoDaddy untouched.**
+  Verified live: all core pages + financing/warranty/terms/faq return 200; homepage shows the
+  reviews/images/local-posts widgets + financing/warranty teasers; no `aggregateRating` in schema; hours
+  read "Sunday until 5:00 am"; `/es/` still `noindex`. Next: owner phone sign-off, then domain cutover together.
 - **Spanish `/es/` mirrored with the new English content — still UNPUBLISHED draft (00:22):** brought the
   recent English additions into the Spanish site, all in the `_build/` generator (`es.mjs` strings +
   `es*` render functions), and regenerated. **`/es/` stays `noindex`, out of the sitemap, blocked in
