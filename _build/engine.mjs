@@ -28,17 +28,40 @@ export const esc = (s) => String(s)
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
   .replace(/"/g,'&quot;');
 
+// ---- Social profiles (single source: footer/header icons + schema sameAs) ---
+export const SOCIAL = [
+  { name:'Instagram', url:'https://www.instagram.com/turbokeysmith/',
+    svg:'<path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm5.3-.4a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2z"/>' },
+  { name:'TikTok', url:'https://www.tiktok.com/@turbokeysmith',
+    svg:'<path d="M16.5 3c.3 2.3 1.7 4 3.9 4.3v2.7c-1.3.1-2.7-.3-3.9-1v5.8a5.7 5.7 0 1 1-5.7-5.7c.3 0 .6 0 .9.1v2.8a2.9 2.9 0 1 0 2 2.8V3h2.8z"/>' },
+  { name:'Facebook', url:'https://www.facebook.com/turbokeysmith/',
+    svg:'<path d="M22 12a10 10 0 1 0-11.6 9.9v-7H8V12h2.4V9.8c0-2.4 1.4-3.7 3.6-3.7 1 0 2.1.2 2.1.2v2.3h-1.2c-1.2 0-1.5.7-1.5 1.5V12h2.6l-.4 2.9h-2.2v7A10 10 0 0 0 22 12z"/>' },
+  { name:'YouTube', url:'https://www.youtube.com/@TurboKeysmith',
+    svg:'<path d="M23 7.5a3 3 0 0 0-2.1-2.1C19 5 12 5 12 5s-7 0-8.9.4A3 3 0 0 0 1 7.5 31 31 0 0 0 .6 12 31 31 0 0 0 1 16.5a3 3 0 0 0 2.1 2.1C5 19 12 19 12 19s7 0 8.9-.4a3 3 0 0 0 2.1-2.1A31 31 0 0 0 23.4 12 31 31 0 0 0 23 7.5zM9.8 15.3V8.7l5.7 3.3-5.7 3.3z"/>' },
+  { name:'Nextdoor', url:'https://nextdoor.com/pages/turbo-keysmith-warr-acres-ok/',
+    svg:'<path d="M12 2 2 9.6h3V21h5v-6.2h4V21h5V9.6h3z"/>' },
+  { name:'Google', url:'https://maps.app.goo.gl/DZYJ3x33cb5J2AJC9',
+    svg:'<path d="M21.6 12.2c0-.7-.1-1.3-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.4z"/><path d="M12 22c2.7 0 4.9-.9 6.6-2.4l-3.2-2.5c-.9.6-2.1 1-3.4 1-2.6 0-4.8-1.8-5.6-4.2H3.1v2.6A10 10 0 0 0 12 22z"/><path d="M6.4 13.9a6 6 0 0 1 0-3.8V7.5H3.1a10 10 0 0 0 0 9z"/><path d="M12 6.1c1.5 0 2.8.5 3.9 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 7.9 9.4 6.1 12 6.1z"/>' }
+];
+export function socialIcons(extraClass) {
+  return `<div class="social-icons${extraClass ? ' ' + extraClass : ''}">` +
+    SOCIAL.map(s => `<a href="${s.url}" target="_blank" rel="noopener noreferrer" aria-label="${esc(s.name)}" title="${esc(s.name)}"><svg viewBox="0 0 24 24" aria-hidden="true">${s.svg}</svg></a>`).join('') +
+    `</div>`;
+}
+
+// ---- Award/recognition badge (review-based; sits beside the reviews) ----
+export const AWARD_BADGE =
+  `<div class="award-wrap"><span class="award-badge">🏆 Best of 2026 · Ranked #1 Locksmith in Western Oklahoma — BusinessRate</span></div>`;
+
 // ---- localmarketingmanager.com Live Google Business widgets ----------------
-// Single source for the embed code so the homepage (patched) and every
-// generated city/sub page use the identical markup. Iframes are lazy-loaded.
-// The Reviews widget sizes its src by container width, with a plain-text
-// "250+ Five-Star Reviews" headline above as a no-JS / load-failure backstop.
-export const IMAGES_WIDGET =
-  `<iframe src="https://www.localmarketingmanager.com/api/images/turbo-keysmith-image-widget" style="width: 100%; border: none; min-height: 480px;" title="Images Widget" loading="lazy"></iframe>`;
+// (Images/"Our Work" widget removed by request — replaced by social links.)
+// The Reviews widget sizes its src by container width; the award badge + a
+// plain-text "250+ Five-Star Reviews" headline sit above it.
 export const LOCAL_POSTS_WIDGET =
   `<iframe src="https://www.localmarketingmanager.com/api/local-posts/turbo-keysmith-local-posts-widget" style="width: 100%; min-height: 480px; border: none;" title="Local Posts Widget" loading="lazy"></iframe>`;
 export const REVIEWS_WIDGET =
-  `<p style="text-align:center;font-weight:800;font-size:18px;margin:0 0 16px">⭐ 250+ Five-Star Reviews on Google</p>
+  `${AWARD_BADGE}
+<p style="text-align:center;font-weight:800;font-size:18px;margin:0 0 16px">⭐ 250+ Five-Star Reviews on Google</p>
 <div id="reviewsWidgetContainer">
   <iframe id="reviewsWidget" style="width: 100%; border: none; min-height: 300px;" title="Reviews Widget"></iframe>
 </div>
@@ -72,7 +95,7 @@ export function schema() {
     // on-page reviews), which violates Google's structured-data policy and is a
     // manual-action risk. Visible reviews now come from the on-page Reviews
     // widget; no review/rating structured data is emitted.
-    sameAs:['https://www.instagram.com/turbokeysmith/','https://www.tiktok.com/@turbokeysmith','https://www.facebook.com/247826765080233','https://www.youtube.com/@TurboKeysmith']
+    sameAs: SOCIAL.map(s => s.url)
   };
   return '<script type="application/ld+json">\n'+JSON.stringify(obj,null,2)+'\n</script>';
 }
@@ -125,6 +148,7 @@ export function header(depth) {
       <a href="${r}pay-now/">Pay Now</a>
     </nav>
     <a class="head-call" href="tel:${PHONE_E164}"><span class="btn btn-call">📞 ${PHONE_DISPLAY}</span></a>
+    ${socialIcons('bar-social')}
     <button class="navtoggle" aria-label="Menu" onclick="document.getElementById('m').classList.toggle('open')">☰</button>
   </div>
   <nav class="mobile" id="m">
@@ -139,6 +163,7 @@ export function header(depth) {
     <a href="${r}certifications/">Certifications</a>
     <a href="${r}faq/">FAQ</a>
     <a href="${r}pay-now/">Pay Now</a>
+    ${socialIcons('mobile-social')}
   </nav>
 </header>`;
 }
@@ -172,12 +197,7 @@ export function footer(depth) {
       <a href="${r}oklahoma-city/">Oklahoma City</a><a href="${r}edmond/">Edmond</a>
       <a href="${r}norman/">Norman</a><a href="${r}yukon/">Yukon</a></div>
   </div>
-  <div class="social" style="margin-top:22px">
-    <a href="https://www.facebook.com/247826765080233">Facebook</a>
-    <a href="https://www.instagram.com/turbokeysmith/">Instagram</a>
-    <a href="https://www.tiktok.com/@turbokeysmith">TikTok</a>
-    <a href="https://www.youtube.com/@TurboKeysmith">YouTube</a>
-  </div>
+  <div style="margin-top:22px">${socialIcons()}</div>
   <div class="legal">
     <span>Copyright © 2026 Turbo KeySmith — All Rights Reserved. · Licensed OK #AC441081 · <a href="${r}terms/" style="color:inherit">Terms &amp; Conditions</a></span>
     <a class="staff-login" href="${r}../cloud-test.html" rel="nofollow">Staff Login</a>
@@ -199,19 +219,17 @@ export function reviewSlot(label) {
   return REVIEWS_WIDGET;
 }
 
-// "Our Work" photos section. Always rendered now: the live Google images widget,
-// PLUS the city's real on-domain job photos above it when it has any (`photos` =
-// array of resolved src paths). No more hidden empty placeholder.
+// "Our Work" photos section. The Google images widget was removed by request.
+// Renders ONLY when a city has real on-domain photos; otherwise nothing (no
+// empty section, no widget).
 export function photoSlots(label, photos) {
   const list = Array.isArray(photos) ? photos.filter(Boolean) : [];
-  const realGallery = list.length
-    ? `\n  <div class="photo-grid">
-      ${list.map(src => `<figure class="photo"><img src="${esc(src)}" alt="${esc(label)} locksmith work by Turbo Keysmith" loading="lazy"></figure>`).join('\n      ')}
-  </div>`
-    : '';
+  if (!list.length) return '';
   return `<section class="surface"><div class="wrap">
-  <div class="sec-head"><h2>Our Work</h2><p>Recent ${esc(label)} jobs — photos from our Google Business Profile.</p></div>${realGallery}
-  ${IMAGES_WIDGET}
+  <div class="sec-head"><h2>Our Work in ${esc(label)}</h2><p>Recent jobs around ${esc(label)}.</p></div>
+  <div class="photo-grid">
+      ${list.map(src => `<figure class="photo"><img src="${esc(src)}" alt="${esc(label)} locksmith work by Turbo Keysmith" loading="lazy"></figure>`).join('\n      ')}
+  </div>
 </div></section>`;
 }
 
