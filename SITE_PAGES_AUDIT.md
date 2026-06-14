@@ -2,7 +2,7 @@
 
 _Live English pages in `site/`. Spanish `/es/` drafts excluded (unpublished, noindex). Read-only snapshot — nothing changed._
 
-Total: **102** pages.
+Total: **105** pages.
 
 ### /
 - **Targets:** Homepage
@@ -52,6 +52,12 @@ Total: **102** pages.
 - **Meta:** Explore Turbo KeySmith’s FAQ page for expert keys and locksmith solutions. Find answers to your locksmith questions and get reliable service today!
 - **H1:** Frequently Asked Questions
 
+### /financing/
+- **Targets:** Financing
+- **Title:** Affordable Locksmith & Payment Plans in OKC | Turbo Keysmith
+- **Meta:** Affordable locksmith in Oklahoma City done right — licensed, NASTF-certified work with flexible, interest-free payment plans (Klarna, Afterpay, Zip) in secure checkout. Not the cheapest; the best value. Call 405-870-5397.
+- **H1:** Affordable Locksmith Service in OKC — Without Cutting Corners
+
 ### /pay-now/
 - **Targets:** Pay Now
 - **Title:** Pay Now | Turbo KeySmith - Secure Locksmith Payments
@@ -69,6 +75,18 @@ Total: **102** pages.
 - **Title:** Service Areas | Turbo Keysmith — Mobile Locksmith Across the OKC Metro
 - **Meta:** Turbo Keysmith is a mobile locksmith serving Oklahoma City and 24 nearby cities within about 30 miles — Edmond, Norman, Yukon, Moore, Guthrie and more. Find your city. Call 405-870-5397.
 - **H1:** Where We Work — Mobile Locksmith Service Areas
+
+### /terms/
+- **Targets:** Terms & Conditions
+- **Title:** Terms & Conditions / Service Agreement | Turbo Keysmith
+- **Meta:** Turbo Keysmith service agreement: authorization & ownership, pricing & payment, the 6-month automotive key warranty, limitation of liability, and agreement. Licensed OK #AC441081.
+- **H1:** Terms & Conditions — Service Agreement
+
+### /warranty/
+- **Targets:** Warranty
+- **Title:** 6-Month Car Key Warranty | Turbo Keysmith — OKC Locksmith
+- **Meta:** Every automotive key & remote we program is backed by a 6-month workmanship warranty — programming, remote/push-to-start function, and the cut. See full coverage, exclusions, and how it works. Call 405-870-5397.
+- **H1:** 6-Month Key Warranty — We Stand Behind Our Work
 
 ### /bethany/
 - **Targets:** City — Bethany

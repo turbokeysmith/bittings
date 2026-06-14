@@ -267,12 +267,119 @@ ${groups}
   return wrap(h, 1, body);
 }
 
+// ---------- Financing / Payment-Options page ----------
+function renderFinancing() {
+  const r = rel(1);
+  const canonical = `${SITE}/financing`;
+  const h = head({
+    title:'Affordable Locksmith & Payment Plans in OKC | Turbo Keysmith',
+    desc:'Affordable locksmith in Oklahoma City done right — licensed, NASTF-certified work with flexible, interest-free payment plans (Klarna, Afterpay, Zip) in secure checkout. Not the cheapest; the best value. Call 405-870-5397.',
+    canonical, depth:1
+  });
+  const body = `${ANNOTATE}
+<section><div class="wrap"><div class="prose">
+  <h1>Affordable Locksmith Service in OKC — Without Cutting Corners</h1>
+  <p>Searching for a cheap or affordable locksmith in Oklahoma City? Honest answer: we're not the cheapest — and when it's your car, home, or family's security, you probably don't want the cheapest. We're the <strong>best value</strong>: licensed, NASTF-certified, high-quality work paired with flexible payment options, so an unexpected lockout never has to wait for payday.</p>
+
+  <h2>Quality work, paid your way</h2>
+  <p>Through our secure checkout you can split your bill into <strong>4 interest-free payments</strong> on qualifying jobs with <strong>Klarna, Afterpay, or Zip</strong> — approval takes seconds and the work gets done today. We also accept all major cards, cash, and fast digital checkout with <strong>Amazon Pay, Cash App Pay, and Link</strong>. <em>(PayPal Pay-in-4 available on request — just ask.)</em></p>
+  <p>We're one of the only locksmiths in the OKC metro offering pay-later financing.</p>
+
+  <h2>Why "cheap" can cost more</h2>
+  <p>A botched key program, an unnecessarily drilled lock, or a bargain part that fails fast — the cheapest locksmith often ends up the most expensive. We do it right the first time, and flexible payments mean you get that quality without the upfront sting.</p>
+
+  <h2>When financing helps most</h2>
+  <p>Best for bigger, unexpected jobs — lost-all-keys car key replacement, smart-lock installs, whole-home rekeys, and commercial security upgrades.</p>
+
+  <p style="text-align:center;margin:26px 0 0"><a class="btn btn-call btn-lg" href="${r}contact/">Get an Instant Quote</a></p>
+  <p style="text-align:center;margin:14px 0 0"><a class="btn btn-call btn-lg" href="${tel}">📞 Call ${PHONE_DISPLAY}</a> &nbsp; <a href="${r}pay-now/">Pay Now →</a></p>
+</div></div></section>`;
+  return wrap(h, 1, body);
+}
+
+// ---------- 6-Month Key Warranty page ----------
+function renderWarranty() {
+  const r = rel(1);
+  const canonical = `${SITE}/warranty`;
+  const h = head({
+    title:'6-Month Car Key Warranty | Turbo Keysmith — OKC Locksmith',
+    desc:'Every automotive key & remote we program is backed by a 6-month workmanship warranty — programming, remote/push-to-start function, and the cut. See full coverage, exclusions, and how it works. Call 405-870-5397.',
+    canonical, depth:1
+  });
+  const body = `${ANNOTATE}
+<section><div class="wrap"><div class="prose">
+  <h1>6-Month Key Warranty — We Stand Behind Our Work</h1>
+  <p>Every automotive key and remote we program is backed by a <strong>6-month workmanship warranty</strong>. If a key or fob we made fails because of a defect — it loses its programming, the buttons quit, the push-to-start or remote-start stops being recognized, or the key won't turn due to a faulty cut — we'll repair or reprogram it at <strong>no charge for parts or labor</strong> for six months.</p>
+
+  <h2>What's covered</h2>
+  <p>Programming / immobilizer recognition, remote and proximity (push-to-start) function, any remote-start we set up, the mechanical cut, and defects in the key or fob we supplied.</p>
+
+  <h2>What's not covered</h2>
+  <p>Lost or stolen keys; physical or water damage (dropped, run over, crushed, chewed, liquid); dead fob batteries (a normal wear item); and issues caused by the vehicle rather than the key — a dead car battery, faulty vehicle wiring or immobilizer, or manufacturer/dealer software updates that erase programming.</p>
+
+  <h2>How it works</h2>
+  <p>If a covered defect happens within 6 months, call us.</p>
+  <ul>
+    <li><strong>If your vehicle can be driven,</strong> bring it to us and we'll fix or reprogram a covered defect free. If you'd prefer we come to you, that's fine — but a service-call fee applies.</li>
+    <li><strong>If your vehicle can't be driven,</strong> we'll come to you free for a covered defect, anywhere within our greater-OKC service area (about a 30-mile radius).</li>
+    <li><strong>Outside our service area,</strong> the defect is still covered but travel is not — we don't provide mobile service, reimburse another locksmith, or cover towing for vehicles more than ~30 miles out or out of town. You're welcome to bring it to us.</li>
+    <li>A service-call fee applies and is <strong>not waived</strong> if we come out and the issue turns out to be damage, a dead vehicle battery, or not a key problem.</li>
+  </ul>
+
+  <p style="text-align:center;margin:26px 0 0"><a class="btn btn-call btn-lg" href="${tel}">📞 Questions? Call ${PHONE_DISPLAY}</a></p>
+  <p style="text-align:center;margin:14px 0 0"><a href="${r}terms/">See full Terms &amp; Conditions →</a></p>
+</div></div></section>`;
+  return wrap(h, 1, body);
+}
+
+// ---------- Terms & Conditions / Service Agreement page (+ print-to-PDF) ----------
+function renderTerms() {
+  const r = rel(1);
+  const canonical = `${SITE}/terms`;
+  const h = head({
+    title:'Terms & Conditions / Service Agreement | Turbo Keysmith',
+    desc:'Turbo Keysmith service agreement: authorization & ownership, pricing & payment, the 6-month automotive key warranty, limitation of liability, and agreement. Licensed OK #AC441081.',
+    canonical, depth:1
+  });
+  const body = `<!-- LEGAL: have a licensed attorney review the authorization, warranty, and
+     liability clauses before relying on this document. Keep in sync with /warranty/
+     and the app invoice signature line. -->
+<section><div class="wrap"><div class="prose">
+  <div class="tc-brand"><img src="${r}assets/logo.png" alt="Turbo Keysmith"><div><strong>Turbo Keysmith</strong><br>4201 N MacArthur Blvd, Warr Acres, OK 73122 · ${PHONE_DISPLAY} · OK Lic. #AC441081</div></div>
+  <h1>Terms &amp; Conditions — Service Agreement</h1>
+  <p class="noprint" style="text-align:right"><button class="btn btn-call" onclick="window.print()">⬇ Download / Print PDF</button></p>
+
+  <h2>1. Authorization &amp; Ownership</h2>
+  <p>By requesting service and signing, you confirm you own the vehicle or property, or are authorized to approve this work, and that any ID or proof of ownership requested was provided truthfully. We may decline or stop service if ownership/authorization can't be verified.</p>
+
+  <h2>2. Pricing &amp; Payment</h2>
+  <p>We provide a price before work begins; payment is due on completion. We accept cash, debit/credit cards, digital wallets (Amazon Pay, Cash App Pay, Link), and pay-later financing (Klarna, Afterpay, Zip; PayPal Pay-in-4 on request). A surcharge of up to 2% applies to <strong>credit-card payments only</strong> — never debit or financing — and is disclosed before charging. Financing is provided by third parties under their own terms; we are paid in full at the time of service.</p>
+
+  <h2>3. 6-Month Automotive Key Warranty</h2>
+  <p>Every automotive key and remote we program is backed by a 6-month workmanship warranty. <strong>Covered:</strong> programming/immobilizer recognition, remote and proximity (push-to-start) function, any remote-start we set up, the mechanical cut, and defects in the key or fob we supplied. <strong>Not covered:</strong> lost or stolen keys; physical or water damage; dead fob batteries; and vehicle-side issues (dead car battery, faulty wiring or immobilizer, or manufacturer/dealer software updates that erase programming). <strong>Service:</strong> if your vehicle is drivable, bring it to us and a covered defect is repaired or reprogrammed free; if it can't be driven, we come to you free within our greater-OKC service area (~30-mile radius). Outside that area the defect is covered but travel is not. A service-call fee applies and is not waived if the issue turns out to be damage, a dead vehicle battery, or not a key problem. Full terms: <a href="${r}warranty/">our Warranty page</a>.</p>
+
+  <h2>4. Limitation of Liability</h2>
+  <p>We are not responsible for pre-existing conditions, prior damage, or mechanical/electrical faults not caused by our work. Our total liability for any claim is limited to the amount paid for the service. We are not liable for indirect or consequential losses.</p>
+
+  <h2>5. Agreement</h2>
+  <p>By signing our invoice/receipt, you acknowledge you have read and agree to these Terms &amp; Conditions.</p>
+
+  <p style="color:var(--dim);font-size:13px;margin-top:24px">Turbo Keysmith · OK Lic. #AC441081 · ${PHONE_DISPLAY} · turbokeysmith.com/terms</p>
+</div></div></section>
+<style>
+  .tc-brand{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .tc-brand img{height:46px;width:auto}
+  @media print{ header.site,.trust,.mobilebar,footer.site,.noprint,button{display:none!important} body{background:#fff;color:#000} }
+</style>`;
+  return wrap(h, 1, body);
+}
+
 // ---------- sitemap.xml + robots.txt ----------
 function renderSitemap() {
   const urls = [];
   const add = (path) => urls.push(`${SITE}/${path}`.replace(/\/$/, '/') );
   // core pages
-  ['','automotive/','residential/','commercial/','emergency/','faq/','blog/','certifications/','pay-now/','service-areas/','contact/']
+  ['','automotive/','residential/','commercial/','emergency/','financing/','warranty/','terms/','faq/','blog/','certifications/','pay-now/','service-areas/','contact/']
     .forEach(p => urls.push(`${SITE}/${p}`));
   built.forEach(c => {
     urls.push(`${SITE}/${c.slug}/`);
@@ -342,12 +449,11 @@ function patchHandPages() {
     //    g) Owner-facing dev NOTE comments removed
     html = html.replace(/<!-- NOTE[\s\S]*?-->\s*/g, '');
 
-    // 3) footer Service Areas column -> hub link + featured
-    const newCol = `<div><h4>Service Areas</h4>
-      <a href="${r}service-areas/"><strong style="color:#fff">All Service Areas →</strong></a>
-      <a href="${r}oklahoma-city/">Oklahoma City</a><a href="${r}edmond/">Edmond</a>
-      <a href="${r}norman/">Norman</a><a href="${r}yukon/">Yukon</a></div>`;
-    html = html.replace(/<div><h4>Service Areas<\/h4>[\s\S]*?<\/div>/, newCol);
+    // 3) header + footer -> canonical engine versions, so every hand page shares
+    //    one nav (incl. the Financing link) and one footer (incl. Financing /
+    //    Key Warranty / Terms links). Depth-aware via header(depth)/footer(depth).
+    html = html.replace(/<header class="site">[\s\S]*?<\/header>/, () => header(depth));
+    html = html.replace(/<footer class="site">[\s\S]*?<\/footer>/, () => footer(depth));
     // 4) language toggle script (idempotent)
     if (!/assets\/i18n\.js/.test(html)) {
       html = html.replace('</body>', `<script src="${r}assets/i18n.js" defer></script>\n</body>`);
@@ -794,6 +900,9 @@ for (const c of built) {
   }
 }
 write('service-areas/index.html', renderHub());
+write('financing/index.html', renderFinancing());
+write('warranty/index.html', renderWarranty());
+write('terms/index.html', renderTerms());
 write('sitemap.xml', renderSitemap());
 write('robots.txt', renderRobots());
 console.log(`Wrote ${count} city pages + hub + sitemap + robots`);
