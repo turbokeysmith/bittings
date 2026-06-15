@@ -383,6 +383,12 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-16
+- **Lishi: easier way to set which tool works for a vehicle.** The recommended Lishi is matched from
+  the vehicle's **keyway**, so adding a vehicle with the right keyway is what makes the tool show up.
+  To make that foolproof: the Add/Edit-vehicle **Keyway box is now a pick-list** of the actual Lishi
+  tools (type "HU1…" and choose "HU100 — HU100(10) V.3"), and any **inferred "Matched by keyway"** card
+  now has a **"➕ Add to Vehicles"** button that opens the form pre-filled so you can save it as a real,
+  confirmed vehicle in one tap. *(Staff app only.)*
 - **Lishi "Ignition pickable" fixed — no more fabricated "Caution":** the old data blanket-tagged
   smart-key / push-to-start vehicles as **Caution**, which was wrong (those have **no ignition cylinder
   → N/A**, and immobilizer programming is a normal step, not a hazard). The field is now plain
