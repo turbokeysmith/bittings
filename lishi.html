@@ -293,7 +293,7 @@ const SEED_VEH=[
 function v(make,model,ys,ye,keyway,coded,door,pick,trans,prog,oem,nastf,notes){
   return {make,model,year_start:ys,year_end:ye,keyway,coded,door_location:door,can_pick_ignition:pick,
     transponder_system:trans,programming_path:prog,oem_only:oem,nastf_required:nastf,notes:notes||'',
-    source:'Original Lishi / CLK / UHS / LockPickWorld (cross-ref)'};
+    source:'Compiled from public Lishi/supplier refs — verify'};
 }
 
 /* ---- the rest of the Original/Classic Lishi range (cars, trucks, Euro, moto, residential) ---- */
@@ -395,7 +395,7 @@ function vm(make,model,ys,ye,keyway,o){ o=o||{}; const d=MK[make]||{t:'',p:''};
   return {make,model,year_start:String(ys),year_end:String(ye),keyway,coded:o.coded||'Yes',
     door_location:o.door||'Driver door',can_pick_ignition:o.pick||'Yes',transponder_system:o.t||d.t,
     programming_path:o.p||d.p,oem_only:o.oem||'No',nastf_required:o.nastf||'No',notes:o.notes||'',
-    source:'Original Lishi / CLK / UHS / LockPickWorld (cross-ref)'}; }
+    source:'Compiled from public Lishi/supplier refs — verify'}; }
 const P={pick:'Caution'};   // proximity / smart-key shortcut
 const EXTRA_VEH=[
   // Ford / Lincoln
@@ -466,8 +466,44 @@ const EXTRA_VEH=[
   vm('Mitsubishi','Mirage','2014','2022','MIT8'), vm('Mitsubishi','Lancer','2008','2017','MIT8'),
   vm('Volvo','XC60','2010','2017','HU56',P), vm('Volvo','XC90','2016','2022','HU101',P)
 ];
-const ALL_VEH = SEED_VEH.concat(EXTRA_VEH);
-const SEEDVER = 3;   // bump when SEED_* changes to merge new rows into existing installs
+/* ---- current-generation rows (2018–2025), fills the recent-year gap ---- */
+const EXTRA_VEH2=[
+  vm('Cadillac','Escalade','2021','2025','HU100',P), vm('Cadillac','XT4','2019','2025','HU100',P),
+  vm('Cadillac','XT5','2021','2025','HU100',P), vm('Cadillac','XT6','2020','2025','HU100',P),
+  vm('Cadillac','CT4','2020','2025','HU100',P), vm('Cadillac','CT5','2020','2025','HU100',P),
+  vm('Chevrolet','Silverado 1500','2019','2025','HU100'), vm('Chevrolet','Tahoe','2021','2025','HU100',P),
+  vm('Chevrolet','Suburban','2021','2025','HU100',P), vm('Chevrolet','Equinox','2018','2025','HU100'),
+  vm('Chevrolet','Traverse','2018','2025','HU100'), vm('Chevrolet','Malibu','2016','2024','HU100'),
+  vm('Chevrolet','Trailblazer','2021','2025','HU100'), vm('Chevrolet','Blazer','2019','2025','HU100',P),
+  vm('Chevrolet','Colorado','2023','2025','HU100'), vm('Chevrolet','Trax','2021','2025','HU100'),
+  vm('GMC','Sierra 1500','2019','2025','HU100'), vm('GMC','Yukon','2021','2025','HU100',P),
+  vm('GMC','Terrain','2018','2025','HU100'), vm('GMC','Acadia','2017','2025','HU100'),
+  vm('GMC','Canyon','2023','2025','HU100'), vm('Buick','Encore GX','2020','2025','HU100'),
+  vm('Buick','Envision','2021','2025','HU100',P), vm('Buick','Enclave','2018','2025','HU100',P),
+  vm('Ford','F-150','2021','2025','HU101'), vm('Ford','Super Duty','2023','2025','HU101'),
+  vm('Ford','Explorer','2020','2025','HU101',P), vm('Ford','Escape','2020','2025','HU101'),
+  vm('Ford','Bronco','2021','2025','HU101'), vm('Ford','Edge','2021','2024','HU101'),
+  vm('Ford','Maverick','2022','2025','HU101'),
+  vm('Toyota','Camry','2018','2024','TOY48'), vm('Toyota','Corolla','2020','2025','TOY48'),
+  vm('Toyota','RAV4','2019','2025','TOY48'), vm('Toyota','Highlander','2020','2025','TOY48',P),
+  vm('Toyota','Tundra','2022','2025','TOY48',P), vm('Toyota','Tacoma','2024','2025','TOY48',P),
+  vm('Toyota','Sienna','2021','2025','TOY48',P),
+  vm('Honda','Civic','2016','2025','HON66'), vm('Honda','Accord','2018','2025','HON66'),
+  vm('Honda','CR-V','2017','2025','HON66'), vm('Honda','Pilot','2016','2025','HON66'),
+  vm('Honda','HR-V','2023','2025','HON66'),
+  vm('Nissan','Altima','2019','2025','DA34'), vm('Nissan','Rogue','2021','2025','DA34',P),
+  vm('Nissan','Sentra','2020','2025','DA34'), vm('Nissan','Frontier','2022','2025','DA34'),
+  vm('Nissan','Pathfinder','2022','2025','DA34',P),
+  vm('Hyundai','Elantra','2021','2025','HY20'), vm('Hyundai','Tucson','2022','2025','HY20',P),
+  vm('Hyundai','Santa Fe','2019','2025','HY20',P), vm('Kia','Sportage','2023','2025','HY20',P),
+  vm('Kia','Sorento','2021','2025','HY20',P), vm('Kia','Forte','2019','2025','HY20'),
+  vm('Jeep','Wrangler','2018','2025','CY24'), vm('Jeep','Gladiator','2020','2025','CY24'),
+  vm('Jeep','Grand Cherokee','2022','2025','CY24',P), vm('Ram','1500','2019','2025','CY24'),
+  vm('Subaru','Outback','2020','2025','DAT17'), vm('Subaru','Forester','2019','2025','DAT17'),
+  vm('Subaru','Crosstrek','2018','2025','DAT17')
+];
+const ALL_VEH = SEED_VEH.concat(EXTRA_VEH).concat(EXTRA_VEH2);
+const SEEDVER = 4;   // bump when SEED_* changes to merge new rows into existing installs
 
 /* ---- seed once if empty; on version bump, MERGE new rows (never clobbers edits) ---- */
 function ensureSeed(){
@@ -573,6 +609,12 @@ function runVehSearch(){
   const mk=fMake.value, md=fModel.value, yr=fYear.value;
   if(!mk){ box.innerHTML=''; msg.textContent='Pick a make to see its models.'; return; }
   let rows=veh().filter(r=> r.make===mk && (!md || r.model===md) && yearMatch(r,yr));
+  if(!rows.length){
+    const kws=[...new Set(veh().filter(r=>r.make===mk).map(r=>r.keyway))];
+    msg.textContent='No exact row for that year/model.';
+    box.innerHTML='<div class="hint">No exact match yet. <b>'+esc(mk)+'</b> keyway(s) on file: <b>'+(kws.map(esc).join(', ')||'—')+'</b>. Pick a different year, or add this one under 🚗 Vehicles (then it shows here).</div>';
+    return;
+  }
   msg.textContent=rows.length+' match'+(rows.length===1?'':'es')+(yr?(' for '+yr):'');
   renderCards(rows,'veh');
 }
