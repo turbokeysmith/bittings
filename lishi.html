@@ -92,12 +92,19 @@
       <button class="btn amber" id="vinBtn" style="flex:0 0 auto">Decode VIN</button>
     </div>
     <div class="hint">…or search when you're holding a key, not a VIN:</div>
-    <div class="row">
-      <select class="in" id="mode" style="flex:0 0 auto;max-width:190px">
-        <option value="veh">By make / model / year</option>
+    <div class="row" style="margin-bottom:8px">
+      <select class="in" id="mode" style="flex:0 0 auto;max-width:210px">
+        <option value="veh">By year / make / model</option>
         <option value="key">By keyway / tool</option>
       </select>
-      <input class="in" id="q" placeholder="e.g. Silverado 2016  ·  or  HU100" style="flex:2 1 200px">
+    </div>
+    <div class="row" id="vehPick">
+      <select class="in" id="fYear"><option value="">Year (any)</option></select>
+      <select class="in" id="fMake"><option value="">Make…</option></select>
+      <select class="in" id="fModel"><option value="">Model (pick make first)</option></select>
+    </div>
+    <div class="row" id="keyPick" style="display:none">
+      <input class="in" id="q" placeholder="e.g. HU100">
     </div>
     <div id="lookMsg" class="hint"></div>
     <div id="cards"></div>
@@ -449,30 +456,61 @@ function renderCards(rows, ctx){
 }
 
 /* ============================== LOOKUP ============================== */
-function doSearch(){
-  const mode=document.getElementById('mode').value, q=document.getElementById('q').value.trim();
-  const msg=document.getElementById('lookMsg');
-  if(!q){ document.getElementById('cards').innerHTML=''; msg.textContent=''; return; }
-  if(mode==='key'){
-    const kw=q.toUpperCase();
-    const rows=veh().filter(r=>String(r.keyway).toUpperCase().indexOf(kw)>=0);
-    const t=toolForKeyway(q);
-    msg.innerHTML = t?('Tool: <b>'+esc(t.tool_designation)+'</b> · '+esc(t.tool_type)+' · '+esc(t.usage||'')) : 'No exact tool match for that keyway.';
-    renderCards(rows.length?rows:[], 'key');
-    if(!rows.length && t){ document.getElementById('cards').innerHTML='<div class="hint">'+esc(t.tool_designation)+' is in the tool list, but no vehicles are mapped to '+esc(q.toUpperCase())+' yet.</div>'; }
-  } else {
-    const words=q.toLowerCase().split(/\s+/); const yr=(q.match(/\b(19|20)\d{2}\b/)||[])[0];
-    const rows=veh().filter(r=>{
-      const hay=(r.make+' '+r.model).toLowerCase();
-      const okWords=words.filter(w=>!/^\d{4}$/.test(w)).every(w=>hay.indexOf(w)>=0);
-      return okWords && yearMatch(r,yr);
-    });
-    msg.textContent=rows.length+' match'+(rows.length===1?'':'es');
-    renderCards(rows,'veh');
-  }
+const fYear=document.getElementById('fYear'), fMake=document.getElementById('fMake'), fModel=document.getElementById('fModel');
+function uniqSort(a){ return [...new Set(a.filter(Boolean))].sort((x,y)=>String(x).localeCompare(String(y),undefined,{numeric:true})); }
+function populateMakes(){
+  const makes=uniqSort(veh().map(r=>r.make));
+  fMake.innerHTML='<option value="">Make…</option>'+makes.map(m=>`<option>${esc(m)}</option>`).join('');
 }
-document.getElementById('q').addEventListener('input', doSearch);
-document.getElementById('mode').addEventListener('change', ()=>{ document.getElementById('q').placeholder = document.getElementById('mode').value==='key'?'e.g. HU100':'e.g. Silverado 2016'; doSearch(); });
+function populateYears(){
+  const ys=veh().map(r=>Number(r.year_start)).filter(Boolean), ye=veh().map(r=>Number(r.year_end)).filter(n=>n&&n<9000);
+  let lo=Math.min.apply(null,ys.concat(1998)), hi=Math.max.apply(null,ye.concat(new Date().getFullYear?2026:2026));
+  hi=Math.max(hi,2026); lo=Math.min(lo,1998);
+  let opts='<option value="">Year (any)</option>';
+  for(let y=hi;y>=lo;y--) opts+=`<option>${y}</option>`;
+  fYear.innerHTML=opts;
+}
+function populateModels(){
+  const mk=fMake.value;
+  if(!mk){ fModel.innerHTML='<option value="">Model (pick make first)</option>'; return; }
+  const models=uniqSort(veh().filter(r=>r.make===mk).map(r=>r.model));
+  fModel.innerHTML='<option value="">All models</option>'+models.map(m=>`<option>${esc(m)}</option>`).join('');
+}
+function runVehSearch(){
+  const msg=document.getElementById('lookMsg'), box=document.getElementById('cards');
+  const mk=fMake.value, md=fModel.value, yr=fYear.value;
+  if(!mk){ box.innerHTML=''; msg.textContent='Pick a make to see its models.'; return; }
+  let rows=veh().filter(r=> r.make===mk && (!md || r.model===md) && yearMatch(r,yr));
+  msg.textContent=rows.length+' match'+(rows.length===1?'':'es')+(yr?(' for '+yr):'');
+  renderCards(rows,'veh');
+}
+function doKeySearch(){
+  const q=document.getElementById('q').value.trim(), msg=document.getElementById('lookMsg');
+  if(!q){ document.getElementById('cards').innerHTML=''; msg.textContent=''; return; }
+  const kw=q.toUpperCase();
+  const rows=veh().filter(r=>String(r.keyway).toUpperCase().indexOf(kw)>=0);
+  const t=toolForKeyway(q);
+  msg.innerHTML = t?('Tool: <b>'+esc(t.tool_designation)+'</b> · '+esc(t.tool_type)+' · '+esc(t.usage||'')) : 'No exact tool match for that keyway.';
+  renderCards(rows,'key');
+  if(!rows.length && t){ document.getElementById('cards').innerHTML='<div class="hint">'+esc(t.tool_designation)+' is in the tool list, but no vehicles are mapped to '+esc(kw)+' yet.</div>'; }
+}
+populateMakes(); populateYears();
+fMake.addEventListener('change', ()=>{ populateModels(); runVehSearch(); });
+fModel.addEventListener('change', runVehSearch);
+fYear.addEventListener('change', runVehSearch);
+document.getElementById('q').addEventListener('input', doKeySearch);
+function applyMode(){
+  const m=document.getElementById('mode').value;
+  document.getElementById('vehPick').style.display = m==='veh'?'flex':'none';
+  document.getElementById('keyPick').style.display = m==='key'?'flex':'none';
+  document.getElementById('cards').innerHTML=''; document.getElementById('lookMsg').textContent='';
+  if(m==='veh') runVehSearch();
+}
+document.getElementById('mode').addEventListener('change', applyMode);
+function setSelect(sel,val){ // case-insensitive select by value
+  if(!val) return false; const v=String(val).toLowerCase();
+  const opt=[...sel.options].find(o=>o.value.toLowerCase()===v); if(opt){ sel.value=opt.value; return true; } return false;
+}
 
 document.getElementById('vinBtn').onclick=()=>{
   const vin=document.getElementById('vinIn').value.trim().toUpperCase();
@@ -486,7 +524,11 @@ document.getElementById('vinBtn').onclick=()=>{
     let rows=veh().filter(r=> r.make.toLowerCase()===mk && yearMatch(r,yr) && (md.indexOf(r.model.toLowerCase())>=0 || r.model.toLowerCase().indexOf(md)>=0));
     if(!rows.length) rows=veh().filter(r=> r.make.toLowerCase()===mk && yearMatch(r,yr));
     msg.innerHTML='Decoded: <b>'+esc(res.year)+' '+esc(res.make)+' '+esc(res.model)+'</b>'+(rows.length?'':' — no mapping yet, search by keyway or add it.');
-    document.getElementById('mode').value='veh'; document.getElementById('q').value=(res.make+' '+res.model).trim();
+    // reflect the decode in the dropdowns (year / make / model)
+    document.getElementById('mode').value='veh';
+    document.getElementById('vehPick').style.display='flex'; document.getElementById('keyPick').style.display='none';
+    setSelect(fYear,res.year);
+    if(setSelect(fMake,res.make)){ populateModels(); setSelect(fModel,res.model); }
     renderCards(rows,'vin');
   }).catch(e=>{ msg.textContent = (e&&e.message)||'Could not read that VIN.'; });
 };
