@@ -383,6 +383,14 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-16
+- **Lishi "Ignition pickable" fixed — no more fabricated "Caution":** the old data blanket-tagged
+  smart-key / push-to-start vehicles as **Caution**, which was wrong (those have **no ignition cylinder
+  → N/A**, and immobilizer programming is a normal step, not a hazard). The field is now plain
+  **Yes / No / N/A**. A **Caution** now appears **only when the owner adds one** via a new
+  **"⚠ caution note"** button on each vehicle card — for real field hazards (e.g. *"must pick to CLOSED
+  — won't return to OFF,"* like the 2015 Fusion). The note is saved on the row and shown next to the
+  pill. A one-time migration (`SEEDVER=8`) corrects already-installed rows **without** touching any
+  caution the owner already entered. *(Staff app only.)*
 - **Lishi tools cross-referenced across 7 sources + 31 added + conflicts filed for review:** scrubbed
   the FULL automotive Lishi line from seven sources — **Classic Lishi** (classiclishi.com, all 11
   pages), **Original Lishi**, **UHS Hardware**, **American Key Supply**, **CLK Supplies**, **Key
