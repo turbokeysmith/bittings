@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-15 04:23 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-15 06:06 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -383,6 +383,17 @@ From the repo folder:
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
 ### 2026-06-15
+- **Lishi lookup: year-filtered models + "Matched by keyway" fallback (06:06):** the Year / Make / Model
+  boxes now behave like a real catalog. A new **`MODELS` catalog (27 makes)** drives the Model box, and
+  **every model carries its real production years** — so picking **2024 Ford** no longer shows a Crown
+  Victoria (it ended in 2011); you only see models actually sold that year. When there's **no verified
+  vehicle row** for the exact year/model, the page now **infers the keyway from the make + era**
+  (`inferKeyway` rules, e.g. Ford ≥2012 → HU101, GM ≥2010 → HU100, Toyota ≥2004 → TOY48, BMW ≥2012 →
+  HU100R, Cadillac 2024 → HU100) and shows the card with a clear amber **"⚙ Matched by keyway — verify
+  in field"** pill so staff know it's an inference, not a confirmed row. Changing the **Year** now
+  re-filters the Model list and re-runs the lookup. **Honesty:** inferred cards are a best-guess by
+  keyway family — confirm on the vehicle and log fixes in the Corrections Log. *(Staff app only; not on
+  the public site.)*
 - **Lishi tools rebuilt from Original Lishi's OWN site (verified fetch):** replaced the earlier
   hand-compiled tool list with the **actual published list fetched from
   `originallishi.com/lishi-tools-full-list`** (2026-06-15) — **89 tools** (76 two-in-one + 7 readers + 4
