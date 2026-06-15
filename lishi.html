@@ -419,7 +419,45 @@ const LISHI_OFFICIAL=[
   // Motorcycle readers
   tdef('HON71 (Moto)','HON71','ign','HON71','Honda motorcycle',OL,M), tdef('KW14 V.2 (Moto)','KW14','ign','KW14','Kawasaki motorcycle',OL,M), tdef('SU14 V.2 (Moto)','SU14','ign','SU14','Suzuki motorcycle',OL,M), tdef('YH35R V.2 (Moto)','YH35R','ign','YH35R','Yamaha motorcycle',OL,M)
 ];
-const ALL_TOOLS = LISHI_OFFICIAL;   // authoritative; supersedes the earlier SEED_TOOLS/EXTRA_TOOLS
+// Cross-referenced ADDITIONS — automotive Lishi tools found across Classic Lishi, Original Lishi,
+// UHS Hardware, American Key Supply, CLK Supplies, Key Innovations & LockPickWorld (scrubbed 2026-06-16)
+// that were NOT already in the list above. Conflicts with existing rows are NOT changed here —
+// they're logged in LISHI_CROSSREF_REVIEW.md for the owner to approve.
+const XR='Cross-ref 2026-06-16: Classic+Original Lishi, UHS, AKS, CLK, Key Innovations, LockPickWorld';
+const CROSSREF_ADD=[
+  tdef('HONDA2020','HON2020','door/ign','HON2020','Honda 2020+ models',XR),
+  tdef('HONDA2021','HON2021','door/ign','HON2021','Honda 2021+ models (5-cut)',XR),
+  tdef('HON77','HON77','door/ign','HON77','Honda (high-security)',XR),
+  tdef('HY20R','HY20R','door/ign','HY20R','Hyundai/Kia (trunk & ignition)',XR),
+  tdef('HY30','HY30','door/ign','HY30','Hyundai',XR),
+  tdef('K9','K9','door/ign','K9','Kia/Hyundai (KK7/KK9)',XR),
+  tdef('K9 V.4 (Ioniq6)','K9','door','K9','Kia/Hyundai/Genesis 2024+ (Ioniq6, GV80) door locks',XR),
+  tdef('KIA3R','KIA3R','door/ign','KIA3R','Kia (KK3)',XR),
+  tdef('KY14','KY14','door/ign','KY14','Kia (KK8)',XR),
+  tdef('IONIQ5','IONIQ5','door/ign','KK12','Hyundai Ioniq5 / Tucson 2021+',XR),
+  tdef('CY24R','CY24R','door/ign','CY24R','Jeep Grand Cherokee 2021+ (reverse)',XR),
+  tdef('Ford 2021','FORD2021','door/ign','FORD2021','Ford Transit 2021+',XR),
+  tdef('MAZ26R','MAZ26R','door/ign','MAZ26R','Mazda 2019+ (door/boot)',XR),
+  tdef('MAZDA2024-SM','MAZDA2024','door/ign','MAZDA2024','Mazda 2024+ (CX-30, smart keyway)',XR),
+  tdef('TOY2018','TOY2018','door/ign','TOY2018','Toyota 2018+ keyway',XR),
+  tdef('TOY(2014) V.2','TOY2014','door/ign','TOY2014','Toyota 2014 keyway',XR),
+  tdef('TOY40','TOY40','door/ign','TOY40','Lexus / Toyota (long, quad lifter)',XR),
+  tdef('TOY51','TOY51','door/ign','TOY51','Toyota',XR),
+  tdef('TOY2T v.5','TOY2T','door/ign','TOY2T','Toyota/Lexus (80K-series 2-track)',XR),
+  tdef('DAT17','DAT17','door/ign','DAT17','Subaru',XR),
+  tdef('YM15','YM15','door/ign','YM15','Mercedes Sprinter (10-cut)',XR),
+  tdef('HU36','HU36','door/ign','HU36','Mercedes (ignition/door/trunk)',XR),
+  tdef('HU23/MB18','HU23','door/ign','HU23','Classic Mercedes-Benz (ignition & door)',XR),
+  tdef('HU83','HU83','door/ign','HU83','Peugeot/Citroën (also Mini Cooper per some suppliers — verify)',XR),
+  tdef('HU134','HU134','door/ign','HU134','Kia Venga 2010+ / Suzuki',XR),
+  tdef('SIP16','SIP16','door/ign','SIP16','Fiat/Alfa/Maserati/Lancia (twin lifter)',XR),
+  tdef('WT47T','WT47T','door/ign','WT47T','Saab (4-track)',XR),
+  tdef('HI1','HI1','door/ign','HI1','Hino trucks',XR),
+  tdef('ISU5/B113','ISU5','door/ign','ISU5','Isuzu trucks (NPR)',XR),
+  tdef('GM25R','GM25R','door/ign','GM25R','Kenworth / Briggs & Stratton trucks (twin lifter)',XR),
+  tdef('VNL-2024','VNL2024','door/ign','VNL2024','Volvo VNL trucks 2024+ (7-cut)',XR)
+];
+const ALL_TOOLS = LISHI_OFFICIAL.concat(CROSSREF_ADD);   // authoritative + cross-ref additions
 
 /* ---- many more vehicles (compact: per-make transponder/programming defaults) ---- */
 const MK={
@@ -601,7 +639,7 @@ const EXTRA_VEH2=[
   vm('Subaru','Crosstrek','2018','2025','DAT17')
 ];
 const ALL_VEH = SEED_VEH.concat(EXTRA_VEH).concat(EXTRA_VEH2);
-const SEEDVER = 6;   // bump when SEED_* changes to merge new rows into existing installs
+const SEEDVER = 7;   // bump when SEED_* changes to merge new rows into existing installs
 
 /* ---- seed once if empty; on version bump, MERGE new rows (never clobbers edits) ---- */
 function ensureSeed(){
@@ -640,7 +678,7 @@ const tools=()=>readLS(K_TOOLS,[]), veh=()=>readLS(K_VEH,[]), corr=()=>readLS(K_
 const saveTools=a=>writeLS(K_TOOLS,a), saveVeh=a=>writeLS(K_VEH,a), saveCorr=a=>writeLS(K_CORR,a);
 
 /* ---- helpers ---- */
-const KW_ALIAS={DA34:'NSN14', KK10:'HY20', DAT17:'DAT12R', HU162T:'HU162', B102:'B111'};
+const KW_ALIAS={DA34:'NSN14', KK10:'HY20', HU162T:'HU162', B102:'B111'};
 function toolForKeyway(keyway){
   if(!keyway) return null;
   let kw=String(keyway).toUpperCase().trim(); kw=KW_ALIAS[kw]||kw;
