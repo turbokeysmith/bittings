@@ -28,6 +28,18 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 10. **A11y + mobile pass** — labels associated, keyboard-operable rows, focus-visible outlines,
     16px inputs, ≥40px tap targets, reduced-motion, aria-live messages.
 
+## Update 2026-06-16 (b) — `lishi.html` "Ignition pickable": Yes/No/N/A + owner-set caution
+- Removed fabricated "Caution" values: `P` shortcut now `{pick:'N/A'}` (proximity/push-to-start = no
+  cylinder); SEED proximity rows → `N/A`; the two true-cylinder rows (VW Golf MQB, Audi A4) → `Yes`.
+- `pill()`: added `.pill.na` (muted) branch for `N/A`/blank; `caution` now renders `⚠ Caution`.
+- **Owner-set caution:** each vehicle card with an `id` shows a `.cautbtn` "⚠ caution note". Click →
+  `prompt()` for a note → sets `row.can_pick_ignition='Caution'` + `row.ign_caution=note` (blank clears
+  back to `N/A`). Saved via `saveVeh`; re-renders via `_lastView` (set in `renderCards` from `ctx`).
+  New optional field **`ign_caution`** on vehicle rows; shown next to the pill.
+- Migration `sv<8` in `ensureSeed()` rewrites already-installed rows whose `can_pick_ignition==='Caution'`
+  AND have no `ign_caution` (owner-added cautions are preserved), copying the corrected value from
+  `ALL_VEH` (fallback `N/A`). `SEEDVER` 7 → 8.
+
 ## Update 2026-06-16 — `lishi.html` tools: 7-source cross-reference + 31 additions
 - **`CROSSREF_ADD`** (new array after `LISHI_OFFICIAL`, ~423): 31 automotive tools via `tdef(...)`,
   source const `XR` ("Cross-ref 2026-06-16: Classic+Original Lishi, UHS, AKS, CLK, Key Innovations,

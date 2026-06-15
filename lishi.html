@@ -49,6 +49,10 @@
   .pill.ok{background:rgba(34,153,74,.18);color:#5fd389;}
   .pill.no{background:rgba(184,35,52,.18);color:#ef8b96;}
   .pill.warn{background:rgba(255,176,0,.16);color:var(--amber);}
+  .pill.na{background:rgba(255,255,255,.08);color:#9aa3ad;}
+  .cautbtn{margin-left:8px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;cursor:pointer;
+    background:transparent;color:var(--amber);border:1px solid rgba(255,176,0,.5);}
+  .cautbtn:active{background:rgba(255,176,0,.16);}
   .badge-oem{display:inline-block;margin-top:12px;background:var(--red);color:#fff;font-weight:800;border-radius:10px;padding:8px 12px;font-size:13.5px;}
   /* tables */
   .tbl{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;}
@@ -239,7 +243,7 @@ const SEED_VEH=[
   v('Chevrolet','Camaro','2010','2015','HU100','Yes','Driver door','Yes','GM Hitag2','OBD','No','No',''),
   v('GMC','Sierra 1500','2014','2018','HU100','Yes','Driver door','Yes','GM Hitag2','OBD','No','No',''),
   v('Buick','Enclave','2008','2017','HU100','Yes','Driver door','Yes','GM Hitag2','OBD','No','No',''),
-  v('Cadillac','Escalade','2015','2020','HU100','Yes','Driver door','Caution','GM Hitag2 (proximity)','OBD; AKL may need relearn wait','No','No','Push-to-start prox'),
+  v('Cadillac','Escalade','2015','2020','HU100','Yes','Driver door','N/A','GM Hitag2 (proximity)','OBD; AKL may need relearn wait','No','No','Push-to-start prox'),
   v('Chevrolet','Impala','2006','2013','B102','Yes','Driver door','Yes','GM PK3+ / Hitag2','OBD/onboard','No','No','Older platform'),
   // TOYOTA / LEXUS
   v('Toyota','Camry','2012','2017','TOY48','Yes','Driver door','Yes','Toyota G/H chip','OBD; AKL on H-chip may need dealer/emulator','No','No',''),
@@ -249,7 +253,7 @@ const SEED_VEH=[
   v('Toyota','Tundra','2014','2021','TOY48','Yes','Driver door','Yes','Toyota G/H chip','OBD','No','No',''),
   v('Toyota','Highlander','2014','2019','TOY48','Yes','Driver door','Yes','Toyota G/H chip','OBD','No','No',''),
   v('Toyota','Camry','2002','2006','TOY43','Yes','Driver door','Yes','Toyota 4C/4D','OBD/onboard','No','No','Older'),
-  v('Lexus','RX350','2010','2015','TOY48','Yes','Driver door','Caution','Toyota G (smart)','OBD; smart system','No','No',''),
+  v('Lexus','RX350','2010','2015','TOY48','Yes','Driver door','N/A','Toyota G (smart)','OBD; smart system','No','No',''),
   // HONDA / ACURA
   v('Honda','Civic','2006','2015','HON66','Yes','Driver door','Yes','Honda G / ID46','OBD','No','No',''),
   v('Honda','Accord','2008','2017','HON66','Yes','Driver door','Yes','Honda G / ID46','OBD','No','No',''),
@@ -261,33 +265,33 @@ const SEED_VEH=[
   v('Dodge','Charger','2011','2023','CY24','Yes','Driver door','Yes','Chrysler 4A / PCF7941','OBD; PIN often required (read from BCM)','No','No',''),
   v('Chrysler','300','2011','2023','CY24','Yes','Driver door','Yes','Chrysler 4A','OBD; PIN often required','No','No',''),
   v('Jeep','Wrangler','2007','2018','CY24','Yes','Driver door','Yes','Chrysler 4A','OBD; PIN often required','No','No',''),
-  v('Jeep','Grand Cherokee','2011','2021','CY24','Yes','Driver door','Caution','Chrysler 4A (prox)','OBD; PIN; some need 12+min wait','No','No',''),
+  v('Jeep','Grand Cherokee','2011','2021','CY24','Yes','Driver door','N/A','Chrysler 4A (prox)','OBD; PIN; some need 12+min wait','No','No',''),
   v('Ram','1500','2013','2018','CY24','Yes','Driver door','Yes','Chrysler 4A','OBD; PIN often required','No','No',''),
   // VW / AUDI (VAG)
   v('Volkswagen','Jetta','2011','2018','HU66','Yes','Driver door','Yes','Megamos ID48 / MQB','OBD pre-MQB; MQB needs advanced tools','No','No','Check MQB by year'),
-  v('Volkswagen','Golf','2015','2021','HU162T','Yes','Driver door','Caution','VAG MQB','Advanced tools / dealer; often OEM path','Yes','No','MQB immobilizer'),
-  v('Audi','A4','2009','2016','HU66','Yes','Driver door','Caution','Megamos ID48','OBD pre-MQB; later dealer','No','No',''),
-  v('Audi','Q5','2018','2023','HU162T','Yes','Driver door','Caution','VAG MQB/MQB-EVO','Dealer/advanced','Yes','No','MQB'),
+  v('Volkswagen','Golf','2015','2021','HU162T','Yes','Driver door','Yes','VAG MQB','Advanced tools / dealer; often OEM path','Yes','No','MQB immobilizer'),
+  v('Audi','A4','2009','2016','HU66','Yes','Driver door','Yes','Megamos ID48','OBD pre-MQB; later dealer','No','No',''),
+  v('Audi','Q5','2018','2023','HU162T','Yes','Driver door','N/A','VAG MQB/MQB-EVO','Dealer/advanced','Yes','No','MQB'),
   // NISSAN / INFINITI
   v('Nissan','Altima','2013','2018','DA34','Yes','Driver door','Yes','Nissan Hitag2','OBD; PIN/BCM code required','No','No',''),
   v('Nissan','Sentra','2013','2019','DA34','Yes','Driver door','Yes','Nissan Hitag2','OBD; PIN required','No','No',''),
-  v('Nissan','Rogue','2014','2020','DA34','Yes','Driver door','Caution','Nissan Hitag2 (prox)','OBD; PIN required','No','No',''),
+  v('Nissan','Rogue','2014','2020','DA34','Yes','Driver door','N/A','Nissan Hitag2 (prox)','OBD; PIN required','No','No',''),
   v('Nissan','Altima','2002','2006','NSN14','Yes','Driver door','Yes','Nissan ID40/ID60','OBD/onboard','No','No','Older'),
-  v('Infiniti','G37','2008','2013','DA34','Yes','Driver door','Caution','Nissan Hitag2 (prox)','OBD; PIN required','No','No',''),
+  v('Infiniti','G37','2008','2013','DA34','Yes','Driver door','N/A','Nissan Hitag2 (prox)','OBD; PIN required','No','No',''),
   // HYUNDAI / KIA
   v('Hyundai','Elantra','2017','2020','HY20','Yes','Driver door','Yes','Hyundai 8A / Texas DST80','OBD','No','No',''),
   v('Hyundai','Sonata','2015','2019','HY20','Yes','Driver door','Yes','Hyundai 8A','OBD','No','No',''),
   v('Kia','Optima','2016','2020','KK10','Yes','Driver door','Yes','Kia 8A','OBD','No','No',''),
-  v('Kia','Sorento','2016','2020','HY20','Yes','Driver door','Caution','Kia 8A (prox)','OBD','No','No',''),
+  v('Kia','Sorento','2016','2020','HY20','Yes','Driver door','N/A','Kia 8A (prox)','OBD','No','No',''),
   // MAZDA / SUBARU / MITSUBISHI
   v('Mazda','Mazda3','2014','2018','MAZ24','Yes','Driver door','Yes','Mazda 4D/G','OBD','No','No',''),
-  v('Mazda','CX-5','2013','2016','MAZ24','Yes','Driver door','Caution','Mazda G (prox)','OBD','No','No',''),
+  v('Mazda','CX-5','2013','2016','MAZ24','Yes','Driver door','N/A','Mazda G (prox)','OBD','No','No',''),
   v('Subaru','Outback','2015','2019','DAT17','Yes','Driver door','Yes','Subaru G','OBD','No','No',''),
   v('Subaru','Forester','2014','2018','DAT17','Yes','Driver door','Yes','Subaru G','OBD','No','No',''),
   v('Mitsubishi','Outlander','2014','2020','MIT11','Yes','Driver door','Yes','Mitsubishi 8A','OBD','No','No',''),
   // BMW / MERCEDES (mostly OEM/advanced)
-  v('BMW','3 Series','2012','2018','HU100R','No','Driver door (often none)','Caution','BMW FEM/BDC','OEM / advanced tools; bench often needed','Yes','No','FEM/BDC — frequently dealer'),
-  v('BMW','3 Series','2006','2011','HU92','No','Driver door','Caution','BMW CAS3/CAS3+','Advanced tools (CAS); bench','Yes','No',''),
+  v('BMW','3 Series','2012','2018','HU100R','No','Driver door (often none)','N/A','BMW FEM/BDC','OEM / advanced tools; bench often needed','Yes','No','FEM/BDC — frequently dealer'),
+  v('BMW','3 Series','2006','2011','HU92','No','Driver door','N/A','BMW CAS3/CAS3+','Advanced tools (CAS); bench','Yes','No',''),
   v('Mercedes-Benz','C-Class','2008','2014','HU64','No','Driver door','No','Mercedes FBS3','OEM / advanced; AKL specialist','Yes','Yes','FBS — dealer/specialist')
 ];
 function v(make,model,ys,ye,keyway,coded,door,pick,trans,prog,oem,nastf,notes){
@@ -478,7 +482,7 @@ function vm(make,model,ys,ye,keyway,o){ o=o||{}; const d=MK[make]||{t:'',p:''};
     door_location:o.door||'Driver door',can_pick_ignition:o.pick||'Yes',transponder_system:o.t||d.t,
     programming_path:o.p||d.p,oem_only:o.oem||'No',nastf_required:o.nastf||'No',notes:o.notes||'',
     source:'Cross-ref: LockPickWorld/CLK/UHS lists (2026-06-15)'}; }
-const P={pick:'Caution'};   // proximity / smart-key shortcut
+const P={pick:'N/A'};   // proximity / push-to-start: no mechanical ignition cylinder to pick
 
 /* ---- per-brand model catalog (drives the dropdowns; [model, yearStart, yearEnd]).
    Year-filtered so e.g. a Crown Victoria (ends 2011) never shows for a 2024 lookup. ---- */
@@ -639,7 +643,7 @@ const EXTRA_VEH2=[
   vm('Subaru','Crosstrek','2018','2025','DAT17')
 ];
 const ALL_VEH = SEED_VEH.concat(EXTRA_VEH).concat(EXTRA_VEH2);
-const SEEDVER = 7;   // bump when SEED_* changes to merge new rows into existing installs
+const SEEDVER = 8;   // bump when SEED_* changes to merge new rows into existing installs
 
 /* ---- seed once if empty; on version bump, MERGE new rows (never clobbers edits) ---- */
 function ensureSeed(){
@@ -670,6 +674,16 @@ function ensureSeed(){
   writeLS(K_VEH,V);
   // v6: re-source previously-installed rows now that they're cross-referenced vs the supplier lists
   if(sv<6){ const Vr=readLS(K_VEH,[])||[]; let ch=0; Vr.forEach(r=>{ if(/^Compiled from public/.test(r.source||'')){ r.source='Cross-ref: LockPickWorld/CLK/UHS lists (2026-06-15)'; ch++; } }); if(ch) writeLS(K_VEH,Vr); }
+  // v8: the old seed mislabeled smart-key/push-to-start ignitions as "Caution". Fix already-installed
+  // rows to the corrected Yes/No/N/A — but NEVER touch a caution the OWNER added (those carry ign_caution).
+  if(sv<8){
+    const Vr=readLS(K_VEH,[])||[]; let ch=0;
+    const fix={}; ALL_VEH.forEach(s=>{ fix[(s.make+'|'+s.model+'|'+s.year_start+'|'+s.keyway).toUpperCase()]=s.can_pick_ignition; });
+    Vr.forEach(r=>{ if(String(r.can_pick_ignition)==='Caution' && !(r.ign_caution||'').trim()){
+      const k=(r.make+'|'+r.model+'|'+r.year_start+'|'+r.keyway).toUpperCase();
+      r.can_pick_ignition = fix[k]!=null?fix[k]:'N/A'; ch++; } });
+    if(ch) writeLS(K_VEH,Vr);
+  }
   writeLS('tks_lishi_seedver',SEEDVER);
 }
 ensureSeed();
@@ -703,13 +717,15 @@ function pill(val){
   const s=String(val||'').toLowerCase();
   if(s==='yes') return '<span class="pill ok">Yes</span>';
   if(s==='no')  return '<span class="pill no">No</span>';
-  if(s.indexOf('caution')>=0) return '<span class="pill warn">Caution</span>';
+  if(s.indexOf('caution')>=0) return '<span class="pill warn">⚠ Caution</span>';
+  if(s.indexOf('n/a')>=0||s==='na'||s==='') return '<span class="pill na">'+esc(val||'N/A')+'</span>';
   return '<span class="pill warn">'+esc(val||'—')+'</span>';
 }
 
 /* ============================== REFERENCE CARD ============================== */
 function renderCards(rows, ctx){
   const box=document.getElementById('cards');
+  _lastView=(ctx==='key')?doKeySearch:runVehSearch;
   if(!rows.length){ box.innerHTML='<div class="hint">No match. Try fewer words, or add it under 🚗 Vehicles.</div>'; return; }
   box.innerHTML=rows.slice(0,12).map(r=>{
     const tool=toolForKeyway(r.keyway);
@@ -725,7 +741,7 @@ function renderCards(rows, ctx){
         <div class="k">In stock?</div><div class="v">${stockPill}${tool&&tool.key_blank?(' <span class="muted">'+esc(tool.key_blank)+'</span>'):''}</div>
         <div class="k">Coded / cut</div><div class="v">${pill(r.coded)}</div>
         <div class="k">Door location</div><div class="v">${esc(r.door_location||'—')}</div>
-        <div class="k">Ignition pickable</div><div class="v">${pill(r.can_pick_ignition)}</div>
+        <div class="k">Ignition pickable</div><div class="v">${pill(r.can_pick_ignition)}${r.ign_caution?(' <span class="muted">'+esc(r.ign_caution)+'</span>'):''}${r.id?(' <button type="button" class="cautbtn" data-caut="'+esc(r.id)+'">⚠ caution note</button>'):''}</div>
         <div class="k">Transponder</div><div class="v">${esc(r.transponder_system||'—')}</div>
         <div class="k">Programming</div><div class="v">${esc(r.programming_path||'—')}</div>
         ${r.notes?('<div class="k">Notes</div><div class="v" style="font-weight:500">'+esc(r.notes)+'</div>'):''}
@@ -735,6 +751,23 @@ function renderCards(rows, ctx){
     </div>`;
   }).join('');
 }
+
+/* User-added ignition caution: only YOU set this (with a note). Default stays Yes/No/N/A. */
+document.getElementById('cards').addEventListener('click', function(e){
+  const id=e.target && e.target.getAttribute && e.target.getAttribute('data-caut');
+  if(!id) return;
+  const V=veh(); const row=V.find(x=>x.id===id); if(!row) return;
+  const hadCaut=/caution/i.test(String(row.can_pick_ignition||''));
+  const note=prompt('Ignition caution note for '+row.make+' '+row.model+' '+row.year_start+
+    '\n(e.g. "must pick to CLOSED — will not return to OFF").\nLeave blank to clear caution:',
+    hadCaut?(row.ign_caution||''):'');
+  if(note===null) return; // cancelled
+  if(note.trim()){ row.can_pick_ignition='Caution'; row.ign_caution=note.trim(); }
+  else { if(hadCaut) row.can_pick_ignition='N/A'; row.ign_caution=''; }
+  saveVeh(V);
+  if(typeof _lastView==='function') _lastView(); else if(fMake.value) runVehSearch();
+});
+let _lastView=null;
 
 /* ============================== LOOKUP ============================== */
 const fYear=document.getElementById('fYear'), fMake=document.getElementById('fMake'), fModel=document.getElementById('fModel');
