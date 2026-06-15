@@ -735,7 +735,7 @@ function renderCards(rows, ctx){
     return `<div class="card${oem||nastf?' flag':''}">
       <h2>${esc(r.keyway||'—')}</h2>
       <div class="veh">${esc(r.make)} ${esc(r.model)} · ${esc(r.year_start)}–${esc(r.year_end)}</div>
-      ${/^Matched by keyway/.test(r.source||'')?'<div style="margin:0 0 10px"><span class="pill warn">⚙ Matched by keyway — verify in field</span></div>':''}
+      ${/^Matched by keyway/.test(r.source||'')?'<div style="margin:0 0 10px"><span class="pill warn">⚙ Matched by keyway — verify in field</span> <button type="button" class="cautbtn" data-addveh="1">➕ Add to Vehicles</button></div>':''}
       <div class="kv">
         <div class="k">Recommended Lishi</div><div class="v">${tool?esc(tool.tool_designation):'<span class="pill warn">not in tool list</span>'}${tool&&tool.wafer_positions?(' <span class="muted">('+esc(tool.wafer_positions)+' pos)</span>'):''}</div>
         <div class="k">In stock?</div><div class="v">${stockPill}${tool&&tool.key_blank?(' <span class="muted">'+esc(tool.key_blank)+'</span>'):''}</div>
@@ -754,6 +754,12 @@ function renderCards(rows, ctx){
 
 /* User-added ignition caution: only YOU set this (with a note). Default stays Yes/No/N/A. */
 document.getElementById('cards').addEventListener('click', function(e){
+  // "Add to Vehicles" on an inferred (matched-by-keyway) card → prefilled editor
+  if(e.target && e.target.getAttribute && e.target.getAttribute('data-addveh')){
+    const pf=_inferRow?Object.assign({},_inferRow):{};
+    delete pf.source; // owner-added, not "matched by keyway"
+    openEditor('veh', null, pf); return;
+  }
   const id=e.target && e.target.getAttribute && e.target.getAttribute('data-caut');
   if(!id) return;
   const V=veh(); const row=V.find(x=>x.id===id); if(!row) return;
@@ -767,7 +773,7 @@ document.getElementById('cards').addEventListener('click', function(e){
   saveVeh(V);
   if(typeof _lastView==='function') _lastView(); else if(fMake.value) runVehSearch();
 });
-let _lastView=null;
+let _lastView=null, _inferRow=null;
 
 /* ============================== LOOKUP ============================== */
 const fYear=document.getElementById('fYear'), fMake=document.getElementById('fMake'), fModel=document.getElementById('fModel');
@@ -806,6 +812,7 @@ function runVehSearch(){
       coded:'Yes', door_location:'Driver door', can_pick_ignition:'',
       transponder_system:d.t||'', programming_path:d.p||'', oem_only:'No', nastf_required:'No',
       notes:'', source:'Matched by keyway (inferred — verify in field)'};
+    _inferRow=row;
     msg.textContent='No exact row on file — matched by keyway from '+esc(mk)+' era.';
     renderCards([row],'infer'); return;
   }
@@ -903,13 +910,21 @@ document.getElementById('tSearch').addEventListener('input',renderTools);
 
 /* ---- editor modal (add/edit, dup detection) ---- */
 let editCtx={type:null,id:null};
-function openEditor(type,id){
+function openEditor(type,id,prefill){
   editCtx={type,id:id||null};
   const fields = type==='veh'?VEH_FIELDS:TOOL_FIELDS;
-  const cur = id ? (type==='veh'?veh():tools()).find(z=>z.id===id) : {};
+  const cur = id ? (type==='veh'?veh():tools()).find(z=>z.id===id) : (prefill||{});
   document.getElementById('ovTitle').textContent=(id?'Edit ':'Add ')+(type==='veh'?'vehicle':'tool');
-  document.getElementById('ovFields').innerHTML = fields.map(([k,lbl])=>
-    `<div class="fld"><label>${esc(lbl)}</label><input class="in" data-k="${k}" value="${esc(cur[k]||'')}"></div>`).join('');
+  // keyway picklist (so a vehicle is guaranteed to resolve to a real Lishi tool)
+  const kwList=uniqSort(tools().map(t=>String(t.keyway))).map(k=>{
+    const t=toolForKeyway(k); return '<option value="'+esc(k)+'">'+esc(k)+(t?(' — '+esc(t.tool_designation)):'')+'</option>';
+  }).join('');
+  document.getElementById('ovFields').innerHTML = fields.map(([k,lbl])=>{
+    if(type==='veh' && k==='keyway')
+      return `<div class="fld"><label>${esc(lbl)} <span class="muted">(pick a Lishi tool)</span></label>`+
+             `<input class="in" list="kwList" data-k="keyway" value="${esc(cur[k]||'')}" placeholder="start typing… e.g. HU100"></div>`;
+    return `<div class="fld"><label>${esc(lbl)}</label><input class="in" data-k="${k}" value="${esc(cur[k]||'')}"></div>`;
+  }).join('') + `<datalist id="kwList">${kwList}</datalist>`;
   document.getElementById('ov').classList.add('on');
 }
 document.getElementById('ovCancel').onclick=()=>document.getElementById('ov').classList.remove('on');

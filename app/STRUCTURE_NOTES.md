@@ -28,6 +28,16 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 10. **A11y + mobile pass** — labels associated, keyboard-operable rows, focus-visible outlines,
     16px inputs, ≥40px tap targets, reduced-motion, aria-live messages.
 
+## Update 2026-06-16 (c) — `lishi.html` linking a tool to a vehicle (keyway picker + add-from-lookup)
+- Tool↔vehicle link is by **keyway** (`toolForKeyway(r.keyway)`), not a stored tool id. So adding a
+  vehicle with the right keyway is what surfaces the "Recommended Lishi" on the card.
+- `openEditor(type,id,prefill)`: gained a `prefill` arg; the vehicle **Keyway** field is now an
+  `<input list="kwList">` backed by a `<datalist>` of every tool's keyway + designation (e.g.
+  "HU100 — HU100(10) V.3 (10 Cut)") so a new vehicle is guaranteed to resolve to a real tool.
+- Inferred ("Matched by keyway") cards get a **"➕ Add to Vehicles"** button (`data-addveh`). The
+  `#cards` click handler opens the editor prefilled from `_inferRow` (source stripped → saves as
+  owner-added). New module var `_inferRow` set in `runVehSearch()`.
+
 ## Update 2026-06-16 (b) — `lishi.html` "Ignition pickable": Yes/No/N/A + owner-set caution
 - Removed fabricated "Caution" values: `P` shortcut now `{pick:'N/A'}` (proximity/push-to-start = no
   cylinder); SEED proximity rows → `N/A`; the two true-cylinder rows (VW Golf MQB, Audi A4) → `Yes`.
