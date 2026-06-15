@@ -603,8 +603,8 @@ function esHeader(d) {
   const a = '../'.repeat(d), e = '../'.repeat(d-1);
   const N = U.nav;
   return `<header class="site">
+  <div class="brandbar"><a class="brand" href="${e}index.html"><img src="${a}assets/logo.png" alt="Turbo Keysmith logo"><b>Turbo Keysmith</b></a></div>
   <div class="bar">
-    <a class="brand" href="${e}index.html"><img src="${a}assets/logo.png" alt="Turbo Keysmith logo"><b>Turbo Keysmith</b></a>
     <nav class="main">
       <a href="${e}index.html">${esc(N.home)}</a>
       <a href="${e}automotive/">${esc(N.automotive)}</a>
