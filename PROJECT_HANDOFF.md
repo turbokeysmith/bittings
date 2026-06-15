@@ -393,7 +393,7 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
     `tks_vin_cache` (recent decodes).
   - **Pre-populated for real** from public factual sources (Original/Classic Lishi tool lists, CLK
     Supplies, UHS Hardware, LockPickWorld), normalized into our schema — **104 Lishi tools (full
-    Original/Classic range: cars, trucks, Euro makes, motorcycle & residential) + 58 vehicles across 25
+    Original/Classic range: cars, trucks, Euro makes, motorcycle & residential) + 169 vehicles across 25
     makes** (Ford, GM, Toyota, Honda, Chrysler/Dodge/Jeep/Ram, VW/Audi, Nissan, Hyundai/Kia, Mazda,
     Subaru, Mitsubishi, BMW, Mercedes, + global). Every mapped vehicle keyway resolves to a tool. A
     **versioned seed merge** (`tks_lishi_seedver`/`SEEDVER`) adds new tools to existing installs on update

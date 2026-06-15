@@ -376,13 +376,104 @@ const EXTRA_TOOLS=[
   tdef('AR1','AR1','door','AR1','Arrow residential','Original Lishi','Residential 2-in-1')
 ];
 const ALL_TOOLS = SEED_TOOLS.concat(EXTRA_TOOLS);
-const SEEDVER = 2;   // bump when SEED_* changes to merge new rows into existing installs
+
+/* ---- many more vehicles (compact: per-make transponder/programming defaults) ---- */
+const MK={
+  Ford:{t:'Ford 128-bit (PATS)',p:'OBD: AutoProPad/Autel'}, Lincoln:{t:'Ford 128-bit (PATS)',p:'OBD: AutoProPad/Autel'},
+  Chevrolet:{t:'GM Hitag2 (8-cut)',p:'OBD: AutoProPad/Autel'}, GMC:{t:'GM Hitag2 (8-cut)',p:'OBD: AutoProPad/Autel'},
+  Buick:{t:'GM Hitag2 (8-cut)',p:'OBD: AutoProPad/Autel'}, Cadillac:{t:'GM Hitag2 (8-cut)',p:'OBD: AutoProPad/Autel'},
+  Toyota:{t:'Toyota G/H chip',p:'OBD; AKL on H-chip may need dealer/emulator'}, Lexus:{t:'Toyota G (smart)',p:'OBD; smart system'},
+  Scion:{t:'Toyota 4D/G',p:'OBD'}, Honda:{t:'Honda G / ID46',p:'OBD'}, Acura:{t:'Honda G / ID46',p:'OBD'},
+  Nissan:{t:'Nissan Hitag2',p:'OBD; PIN/BCM code required'}, Infiniti:{t:'Nissan Hitag2',p:'OBD; PIN/BCM code required'},
+  Dodge:{t:'Chrysler 4A',p:'OBD; PIN often required'}, Chrysler:{t:'Chrysler 4A',p:'OBD; PIN often required'},
+  Jeep:{t:'Chrysler 4A',p:'OBD; PIN often required'}, Ram:{t:'Chrysler 4A',p:'OBD; PIN often required'},
+  Volkswagen:{t:'VAG (Megamos/MQB by year)',p:'OBD pre-MQB; MQB advanced/dealer'}, Audi:{t:'VAG (Megamos/MQB by year)',p:'OBD pre-MQB; MQB advanced/dealer'},
+  Hyundai:{t:'Hyundai 8A / Texas DST',p:'OBD'}, Kia:{t:'Kia 8A / Texas DST',p:'OBD'},
+  Mazda:{t:'Mazda 4D/G',p:'OBD'}, Subaru:{t:'Subaru G',p:'OBD'}, Mitsubishi:{t:'Mitsubishi 8A',p:'OBD'}, Volvo:{t:'Volvo (CEM)',p:'Advanced tools / dealer'}
+};
+function vm(make,model,ys,ye,keyway,o){ o=o||{}; const d=MK[make]||{t:'',p:''};
+  return {make,model,year_start:String(ys),year_end:String(ye),keyway,coded:o.coded||'Yes',
+    door_location:o.door||'Driver door',can_pick_ignition:o.pick||'Yes',transponder_system:o.t||d.t,
+    programming_path:o.p||d.p,oem_only:o.oem||'No',nastf_required:o.nastf||'No',notes:o.notes||'',
+    source:'Original Lishi / CLK / UHS / LockPickWorld (cross-ref)'}; }
+const P={pick:'Caution'};   // proximity / smart-key shortcut
+const EXTRA_VEH=[
+  // Ford / Lincoln
+  vm('Ford','Edge','2011','2020','HU101'), vm('Ford','Ranger','2019','2023','HU101'),
+  vm('Ford','Expedition','2015','2022','HU101'), vm('Ford','Transit','2015','2023','HU101'),
+  vm('Ford','Taurus','2010','2019','HU101'), vm('Ford','Fiesta','2011','2019','HU101'),
+  vm('Ford','EcoSport','2018','2022','HU101'), vm('Ford','Bronco Sport','2021','2023','HU101'),
+  vm('Ford','Maverick','2022','2023','HU101'), vm('Ford','F-150','2004','2008','FO38',{notes:'Older 8-cut'}),
+  vm('Lincoln','Navigator','2015','2022','HU101',P), vm('Lincoln','Nautilus','2019','2023','HU101',P),
+  // Chevrolet / GMC / Buick / Cadillac
+  vm('Chevrolet','Traverse','2009','2017','HU100'), vm('Chevrolet','Tahoe','2015','2020','HU100'),
+  vm('Chevrolet','Suburban','2015','2020','HU100'), vm('Chevrolet','Trax','2015','2022','HU100'),
+  vm('Chevrolet','Sonic','2012','2020','HU100'), vm('Chevrolet','Colorado','2015','2022','HU100'),
+  vm('Chevrolet','Express','2010','2022','B111',{notes:'Van'}), vm('Chevrolet','Silverado 2500/3500','2015','2019','HU100'),
+  vm('GMC','Terrain','2010','2017','HU100'), vm('GMC','Acadia','2007','2016','HU100'),
+  vm('GMC','Yukon','2015','2020','HU100'), vm('GMC','Canyon','2015','2022','HU100'),
+  vm('Buick','Encore','2013','2022','HU100'), vm('Buick','LaCrosse','2010','2016','HU100'),
+  vm('Buick','Regal','2011','2017','HU100'), vm('Cadillac','ATS','2013','2019','HU100'),
+  vm('Cadillac','CTS','2014','2019','HU100'), vm('Cadillac','XT5','2017','2022','HU100',P),
+  vm('Cadillac','SRX','2010','2016','HU100'),
+  // Toyota / Lexus / Scion
+  vm('Toyota','Sienna','2011','2020','TOY48'), vm('Toyota','Prius','2010','2015','TOY48',P),
+  vm('Toyota','4Runner','2010','2023','TOY48'), vm('Toyota','Sequoia','2008','2022','TOY48'),
+  vm('Toyota','Yaris','2012','2018','TOY43'), vm('Toyota','Avalon','2013','2018','TOY48'),
+  vm('Toyota','C-HR','2018','2022','TOY48'), vm('Toyota','Venza','2009','2015','TOY48'),
+  vm('Toyota','Camry','2007','2011','TOY43',{notes:'Older'}),
+  vm('Lexus','ES350','2013','2018','TOY48',P), vm('Lexus','GX460','2010','2022','TOY48',P),
+  vm('Lexus','IS250/350','2006','2013','TOY48'), vm('Lexus','NX','2015','2021','TOY48',P),
+  vm('Scion','tC','2008','2016','TOY43'), vm('Scion','xB','2008','2015','TOY43'),
+  // Honda / Acura
+  vm('Honda','Odyssey','2011','2017','HON66'), vm('Honda','Fit','2009','2020','HON66'),
+  vm('Honda','HR-V','2016','2022','HON66'), vm('Honda','Ridgeline','2006','2023','HON66'),
+  vm('Honda','Passport','2019','2023','HON66'), vm('Honda','Insight','2019','2022','HON66'),
+  vm('Acura','MDX','2007','2020','HON66',P), vm('Acura','RDX','2013','2020','HON66',P),
+  vm('Acura','ILX','2013','2022','HON66'), vm('Acura','TSX','2009','2014','HON66'),
+  // Nissan / Infiniti
+  vm('Nissan','Maxima','2009','2018','DA34'), vm('Nissan','Murano','2009','2020','DA34',P),
+  vm('Nissan','Pathfinder','2013','2020','DA34',P), vm('Nissan','Frontier','2005','2019','DA34'),
+  vm('Nissan','Titan','2016','2022','DA34'), vm('Nissan','Versa','2012','2019','DA34'),
+  vm('Nissan','Kicks','2018','2022','DA34'), vm('Nissan','Armada','2017','2022','DA34',P),
+  vm('Nissan','Juke','2011','2017','DA34'), vm('Infiniti','Q50','2014','2022','DA34',P),
+  vm('Infiniti','QX60','2014','2020','DA34',P),
+  // Chrysler / Dodge / Jeep / Ram
+  vm('Dodge','Durango','2011','2023','CY24',P), vm('Dodge','Challenger','2011','2023','CY24'),
+  vm('Dodge','Grand Caravan','2008','2020','CY24'), vm('Chrysler','Pacifica','2017','2023','CY24',P),
+  vm('Chrysler','Town & Country','2008','2016','CY24'), vm('Jeep','Cherokee','2014','2022','CY24',P),
+  vm('Jeep','Compass','2017','2022','CY24'), vm('Jeep','Renegade','2015','2022','CY24'),
+  vm('Jeep','Patriot','2007','2017','CY24'), vm('Ram','2500/3500','2013','2018','CY24'),
+  vm('Ram','ProMaster','2014','2022','CY24'),
+  // VW / Audi
+  vm('Volkswagen','Passat','2012','2019','HU66'), vm('Volkswagen','Tiguan','2009','2017','HU66'),
+  vm('Volkswagen','Tiguan','2018','2023','HU162T',{oem:'Yes',notes:'MQB'}), vm('Volkswagen','Atlas','2018','2023','HU162T',{oem:'Yes',notes:'MQB'}),
+  vm('Volkswagen','Beetle','2012','2019','HU66'), vm('Audi','A3','2015','2020','HU162T',{oem:'Yes',notes:'MQB'}),
+  vm('Audi','A6','2012','2018','HU66',P), vm('Audi','Q7','2017','2023','HU162T',{oem:'Yes',notes:'MQB'}),
+  // Hyundai / Kia
+  vm('Hyundai','Tucson','2016','2021','HY20'), vm('Hyundai','Santa Fe','2013','2018','HY20'),
+  vm('Hyundai','Accent','2012','2017','HY15'), vm('Hyundai','Kona','2018','2022','HY20'),
+  vm('Hyundai','Veloster','2012','2018','HY20'), vm('Kia','Soul','2014','2019','HY20'),
+  vm('Kia','Forte','2014','2018','HY20'), vm('Kia','Sportage','2017','2022','HY20'),
+  vm('Kia','Sedona','2015','2021','HY20'), vm('Kia','Rio','2012','2017','HY15'),
+  vm('Kia','Telluride','2020','2023','HY20',P),
+  // Mazda / Subaru / Mitsubishi / Volvo
+  vm('Mazda','CX-9','2016','2022','MAZ24',P), vm('Mazda','CX-3','2016','2021','MAZ24'),
+  vm('Mazda','Mazda6','2014','2021','MAZ24'), vm('Mazda','MX-5 Miata','2016','2022','MAZ24'),
+  vm('Subaru','Impreza','2012','2019','DAT17'), vm('Subaru','Crosstrek','2013','2022','DAT17'),
+  vm('Subaru','Legacy','2015','2019','DAT17'), vm('Subaru','Ascent','2019','2022','DAT17',P),
+  vm('Subaru','WRX','2015','2021','DAT17'), vm('Mitsubishi','Eclipse Cross','2018','2022','MIT11'),
+  vm('Mitsubishi','Mirage','2014','2022','MIT8'), vm('Mitsubishi','Lancer','2008','2017','MIT8'),
+  vm('Volvo','XC60','2010','2017','HU56',P), vm('Volvo','XC90','2016','2022','HU101',P)
+];
+const ALL_VEH = SEED_VEH.concat(EXTRA_VEH);
+const SEEDVER = 3;   // bump when SEED_* changes to merge new rows into existing installs
 
 /* ---- seed once if empty; on version bump, MERGE new rows (never clobbers edits) ---- */
 function ensureSeed(){
   if(!readLS('tks_lishi_seeded',false)){
     if(!(readLS(K_TOOLS,[])||[]).length) writeLS(K_TOOLS, ALL_TOOLS.map(x=>Object.assign({id:uid('lt')},x)));
-    if(!(readLS(K_VEH,[])||[]).length)   writeLS(K_VEH,   SEED_VEH.map(x=>Object.assign({id:uid('vk')},x)));
+    if(!(readLS(K_VEH,[])||[]).length)   writeLS(K_VEH,   ALL_VEH.map(x=>Object.assign({id:uid('vk')},x)));
     writeLS('tks_lishi_seeded',true); writeLS('tks_lishi_seedver',SEEDVER); return;
   }
   if((readLS('tks_lishi_seedver',1)||1) < SEEDVER){
@@ -390,7 +481,7 @@ function ensureSeed(){
     let add=0; ALL_TOOLS.forEach(s=>{ const k=String(s.tool_designation).toUpperCase(); if(!have.has(k)){ T.push(Object.assign({id:uid('lt')},s)); have.add(k); add++; } });
     if(add) writeLS(K_TOOLS,T);
     const V=readLS(K_VEH,[])||[]; const vh=new Set(V.map(r=>(r.make+'|'+r.model+'|'+r.year_start+'|'+r.keyway).toUpperCase()));
-    SEED_VEH.forEach(s=>{ const k=(s.make+'|'+s.model+'|'+s.year_start+'|'+s.keyway).toUpperCase(); if(!vh.has(k)){ V.push(Object.assign({id:uid('vk')},s)); vh.add(k); } });
+    ALL_VEH.forEach(s=>{ const k=(s.make+'|'+s.model+'|'+s.year_start+'|'+s.keyway).toUpperCase(); if(!vh.has(k)){ V.push(Object.assign({id:uid('vk')},s)); vh.add(k); } });
     writeLS(K_VEH,V); writeLS('tks_lishi_seedver',SEEDVER);
   }
 }

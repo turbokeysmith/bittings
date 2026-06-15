@@ -6,7 +6,7 @@ Keep this updated after each work session. Status key: ✅ done · 🔨 in progr
 Last updated: 2026-06-14 23:55 CDT (Claude Code) — NEW staff tool: Lishi & Programming Reference (lishi.html, VIN-fed, pre-populated, corrections loop); public-site UI polish + Cloudflare preview; Certifications hub; /es/ mirror
 
 > **Lishi & Programming Reference (2026-06-14):** ✅ New **staff-app** page `lishi.html` + 🔑 Home tile.
-> Two local stores `tks_lishi_tools` (104 — full Lishi range incl. moto/residential) + `tks_vehicle_keyways` (58, 25 makes), seeded from public
+> Two local stores `tks_lishi_tools` (104 — full Lishi range incl. moto/residential) + `tks_vehicle_keyways` (169, 25 makes), seeded from public
 > sources (Original/Classic Lishi, CLK, UHS, LockPickWorld). VIN decode → reference card (keyway →
 > recommended Lishi → in-stock vs tks_inventory → coded → ignition-pickable → programming path →
 > OEM/NASTF badge). Two-way search (vehicle or keyway/tool). Inline notes per row + Corrections Log with
