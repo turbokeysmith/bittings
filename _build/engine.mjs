@@ -51,7 +51,7 @@ export function socialIcons(extraClass) {
 
 // ---- Award/recognition badge (review-based; sits beside the reviews) ----
 export const AWARD_BADGE =
-  `<div class="award-wrap"><span class="award-badge">🏆 Best of 2026 · Ranked #1 Locksmith in Western Oklahoma — BusinessRate</span></div>`;
+  `<div class="award-wrap"><span class="award-badge">🏆 Best of 2026 · Ranked #1 Locksmith in Western Oklahoma — BusinessRate</span><span class="award-badge">🏡 Voted a 2025 Nextdoor Neighborhood Fave</span></div>`;
 
 // ---- localmarketingmanager.com Live Google Business widgets ----------------
 // (Images/"Our Work" widget removed by request — replaced by social links.)
