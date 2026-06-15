@@ -61,8 +61,9 @@ The app maps some alternate keyway codes to a tool. Two look mis-mapped:
   rename to `B106/GM37`, set its blank to **B106**, and keep B102 only on GM39.
 
 ### 1E. Sources DISAGREE with each other (need your call)
-- [ ] **HU83** — Classic/UHS/AKS say **Peugeot/Citroën**; Key Innovations says **Mini Cooper (2-track)**.
-  I added HU83 with a "verify" note. Which is right for your area, or list both?
+- [x] **HU83** — RESOLVED 2026-06-16 from Classic Lishi's own product page
+  (classiclishi.com/product/classic-lishi-hu83): both were partly right. Authoritative list =
+  **Peugeot / Citroën / Fiat / Mini Cooper (2004-2010) / MAN** (2-track 8-cut). Applied live.
 
 ---
 
