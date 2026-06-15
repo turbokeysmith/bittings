@@ -3,7 +3,15 @@
 Keep this updated after each work session. Status key: ✅ done · 🔨 in progress ·
 ⏸️ parked (waiting on a decision/credential) · ⬜ not started.*
 
-Last updated: 2026-06-14 11:00 CDT (Claude Code) — Images widget removed → social icons (header/footer/in-place) + "Best of 2026" award badge beside reviews; Certifications hub + 6 pages; Cloudflare preview; /es/ mirror; owner→manager + per-manager PINs
+Last updated: 2026-06-14 23:55 CDT (Claude Code) — NEW staff tool: Lishi & Programming Reference (lishi.html, VIN-fed, pre-populated, corrections loop); public-site UI polish + Cloudflare preview; Certifications hub; /es/ mirror
+
+> **Lishi & Programming Reference (2026-06-14):** ✅ New **staff-app** page `lishi.html` + 🔑 Home tile.
+> Two local stores `tks_lishi_tools` (26) + `tks_vehicle_keyways` (58, 25 makes), seeded from public
+> sources (Original/Classic Lishi, CLK, UHS, LockPickWorld). VIN decode → reference card (keyway →
+> recommended Lishi → in-stock vs tks_inventory → coded → ignition-pickable → programming path →
+> OEM/NASTF badge). Two-way search (vehicle or keyway/tool). Inline notes per row + Corrections Log with
+> .md/.csv export → Code applies → clear. Add/edit/delete, CSV import/export, dup detection. ⬜ Mobile
+> sign-off pending. NOT on the public site (staff app only).
 
 > **Social + award (2026-06-14):** ✅ Removed the localmarketingmanager Images/"Our Work" widget everywhere
 > (generator). Added on-brand **social icon links** (IG, TikTok, FB, YouTube, Nextdoor, Google) in header +

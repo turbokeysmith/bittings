@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Lishi & Programming Reference — Turbo Keysmith</title>
+<link rel="icon" href="app/tks_mark.png">
+<style>
+  :root{
+    --bg:#14171b; --bg2:#1b1f25; --card:#1f232a; --edge:#2c313a; --ink:#f4f5f7; --dim:#9aa1ac;
+    --amber:#ffb000; --red:#b82334; --green:#22994a; --off:#5a616c;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:linear-gradient(180deg,var(--bg),var(--bg2));color:var(--ink);min-height:100vh;padding-bottom:40px;}
+  a{color:var(--amber);text-decoration:none;}
+  .wrap{max-width:1000px;margin:0 auto;padding:14px;}
+  .top{display:flex;align-items:center;gap:12px;margin:4px 0 14px;}
+  .top h1{font-size:19px;margin:0;font-weight:800;}
+  .back{background:var(--card);border:1px solid var(--edge);color:var(--ink);border-radius:10px;padding:9px 12px;font-weight:700;font-size:14px;}
+  .seg{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .seg button{flex:1 1 auto;min-width:96px;background:var(--card);border:1px solid var(--edge);color:var(--dim);
+    border-radius:11px;padding:11px 10px;font-weight:800;font-size:14px;cursor:pointer;}
+  .seg button.on{background:var(--amber);color:#1a1300;border-color:var(--amber);}
+  .panel{display:none;}
+  .panel.on{display:block;}
+  input,select,textarea,button{font-family:inherit;}
+  .in{width:100%;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:12px 13px;color:var(--ink);font-size:16px;outline:none;}
+  textarea.in{min-height:80px;resize:vertical;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;}
+  .row > *{flex:1 1 140px;}
+  .btn{background:var(--card);border:1px solid var(--edge);color:var(--ink);border-radius:11px;padding:11px 14px;font-weight:800;font-size:14px;cursor:pointer;}
+  .btn.amber{background:var(--amber);color:#1a1300;border-color:var(--amber);}
+  .btn.red{background:var(--red);color:#fff;border-color:var(--red);}
+  .btn.sm{padding:7px 10px;font-size:12.5px;border-radius:9px;}
+  .muted{color:var(--dim);font-size:13px;}
+  .hint{color:var(--dim);font-size:12.5px;margin:6px 2px;}
+  /* reference card */
+  .card{background:var(--card);border:1px solid var(--edge);border-radius:16px;padding:16px;margin-top:14px;}
+  .card.flag{border-color:var(--red);}
+  .card h2{margin:0 0 2px;font-size:20px;color:var(--amber);}
+  .card .veh{color:var(--dim);font-size:13px;margin-bottom:12px;}
+  .kv{display:grid;grid-template-columns:128px 1fr;gap:8px 12px;font-size:14.5px;}
+  .kv .k{color:var(--dim);font-weight:700;}
+  .kv .v{font-weight:700;}
+  .pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:800;}
+  .pill.ok{background:rgba(34,153,74,.18);color:#5fd389;}
+  .pill.no{background:rgba(184,35,52,.18);color:#ef8b96;}
+  .pill.warn{background:rgba(255,176,0,.16);color:var(--amber);}
+  .badge-oem{display:inline-block;margin-top:12px;background:var(--red);color:#fff;font-weight:800;border-radius:10px;padding:8px 12px;font-size:13.5px;}
+  /* tables */
+  .tbl{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;}
+  .tbl th,.tbl td{border-bottom:1px solid var(--edge);padding:8px 7px;text-align:left;vertical-align:top;}
+  .tbl th{color:var(--dim);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;background:var(--bg2);}
+  .tbl tr:hover td{background:rgba(255,255,255,.02);}
+  .notein{width:100%;min-width:120px;background:#171b21;border:1px solid var(--edge);border-radius:8px;color:var(--ink);font-size:12.5px;padding:6px 8px;}
+  .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--edge);border-radius:12px;}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0;}
+  .toolbar .in{flex:1 1 200px;}
+  .src{color:var(--off);font-size:10.5px;}
+  /* modal */
+  .ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:40;}
+  .ov.on{display:flex;}
+  .sheet{background:var(--bg2);border:1px solid var(--edge);border-radius:16px 16px 0 0;width:100%;max-width:640px;max-height:92vh;overflow:auto;padding:16px;}
+  .sheet h3{margin:0 0 10px;font-size:17px;}
+  .fld{margin-bottom:9px;}
+  .fld label{display:block;font-size:12px;color:var(--dim);font-weight:700;margin-bottom:4px;}
+  .corr{background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:11px 12px;margin-bottom:9px;font-size:14px;}
+  .corr .when{color:var(--off);font-size:11.5px;}
+  @media(max-width:560px){ .kv{grid-template-columns:108px 1fr;} .ov{align-items:stretch;} .sheet{border-radius:0;max-height:100vh;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="index.html">‹ Apps</a>
+    <h1>🔑 Lishi &amp; Programming Reference</h1>
+  </div>
+
+  <div class="seg" id="seg">
+    <button data-p="lookup" class="on">🔎 Lookup</button>
+    <button data-p="vehicles">🚗 Vehicles</button>
+    <button data-p="tools">🛠 Tools</button>
+    <button data-p="corr">📝 Corrections</button>
+  </div>
+
+  <!-- LOOKUP -->
+  <div class="panel on" id="p-lookup">
+    <div class="row" style="margin-bottom:8px">
+      <input class="in" id="vinIn" placeholder="Paste 17-char VIN…" maxlength="17" style="flex:2 1 220px;text-transform:uppercase">
+      <button class="btn amber" id="vinBtn" style="flex:0 0 auto">Decode VIN</button>
+    </div>
+    <div class="hint">…or search when you're holding a key, not a VIN:</div>
+    <div class="row">
+      <select class="in" id="mode" style="flex:0 0 auto;max-width:190px">
+        <option value="veh">By make / model / year</option>
+        <option value="key">By keyway / tool</option>
+      </select>
+      <input class="in" id="q" placeholder="e.g. Silverado 2016  ·  or  HU100" style="flex:2 1 200px">
+    </div>
+    <div id="lookMsg" class="hint"></div>
+    <div id="cards"></div>
+  </div>
+
+  <!-- VEHICLES -->
+  <div class="panel" id="p-vehicles">
+    <div class="toolbar">
+      <input class="in" id="vSearch" placeholder="Filter vehicles…">
+      <button class="btn amber sm" id="vAdd">+ Add vehicle</button>
+      <button class="btn sm" id="vExport">⇩ CSV</button>
+      <button class="btn sm" id="vImport">⇧ Import</button>
+      <input type="file" id="vFile" accept=".csv" hidden>
+    </div>
+    <div class="muted" id="vCount"></div>
+    <div class="tblwrap"><table class="tbl" id="vTbl"></table></div>
+  </div>
+
+  <!-- TOOLS -->
+  <div class="panel" id="p-tools">
+    <div class="toolbar">
+      <input class="in" id="tSearch" placeholder="Filter tools…">
+      <button class="btn amber sm" id="tAdd">+ Add tool</button>
+      <button class="btn sm" id="tExport">⇩ CSV</button>
+      <button class="btn sm" id="tImport">⇧ Import</button>
+      <input type="file" id="tFile" accept=".csv" hidden>
+    </div>
+    <div class="muted" id="tCount"></div>
+    <div class="tblwrap"><table class="tbl" id="tTbl"></table></div>
+  </div>
+
+  <!-- CORRECTIONS -->
+  <div class="panel" id="p-corr">
+    <div class="hint">Jot fixes or additions here as you find them in the field. Export the log, hand it to Code, and it gets applied to the tables.</div>
+    <textarea class="in" id="corrText" placeholder='e.g. "HU100 Buick ignition wrong, should be HU100R"  ·  "Add 2024 Toyota Tacoma — TOY48"'></textarea>
+    <div class="toolbar">
+      <button class="btn amber" id="corrAdd">Add to log</button>
+      <button class="btn sm" id="corrMd">⇩ Export .md</button>
+      <button class="btn sm" id="corrCsv">⇩ Export .csv</button>
+      <button class="btn red sm" id="corrClear">Clear log (after export)</button>
+    </div>
+    <div id="corrList"></div>
+  </div>
+</div>
+
+<!-- editor modal -->
+<div class="ov" id="ov"><div class="sheet">
+  <h3 id="ovTitle">Edit</h3>
+  <div id="ovFields"></div>
+  <div class="row" style="margin-top:12px">
+    <button class="btn amber" id="ovSave">Save</button>
+    <button class="btn" id="ovCancel">Cancel</button>
+  </div>
+</div></div>
+
+<script src="app/cloud-config.js"></script>
+<script src="app/store.js"></script>
+<script>
+/* ============================================================================
+   Lishi & Programming Reference  (local-first; tks_ keys; readLS/writeLS)
+   Stores: tks_lishi_tools, tks_vehicle_keyways, tks_lishi_corrections, tks_vin_cache
+   Seed data normalized from public factual sources (Original Lishi / Classic Lishi
+   tool lists, CLK Supplies, UHS Hardware, LockPickWorld). Provenance in `source`.
+   ============================================================================ */
+function readLS(k,f){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):f; }catch(e){ return f; } }
+function writeLS(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function uid(p){ return (p||'id')+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+const K_TOOLS='tks_lishi_tools', K_VEH='tks_vehicle_keyways', K_CORR='tks_lishi_corrections', K_VIN='tks_vin_cache';
+
+/* ---- field schemas (label + key) ---- */
+const TOOL_FIELDS=[
+  ['tool_designation','Tool designation'],['keyway','Keyway'],['tool_type','Tool type'],
+  ['wafer_positions','Wafer positions'],['usage','Usage (door/ign/trunk)'],['key_blank','Key blank'],
+  ['notes','Notes'],['video_url','Video URL'],['source','Source']
+];
+const VEH_FIELDS=[
+  ['make','Make'],['model','Model'],['year_start','Year start'],['year_end','Year end'],['keyway','Keyway'],
+  ['coded','Coded (Yes/No)'],['door_location','Door location'],['can_pick_ignition','Can pick ignition'],
+  ['transponder_system','Transponder system'],['programming_path','Programming path'],
+  ['oem_only','OEM only (Yes/No)'],['nastf_required','NASTF required (Yes/No)'],['notes','Notes'],['source','Source']
+];
+
+/* ============================== SEED DATA ============================== */
+const SEED_TOOLS=[
+  {tool_designation:'HU101',keyway:'HU101',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'HU101',video_url:'',source:'Original Lishi; UHS Hardware',notes:''},
+  {tool_designation:'HU100',keyway:'HU100',tool_type:'2-in-1 pick/decoder',wafer_positions:'10',usage:'door/ign',key_blank:'HU100 / B111',video_url:'',source:'Original Lishi; CLK Supplies',notes:''},
+  {tool_designation:'HU100R',keyway:'HU100R',tool_type:'2-in-1 pick/decoder',wafer_positions:'10',usage:'door/ign',key_blank:'HU100R',video_url:'',source:'Original Lishi; CLK Supplies',notes:'BMW track key'},
+  {tool_designation:'FO38',keyway:'FO38',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door',key_blank:'FO38 / H72',video_url:'',source:'Original Lishi; UHS Hardware',notes:'Older Ford/Lincoln/Mercury 8-cut'},
+  {tool_designation:'TOY48',keyway:'TOY48',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'TOY48',video_url:'',source:'Original Lishi; CLK Supplies',notes:'Toyota/Lexus high-security'},
+  {tool_designation:'TOY43',keyway:'TOY43',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'TOY43 / TR47',video_url:'',source:'Original Lishi; LockPickWorld',notes:'Older Toyota/Scion'},
+  {tool_designation:'TOY40',keyway:'TOY40',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door',key_blank:'TOY40',video_url:'',source:'Original Lishi',notes:'Older Toyota'},
+  {tool_designation:'TOY51',keyway:'TOY51',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'TOY51',video_url:'',source:'Classic Lishi; UHS Hardware',notes:''},
+  {tool_designation:'HON66',keyway:'HON66',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'HON66',video_url:'',source:'Original Lishi; CLK Supplies',notes:'Honda/Acura high-security'},
+  {tool_designation:'HON58R',keyway:'HON58R',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'HON58R',video_url:'',source:'Original Lishi',notes:'Older Honda/Acura'},
+  {tool_designation:'HU66',keyway:'HU66',tool_type:'2-in-1 pick/decoder',wafer_positions:'8/10',usage:'door/ign',key_blank:'HU66',video_url:'',source:'Original Lishi; LockPickWorld',notes:'VW/Audi/Seat/Skoda; multiple versions (V.2/V.3)'},
+  {tool_designation:'HU162T(9)',keyway:'HU162T',tool_type:'2-in-1 pick/decoder',wafer_positions:'9',usage:'door/ign',key_blank:'HU162T',video_url:'',source:'Original Lishi; CLK Supplies',notes:'VAG MQB; also a 10-cut version exists'},
+  {tool_designation:'HU64',keyway:'HU64',tool_type:'2-in-1 pick/decoder',wafer_positions:'4-track',usage:'door/ign',key_blank:'HU64',video_url:'',source:'Original Lishi',notes:'Mercedes-Benz 4-track'},
+  {tool_designation:'HU92',keyway:'HU92',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'HU92',video_url:'',source:'Original Lishi',notes:'Older BMW/MINI'},
+  {tool_designation:'HU83',keyway:'HU83',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'HU83',video_url:'',source:'Original Lishi',notes:'Peugeot/Citroën'},
+  {tool_designation:'CY24',keyway:'CY24',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'Y160 / Y159 / CY24',video_url:'',source:'Original Lishi; UHS Hardware',notes:'Chrysler/Dodge/Jeep/Ram'},
+  {tool_designation:'NSN14',keyway:'NSN14',tool_type:'2-in-1 pick/decoder',wafer_positions:'10',usage:'door/ign',key_blank:'NSN14 / DA31',video_url:'',source:'Original Lishi',notes:'Older Nissan/Infiniti/Subaru'},
+  {tool_designation:'DA34',keyway:'DA34',tool_type:'2-in-1 pick/decoder',wafer_positions:'10',usage:'door/ign',key_blank:'DA34',video_url:'',source:'Original Lishi; CLK Supplies',notes:'Newer Nissan/Infiniti high-security'},
+  {tool_designation:'HY15',keyway:'HY15',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'HY15',video_url:'',source:'Original Lishi',notes:'Older Hyundai/Kia'},
+  {tool_designation:'HY20',keyway:'HY20',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'HY20 / HY18',video_url:'',source:'Original Lishi; UHS Hardware',notes:'Hyundai/Kia laser/high-security'},
+  {tool_designation:'KK10',keyway:'KK10',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'KK10',video_url:'',source:'Classic Lishi',notes:'Newer Kia'},
+  {tool_designation:'MAZ24',keyway:'MAZ24',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'MAZ24',video_url:'',source:'Original Lishi',notes:'Mazda'},
+  {tool_designation:'DAT17',keyway:'DAT17',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'DAT17 / NSN11',video_url:'',source:'Classic Lishi; LockPickWorld',notes:'Subaru'},
+  {tool_designation:'MIT11',keyway:'MIT11',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'MIT11',video_url:'',source:'Original Lishi',notes:'Mitsubishi'},
+  {tool_designation:'B111 (GM)',keyway:'B111',tool_type:'2-in-1 pick/decoder',wafer_positions:'10',usage:'door/ign',key_blank:'B111 / HU100',video_url:'',source:'CLK Supplies; UHS Hardware',notes:'GM 10-cut (same keyway as HU100)'},
+  {tool_designation:'GM37/B102',keyway:'B102',tool_type:'2-in-1 pick/decoder',wafer_positions:'8',usage:'door/ign',key_blank:'B102 / B106',video_url:'',source:'Classic Lishi',notes:'Older GM (pre-2010), incl. VATS/PK3'}
+];
+
+const SEED_VEH=[
+  // FORD / LINCOLN
+  v('Ford','F-150','2015','2020','HU101','Yes','Driver door','Yes','Ford 128-bit (PATS)','OBD: AutoProPad/Autel/SmartPro; add-key easy','No','No',''),
+  v('Ford','F-250/350','2017','2022','HU101','Yes','Driver door','Yes','Ford 128-bit (PATS)','OBD: AutoProPad/Autel','No','No',''),
+  v('Ford','Focus','2012','2018','HU101','Yes','Driver door','Yes','Ford 80-bit/128-bit','OBD','No','No',''),
+  v('Ford','Fusion','2013','2020','HU101','Yes','Driver door','Yes','Ford 128-bit','OBD','No','No',''),
+  v('Ford','Escape','2013','2019','HU101','Yes','Driver door','Yes','Ford 128-bit','OBD','No','No',''),
+  v('Ford','Explorer','2011','2019','HU101','Yes','Driver door','Yes','Ford 128-bit','OBD','No','No',''),
+  v('Ford','Mustang','2015','2023','HU101','Yes','Driver door','Yes','Ford 128-bit','OBD','No','No',''),
+  v('Ford','Crown Victoria','1998','2011','FO38','Yes','Driver door','Yes','Ford PATS (older)','OBD/onboard','No','No','8-cut'),
+  v('Lincoln','MKZ','2013','2020','HU101','Yes','Driver door','Yes','Ford 128-bit','OBD','No','No',''),
+  // GM (Chevrolet/GMC/Buick/Cadillac)
+  v('Chevrolet','Silverado 1500','2014','2018','HU100','Yes','Driver door','Yes','GM Hitag2 (8-cut)','OBD: AutoProPad/Autel','No','No',''),
+  v('Chevrolet','Malibu','2013','2020','HU100','Yes','Driver door','Yes','GM Hitag2','OBD','No','No',''),
+  v('Chevrolet','Equinox','2010','2017','HU100','Yes','Driver door','Yes','GM Hitag2','OBD','No','No',''),
+  v('Chevrolet','Cruze','2011','2019','HU100','Yes','Driver door','Yes','GM Hitag2','OBD','No','No',''),
+  v('Chevrolet','Camaro','2010','2015','HU100','Yes','Driver door','Yes','GM Hitag2','OBD','No','No',''),
+  v('GMC','Sierra 1500','2014','2018','HU100','Yes','Driver door','Yes','GM Hitag2','OBD','No','No',''),
+  v('Buick','Enclave','2008','2017','HU100','Yes','Driver door','Yes','GM Hitag2','OBD','No','No',''),
+  v('Cadillac','Escalade','2015','2020','HU100','Yes','Driver door','Caution','GM Hitag2 (proximity)','OBD; AKL may need relearn wait','No','No','Push-to-start prox'),
+  v('Chevrolet','Impala','2006','2013','B102','Yes','Driver door','Yes','GM PK3+ / Hitag2','OBD/onboard','No','No','Older platform'),
+  // TOYOTA / LEXUS
+  v('Toyota','Camry','2012','2017','TOY48','Yes','Driver door','Yes','Toyota G/H chip','OBD; AKL on H-chip may need dealer/emulator','No','No',''),
+  v('Toyota','Corolla','2014','2019','TOY48','Yes','Driver door','Yes','Toyota H chip','OBD; H-chip AKL harder','No','No',''),
+  v('Toyota','RAV4','2013','2018','TOY48','Yes','Driver door','Yes','Toyota G/H chip','OBD','No','No',''),
+  v('Toyota','Tacoma','2016','2023','TOY48','Yes','Driver door','Yes','Toyota H chip','OBD','No','No',''),
+  v('Toyota','Tundra','2014','2021','TOY48','Yes','Driver door','Yes','Toyota G/H chip','OBD','No','No',''),
+  v('Toyota','Highlander','2014','2019','TOY48','Yes','Driver door','Yes','Toyota G/H chip','OBD','No','No',''),
+  v('Toyota','Camry','2002','2006','TOY43','Yes','Driver door','Yes','Toyota 4C/4D','OBD/onboard','No','No','Older'),
+  v('Lexus','RX350','2010','2015','TOY48','Yes','Driver door','Caution','Toyota G (smart)','OBD; smart system','No','No',''),
+  // HONDA / ACURA
+  v('Honda','Civic','2006','2015','HON66','Yes','Driver door','Yes','Honda G / ID46','OBD','No','No',''),
+  v('Honda','Accord','2008','2017','HON66','Yes','Driver door','Yes','Honda G / ID46','OBD','No','No',''),
+  v('Honda','CR-V','2007','2016','HON66','Yes','Driver door','Yes','Honda G / ID46','OBD','No','No',''),
+  v('Honda','Pilot','2009','2015','HON66','Yes','Driver door','Yes','Honda G / ID46','OBD','No','No',''),
+  v('Acura','TL','2009','2014','HON66','Yes','Driver door','Yes','Honda G / ID46','OBD','No','No',''),
+  v('Honda','Civic','2001','2005','HON58R','Yes','Driver door','Yes','Honda ID13/ID48','OBD/onboard','No','No','Older'),
+  // CHRYSLER / DODGE / JEEP / RAM
+  v('Dodge','Charger','2011','2023','CY24','Yes','Driver door','Yes','Chrysler 4A / PCF7941','OBD; PIN often required (read from BCM)','No','No',''),
+  v('Chrysler','300','2011','2023','CY24','Yes','Driver door','Yes','Chrysler 4A','OBD; PIN often required','No','No',''),
+  v('Jeep','Wrangler','2007','2018','CY24','Yes','Driver door','Yes','Chrysler 4A','OBD; PIN often required','No','No',''),
+  v('Jeep','Grand Cherokee','2011','2021','CY24','Yes','Driver door','Caution','Chrysler 4A (prox)','OBD; PIN; some need 12+min wait','No','No',''),
+  v('Ram','1500','2013','2018','CY24','Yes','Driver door','Yes','Chrysler 4A','OBD; PIN often required','No','No',''),
+  // VW / AUDI (VAG)
+  v('Volkswagen','Jetta','2011','2018','HU66','Yes','Driver door','Yes','Megamos ID48 / MQB','OBD pre-MQB; MQB needs advanced tools','No','No','Check MQB by year'),
+  v('Volkswagen','Golf','2015','2021','HU162T','Yes','Driver door','Caution','VAG MQB','Advanced tools / dealer; often OEM path','Yes','No','MQB immobilizer'),
+  v('Audi','A4','2009','2016','HU66','Yes','Driver door','Caution','Megamos ID48','OBD pre-MQB; later dealer','No','No',''),
+  v('Audi','Q5','2018','2023','HU162T','Yes','Driver door','Caution','VAG MQB/MQB-EVO','Dealer/advanced','Yes','No','MQB'),
+  // NISSAN / INFINITI
+  v('Nissan','Altima','2013','2018','DA34','Yes','Driver door','Yes','Nissan Hitag2','OBD; PIN/BCM code required','No','No',''),
+  v('Nissan','Sentra','2013','2019','DA34','Yes','Driver door','Yes','Nissan Hitag2','OBD; PIN required','No','No',''),
+  v('Nissan','Rogue','2014','2020','DA34','Yes','Driver door','Caution','Nissan Hitag2 (prox)','OBD; PIN required','No','No',''),
+  v('Nissan','Altima','2002','2006','NSN14','Yes','Driver door','Yes','Nissan ID40/ID60','OBD/onboard','No','No','Older'),
+  v('Infiniti','G37','2008','2013','DA34','Yes','Driver door','Caution','Nissan Hitag2 (prox)','OBD; PIN required','No','No',''),
+  // HYUNDAI / KIA
+  v('Hyundai','Elantra','2017','2020','HY20','Yes','Driver door','Yes','Hyundai 8A / Texas DST80','OBD','No','No',''),
+  v('Hyundai','Sonata','2015','2019','HY20','Yes','Driver door','Yes','Hyundai 8A','OBD','No','No',''),
+  v('Kia','Optima','2016','2020','KK10','Yes','Driver door','Yes','Kia 8A','OBD','No','No',''),
+  v('Kia','Sorento','2016','2020','HY20','Yes','Driver door','Caution','Kia 8A (prox)','OBD','No','No',''),
+  // MAZDA / SUBARU / MITSUBISHI
+  v('Mazda','Mazda3','2014','2018','MAZ24','Yes','Driver door','Yes','Mazda 4D/G','OBD','No','No',''),
+  v('Mazda','CX-5','2013','2016','MAZ24','Yes','Driver door','Caution','Mazda G (prox)','OBD','No','No',''),
+  v('Subaru','Outback','2015','2019','DAT17','Yes','Driver door','Yes','Subaru G','OBD','No','No',''),
+  v('Subaru','Forester','2014','2018','DAT17','Yes','Driver door','Yes','Subaru G','OBD','No','No',''),
+  v('Mitsubishi','Outlander','2014','2020','MIT11','Yes','Driver door','Yes','Mitsubishi 8A','OBD','No','No',''),
+  // BMW / MERCEDES (mostly OEM/advanced)
+  v('BMW','3 Series','2012','2018','HU100R','No','Driver door (often none)','Caution','BMW FEM/BDC','OEM / advanced tools; bench often needed','Yes','No','FEM/BDC — frequently dealer'),
+  v('BMW','3 Series','2006','2011','HU92','No','Driver door','Caution','BMW CAS3/CAS3+','Advanced tools (CAS); bench','Yes','No',''),
+  v('Mercedes-Benz','C-Class','2008','2014','HU64','No','Driver door','No','Mercedes FBS3','OEM / advanced; AKL specialist','Yes','Yes','FBS — dealer/specialist')
+];
+function v(make,model,ys,ye,keyway,coded,door,pick,trans,prog,oem,nastf,notes){
+  return {make,model,year_start:ys,year_end:ye,keyway,coded,door_location:door,can_pick_ignition:pick,
+    transponder_system:trans,programming_path:prog,oem_only:oem,nastf_required:nastf,notes:notes||'',
+    source:'Original Lishi / CLK / UHS / LockPickWorld (cross-ref)'};
+}
+
+/* ---- one-time seed (only if empty; never clobbers edits) ---- */
+function ensureSeed(){
+  if(!readLS('tks_lishi_seeded',false)){
+    if(!(readLS(K_TOOLS,[])||[]).length) writeLS(K_TOOLS, SEED_TOOLS.map(t=>Object.assign({id:uid('lt')},t)));
+    if(!(readLS(K_VEH,[])||[]).length)   writeLS(K_VEH,   SEED_VEH.map(r=>Object.assign({id:uid('vk')},r)));
+    writeLS('tks_lishi_seeded',true);
+  }
+}
+ensureSeed();
+
+const tools=()=>readLS(K_TOOLS,[]), veh=()=>readLS(K_VEH,[]), corr=()=>readLS(K_CORR,[]);
+const saveTools=a=>writeLS(K_TOOLS,a), saveVeh=a=>writeLS(K_VEH,a), saveCorr=a=>writeLS(K_CORR,a);
+
+/* ---- helpers ---- */
+function toolForKeyway(keyway){
+  if(!keyway) return null;
+  const kw=String(keyway).toUpperCase().trim();
+  const list=tools();
+  return list.find(t=>String(t.keyway).toUpperCase()===kw)
+      || list.find(t=>kw.indexOf(String(t.keyway).toUpperCase())>=0 || String(t.keyway).toUpperCase().indexOf(kw)>=0)
+      || null;
+}
+function inStock(keyway, blank){
+  const inv=readLS('tks_inventory',[])||[];
+  const needles=[keyway,blank].filter(Boolean).map(s=>String(s).toUpperCase());
+  if(!needles.length) return null;
+  const hit=inv.find(it=>{
+    const hay=(((it.name||'')+' '+(it.sku||'')+' '+(it.fitment||'')+' '+(it.notes||''))).toUpperCase();
+    const q=Number(it.qty!=null?it.qty:it.quantity);
+    return needles.some(n=>n && hay.indexOf(n)>=0) && (isNaN(q)||q>0);
+  });
+  return !!hit;
+}
+function yearMatch(r,y){ y=Number(y); if(!y) return true; const a=Number(r.year_start)||0,b=Number(r.year_end)||9999; return y>=a && y<=b; }
+function pill(val){
+  const s=String(val||'').toLowerCase();
+  if(s==='yes') return '<span class="pill ok">Yes</span>';
+  if(s==='no')  return '<span class="pill no">No</span>';
+  if(s.indexOf('caution')>=0) return '<span class="pill warn">Caution</span>';
+  return '<span class="pill warn">'+esc(val||'—')+'</span>';
+}
+
+/* ============================== REFERENCE CARD ============================== */
+function renderCards(rows, ctx){
+  const box=document.getElementById('cards');
+  if(!rows.length){ box.innerHTML='<div class="hint">No match. Try fewer words, or add it under 🚗 Vehicles.</div>'; return; }
+  box.innerHTML=rows.slice(0,12).map(r=>{
+    const tool=toolForKeyway(r.keyway);
+    const stock=inStock(r.keyway, tool&&tool.key_blank);
+    const oem=String(r.oem_only).toLowerCase()==='yes', nastf=String(r.nastf_required).toLowerCase()==='yes';
+    const stockPill = stock===null?'<span class="pill warn">—</span>':(stock?'<span class="pill ok">In stock</span>':'<span class="pill no">Not in stock</span>');
+    return `<div class="card${oem||nastf?' flag':''}">
+      <h2>${esc(r.keyway||'—')}</h2>
+      <div class="veh">${esc(r.make)} ${esc(r.model)} · ${esc(r.year_start)}–${esc(r.year_end)}</div>
+      <div class="kv">
+        <div class="k">Recommended Lishi</div><div class="v">${tool?esc(tool.tool_designation):'<span class="pill warn">not in tool list</span>'}${tool&&tool.wafer_positions?(' <span class="muted">('+esc(tool.wafer_positions)+' pos)</span>'):''}</div>
+        <div class="k">In stock?</div><div class="v">${stockPill}${tool&&tool.key_blank?(' <span class="muted">'+esc(tool.key_blank)+'</span>'):''}</div>
+        <div class="k">Coded / cut</div><div class="v">${pill(r.coded)}</div>
+        <div class="k">Door location</div><div class="v">${esc(r.door_location||'—')}</div>
+        <div class="k">Ignition pickable</div><div class="v">${pill(r.can_pick_ignition)}</div>
+        <div class="k">Transponder</div><div class="v">${esc(r.transponder_system||'—')}</div>
+        <div class="k">Programming</div><div class="v">${esc(r.programming_path||'—')}</div>
+        ${r.notes?('<div class="k">Notes</div><div class="v" style="font-weight:500">'+esc(r.notes)+'</div>'):''}
+      </div>
+      ${oem||nastf?('<div class="badge-oem">⚠ '+(oem?'OEM-only':'')+(oem&&nastf?' · ':'')+(nastf?'NASTF required':'')+'</div>'):''}
+      <div class="src" style="margin-top:10px">src: ${esc(r.source||'')}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================== LOOKUP ============================== */
+function doSearch(){
+  const mode=document.getElementById('mode').value, q=document.getElementById('q').value.trim();
+  const msg=document.getElementById('lookMsg');
+  if(!q){ document.getElementById('cards').innerHTML=''; msg.textContent=''; return; }
+  if(mode==='key'){
+    const kw=q.toUpperCase();
+    const rows=veh().filter(r=>String(r.keyway).toUpperCase().indexOf(kw)>=0);
+    const t=toolForKeyway(q);
+    msg.innerHTML = t?('Tool: <b>'+esc(t.tool_designation)+'</b> · '+esc(t.tool_type)+' · '+esc(t.usage||'')) : 'No exact tool match for that keyway.';
+    renderCards(rows.length?rows:[], 'key');
+    if(!rows.length && t){ document.getElementById('cards').innerHTML='<div class="hint">'+esc(t.tool_designation)+' is in the tool list, but no vehicles are mapped to '+esc(q.toUpperCase())+' yet.</div>'; }
+  } else {
+    const words=q.toLowerCase().split(/\s+/); const yr=(q.match(/\b(19|20)\d{2}\b/)||[])[0];
+    const rows=veh().filter(r=>{
+      const hay=(r.make+' '+r.model).toLowerCase();
+      const okWords=words.filter(w=>!/^\d{4}$/.test(w)).every(w=>hay.indexOf(w)>=0);
+      return okWords && yearMatch(r,yr);
+    });
+    msg.textContent=rows.length+' match'+(rows.length===1?'':'es');
+    renderCards(rows,'veh');
+  }
+}
+document.getElementById('q').addEventListener('input', doSearch);
+document.getElementById('mode').addEventListener('change', ()=>{ document.getElementById('q').placeholder = document.getElementById('mode').value==='key'?'e.g. HU100':'e.g. Silverado 2016'; doSearch(); });
+
+document.getElementById('vinBtn').onclick=()=>{
+  const vin=document.getElementById('vinIn').value.trim().toUpperCase();
+  const msg=document.getElementById('lookMsg');
+  if(!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)){ msg.textContent='Enter a full 17-character VIN.'; return; }
+  msg.textContent='Decoding…';
+  TKS.decodeVin(vin).then(res=>{
+    const cache=readLS(K_VIN,[]).filter(c=>c.vin!==vin); cache.unshift({vin,make:res.make,model:res.model,year:res.year,ts:Date.now()});
+    writeLS(K_VIN, cache.slice(0,25));
+    const yr=Number(res.year), mk=(res.make||'').toLowerCase(), md=(res.model||'').toLowerCase();
+    let rows=veh().filter(r=> r.make.toLowerCase()===mk && yearMatch(r,yr) && (md.indexOf(r.model.toLowerCase())>=0 || r.model.toLowerCase().indexOf(md)>=0));
+    if(!rows.length) rows=veh().filter(r=> r.make.toLowerCase()===mk && yearMatch(r,yr));
+    msg.innerHTML='Decoded: <b>'+esc(res.year)+' '+esc(res.make)+' '+esc(res.model)+'</b>'+(rows.length?'':' — no mapping yet, search by keyway or add it.');
+    document.getElementById('mode').value='veh'; document.getElementById('q').value=(res.make+' '+res.model).trim();
+    renderCards(rows,'vin');
+  }).catch(e=>{ msg.textContent = (e&&e.message)||'Could not read that VIN.'; });
+};
+(function(){ const last=(readLS(K_VIN,[])||[])[0]; if(last){ document.getElementById('vinIn').value=last.vin; } })();
+
+/* ============================== TABLES (vehicles / tools) ============================== */
+function renderVeh(){
+  const f=(document.getElementById('vSearch').value||'').toLowerCase();
+  const rows=veh().filter(r=>!f || (r.make+' '+r.model+' '+r.keyway+' '+r.year_start+' '+r.year_end).toLowerCase().indexOf(f)>=0);
+  document.getElementById('vCount').textContent=rows.length+' of '+veh().length+' vehicles';
+  document.getElementById('vTbl').innerHTML =
+    '<tr><th>Make</th><th>Model</th><th>Years</th><th>Keyway</th><th>Coded</th><th>Ign pick</th><th>Transponder</th><th>Programming</th><th>OEM/NASTF</th><th>Notes (editable)</th><th></th></tr>'+
+    rows.map(r=>`<tr>
+      <td>${esc(r.make)}</td><td>${esc(r.model)}</td><td>${esc(r.year_start)}–${esc(r.year_end)}</td>
+      <td><b>${esc(r.keyway)}</b></td><td>${esc(r.coded)}</td><td>${esc(r.can_pick_ignition)}</td>
+      <td>${esc(r.transponder_system)}</td><td>${esc(r.programming_path)}</td>
+      <td>${String(r.oem_only).toLowerCase()==='yes'?'OEM ':''}${String(r.nastf_required).toLowerCase()==='yes'?'NASTF':''}${(String(r.oem_only).toLowerCase()!=='yes'&&String(r.nastf_required).toLowerCase()!=='yes')?'—':''}</td>
+      <td><input class="notein" data-id="${r.id}" value="${esc(r.notes)}" placeholder="field notes…"></td>
+      <td><button class="btn sm" data-edit="${r.id}">✎</button> <button class="btn sm" data-del="${r.id}">🗑</button></td>
+    </tr>`).join('');
+  document.querySelectorAll('#vTbl .notein').forEach(i=>i.onchange=()=>{ const a=veh(); const x=a.find(z=>z.id===i.dataset.id); if(x){ x.notes=i.value; saveVeh(a); } });
+  document.querySelectorAll('#vTbl [data-edit]').forEach(b=>b.onclick=()=>openEditor('veh',b.dataset.edit));
+  document.querySelectorAll('#vTbl [data-del]').forEach(b=>b.onclick=()=>{ if(confirm('Delete this vehicle row?')){ saveVeh(veh().filter(z=>z.id!==b.dataset.del)); renderVeh(); } });
+}
+function renderTools(){
+  const f=(document.getElementById('tSearch').value||'').toLowerCase();
+  const rows=tools().filter(r=>!f || (r.tool_designation+' '+r.keyway+' '+r.key_blank+' '+r.usage).toLowerCase().indexOf(f)>=0);
+  document.getElementById('tCount').textContent=rows.length+' of '+tools().length+' tools';
+  document.getElementById('tTbl').innerHTML =
+    '<tr><th>Tool</th><th>Keyway</th><th>Type</th><th>Pos</th><th>Usage</th><th>Key blank</th><th>Notes (editable)</th><th></th></tr>'+
+    rows.map(r=>`<tr>
+      <td><b>${esc(r.tool_designation)}</b></td><td>${esc(r.keyway)}</td><td>${esc(r.tool_type)}</td>
+      <td>${esc(r.wafer_positions)}</td><td>${esc(r.usage)}</td><td>${esc(r.key_blank)}</td>
+      <td><input class="notein" data-id="${r.id}" value="${esc(r.notes)}" placeholder="field notes…"></td>
+      <td><button class="btn sm" data-edit="${r.id}">✎</button> <button class="btn sm" data-del="${r.id}">🗑</button></td>
+    </tr>`).join('');
+  document.querySelectorAll('#tTbl .notein').forEach(i=>i.onchange=()=>{ const a=tools(); const x=a.find(z=>z.id===i.dataset.id); if(x){ x.notes=i.value; saveTools(a); } });
+  document.querySelectorAll('#tTbl [data-edit]').forEach(b=>b.onclick=()=>openEditor('tool',b.dataset.edit));
+  document.querySelectorAll('#tTbl [data-del]').forEach(b=>b.onclick=()=>{ if(confirm('Delete this tool?')){ saveTools(tools().filter(z=>z.id!==b.dataset.del)); renderTools(); } });
+}
+document.getElementById('vSearch').addEventListener('input',renderVeh);
+document.getElementById('tSearch').addEventListener('input',renderTools);
+
+/* ---- editor modal (add/edit, dup detection) ---- */
+let editCtx={type:null,id:null};
+function openEditor(type,id){
+  editCtx={type,id:id||null};
+  const fields = type==='veh'?VEH_FIELDS:TOOL_FIELDS;
+  const cur = id ? (type==='veh'?veh():tools()).find(z=>z.id===id) : {};
+  document.getElementById('ovTitle').textContent=(id?'Edit ':'Add ')+(type==='veh'?'vehicle':'tool');
+  document.getElementById('ovFields').innerHTML = fields.map(([k,lbl])=>
+    `<div class="fld"><label>${esc(lbl)}</label><input class="in" data-k="${k}" value="${esc(cur[k]||'')}"></div>`).join('');
+  document.getElementById('ov').classList.add('on');
+}
+document.getElementById('ovCancel').onclick=()=>document.getElementById('ov').classList.remove('on');
+document.getElementById('ovSave').onclick=()=>{
+  const obj={}; document.querySelectorAll('#ovFields [data-k]').forEach(i=>obj[i.dataset.k]=i.value.trim());
+  const type=editCtx.type;
+  const arr = type==='veh'?veh():tools();
+  // duplicate detection
+  const isDup = type==='veh'
+    ? arr.some(r=>r.id!==editCtx.id && r.make.toLowerCase()===obj.make.toLowerCase() && r.model.toLowerCase()===obj.model.toLowerCase() && String(r.year_start)===String(obj.year_start) && String(r.keyway).toLowerCase()===String(obj.keyway).toLowerCase())
+    : arr.some(r=>r.id!==editCtx.id && String(r.tool_designation).toLowerCase()===String(obj.tool_designation).toLowerCase());
+  if(isDup && !confirm('A matching row already exists (make/model/year + keyway). Save anyway?')) return;
+  if(type==='veh' && !obj.make){ alert('Make is required.'); return; }
+  if(type==='tool' && !obj.tool_designation){ alert('Tool designation is required.'); return; }
+  if(editCtx.id){ const x=arr.find(z=>z.id===editCtx.id); Object.assign(x,obj); }
+  else { obj.id=uid(type==='veh'?'vk':'lt'); if(!obj.source) obj.source='owner-added'; arr.push(obj); }
+  type==='veh'?saveVeh(arr):saveTools(arr);
+  document.getElementById('ov').classList.remove('on');
+  type==='veh'?renderVeh():renderTools();
+};
+document.getElementById('vAdd').onclick=()=>openEditor('veh',null);
+document.getElementById('tAdd').onclick=()=>openEditor('tool',null);
+
+/* ---- CSV import/export ---- */
+function toCSV(rows,fields){
+  const head=fields.join(',');
+  const body=rows.map(r=>fields.map(f=>{ let s=String(r[f]==null?'':r[f]); return /[",\n]/.test(s)?('"'+s.replace(/"/g,'""')+'"'):s; }).join(',')).join('\n');
+  return head+'\n'+body;
+}
+function parseCSV(text){
+  const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.length); if(!lines.length) return [];
+  const split=l=>{ const out=[];let cur='',q=false; for(let i=0;i<l.length;i++){const c=l[i]; if(q){ if(c==='"'){ if(l[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; } else { if(c===','){out.push(cur);cur='';} else if(c==='"'){q=true;} else cur+=c; } } out.push(cur); return out; };
+  const head=split(lines[0]); return lines.slice(1).map(l=>{ const c=split(l); const o={}; head.forEach((h,i)=>o[h.trim()]=c[i]||''); return o; });
+}
+function dl(name,text,type){ const b=new Blob([text],{type:type||'text/plain'}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(u),1500); }
+const VKEYS=VEH_FIELDS.map(f=>f[0]).concat('id'), TKEYS=TOOL_FIELDS.map(f=>f[0]).concat('id');
+document.getElementById('vExport').onclick=()=>dl('tks_vehicle_keyways.csv',toCSV(veh(),VKEYS),'text/csv');
+document.getElementById('tExport').onclick=()=>dl('tks_lishi_tools.csv',toCSV(tools(),TKEYS),'text/csv');
+document.getElementById('vImport').onclick=()=>document.getElementById('vFile').click();
+document.getElementById('tImport').onclick=()=>document.getElementById('tFile').click();
+function importInto(file, key, idp, render){
+  const rd=new FileReader(); rd.onload=()=>{ try{
+    const incoming=parseCSV(rd.result); const cur=readLS(key,[]); let added=0,upd=0;
+    incoming.forEach(o=>{ if(!o.id){ o.id=uid(idp); } const ex=cur.find(z=>z.id===o.id); if(ex){ Object.assign(ex,o); upd++; } else { cur.push(o); added++; } });
+    writeLS(key,cur); render(); alert('Imported: '+added+' added, '+upd+' updated.');
+  }catch(e){ alert('Could not read that CSV.'); } };
+  rd.readAsText(file);
+}
+document.getElementById('vFile').onchange=e=>{ if(e.target.files[0]) importInto(e.target.files[0],K_VEH,'vk',renderVeh); e.target.value=''; };
+document.getElementById('tFile').onchange=e=>{ if(e.target.files[0]) importInto(e.target.files[0],K_TOOLS,'lt',renderTools); e.target.value=''; };
+
+/* ============================== CORRECTIONS LOG ============================== */
+function renderCorr(){
+  const list=corr();
+  document.getElementById('corrList').innerHTML = list.length
+    ? list.map(c=>`<div class="corr"><div>${esc(c.text)}</div><div class="when">${new Date(c.ts).toLocaleString()} · <a href="#" data-del="${c.id}">remove</a></div></div>`).join('')
+    : '<div class="hint">No corrections logged.</div>';
+  document.querySelectorAll('#corrList [data-del]').forEach(a=>a.onclick=ev=>{ ev.preventDefault(); saveCorr(corr().filter(z=>z.id!==a.dataset.del)); renderCorr(); });
+}
+document.getElementById('corrAdd').onclick=()=>{ const t=document.getElementById('corrText').value.trim(); if(!t) return; const a=corr(); a.unshift({id:uid('cx'),text:t,ts:Date.now()}); saveCorr(a); document.getElementById('corrText').value=''; renderCorr(); };
+document.getElementById('corrMd').onclick=()=>{
+  const a=corr(); if(!a.length){ alert('Log is empty.'); return; }
+  const md='# Turbo Keysmith — Lishi reference corrections\n_Exported '+new Date().toLocaleString()+' · '+a.length+' item(s). Code: apply each to tks_vehicle_keyways / tks_lishi_tools, then clear the log._\n\n'+a.map(c=>'- ['+new Date(c.ts).toLocaleDateString()+'] '+c.text).join('\n')+'\n';
+  dl('lishi_corrections_'+new Date().toISOString().slice(0,10)+'.md', md, 'text/markdown');
+};
+document.getElementById('corrCsv').onclick=()=>{ const a=corr(); if(!a.length){ alert('Log is empty.'); return; } dl('lishi_corrections_'+new Date().toISOString().slice(0,10)+'.csv', toCSV(a,['ts','text','id']),'text/csv'); };
+document.getElementById('corrClear').onclick=()=>{ if(corr().length && confirm('Clear the corrections log? Export it first if you haven’t handed it to Code.')){ saveCorr([]); renderCorr(); } };
+
+/* ============================== NAV ============================== */
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x===b));
+  const p=b.dataset.p;
+  document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('on', x.id==='p-'+p));
+  if(p==='vehicles') renderVeh(); if(p==='tools') renderTools(); if(p==='corr') renderCorr();
+});
+document.getElementById('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('vinBtn').click(); });
+</script>
+</body>
+</html>
