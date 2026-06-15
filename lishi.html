@@ -375,7 +375,51 @@ const EXTRA_TOOLS=[
   tdef('Y1','Y1','door','Y1','Yale residential','Original Lishi','Residential 2-in-1'),
   tdef('AR1','AR1','door','AR1','Arrow residential','Original Lishi','Residential 2-in-1')
 ];
-const ALL_TOOLS = SEED_TOOLS.concat(EXTRA_TOOLS);
+/* ===== AUTHORITATIVE tool list — fetched verbatim from Original Lishi's own site =====
+   Source: https://www.originallishi.com/lishi-tools-full-list/ (fetched 2026-06-15).
+   tool_designation = Lishi's exact name; keyway = the common short keyway so it resolves
+   to the vehicle table. Supersedes the earlier hand-compiled SEED_TOOLS/EXTRA_TOOLS. */
+const OL='originallishi.com/lishi-tools-full-list (fetched 2026-06-15)', R='Reader', M='Motorcycle reader';
+const LISHI_OFFICIAL=[
+  tdef('B016/GM37','GM37','door/ign','B102','GM',OL), tdef('B111','B111','door/ign','B111','GM Z-keyway (10-cut)',OL,'2-in-1 pick/decoder','10'),
+  tdef('BAOJUN','BAOJUN','door/ign','BAOJUN','Baojun (China)',OL), tdef('BQSB','BQSB','door/ign','BQSB','China',OL),
+  tdef('BW9MH','BW9MH','door/ign','BW9MH','China',OL), tdef('BYD01','BYD01','door/ign','BYD01','BYD',OL), tdef('BYD01R','BYD01R','door/ign','BYD01R','BYD',OL),
+  tdef('CHAANGAN','CHANGAN','door/ign','CHANGAN','Changan (China)',OL),
+  tdef('CY24','CY24','door/ign','Y160','Chrysler/Dodge/Jeep',OL), tdef('CY24-CV','CY24','door/ign','Y160','Chrysler commercial van',OL), tdef('CY24 TRUCK','CY24','door/ign','Y160','Ram trucks',OL),
+  tdef('DAT12R','DAT12R','door/ign','DAT12R','Subaru',OL), tdef('DW04R V.2','DWO4','door/ign','DWO4','Daewoo/Chevrolet',OL),
+  tdef('FO38','FO38','door','FO38','Ford (older 8-cut)',OL,'2-in-1 pick/decoder','8'), tdef('FORD 2017','HU198','door/ign','HU198','Ford 2017+ (HU198)',OL),
+  tdef('GM39','GM39','door/ign','GM39','GM (side-cut)',OL), tdef('GM45','GM45','door/ign','GM45','GM',OL), tdef('HAIMA','HAIMA','door/ign','HAIMA','Haima (China)',OL),
+  tdef('HON58R','HON58R','door/ign','HON58R','Honda/Acura (older)',OL), tdef('HON66','HON66','door/ign','HON66','Honda/Acura',OL,'2-in-1 pick/decoder','8'),
+  tdef('HU39','HU39','door/ign','HU39','Mercedes (older)',OL), tdef('HU43','HU43','door/ign','HU43','Opel/Vauxhall',OL), tdef('HU46','HU46','door/ign','HU46','Opel/Vauxhall',OL),
+  tdef('HU49','HU49','door/ign','HU49','VW/Audi (older)',OL), tdef('HU56','HU56','door/ign','HU56','Volvo',OL), tdef('HU58','HU58','door/ign','HU58','BMW (older)',OL),
+  tdef('HU64 V.2','HU64','door/ign','HU64','Mercedes-Benz (4-track)',OL),
+  tdef('HU66 Generation 1&2','HU66','door/ign','HU66','VW/Audi/Seat/Skoda',OL), tdef('HU66 V.3','HU66','door/ign','HU66','VW/Audi/Seat/Skoda',OL),
+  tdef('HU71','HU71','door/ign','HU71','Land Rover / older',OL), tdef('HU92','HU92','door/ign','HU92','BMW/Mini',OL), tdef('HU92(10) V.3','HU92','door/ign','HU92','BMW (10-cut)',OL,'2-in-1 pick/decoder','10'),
+  tdef('HU100 V.3 (8 Cut)','HU100','door/ign','HU100','GM (8-cut)',OL,'2-in-1 pick/decoder','8'), tdef('HU100(10) V.3 (10 Cut)','HU100','door/ign','HU100','GM (10-cut)',OL,'2-in-1 pick/decoder','10'),
+  tdef('HU100R V.3','HU100R','door/ign','HU100R','BMW',OL,'2-in-1 pick/decoder','10'), tdef('HU101(10) V.3','HU101','door/ign','HU101','Ford',OL,'2-in-1 pick/decoder','10'),
+  tdef('HU162 (VAG2015)','HU162','door/ign','HU162','VW/Audi MQB',OL), tdef('HU162-SC9','HU162','door/ign','HU162','VAG (9-cut)',OL,'2-in-1 pick/decoder','9'), tdef('HU162-SC10 V.3','HU162','door/ign','HU162','VAG (10-cut)',OL,'2-in-1 pick/decoder','10'),
+  tdef('HY16','HY16','door/ign','HY16','Hyundai/Kia',OL), tdef('HY17/HYN15','HY17','door/ign','HY17','Hyundai/Kia',OL), tdef('HY20','HY20','door/ign','HY20','Hyundai/Kia (laser)',OL), tdef('HY22','HY22','door/ign','HY22','Hyundai/Kia',OL),
+  tdef('HYN7R','HYN7R','door/ign','HYN7R','Hyundai',OL), tdef('HYN11 V.3','HYN11','door/ign','HYN11','Hyundai',OL),
+  tdef('HYN14R/HY15 V.2','HY15','door/ign','HY15','Hyundai/Kia (older)',OL), tdef('HYN14R(HY16)','HY16','door/ign','HY16','Hyundai',OL), tdef('HYN22','HYN22','door/ign','HYN22','Hyundai',OL),
+  tdef('ICF03','ICF03','door/ign','ICF03','Iveco / commercial',OL), tdef('K5 V.3','K5','door/ign','K5','Kia (K5/Optima)',OL),
+  tdef('MAZ24R V.2','MAZ24','door/ign','MAZ24','Mazda',OL), tdef('MAZDA(2014)','MAZ24','door/ign','MAZ24','Mazda (2014+)',OL),
+  tdef('MIT11R','MIT11','door/ign','MIT11','Mitsubishi',OL), tdef('MIT8','MIT8','door/ign','MIT8','Mitsubishi',OL), tdef('MIT9/MIT6','MIT6','door/ign','MIT6','Mitsubishi',OL),
+  tdef('NE38 V.2 Boot','NE38','trunk','NE38','Renault/Saab (boot)',OL), tdef('NE66AG','NE66','door/ign','NE66','Volvo',OL), tdef('NE71R V.2','NE71','door/ign','NE71','Renault/Fiat',OL),
+  tdef('NE72','NE72','door/ign','NE72','Saab/Renault',OL), tdef('NE78','NE78','door/ign','NE78','Peugeot/Citroën',OL),
+  tdef('NSN14 Dr/Bt','NSN14','door/trunk','NSN14','Nissan/Infiniti (door/boot)',OL), tdef('NSN14 Ign V.3','NSN14','ign','NSN14','Nissan/Infiniti (ignition)',OL),
+  tdef('QIRUI','QIRUI','door/ign','QIRUI','Chery (China)',OL), tdef('SIP22','SIP22','door/ign','SIP22','Fiat/Alfa/Lancia/Iveco',OL), tdef('SRT2018','SRT2018','door/ign','SRT2018','2018+ platform',OL),
+  tdef('SX9','SX9','door/ign','SX9','Citroën',OL), tdef('TOY2T','TOY2','door/ign','TOY2','Toyota (older)',OL), tdef('TOY43','TOY43','door/ign','TOY43','Toyota/Scion',OL),
+  tdef('TOY43AT Dr/Bt','TOY43AT','door/trunk','TOY43AT','Toyota (door/boot)',OL), tdef('TOY43AT Ign','TOY43AT','ign','TOY43AT','Toyota (ignition)',OL), tdef('TOY43R','TOY43R','door/ign','TOY43R','Toyota',OL),
+  tdef('TOY48','TOY48','door/ign','TOY48','Toyota/Lexus (high-security)',OL,'2-in-1 pick/decoder','8'),
+  tdef('VA2T','VA2T','door/ign','VA2T','Renault',OL), tdef('VA6','VA6','door/ign','VA6','Renault/Peugeot',OL), tdef('VAC102','VAC102','door/ign','VAC102','Renault',OL),
+  tdef('YM23','YM23','door/ign','YM23','Mercedes/Smart',OL), tdef('YM30','YM30','door/ign','YM30','Opel / GM Korea',OL), tdef('ZD30','ZD30','door/ign','ZD30','China',OL),
+  // Readers (decode-only)
+  tdef('B106 (Reader)','B106','read','B106','GM reader',OL,R), tdef('FO38 (Reader)','FO38','read','FO38','Ford reader',OL,R), tdef('CY24 (Reader)','CY24','read','CY24','Chrysler reader',OL,R),
+  tdef('GM39 V.3 (Reader)','GM39','read','GM39','GM reader',OL,R), tdef('HU66 (Reader)','HU66','read','HU66','VAG reader',OL,R), tdef('HU92 (Reader)','HU92','read','HU92','BMW reader',OL,R), tdef('NSN14 (Reader)','NSN14','read','NSN14','Nissan reader',OL,R),
+  // Motorcycle readers
+  tdef('HON71 (Moto)','HON71','ign','HON71','Honda motorcycle',OL,M), tdef('KW14 V.2 (Moto)','KW14','ign','KW14','Kawasaki motorcycle',OL,M), tdef('SU14 V.2 (Moto)','SU14','ign','SU14','Suzuki motorcycle',OL,M), tdef('YH35R V.2 (Moto)','YH35R','ign','YH35R','Yamaha motorcycle',OL,M)
+];
+const ALL_TOOLS = LISHI_OFFICIAL;   // authoritative; supersedes the earlier SEED_TOOLS/EXTRA_TOOLS
 
 /* ---- many more vehicles (compact: per-make transponder/programming defaults) ---- */
 const MK={
@@ -503,7 +547,7 @@ const EXTRA_VEH2=[
   vm('Subaru','Crosstrek','2018','2025','DAT17')
 ];
 const ALL_VEH = SEED_VEH.concat(EXTRA_VEH).concat(EXTRA_VEH2);
-const SEEDVER = 4;   // bump when SEED_* changes to merge new rows into existing installs
+const SEEDVER = 5;   // bump when SEED_* changes to merge new rows into existing installs
 
 /* ---- seed once if empty; on version bump, MERGE new rows (never clobbers edits) ---- */
 function ensureSeed(){
@@ -512,14 +556,26 @@ function ensureSeed(){
     if(!(readLS(K_VEH,[])||[]).length)   writeLS(K_VEH,   ALL_VEH.map(x=>Object.assign({id:uid('vk')},x)));
     writeLS('tks_lishi_seeded',true); writeLS('tks_lishi_seedver',SEEDVER); return;
   }
-  if((readLS('tks_lishi_seedver',1)||1) < SEEDVER){
+  const sv=readLS('tks_lishi_seedver',1)||1;
+  if(sv<5){
+    // v5: RESET the tools store to the authoritative Original Lishi list (the earlier
+    // hand-compiled names were partly off). Carry over any notes by designation, and
+    // keep any existing tool that has a note but isn't on the official list.
+    const cur=readLS(K_TOOLS,[])||[]; const noteBy={};
+    cur.forEach(r=>{ const k=String(r.tool_designation).toUpperCase(); if((r.notes||'').trim()) noteBy[k]=r.notes; });
+    const fresh=ALL_TOOLS.map(x=>{ const o=Object.assign({id:uid('lt')},x); const n=noteBy[String(x.tool_designation).toUpperCase()]; if(n) o.notes=n; return o; });
+    const haveT=new Set(fresh.map(r=>String(r.tool_designation).toUpperCase()));
+    cur.forEach(r=>{ const k=String(r.tool_designation).toUpperCase(); if(!haveT.has(k) && (r.notes||'').trim()){ fresh.push(r); haveT.add(k); } });
+    writeLS(K_TOOLS,fresh);
+  } else if(sv<SEEDVER){
     const T=readLS(K_TOOLS,[])||[]; const have=new Set(T.map(r=>String(r.tool_designation).toUpperCase()));
-    let add=0; ALL_TOOLS.forEach(s=>{ const k=String(s.tool_designation).toUpperCase(); if(!have.has(k)){ T.push(Object.assign({id:uid('lt')},s)); have.add(k); add++; } });
-    if(add) writeLS(K_TOOLS,T);
-    const V=readLS(K_VEH,[])||[]; const vh=new Set(V.map(r=>(r.make+'|'+r.model+'|'+r.year_start+'|'+r.keyway).toUpperCase()));
-    ALL_VEH.forEach(s=>{ const k=(s.make+'|'+s.model+'|'+s.year_start+'|'+s.keyway).toUpperCase(); if(!vh.has(k)){ V.push(Object.assign({id:uid('vk')},s)); vh.add(k); } });
-    writeLS(K_VEH,V); writeLS('tks_lishi_seedver',SEEDVER);
+    ALL_TOOLS.forEach(s=>{ const k=String(s.tool_designation).toUpperCase(); if(!have.has(k)){ T.push(Object.assign({id:uid('lt')},s)); have.add(k); } });
+    writeLS(K_TOOLS,T);
   }
+  // vehicles: always add any missing rows (never clobbers edits)
+  const V=readLS(K_VEH,[])||[]; const vh=new Set(V.map(r=>(r.make+'|'+r.model+'|'+r.year_start+'|'+r.keyway).toUpperCase()));
+  ALL_VEH.forEach(s=>{ const k=(s.make+'|'+s.model+'|'+s.year_start+'|'+s.keyway).toUpperCase(); if(!vh.has(k)){ V.push(Object.assign({id:uid('vk')},s)); vh.add(k); } });
+  writeLS(K_VEH,V); writeLS('tks_lishi_seedver',SEEDVER);
 }
 ensureSeed();
 
@@ -527,9 +583,10 @@ const tools=()=>readLS(K_TOOLS,[]), veh=()=>readLS(K_VEH,[]), corr=()=>readLS(K_
 const saveTools=a=>writeLS(K_TOOLS,a), saveVeh=a=>writeLS(K_VEH,a), saveCorr=a=>writeLS(K_CORR,a);
 
 /* ---- helpers ---- */
+const KW_ALIAS={DA34:'NSN14', KK10:'HY20', DAT17:'DAT12R', HU162T:'HU162', B102:'B111'};
 function toolForKeyway(keyway){
   if(!keyway) return null;
-  const kw=String(keyway).toUpperCase().trim();
+  let kw=String(keyway).toUpperCase().trim(); kw=KW_ALIAS[kw]||kw;
   const list=tools();
   return list.find(t=>String(t.keyway).toUpperCase()===kw)
       || list.find(t=>kw.indexOf(String(t.keyway).toUpperCase())>=0 || String(t.keyway).toUpperCase().indexOf(kw)>=0)

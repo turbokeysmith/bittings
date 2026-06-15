@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-14 23:55 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-15 04:23 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -382,6 +382,18 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-06-15
+- **Lishi tools rebuilt from Original Lishi's OWN site (verified fetch):** replaced the earlier
+  hand-compiled tool list with the **actual published list fetched from
+  `originallishi.com/lishi-tools-full-list`** (2026-06-15) — **89 tools** (76 two-in-one + 7 readers + 4
+  motorcycle readers), exact Lishi designations (e.g., `HU100(10) V.3 (10 Cut)`, `HU101(10) V.3`,
+  `NSN14 Dr/Bt`, `TOY43AT Ign`, `DAT12R`, `HU162-SC10 V.3`). `source` now cites the URL + fetch date.
+  A keyway-alias map (DA34→NSN14, KK10→HY20, DAT17→DAT12R, HU162T→HU162, B102→B111) keeps every vehicle
+  row resolving to a real Lishi tool. `SEEDVER=5` **resets** the installed Tools store to this
+  authoritative list (carries over notes). **Honesty:** the *vehicle* year→keyway table is still a
+  **compiled cross-reference** (Lishi doesn't publish year-level mappings) — accurate-but-verify, refined
+  via the Corrections Log; only the *tool* list is straight from Lishi.
+
 ### 2026-06-14
 - **NEW staff-app tool: Lishi & Programming Reference (`lishi.html`) (23:55):** a working, pre-populated
   pick/keyway/programming reference for shop use, fed by the VIN decoder. **Staff app only — not on the
@@ -392,9 +404,8 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
     programming_path, oem_only, nastf_required, notes, source). Plus `tks_lishi_corrections` (log) and
     `tks_vin_cache` (recent decodes).
   - **Pre-populated for real** from public factual sources (Original/Classic Lishi tool lists, CLK
-    Supplies, UHS Hardware, LockPickWorld), normalized into our schema — **104 Lishi tools (full
-    Original/Classic range: cars, trucks, Euro makes, motorcycle & residential) + 230 vehicles across 25
-    makes** (Ford, GM, Toyota, Honda, Chrysler/Dodge/Jeep/Ram, VW/Audi, Nissan, Hyundai/Kia, Mazda,
+    Supplies, UHS Hardware, LockPickWorld), normalized into our schema — **89 Lishi tools — the actual Original Lishi published 2-in-1 + reader + motorcycle list, fetched
+    from originallishi.com/lishi-tools-full-list (verified 2026-06-15) — plus 230 vehicles across 25 makes** (Ford, GM, Toyota, Honda, Chrysler/Dodge/Jeep/Ram, VW/Audi, Nissan, Hyundai/Kia, Mazda,
     Subaru, Mitsubishi, BMW, Mercedes, + global). Every mapped vehicle keyway resolves to a tool. A
     **versioned seed merge** (`tks_lishi_seedver`/`SEEDVER`) adds new tools to existing installs on update
     without clobbering the owner's notes/edits. `source` holds provenance
