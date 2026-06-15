@@ -392,9 +392,12 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
     programming_path, oem_only, nastf_required, notes, source). Plus `tks_lishi_corrections` (log) and
     `tks_vin_cache` (recent decodes).
   - **Pre-populated for real** from public factual sources (Original/Classic Lishi tool lists, CLK
-    Supplies, UHS Hardware, LockPickWorld), normalized into our schema — **26 tools, 58 vehicles across 25
+    Supplies, UHS Hardware, LockPickWorld), normalized into our schema — **104 Lishi tools (full
+    Original/Classic range: cars, trucks, Euro makes, motorcycle & residential) + 58 vehicles across 25
     makes** (Ford, GM, Toyota, Honda, Chrysler/Dodge/Jeep/Ram, VW/Audi, Nissan, Hyundai/Kia, Mazda,
-    Subaru, Mitsubishi, BMW, Mercedes). Every mapped keyway resolves to a tool. `source` holds provenance
+    Subaru, Mitsubishi, BMW, Mercedes, + global). Every mapped vehicle keyway resolves to a tool. A
+    **versioned seed merge** (`tks_lishi_seedver`/`SEEDVER`) adds new tools to existing installs on update
+    without clobbering the owner's notes/edits. `source` holds provenance
     (shown small, not prominent). Seeds **once** if the store is empty — never clobbers edits.
   - **VIN decode → reference card:** uses `TKS.decodeVin`, caches to `tks_vin_cache`, matches make/model/
     year and shows keyway → recommended Lishi → **in stock?** (cross-checks `tks_inventory`) → coded →

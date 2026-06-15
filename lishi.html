@@ -288,12 +288,102 @@ function v(make,model,ys,ye,keyway,coded,door,pick,trans,prog,oem,nastf,notes){
     source:'Original Lishi / CLK / UHS / LockPickWorld (cross-ref)'};
 }
 
-/* ---- one-time seed (only if empty; never clobbers edits) ---- */
+/* ---- the rest of the Original/Classic Lishi range (cars, trucks, Euro, moto, residential) ---- */
+function tdef(d,kw,usage,blank,notes,src,type,pos){
+  return {tool_designation:d,keyway:kw,tool_type:type||'2-in-1 pick/decoder',wafer_positions:pos||'',
+    usage:usage||'door/ign',key_blank:blank||kw,notes:notes||'',video_url:'',source:src||'Original Lishi range'};
+}
+const EXTRA_TOOLS=[
+  // GM / American (older)
+  tdef('B106','B106','','','Older GM','Classic Lishi'), tdef('B107','B107','','','Older GM','Classic Lishi'),
+  tdef('B110','B110','','','Older GM','Classic Lishi'), tdef('GM45','GM45','','','GM','Original Lishi'),
+  tdef('DWO4','DWO4','','','Daewoo / Chevrolet','Original Lishi'), tdef('DWO5','DWO5','','','Daewoo / Chevrolet','Original Lishi'),
+  // Ford / Lincoln
+  tdef('HU198','HU198','','','Newer Ford/Lincoln high-security','Original Lishi'),
+  tdef('FO21 (Tibbe)','FO21','','FO21','Ford/Jaguar Tibbe','Original Lishi','2-in-1 Tibbe decoder'),
+  // Chrysler / Dodge / Jeep
+  tdef('CY22','CY22','','','Older Chrysler','Original Lishi'), tdef('CY23','CY23','','','Older Chrysler','Original Lishi'),
+  // Toyota / Lexus / Scion
+  tdef('TOY2','TOY2','','','Older Toyota','Original Lishi'), tdef('TOY38R','TOY38R','','','Toyota','Original Lishi'),
+  tdef('TOY47','TOY47','','','Toyota','Original Lishi'), tdef('TOY43R','TOY43R','','','Toyota','Original Lishi'),
+  // Honda / Acura
+  tdef('HON63','HON63','','','Honda/Acura','Original Lishi'), tdef('HON70','HON70','','','Honda','Original Lishi'),
+  // Nissan / Infiniti / Subaru
+  tdef('NSN11','NSN11','','','Nissan','Original Lishi'), tdef('DA31','DA31','','','Nissan/Subaru','Original Lishi'),
+  tdef('HU87','HU87','','','Subaru/Suzuki','Original Lishi'),
+  // Hyundai / Kia
+  tdef('HY16','HY16','','','Hyundai','Original Lishi'), tdef('HY17','HY17','','','Hyundai/Kia','Original Lishi'),
+  tdef('HY18','HY18','','','Hyundai/Kia','Original Lishi'), tdef('HY22','HY22','','','Hyundai','Original Lishi'),
+  tdef('KIA7','KIA7','','','Kia','Original Lishi'), tdef('KIA2','KIA2','','','Kia','Original Lishi'),
+  tdef('KK12','KK12','','','Kia newer','Classic Lishi'),
+  // Mazda / Mitsubishi / Suzuki / SsangYong / Mahindra
+  tdef('MAZ13','MAZ13','','','Older Mazda','Original Lishi'),
+  tdef('MIT8','MIT8','','','Mitsubishi','Original Lishi'), tdef('MIT6','MIT6','','','Mitsubishi','Original Lishi'),
+  tdef('SZ14','SZ14','','','Suzuki','Original Lishi'), tdef('HU133','HU133','','','Suzuki','Original Lishi'),
+  tdef('SYG','SYG','','','SsangYong','Original Lishi'), tdef('MAH','MAH','','','Mahindra','Original Lishi'),
+  // VW / Audi / Seat / Skoda (VAG)
+  tdef('HU162T(10)','HU162T','','HU162T','VAG MQB 10-cut','Original Lishi','2-in-1 pick/decoder','10'),
+  tdef('HU162T(8)','HU162T','','HU162T','VAG 8-cut','Original Lishi','2-in-1 pick/decoder','8'),
+  tdef('HU162','HU162','','','VAG older','Original Lishi'), tdef('HU49','HU49','','','Older VW/Audi','Original Lishi'),
+  tdef('HU66(V.3)','HU66','','HU66','VAG version 3','Original Lishi'),
+  // BMW / Mini
+  tdef('HU58','HU58','','','Older BMW','Original Lishi'), tdef('HU136','HU136','','','BMW/Mini','Original Lishi'),
+  // Mercedes / Smart
+  tdef('HU39','HU39','','','Older Mercedes','Original Lishi'), tdef('YM23','YM23','','','Mercedes/Smart','Original Lishi'),
+  // Volvo
+  tdef('HU56','HU56','','','Volvo','Original Lishi'), tdef('HU56R','HU56R','','','Volvo','Original Lishi'),
+  tdef('NE66','NE66','','','Volvo','Original Lishi'),
+  // Renault / Dacia
+  tdef('VAC102','VAC102','','','Renault','Original Lishi'), tdef('NE73','NE73','','','Renault','Original Lishi'),
+  tdef('VA2T','VA2T','','','Renault/Peugeot','Original Lishi'), tdef('VA6','VA6','','','Renault/Peugeot','Original Lishi'),
+  tdef('NE38','NE38','','','Renault','Original Lishi'),
+  // Peugeot / Citroën
+  tdef('NE78','NE78','','','Peugeot/Citroën','Original Lishi'), tdef('SX9','SX9','','','Citroën','Original Lishi'),
+  // Fiat / Alfa / Lancia
+  tdef('GT15','GT15','','','Fiat','Original Lishi'), tdef('SIP22','SIP22','','','Fiat/Alfa/Lancia','Original Lishi'),
+  tdef('GT10','GT10','','','Fiat','Original Lishi'),
+  // Opel / Vauxhall / Saab
+  tdef('HU43','HU43','','','Opel/Vauxhall','Original Lishi'), tdef('HU46','HU46','','','Opel/Vauxhall','Original Lishi'),
+  tdef('YM28','YM28','','','Opel/Vauxhall','Original Lishi'), tdef('NE72','NE72','','','Saab','Original Lishi'),
+  // Motorcycle / scooter range
+  tdef('HON-MOTO','HON-MOTO','ign','HON-MOTO','Honda motorcycle','Original Lishi','Motorcycle 2-in-1'),
+  tdef('YH35R','YH35R','ign','YH35R','Yamaha motorcycle','Original Lishi','Motorcycle 2-in-1'),
+  tdef('SUZU-MOTO','SUZU-MOTO','ign','SUZU-MOTO','Suzuki motorcycle','Original Lishi','Motorcycle 2-in-1'),
+  tdef('KW-MOTO','KW-MOTO','ign','KW-MOTO','Kawasaki motorcycle','Original Lishi','Motorcycle 2-in-1'),
+  tdef('HD-MOTO','HD-MOTO','ign','HD-MOTO','Harley-Davidson','Original Lishi','Motorcycle 2-in-1'),
+  tdef('KYMCO','KYMCO','ign','KYMCO','Kymco scooter','Original Lishi','Motorcycle 2-in-1'),
+  tdef('SYM','SYM','ign','SYM','SYM scooter','Original Lishi','Motorcycle 2-in-1'),
+  // Residential / padlock range
+  tdef('KW1','KW1','door','KW1','Kwikset residential','Original Lishi','Residential 2-in-1'),
+  tdef('KW5','KW5','door','KW5','Kwikset SmartKey','Original Lishi','Residential 2-in-1'),
+  tdef('SC1','SC1','door','SC1','Schlage residential','Original Lishi','Residential 2-in-1'),
+  tdef('SC4','SC4','door','SC4','Schlage residential','Original Lishi','Residential 2-in-1'),
+  tdef('WR5','WR5','door','WR5','Weiser residential','Original Lishi','Residential 2-in-1'),
+  tdef('AM5','AM5','door','AM5','American padlock','Original Lishi','Residential 2-in-1'),
+  tdef('M1 (1176)','M1','door','M1 / 1176','Master padlock','Original Lishi','Residential 2-in-1'),
+  tdef('HU66(V.2)','HU66','','HU66','VAG version 2','Original Lishi'),
+  tdef('WK2','WK2','door','WK2','Weslock residential','Original Lishi','Residential 2-in-1'),
+  tdef('BE2','BE2','door','BE2','Baldwin residential','Original Lishi','Residential 2-in-1'),
+  tdef('Y1','Y1','door','Y1','Yale residential','Original Lishi','Residential 2-in-1'),
+  tdef('AR1','AR1','door','AR1','Arrow residential','Original Lishi','Residential 2-in-1')
+];
+const ALL_TOOLS = SEED_TOOLS.concat(EXTRA_TOOLS);
+const SEEDVER = 2;   // bump when SEED_* changes to merge new rows into existing installs
+
+/* ---- seed once if empty; on version bump, MERGE new rows (never clobbers edits) ---- */
 function ensureSeed(){
   if(!readLS('tks_lishi_seeded',false)){
-    if(!(readLS(K_TOOLS,[])||[]).length) writeLS(K_TOOLS, SEED_TOOLS.map(t=>Object.assign({id:uid('lt')},t)));
-    if(!(readLS(K_VEH,[])||[]).length)   writeLS(K_VEH,   SEED_VEH.map(r=>Object.assign({id:uid('vk')},r)));
-    writeLS('tks_lishi_seeded',true);
+    if(!(readLS(K_TOOLS,[])||[]).length) writeLS(K_TOOLS, ALL_TOOLS.map(x=>Object.assign({id:uid('lt')},x)));
+    if(!(readLS(K_VEH,[])||[]).length)   writeLS(K_VEH,   SEED_VEH.map(x=>Object.assign({id:uid('vk')},x)));
+    writeLS('tks_lishi_seeded',true); writeLS('tks_lishi_seedver',SEEDVER); return;
+  }
+  if((readLS('tks_lishi_seedver',1)||1) < SEEDVER){
+    const T=readLS(K_TOOLS,[])||[]; const have=new Set(T.map(r=>String(r.tool_designation).toUpperCase()));
+    let add=0; ALL_TOOLS.forEach(s=>{ const k=String(s.tool_designation).toUpperCase(); if(!have.has(k)){ T.push(Object.assign({id:uid('lt')},s)); have.add(k); add++; } });
+    if(add) writeLS(K_TOOLS,T);
+    const V=readLS(K_VEH,[])||[]; const vh=new Set(V.map(r=>(r.make+'|'+r.model+'|'+r.year_start+'|'+r.keyway).toUpperCase()));
+    SEED_VEH.forEach(s=>{ const k=(s.make+'|'+s.model+'|'+s.year_start+'|'+s.keyway).toUpperCase(); if(!vh.has(k)){ V.push(Object.assign({id:uid('vk')},s)); vh.add(k); } });
+    writeLS(K_VEH,V); writeLS('tks_lishi_seedver',SEEDVER);
   }
 }
 ensureSeed();
