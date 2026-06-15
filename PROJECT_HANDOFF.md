@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-14 11:09 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-14 23:55 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -317,6 +317,8 @@ with statuses is `turbo_master_task_list.md`.*
 index.html              Staff app shell (Customers + Job history, Payments, Inventory + VIN search)
 bittings.html           Receipts/invoice builder (existing; added a back link)
 scheduler.html          Booking + intake flow (Day view, edit, status, VIN/ignition, Add-to-Schedule)
+lishi.html              Lishi/keyway/programming reference (VIN→card, search, notes + corrections log)
+                        — stores: tks_lishi_tools, tks_vehicle_keyways, tks_lishi_corrections, tks_vin_cache
 cloud-test.html         Staff login page (Supabase auth) — existed before
 app/store.js            THE data layer (Customers, Inventory, Bookings CRUD, Services, VIN decode)
 app/pay.js              Shared Pay Now engine (New Charge + cash/check + transaction queries)
@@ -379,6 +381,32 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-14
+- **NEW staff-app tool: Lishi & Programming Reference (`lishi.html`) (23:55):** a working, pre-populated
+  pick/keyway/programming reference for shop use, fed by the VIN decoder. **Staff app only — not on the
+  public site.** New Home tile **🔑 Lishi & Keys**.
+  - **Two local stores (tks_ keys, readLS/writeLS):** `tks_lishi_tools` (tool_designation, keyway,
+    tool_type, wafer_positions, usage, key_blank, notes, video_url, source) and `tks_vehicle_keyways`
+    (make, model, year_start/end, keyway, coded, door_location, can_pick_ignition, transponder_system,
+    programming_path, oem_only, nastf_required, notes, source). Plus `tks_lishi_corrections` (log) and
+    `tks_vin_cache` (recent decodes).
+  - **Pre-populated for real** from public factual sources (Original/Classic Lishi tool lists, CLK
+    Supplies, UHS Hardware, LockPickWorld), normalized into our schema — **26 tools, 58 vehicles across 25
+    makes** (Ford, GM, Toyota, Honda, Chrysler/Dodge/Jeep/Ram, VW/Audi, Nissan, Hyundai/Kia, Mazda,
+    Subaru, Mitsubishi, BMW, Mercedes). Every mapped keyway resolves to a tool. `source` holds provenance
+    (shown small, not prominent). Seeds **once** if the store is empty — never clobbers edits.
+  - **VIN decode → reference card:** uses `TKS.decodeVin`, caches to `tks_vin_cache`, matches make/model/
+    year and shows keyway → recommended Lishi → **in stock?** (cross-checks `tks_inventory`) → coded →
+    ignition-pickable → programming path, with an **OEM-only / NASTF-required** red badge when applicable.
+    Brand colors #14171b / #ffb000 / #b82334.
+  - **Two-way search:** by make/model/year, or by keyway/tool (for when you're holding a key, not a VIN).
+  - **Notes + corrections loop:** every row has an inline-editable **notes** field; a separate
+    **Corrections Log** to jot fixes/additions; one-click export to **.md or .csv** to hand to Code, then
+    **Clear log**. Code applies the file to the tables and the round-trip repeats.
+  - **Durable/editable:** full add/edit/delete (modal), **CSV import/export** per table for backup,
+    **duplicate detection** on make/model/year + keyway (and tool designation). **Status = code-complete,
+    pending mobile sign-off** (iPhone Safari + Android Chrome).
 
 ### 2026-06-14
 - **Removed the Images/"Our Work" widget; added social icons + a "Best of 2026" award badge (11:00):**

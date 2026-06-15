@@ -28,6 +28,23 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 10. **A11y + mobile pass** — labels associated, keyboard-operable rows, focus-visible outlines,
     16px inputs, ≥40px tap targets, reduced-motion, aria-live messages.
 
+## Update 2026-06-14 23:55 — NEW page `lishi.html` (Lishi & Programming Reference)
+- Self-contained staff-app page (own `readLS`/`writeLS`, `tks_` keys), loads `app/cloud-config.js` +
+  `app/store.js` for `TKS.decodeVin`. Linked from the Home tile **🔑 Lishi & Keys** (`data-open="lishi.html"`).
+- **Stores:** `tks_lishi_tools`, `tks_vehicle_keyways` (schemas per the changelog), `tks_lishi_corrections`,
+  `tks_vin_cache`. `ensureSeed()` writes the bundled `SEED_TOOLS` (26) / `SEED_VEH` (58, via the `v()`
+  helper) once, guarded by `tks_lishi_seeded` — never overwrites edits. Re-seed by clearing that flag +
+  the store.
+- **Card:** `toolForKeyway()` resolves keyway→tool; `inStock()` scans `tks_inventory`
+  (name/sku/fitment/notes contains keyway or blank, qty>0); OEM/NASTF → red badge. VIN path matches
+  make + year range (`yearMatch`) then narrows by model.
+- **Corrections loop:** log entries {id,text,ts}; export `.md` (with a "Code: apply then clear" header)
+  or `.csv`; Clear after export. Code reads the file, edits the two stores (or has the owner CSV-import),
+  clears the log.
+- **CSV import/export** per table (id-keyed upsert); duplicate detection on make/model/year+keyway (veh)
+  and tool_designation (tools). Local-only (could later sync via TKS if needed). Mobile-first CSS; tables
+  scroll-x; editor modal full-screen on phones. Pending real-device sign-off.
+
 ## Update 2026-06-13 12:56 — "owner"→"manager" relabel + per-manager PINs + two hours sets
 - **Terminology (UI text only):** every **user-visible** "owner" is now "**manager**". Changed strings
   only — the role badge (`index.html` `MANAGER`/`STAFF`), tile PIN badges (`MANAGER`), "Managers only"
