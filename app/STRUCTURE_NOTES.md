@@ -28,6 +28,24 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 10. **A11y + mobile pass** — labels associated, keyboard-operable rows, focus-visible outlines,
     16px inputs, ≥40px tap targets, reduced-motion, aria-live messages.
 
+## Update 2026-06-15 06:06 — `lishi.html` lookup: year-filtered models + keyway inference
+- **`MODELS` catalog** (`const MODELS={...}`, ~447): per-make array of `[model, yearStart, yearEnd]`, 27
+  makes. Drives the Model `<select>` and carries real production spans so discontinued models drop out for
+  current-year lookups.
+- **`populateModels()`** now reads both `fMake` and `fYear`: it unions `MODELS[mk]` (filtered to
+  `yr>=start && yr<=end`) with the distinct models from verified `veh()` rows that match the year. Empty
+  year = show all. `fYear`'s change listener now calls `populateModels()` then `runVehSearch()`.
+- **`inferKeyway(make,year)`** (~477): switch of era rules per make family (Ford/Lincoln <2012 FO38 else
+  HU101; GM brands <2010 B102 else HU100; Toyota/Lexus <2004 TOY43 else TOY48; BMW <2012 HU92 else HU100R;
+  Mercedes HU64; Volvo <2008 NE66 else HU101; …). Returns '' if unknown.
+- **`runVehSearch()` fallback chain:** verified `veh()` rows → if none and a model+inferred keyway exist,
+  build a synthetic row `{…, keyway:inferKeyway, transponder/programming from MK defaults,
+  source:'Matched by keyway (inferred — verify in field)'}` and render it → else a hint listing the make's
+  on-file keyways. `populateMakes()` unions `Object.keys(MODELS)` with `veh()` makes.
+- **Card tag:** `renderCards()` shows an amber `pill warn` "⚙ Matched by keyway — verify in field" when
+  `r.source` starts with "Matched by keyway", so inferred cards are visually distinct from verified rows.
+- Pending real-device sign-off (iPhone Safari + Android Chrome, owner + staff).
+
 ## Update 2026-06-14 23:55 — NEW page `lishi.html` (Lishi & Programming Reference)
 - Self-contained staff-app page (own `readLS`/`writeLS`, `tks_` keys), loads `app/cloud-config.js` +
   `app/store.js` for `TKS.decodeVin`. Linked from the Home tile **🔑 Lishi & Keys** (`data-open="lishi.html"`).

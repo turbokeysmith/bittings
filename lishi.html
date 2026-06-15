@@ -441,6 +441,60 @@ function vm(make,model,ys,ye,keyway,o){ o=o||{}; const d=MK[make]||{t:'',p:''};
     programming_path:o.p||d.p,oem_only:o.oem||'No',nastf_required:o.nastf||'No',notes:o.notes||'',
     source:'Cross-ref: LockPickWorld/CLK/UHS lists (2026-06-15)'}; }
 const P={pick:'Caution'};   // proximity / smart-key shortcut
+
+/* ---- per-brand model catalog (drives the dropdowns; [model, yearStart, yearEnd]).
+   Year-filtered so e.g. a Crown Victoria (ends 2011) never shows for a 2024 lookup. ---- */
+const MODELS={
+  Ford:[['F-150',1997,2025],['F-250/350',1999,2025],['F-450',2017,2025],['Ranger',2019,2025],['Maverick',2022,2025],['Bronco',2021,2025],['Bronco Sport',2021,2025],['Escape',2001,2025],['Edge',2007,2024],['Explorer',2002,2025],['Expedition',1997,2025],['Fusion',2006,2020],['Focus',2000,2018],['Fiesta',2011,2019],['Taurus',1996,2019],['Mustang',1996,2025],['Mustang Mach-E',2021,2025],['EcoSport',2018,2022],['Transit',2015,2025],['Transit Connect',2010,2023],['Flex',2009,2019],['Crown Victoria',1998,2011],['C-Max',2013,2018]],
+  Lincoln:[['Navigator',1998,2025],['Aviator',2003,2025],['Nautilus',2019,2025],['Corsair',2020,2025],['MKZ',2007,2020],['MKX',2007,2018],['MKC',2015,2019],['MKS',2009,2016],['MKT',2010,2019],['Continental',2017,2020],['Town Car',1998,2011]],
+  Chevrolet:[['Silverado 1500',1999,2025],['Silverado 2500/3500',2001,2025],['Colorado',2004,2025],['Tahoe',1995,2025],['Suburban',1995,2025],['Traverse',2009,2025],['Equinox',2005,2025],['Blazer',2019,2025],['Trax',2013,2025],['Trailblazer',2021,2025],['Malibu',1997,2025],['Impala',2000,2020],['Cruze',2011,2019],['Sonic',2012,2020],['Spark',2013,2022],['Camaro',2010,2024],['Corvette',1997,2025],['Bolt EV',2017,2023],['Volt',2011,2019],['Express',1996,2025],['Cobalt',2005,2010],['HHR',2006,2011]],
+  GMC:[['Sierra 1500',1999,2025],['Sierra 2500/3500',2001,2025],['Canyon',2004,2025],['Yukon',1995,2025],['Acadia',2007,2025],['Terrain',2010,2025],['Savana',1996,2025],['Hummer EV',2022,2025]],
+  Buick:[['Enclave',2008,2025],['Encore',2013,2022],['Encore GX',2020,2025],['Envision',2016,2025],['Envista',2024,2025],['LaCrosse',2005,2019],['Regal',2011,2020],['Verano',2012,2017],['Lucerne',2006,2011]],
+  Cadillac:[['Escalade',1999,2025],['XT4',2019,2025],['XT5',2017,2025],['XT6',2020,2025],['CT4',2020,2025],['CT5',2020,2025],['CT6',2016,2020],['ATS',2013,2019],['CTS',2003,2019],['SRX',2004,2016],['XTS',2013,2019],['DTS',2006,2011],['Lyriq',2023,2025]],
+  Toyota:[['Camry',1992,2025],['Corolla',1993,2025],['RAV4',1996,2025],['Tacoma',1995,2025],['Tundra',2000,2025],['Highlander',2001,2025],['4Runner',1990,2025],['Sequoia',2001,2025],['Sienna',1998,2025],['Prius',2001,2025],['Avalon',1995,2022],['Yaris',2006,2020],['C-HR',2018,2022],['Venza',2009,2024],['Corolla Cross',2022,2025],['Supra',2020,2025],['GR86',2017,2025],['Land Cruiser',1990,2025],['Matrix',2003,2013],['Solara',1999,2008]],
+  Lexus:[['ES',1990,2025],['IS',2001,2025],['GS',1993,2020],['LS',1990,2025],['RX',1999,2025],['GX',2003,2025],['LX',1996,2025],['NX',2015,2025],['UX',2019,2025],['RC',2015,2025],['RZ',2023,2025],['CT',2011,2017]],
+  Scion:[['tC',2005,2016],['xB',2004,2015],['xD',2008,2014],['xA',2004,2006],['FR-S',2013,2016],['iA',2016,2016],['iM',2016,2016]],
+  Honda:[['Civic',1996,2025],['Accord',1990,2025],['CR-V',1997,2025],['Pilot',2003,2025],['Odyssey',1995,2025],['HR-V',2016,2025],['Passport',2019,2025],['Ridgeline',2006,2025],['Fit',2007,2020],['Insight',2010,2022],['Element',2003,2011],['CR-Z',2011,2016],['Crosstour',2010,2015],['Prologue',2024,2025]],
+  Acura:[['MDX',2001,2025],['RDX',2007,2025],['TLX',2015,2025],['ILX',2013,2022],['TL',1996,2014],['TSX',2004,2014],['RL',1996,2012],['RLX',2014,2020],['ZDX',2010,2013],['Integra',2023,2025],['NSX',2017,2022]],
+  Nissan:[['Altima',1993,2025],['Sentra',1995,2025],['Maxima',1995,2023],['Versa',2007,2025],['Rogue',2008,2025],['Murano',2003,2025],['Pathfinder',1996,2025],['Frontier',1998,2025],['Titan',2004,2024],['Armada',2004,2025],['Kicks',2018,2025],['Juke',2011,2017],['Leaf',2011,2025],['370Z',2009,2020],['Z',2023,2025],['GT-R',2009,2025],['Quest',2004,2017]],
+  Infiniti:[['Q50',2014,2025],['Q60',2014,2022],['QX50',2014,2025],['QX55',2022,2025],['QX60',2014,2025],['QX80',2014,2025],['G35',2003,2007],['G37',2008,2013],['FX35/QX70',2003,2017],['M/Q70',2006,2019]],
+  Dodge:[['Charger',2006,2023],['Challenger',2008,2023],['Durango',1998,2025],['Journey',2009,2020],['Grand Caravan',1990,2020],['Dart',2013,2016],['Avenger',2008,2014],['Caliber',2007,2012],['Nitro',2007,2012],['Hornet',2023,2025]],
+  Chrysler:[['300',2005,2023],['Pacifica',2017,2025],['Town & Country',1990,2016],['Voyager',2020,2025],['200',2011,2017],['Sebring',1995,2010],['PT Cruiser',2001,2010]],
+  Jeep:[['Wrangler',1997,2025],['Grand Cherokee',1993,2025],['Cherokee',2014,2023],['Compass',2007,2025],['Renegade',2015,2025],['Gladiator',2020,2025],['Patriot',2007,2017],['Liberty',2002,2012],['Commander',2006,2010],['Grand Wagoneer',2022,2025],['Wagoneer',2022,2025]],
+  Ram:[['1500',1994,2025],['2500/3500',1994,2025],['ProMaster',2014,2025],['ProMaster City',2015,2022],['Dakota',1997,2011]],
+  Volkswagen:[['Jetta',1990,2025],['Passat',1990,2022],['Golf',1990,2021],['GTI',2006,2025],['Tiguan',2009,2025],['Atlas',2018,2025],['Atlas Cross Sport',2020,2025],['Taos',2022,2025],['Beetle',1998,2019],['Touareg',2004,2017],['CC',2009,2017],['Arteon',2019,2023],['ID.4',2021,2025]],
+  Audi:[['A3',2006,2025],['A4',1996,2025],['A5',2008,2025],['A6',1995,2025],['A7',2012,2025],['A8',1997,2025],['Q3',2015,2025],['Q5',2009,2025],['Q7',2007,2025],['Q8',2019,2025],['e-tron',2019,2025],['Q4 e-tron',2022,2025],['TT',2000,2023]],
+  Hyundai:[['Elantra',1992,2025],['Sonata',1990,2025],['Accent',1995,2022],['Tucson',2005,2025],['Santa Fe',2001,2025],['Santa Cruz',2022,2025],['Palisade',2020,2025],['Kona',2018,2025],['Veloster',2012,2022],['Venue',2020,2025],['Ioniq',2017,2022],['Ioniq 5',2022,2025],['Ioniq 6',2023,2025],['Genesis',2009,2016],['Azera',2006,2017],['Veracruz',2007,2012]],
+  Kia:[['Optima',2001,2020],['K5',2021,2025],['Forte',2010,2025],['Soul',2010,2025],['Sportage',2005,2025],['Sorento',2003,2025],['Telluride',2020,2025],['Seltos',2021,2025],['Niro',2017,2025],['Rio',2001,2025],['Carnival',2022,2025],['Sedona',2002,2021],['Stinger',2018,2023],['Cadenza',2014,2020],['EV6',2022,2025],['Soul EV',2015,2025]],
+  Mazda:[['Mazda3',2004,2025],['Mazda6',2003,2021],['CX-5',2013,2025],['CX-30',2020,2025],['CX-9',2007,2023],['CX-50',2023,2025],['CX-90',2024,2025],['CX-3',2016,2021],['MX-5 Miata',1990,2025],['CX-7',2007,2012],['Tribute',2001,2011],['Mazda5',2006,2015],['RX-8',2004,2011]],
+  Subaru:[['Outback',1995,2025],['Forester',1998,2025],['Impreza',1993,2025],['Crosstrek',2013,2025],['Legacy',1990,2025],['Ascent',2019,2025],['WRX',2015,2025],['BRZ',2013,2025],['Solterra',2023,2025],['Baja',2003,2006],['Tribeca',2006,2014]],
+  Mitsubishi:[['Outlander',2003,2025],['Outlander Sport',2011,2025],['Eclipse Cross',2018,2025],['Mirage',2014,2025],['Lancer',2002,2017],['Eclipse',1995,2012],['Galant',1994,2012],['Endeavor',2004,2011],['Montero',1992,2006]],
+  BMW:[['3 Series',1996,2025],['5 Series',1996,2025],['7 Series',1995,2025],['X1',2013,2025],['X3',2004,2025],['X5',2000,2025],['X7',2019,2025],['4 Series',2014,2025],['2 Series',2014,2025],['X4',2015,2025],['X6',2008,2025],['1 Series',2008,2013],['Z4',2003,2025],['i4',2022,2025],['iX',2022,2025],['8 Series',2019,2025]],
+  'Mercedes-Benz':[['C-Class',1994,2025],['E-Class',1996,2025],['S-Class',1992,2025],['GLC',2016,2025],['GLE',2016,2025],['GLA',2015,2025],['GLB',2020,2025],['GLS',2017,2025],['A-Class',2019,2022],['CLA',2014,2025],['GLK',2010,2015],['ML',1998,2015],['Sprinter',2007,2025],['Metris',2016,2023],['CLS',2006,2023]],
+  Volvo:[['XC90',2003,2025],['XC60',2010,2025],['XC40',2019,2025],['S60',2001,2025],['S90',2017,2025],['V60',2015,2025],['V90',2017,2025],['S40',2000,2011],['XC70',2003,2016],['C30',2008,2013],['S80',1999,2016]]
+};
+/* keyway by make + era (used when no verified row exists → tagged "matched by keyway") */
+function inferKeyway(make,year){
+  year=Number(year)||2025;
+  switch(make){
+    case 'Ford': case 'Lincoln': return year<2012?'FO38':'HU101';
+    case 'Chevrolet': case 'GMC': case 'Buick': case 'Cadillac': return year<2010?'B102':'HU100';
+    case 'Toyota': case 'Lexus': return year<2004?'TOY43':'TOY48';
+    case 'Scion': return 'TOY43';
+    case 'Honda': case 'Acura': return year<2003?'HON58R':'HON66';
+    case 'Nissan': case 'Infiniti': return 'NSN14';
+    case 'Dodge': case 'Chrysler': case 'Jeep': case 'Ram': return 'CY24';
+    case 'Volkswagen': case 'Audi': return year<2015?'HU66':'HU162';
+    case 'Hyundai': case 'Kia': return year<2011?'HY15':'HY20';
+    case 'Mazda': return 'MAZ24';
+    case 'Subaru': return 'DAT12R';
+    case 'Mitsubishi': return 'MIT8';
+    case 'BMW': return year<2012?'HU92':'HU100R';
+    case 'Mercedes-Benz': return 'HU64';
+    case 'Volvo': return year<2008?'NE66':'HU101';
+    default: return '';
+  }
+}
 const EXTRA_VEH=[
   // Ford / Lincoln
   vm('Ford','Edge','2011','2020','HU101'), vm('Ford','Ranger','2019','2023','HU101'),
@@ -627,6 +681,7 @@ function renderCards(rows, ctx){
     return `<div class="card${oem||nastf?' flag':''}">
       <h2>${esc(r.keyway||'—')}</h2>
       <div class="veh">${esc(r.make)} ${esc(r.model)} · ${esc(r.year_start)}–${esc(r.year_end)}</div>
+      ${/^Matched by keyway/.test(r.source||'')?'<div style="margin:0 0 10px"><span class="pill warn">⚙ Matched by keyway — verify in field</span></div>':''}
       <div class="kv">
         <div class="k">Recommended Lishi</div><div class="v">${tool?esc(tool.tool_designation):'<span class="pill warn">not in tool list</span>'}${tool&&tool.wafer_positions?(' <span class="muted">('+esc(tool.wafer_positions)+' pos)</span>'):''}</div>
         <div class="k">In stock?</div><div class="v">${stockPill}${tool&&tool.key_blank?(' <span class="muted">'+esc(tool.key_blank)+'</span>'):''}</div>
@@ -647,7 +702,7 @@ function renderCards(rows, ctx){
 const fYear=document.getElementById('fYear'), fMake=document.getElementById('fMake'), fModel=document.getElementById('fModel');
 function uniqSort(a){ return [...new Set(a.filter(Boolean))].sort((x,y)=>String(x).localeCompare(String(y),undefined,{numeric:true})); }
 function populateMakes(){
-  const makes=uniqSort(veh().map(r=>r.make));
+  const makes=uniqSort(Object.keys(MODELS).concat(veh().map(r=>r.make)));
   fMake.innerHTML='<option value="">Make…</option>'+makes.map(m=>`<option>${esc(m)}</option>`).join('');
 }
 function populateYears(){
@@ -659,9 +714,11 @@ function populateYears(){
   fYear.innerHTML=opts;
 }
 function populateModels(){
-  const mk=fMake.value;
+  const mk=fMake.value, yr=Number(fYear.value)||0;
   if(!mk){ fModel.innerHTML='<option value="">Model (pick make first)</option>'; return; }
-  const models=uniqSort(veh().filter(r=>r.make===mk).map(r=>r.model));
+  const fromList=(MODELS[mk]||[]).filter(x=> !yr || (yr>=x[1] && yr<=x[2])).map(x=>x[0]);
+  const fromVeh=veh().filter(r=>r.make===mk && (!yr||yearMatch(r,yr))).map(r=>r.model);
+  const models=uniqSort(fromList.concat(fromVeh));
   fModel.innerHTML='<option value="">All models</option>'+models.map(m=>`<option>${esc(m)}</option>`).join('');
 }
 function runVehSearch(){
@@ -669,14 +726,21 @@ function runVehSearch(){
   const mk=fMake.value, md=fModel.value, yr=fYear.value;
   if(!mk){ box.innerHTML=''; msg.textContent='Pick a make to see its models.'; return; }
   let rows=veh().filter(r=> r.make===mk && (!md || r.model===md) && yearMatch(r,yr));
-  if(!rows.length){
-    const kws=[...new Set(veh().filter(r=>r.make===mk).map(r=>r.keyway))];
-    msg.textContent='No exact row for that year/model.';
-    box.innerHTML='<div class="hint">No exact match yet. <b>'+esc(mk)+'</b> keyway(s) on file: <b>'+(kws.map(esc).join(', ')||'—')+'</b>. Pick a different year, or add this one under 🚗 Vehicles (then it shows here).</div>';
-    return;
+  if(rows.length){ msg.textContent=rows.length+' match'+(rows.length===1?'':'es')+(yr?(' for '+yr):''); renderCards(rows,'veh'); return; }
+  // No verified row — infer the keyway from make+era and TAG it "matched by keyway".
+  const kw=inferKeyway(mk, yr);
+  if(md && kw){
+    const d=MK[mk]||{};
+    const row={make:mk, model:md, year_start:(yr||''), year_end:(yr||''), keyway:kw,
+      coded:'Yes', door_location:'Driver door', can_pick_ignition:'',
+      transponder_system:d.t||'', programming_path:d.p||'', oem_only:'No', nastf_required:'No',
+      notes:'', source:'Matched by keyway (inferred — verify in field)'};
+    msg.textContent='No exact row on file — matched by keyway from '+esc(mk)+' era.';
+    renderCards([row],'infer'); return;
   }
-  msg.textContent=rows.length+' match'+(rows.length===1?'':'es')+(yr?(' for '+yr):'');
-  renderCards(rows,'veh');
+  const kws=[...new Set(veh().filter(r=>r.make===mk).map(r=>r.keyway))];
+  msg.textContent='Pick a model'+(yr?(' for '+yr):'')+'.';
+  box.innerHTML='<div class="hint">Pick a model to see its keyway &amp; tool.'+(kws.length?(' '+esc(mk)+' keyways on file: <b>'+kws.map(esc).join(', ')+'</b>.'):'')+'</div>';
 }
 function doKeySearch(){
   const q=document.getElementById('q').value.trim(), msg=document.getElementById('lookMsg');
@@ -691,7 +755,7 @@ function doKeySearch(){
 populateMakes(); populateYears();
 fMake.addEventListener('change', ()=>{ populateModels(); runVehSearch(); });
 fModel.addEventListener('change', runVehSearch);
-fYear.addEventListener('change', runVehSearch);
+fYear.addEventListener('change', ()=>{ populateModels(); runVehSearch(); });
 document.getElementById('q').addEventListener('input', doKeySearch);
 function applyMode(){
   const m=document.getElementById('mode').value;
