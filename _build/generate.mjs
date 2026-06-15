@@ -19,7 +19,7 @@ import { GLOSSARY, U, SVC, METRO, HOME, HUB, GROUP_LABELS, CONTACT, CITIES_ES,
          FINANCING as ES_FIN, WARRANTY as ES_WAR, TERMS as ES_TERMS, FAQ as ES_FAQ,
          FAQ_META as ES_FAQ_META, FINTEASER as ES_FINTEASER, WARRTEASER as ES_WARRTEASER,
          CREDS as ES_CREDS, CERTHUB as ES_CERTHUB, BUSINESSRATE as ES_BUSINESSRATE, CRED_REVIEW_NOTE as ES_CRED_NOTE,
-         AWARD as ES_AWARD } from './es.mjs';
+         AWARD as ES_AWARD, AWARD_ND as ES_AWARD_ND } from './es.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SITE_DIR = join(__dirname, '..', 'site');
@@ -684,7 +684,7 @@ ${esMobilebar()}
 </body></html>
 `;
 }
-const esReviewSlot = (label) => `<div class="award-wrap"><span class="award-badge">${esc(ES_AWARD)}</span></div>
+const esReviewSlot = (label) => `<div class="award-wrap"><span class="award-badge">${esc(ES_AWARD)}</span><span class="award-badge">${esc(ES_AWARD_ND)}</span></div>
   <div class="widget-slot"><b>${tt(U.reviewSlot, label)}</b>
     <small>${tt(U.reviewSlotSub, label)}</small></div>`;
 function esPhotoSlots(label, photos) {
@@ -1154,7 +1154,7 @@ ${assoc.map(teaser).join('\n')}
 </div></section>
 <section class="surface"><div class="wrap">
   <div class="sec-head"><h2>${esc(L.recHead)}</h2></div>
-  <div class="award-wrap"><span class="award-badge">${esc(ES_AWARD)}</span></div>
+  <div class="award-wrap"><span class="award-badge">${esc(ES_AWARD)}</span><span class="award-badge">${esc(ES_AWARD_ND)}</span></div>
   <p style="text-align:center;color:var(--dim);margin:6px 0 0">${esc(ES_BUSINESSRATE)}</p>
 </div></section>
 <section><div class="wrap">
