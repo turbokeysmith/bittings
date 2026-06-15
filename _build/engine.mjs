@@ -134,8 +134,8 @@ ${schema()}
 export function header(depth) {
   const r = rel(depth);
   return `<header class="site">
+  <div class="brandbar"><a class="brand" href="${r}index.html"><img src="${r}assets/logo.png" alt="Turbo Keysmith logo"><b>Turbo Keysmith</b></a></div>
   <div class="bar">
-    <a class="brand" href="${r}index.html"><img src="${r}assets/logo.png" alt="Turbo Keysmith logo"><b>Turbo Keysmith</b></a>
     <nav class="main">
       <a href="${r}index.html">Home</a>
       <a href="${r}automotive/">Automotive</a>
