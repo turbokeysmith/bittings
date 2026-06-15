@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-15 06:06 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-16 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -381,6 +381,27 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-16
+- **Lishi tools cross-referenced across 7 sources + 31 added + conflicts filed for review:** scrubbed
+  the FULL automotive Lishi line from seven sources — **Classic Lishi** (classiclishi.com, all 11
+  pages), **Original Lishi**, **UHS Hardware**, **American Key Supply**, **CLK Supplies**, **Key
+  Innovations**, and **LockPickWorld** — and compared every tool against what was already in the app.
+  - **Added 31 missing automotive tools** that multiple trusted suppliers sell but the app lacked —
+    mostly **late-model US vehicles**: Honda 2020/2021, Hyundai/Kia HY20R, K9 & K9 V.4 (2024+
+    Kia/Hyundai/Genesis incl. Ioniq6), KIA3R, KY14, Ioniq5, Jeep Grand Cherokee CY24R (2021+), Ford
+    Transit 2021, Mazda MAZ26R (2019+) & MAZDA2024 (CX-30), Toyota TOY2018/TOY2014/TOY40/TOY51/TOY2T,
+    Subaru DAT17, Mercedes Sprinter YM15, plus several Euro/commercial tools. (Tool table now merges
+    these into existing installs via `SEEDVER=7`.)
+  - **Fixed one keyway-alias bug:** DAT17 (Subaru) used to resolve to the DAT12R Isuzu/Hino heavy-truck
+    tool; now that a real DAT17 exists, that alias was removed.
+  - **Conflicts NOT auto-changed — filed for owner approval** in new **`LISHI_CROSSREF_REVIEW.md`**:
+    e.g. the app currently mislabels **TOY43R** as "Toyota" (suppliers: Subaru/GMC/Chevy), **ICF03** as
+    "Iveco" (suppliers: Ford Escape/Mazda Tribute), **DAT12R** as "Subaru" (suppliers: Isuzu/Hino), and
+    a few keyway-alias mappings (KK10, B102). Owner ticks what to apply; nothing changed live yet.
+  - **Honesty:** the *tool* list is now corroborated across all seven sources; the *year-by-year
+    vehicle* mapping remains a compiled cross-reference (Lishi publishes no year tables) backed by the
+    "Matched by keyway" inference + Corrections Log. *(Staff app only; not on the public site.)*
 
 ### 2026-06-15
 - **Lishi lookup: year-filtered models + "Matched by keyway" fallback (06:06):** the Year / Make / Model

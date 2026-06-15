@@ -28,6 +28,21 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 10. **A11y + mobile pass** — labels associated, keyboard-operable rows, focus-visible outlines,
     16px inputs, ≥40px tap targets, reduced-motion, aria-live messages.
 
+## Update 2026-06-16 — `lishi.html` tools: 7-source cross-reference + 31 additions
+- **`CROSSREF_ADD`** (new array after `LISHI_OFFICIAL`, ~423): 31 automotive tools via `tdef(...)`,
+  source const `XR` ("Cross-ref 2026-06-16: Classic+Original Lishi, UHS, AKS, CLK, Key Innovations,
+  LockPickWorld"). `ALL_TOOLS = LISHI_OFFICIAL.concat(CROSSREF_ADD)`.
+- **`SEEDVER` 6 → 7**: existing installs merge the 31 new tools by `tool_designation` via the
+  `sv<SEEDVER` branch in `ensureSeed()` (notes preserved, no clobber).
+- **`KW_ALIAS`**: removed `DAT17:'DAT12R'` — a real DAT17 (Subaru) tool now exists, so it resolves to
+  itself instead of the Isuzu/Hino DAT12R. Remaining alias conflicts (KK10→HY20, B102→B111) are NOT
+  changed — flagged in `LISHI_CROSSREF_REVIEW.md`.
+- **`LISHI_CROSSREF_REVIEW.md`** (repo root): owner-approval checklist of conflicts found between the
+  live data and the 7 supplier sources (TOY43R, ICF03, DAT12R, NE38, HU46, HU101 make attributions;
+  KK10/B102 aliases; GM37/B102 label). Apply only what the owner ticks.
+- Sources scrubbed (automotive only): Classic Lishi 123, Original Lishi 93, UHS 136, AKS 92, Key
+  Innovations 74, CLK 46, LockPickWorld 32 (variants counted separately).
+
 ## Update 2026-06-15 06:06 — `lishi.html` lookup: year-filtered models + keyway inference
 - **`MODELS` catalog** (`const MODELS={...}`, ~447): per-make array of `[model, yearStart, yearEnd]`, 27
   makes. Drives the Model `<select>` and carries real production spans so discontinued models drop out for
