@@ -613,7 +613,7 @@ function esHeader(d) {
       <a href="${e}emergency/">${esc(N.emergency)}</a>
       <a href="${e}financing/">${esc(N.financing)}</a>
       <a href="${e}certifications/">${esc(N.certifications)}</a>
-      <a href="${e}faq/">${esc(N.faq)}</a>
+      <a href="${e}faq/">${esc(N.faq)}</a><a href="${e}contact/">${esc(N.contact)}</a>
       <a href="${a}pay-now/">${esc(N.payNow)}</a>
     </nav>
     <a class="head-call" href="tel:${PHONE_E164}"><span class="btn btn-call">📞 ${PHONE_DISPLAY}</span></a>
@@ -630,7 +630,7 @@ function esHeader(d) {
     <a href="${e}warranty/">${esc(N.warranty)}</a>
     <a href="${a}blog/">${esc(N.blog)}</a>
     <a href="${e}certifications/">${esc(N.certifications)}</a>
-    <a href="${e}faq/">${esc(N.faq)}</a>
+    <a href="${e}faq/">${esc(N.faq)}</a><a href="${e}contact/">${esc(N.contact)}</a>
     <a href="${a}pay-now/">${esc(N.payNow)}</a>
   </nav>
 </header>`;
