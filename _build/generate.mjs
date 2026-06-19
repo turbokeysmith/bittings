@@ -508,6 +508,11 @@ function renderSitemap() {
     urls.push(`${SITE}/${c.slug}/`);
     if (c.hasSub) ['automotive','residential','commercial'].forEach(s => urls.push(`${SITE}/${c.slug}/${s}/`));
   });
+  // Spanish /es/ mirror — published + indexable (every EN page has an /es/ twin)
+  urls.slice().forEach(u => {
+    const path = u.slice(SITE.length);            // "/" or "/automotive/"
+    urls.push(`${SITE}/es${path}`);
+  });
   const body = urls.map(u => `  <url><loc>${u}</loc></url>`).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -520,8 +525,6 @@ function renderRobots() {
 Allow: /
 # internal planning/copy docs — not for indexing
 Disallow: /*.md$
-# Spanish pages are an unpublished DRAFT (also noindex). Keep crawlers out until approved.
-Disallow: /es/
 
 Sitemap: ${SITE}/sitemap.xml
 `;
@@ -596,7 +599,7 @@ const esHablas = () => `<div style="text-align:center;padding:12px 18px;backgrou
 const tt = (s, city) => esc(s.replace(/\{city\}/g, city).replace(/\{label\}/g, city));
 
 function esHeadCommon({ title, desc, enPath, esPath, esDepth }) {
-  return head({ title, desc, canonical:`${SITE}${esPath}`, lang:'es', noindex:true,
+  return head({ title, desc, canonical:`${SITE}${esPath}`, lang:'es', noindex:false,
     assetRel:'../'.repeat(esDepth), alts: altPair(enPath, esPath) });
 }
 function esHeader(d) {
@@ -1046,7 +1049,6 @@ function esWarranty() {
   const h = esHeadCommon({ title:W.title, desc:W.desc, enPath:'/warranty', esPath:'/es/warranty', esDepth:d });
   const bullets = W.bullets.map(b => `    <li>${esc(b)}</li>`).join('\n');
   const body = `${ANNOTATE}
-<div style="background:#7a1f1f;color:#fff;text-align:center;font-weight:700;font-size:13px;padding:8px 14px">${esc(W.reviewNote)}</div>
 <section><div class="wrap"><div class="prose">
   <h1>${esc(W.h1)}</h1>
   <p>${esc(W.intro)}</p>
@@ -1067,8 +1069,7 @@ ${bullets}
 function esTerms() {
   const d = 2, e = '../', a = '../../', T = ES_TERMS;
   const h = esHeadCommon({ title:T.title, desc:T.desc, enPath:'/terms', esPath:'/es/terms', esDepth:d });
-  const body = `<!-- LEGAL (ES): traduccion BORRADOR — requiere revision profesional bilingue antes de usarse. -->
-<div style="background:#7a1f1f;color:#fff;text-align:center;font-weight:700;font-size:13px;padding:8px 14px">${esc(T.reviewNote)}</div>
+  const body = `
 <section><div class="wrap"><div class="prose">
   <div class="tc-brand"><img src="${a}assets/logo.png" alt="Turbo Keysmith"><div><strong>Turbo Keysmith</strong><br>4201 N MacArthur Blvd, Warr Acres, OK 73122 · ${PHONE_DISPLAY} · OK Lic. #AC441081</div></div>
   <h1>${esc(T.h1)}</h1>
@@ -1118,7 +1119,6 @@ function esCredPage(c) {
   parts.push(`  <h2>${esc(L.whatMeans)}</h2>\n  <p>${esc(c.whatMeans)}</p>`);
   const extLink = c.link ? `\n  <p><a href="${c.link}" target="_blank" rel="noopener">${esc(c.link.replace('https://',''))} →</a></p>` : '';
   const body = `${ANNOTATE}
-<div style="background:#7a1f1f;color:#fff;text-align:center;font-weight:700;font-size:13px;padding:8px 14px">${esc(ES_CRED_NOTE)}</div>
 <section><div class="wrap"><div class="prose">
   <p style="font-size:13px;color:var(--dim);margin:0 0 6px"><a href="${e}certifications/">${esc(L.crumb)}</a> › ${esc(c.name)}</p>
   <h1>${esc(c.h1)}</h1>
