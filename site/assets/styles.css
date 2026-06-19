@@ -366,9 +366,11 @@ nav.mobile a,.mobilebar a{min-height:48px}
 .cf-success,.cf-success h2,.cf-success h3,.cf-success p{color:#14171b}
 
 /* ---------------- Hero CTA stack: "Contact" is a full-width row under the two pills ---------------- */
-.hero-ctas{flex-direction:column;align-items:center}
-.hero-cta-top{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.hero .hero-ctas{flex-direction:column;align-items:stretch;width:100%;max-width:500px;margin-inline:auto}
+.hero-cta-top{display:flex;gap:14px}
+.hero-cta-top .btn{flex:1 1 auto}
 .btn-contact-hero{width:100%}
+@media(max-width:520px){.hero-cta-top{flex-direction:column}}
 
 /* ---------------- WhatsApp brand green on every WhatsApp button/link (match the logo) ---------------- */
 .btn[href*="wa.me"]{background:#25D366;color:#fff;border-color:#25D366;text-shadow:none;box-shadow:0 8px 26px rgba(37,211,102,.28)}
