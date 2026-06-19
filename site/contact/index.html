@@ -177,6 +177,11 @@
 <script src="../app/store.js"></script>
 <script>
 (function(){
+  // ── Lead email delivery (Web3Forms) ──────────────────────────────────
+  // Paste your Web3Forms access key between the quotes to email every lead
+  // to turbokeysmith@gmail.com. Get a free key at https://web3forms.com
+  // (enter turbokeysmith@gmail.com → they email you the key). Empty = off.
+  var WEB3FORMS_KEY = '';
   var form = document.getElementById('contactForm');
   var msg  = document.getElementById('cMsg');
   function field(id){ return document.getElementById(id); }
@@ -224,6 +229,32 @@
         notes: notes
       });
     } catch(err){ /* localStorage unavailable — still show success for the demo */ }
+
+    // Email the lead to the shop (Web3Forms). Fire-and-forget; the lead is
+    // also saved above, so a network hiccup never blocks the success screen.
+    if (WEB3FORMS_KEY) {
+      var payload = {
+        access_key: WEB3FORMS_KEY,
+        subject: 'New website lead — ' + name,
+        from_name: 'Turbo Keysmith website',
+        name: name,
+        phone: phone,
+        address: field('cAddress').value.trim(),
+        service: service,
+        notes: notes,
+        page: location.pathname
+      };
+      var cEmail = field('cEmail').value.trim();
+      if (cEmail) { payload.email = cEmail; }      // customer email = reply-to
+      try {
+        fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(payload),
+          keepalive: true
+        }).catch(function(){});
+      } catch(e){}
+    }
 
     form.style.display = 'none';
     document.getElementById('cSuccess').style.display = 'block';
