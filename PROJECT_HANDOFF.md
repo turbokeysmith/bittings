@@ -270,7 +270,7 @@ These are the open items an advisor should focus on:
      `/es/oklahoma-license/`, `/es/nastf/`, `/es/keyless2go/`, `/es/omla/`, `/es/okbfaa/` — each carries an
      extra red "needs proofread" banner. Verify the credential facts/terms read correctly in Spanish.
 6. **Nothing is deployed/published yet — but the host is now DECIDED: Cloudflare.** Public site →
-   **Cloudflare Pages** (deploy the `site/` folder); domain DNS → **moved to Cloudflare** for speed +
+   **Cloudflare Pages** (deploy the `website/site/` folder); domain DNS → **moved to Cloudflare** for speed +
    free SSL; **GoDaddy stays only as the registrar** (and keeps hosting email). Full step-by-step in
    **`DEPLOY_CLOUDFLARE.md`** (account → verify email/MX records → switch nameservers → deploy → verify
    on a temp `*.pages.dev` URL → flip the domain, reversibly). The **staff app** goes later on its own
@@ -421,7 +421,7 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
 - **Email was preserved.** The shop's **Microsoft 365 (Outlook)** email records (MX, SPF, the M365 verification
   TXT, DKIM, DMARC, autodiscover, sip, lyncdiscover, msoid) were imported into Cloudflare and the mail/service
   records set to **DNS-only (grey cloud)** so Outlook keeps working. MX confirmed intact after cutover.
-- **Deploy gotcha recorded:** deploys must use `npx wrangler pages deploy site --project-name=turbokeysmith
+- **Deploy gotcha recorded:** deploys must use `npx wrangler pages deploy website/site --project-name=turbokeysmith
   --branch=main`. Without `--branch=main` they land on a throwaway **preview** URL and the real
   `turbokeysmith.pages.dev` (production) never updates — this caused an "the new skin won't show up" scare.
 - **Public site got a premium "blackout" skin** (dark theme, red-gradient buttons — `site/assets/styles.css`,

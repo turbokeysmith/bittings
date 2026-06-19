@@ -4,7 +4,7 @@
 Cloudflare** (best speed + free SSL + security), while keeping **GoDaddy only as the registrar**
 and **not touching the live Google ranking until you verify a temporary URL first**.
 
-**What gets deployed:** only the **`site/`** folder (the public marketing website). The **staff
+**What gets deployed:** only the **`website/site/`** folder (the public marketing website). The **staff
 app** (repo root `index.html`, `bittings.html`, `scheduler.html`, etc.) is **NOT** part of this —
 it's a separate later step on its own subdomain (see §9). The Spanish **`/es/`** pages stay
 **`noindex` / blocked** through all of this (unchanged).
@@ -67,13 +67,13 @@ preserved) and email still works. You've only moved *who answers DNS*. This is t
 **Dashboard route (easiest):**
 1. Cloudflare dash → **Workers & Pages** → **Create** → **Pages** → **Upload assets** (direct
    upload, no GitHub needed).
-2. Project name: `turbokeysmith` → **drag in the contents of the `site/` folder** (the files
+2. Project name: `turbokeysmith` → **drag in the contents of the `website/site/` folder** (the files
    *inside* `site/`, so `index.html` is at the top level of the upload — not the `site` folder
    itself).
 3. Deploy → you get a temp URL like **`turbokeysmith.pages.dev`**.
 
 **OR Wrangler route (I can run this if you give me an API token):**
-`npx wrangler pages deploy site --project-name=turbokeysmith`
+`npx wrangler pages deploy website/site --project-name=turbokeysmith`
 
 ## Step 5 — VERIFY on the temp URL (before any cutover)
 Open `https://turbokeysmith.pages.dev` and check:
