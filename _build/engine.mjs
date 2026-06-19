@@ -144,7 +144,7 @@ export function header(depth) {
       <a href="${r}emergency/">Emergency</a>
       <a href="${r}financing/">Financing</a>
       <a href="${r}certifications/">Certifications</a>
-      <a href="${r}faq/">FAQ</a>
+      <a href="${r}faq/">FAQ</a><a href="${r}contact/">Contact Us</a>
       <a href="${r}pay-now/">Pay Now</a>
     </nav>
     <a class="head-call" href="tel:${PHONE_E164}"><span class="btn btn-call">📞 ${PHONE_DISPLAY}</span></a>
@@ -161,7 +161,7 @@ export function header(depth) {
     <a href="${r}warranty/">Warranty</a>
     <a href="${r}blog/">Blog</a>
     <a href="${r}certifications/">Certifications</a>
-    <a href="${r}faq/">FAQ</a>
+    <a href="${r}faq/">FAQ</a><a href="${r}contact/">Contact Us</a>
     <a href="${r}pay-now/">Pay Now</a>
   </nav>
 </header>`;
@@ -190,7 +190,7 @@ export function footer(depth) {
     <div><h4>Company</h4>
       <a href="${r}financing/">Financing</a><a href="${r}warranty/">Key Warranty</a>
       <a href="${r}blog/">Blog</a><a href="${r}certifications/">Certifications</a>
-      <a href="${r}faq/">FAQ</a><a href="${r}pay-now/">Pay Now</a></div>
+      <a href="${r}faq/">FAQ</a><a href="${r}contact/">Contact Us</a><a href="${r}pay-now/">Pay Now</a></div>
     <div><h4>Service Areas</h4>
       <a href="${r}service-areas/"><strong style="color:#fff">All Service Areas →</strong></a>
       <a href="${r}oklahoma-city/">Oklahoma City</a><a href="${r}edmond/">Edmond</a>
