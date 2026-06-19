@@ -364,3 +364,14 @@ nav.mobile a,.mobilebar a{min-height:48px}
    (contact form + its "thank you" success card); this guarantees their text is always readable. */
 .cform,.cform label,.cform input,.cform textarea,.cform select,
 .cf-success,.cf-success h2,.cf-success h3,.cf-success p{color:#14171b}
+
+/* ---------------- Hero CTA stack: "Contact" is a full-width row under the two pills ---------------- */
+.hero-ctas{flex-direction:column;align-items:center}
+.hero-cta-top{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.btn-contact-hero{width:100%}
+
+/* ---------------- WhatsApp brand green on every WhatsApp button/link (match the logo) ---------------- */
+.btn[href*="wa.me"]{background:#25D366;color:#fff;border-color:#25D366;text-shadow:none;box-shadow:0 8px 26px rgba(37,211,102,.28)}
+.btn[href*="wa.me"]:hover{background:#1FB457;border-color:#1FB457;color:#fff;filter:none}
+.btn[href*="wa.me"] svg{stroke:#fff}
+.mobilebar a.wa svg{fill:#25D366}
