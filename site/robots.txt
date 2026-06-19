@@ -2,7 +2,5 @@ User-agent: *
 Allow: /
 # internal planning/copy docs — not for indexing
 Disallow: /*.md$
-# Spanish pages are an unpublished DRAFT (also noindex). Keep crawlers out until approved.
-Disallow: /es/
 
 Sitemap: https://turbokeysmith.com/sitemap.xml
