@@ -405,6 +405,13 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
 - **All WhatsApp buttons/links are now WhatsApp brand green** (`#25D366`) via one site-wide CSS rule.
 - **`www.turbokeysmith.com` now 301-redirects to the apex** (Cloudflare Redirect Rule), keeping one canonical address.
 - **SSL set to Full (strict)** + Always-Use-HTTPS on.
+- **Workspace cleanup (owner-approved).** Removed publicly-exposed junk from the live site (`site/files.zip`,
+  internal `.md` planning docs, a backup CSS) and redeployed; deleted ~29.5 MB of duplicates/backups
+  (`files - Copy/`, `_live-clone.zip`, two loose zips); and **moved** (not deleted) four superseded old copies
+  (`files/`, `v2andScheduler/`, `_teamfile/`, `current netlify files/`) into `Desktop/bittings/_archive/`
+  (5 unique files rescued into `_docs_private/` first). The active Bittings app and `_live-clone/` master were
+  untouched; the unrelated `odol-market-report/` was left alone. A later decision is pending on permanently
+  deleting `_archive/`. Full map in `CLEANUP_INVENTORY.md`.
 
 ### 2026-06-19 (🚀 WEBSITE LAUNCHED on turbokeysmith.com + premium skin + Spanish gaps + contact-form email)
 - **The public website is LIVE at `https://turbokeysmith.com`.** Domain DNS was moved from GoDaddy to
