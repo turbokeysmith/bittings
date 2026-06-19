@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#2A2A2A">
 <title>Bittings</title>
+<!-- Follow the global Light/Dark toggle (shared with the dashboard via localStorage). -->
+<script>try{if(localStorage.getItem('bt_theme')==='dark')document.documentElement.setAttribute('data-bt-theme','dark');}catch(e){}</script>
 <script>
 /* jsPDF 2.5.1 - embedded for offline use */
 /** @license
@@ -412,7 +414,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <style>
   :root{
     --dark:#2A2A2A; --red:#C83232; --green:#22994A; --amber:#d98a00;
-    --bg:#1c1c1c; --bubble-bot:#333; --bubble-me:#C83232;
+    --bg:#f6f7f9; --bubble-bot:#333; --bubble-me:#C83232;
     --light:#f5f5f5;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -430,7 +432,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   header .ht{flex:1;min-width:0;}
   header h1{font-size:15px;font-weight:800;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   header h1 .r{color:var(--red);}
-  header .sub{font-size:10px;color:#999;margin-top:1px;}
+  header .sub{font-size:10px;color:#5a616c;margin-top:1px;}
   .hdr-btn{
     background:#444;color:#ddd;border:none;border-radius:8px;
     padding:8px 10px;font-size:11.5px;font-weight:600;
@@ -466,9 +468,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     background:#2e2e2e;border-radius:12px;padding:10px 12px;margin-top:4px;
     max-width:88%;border-left:3px solid var(--red);
   }
-  .il-title{font-size:11px;color:#999;font-weight:700;margin-bottom:6px;letter-spacing:.5px;}
+  .il-title{font-size:11px;color:#5a616c;font-weight:700;margin-bottom:6px;letter-spacing:.5px;}
   .il-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;}
-  .il-row .tag{font-size:10px;color:#999;}
+  .il-row .tag{font-size:10px;color:#5a616c;}
   .il-row .tax{color:var(--amber);}
   .checklist .cl-item{padding:5px 0;font-size:13.5px;color:#ddd;}
   .checklist .cl-item:before{content:"📸 ";}
@@ -533,7 +535,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     flex:1;background:#444;border:none;border-radius:22px;
     padding:12px 16px;color:#fff;font-size:15px;outline:none;
   }
-  #inputbar input::placeholder{color:#999;}
+  #inputbar input::placeholder{color:#5a616c;}
+  /* Persistent app navigation — main + quick menu, always visible (bottom bar on phones). */
+  #appnav{
+    display:flex; background:#1f1f1f; border-top:1px solid #3a3a3a; flex-shrink:0;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  #appnav a{
+    flex:1; text-align:center; padding:7px 2px 6px; text-decoration:none;
+    color:#9aa1ac; font-size:10px; font-weight:600; line-height:1.25;
+    display:flex; flex-direction:column; align-items:center; gap:2px; min-width:0;
+  }
+  #appnav a .ic{ font-size:18px; line-height:1; }
+  #appnav a.active{ color:#fff; }
+  #appnav a.active .ic{ filter:drop-shadow(0 0 4px rgba(200,50,50,.6)); }
+  #appnav a:active{ background:#2a2a2a; }
   #sendBtn{
     background:var(--red);border:none;width:44px;height:44px;border-radius:50%;
     color:#fff;font-size:19px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
@@ -571,7 +587,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .field{margin-bottom:14px;}
   .field label{display:block;font-size:12px;color:#aaa;font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;}
   .field input, .field textarea{
-    width:100%;background:#333;border:1px solid #555;border-radius:8px;
+    width:100%;background:#333;border:1px solid #e3e6ea;border-radius:8px;
     padding:11px 13px;color:#fff;font-size:14.5px;outline:none;
   }
   .field input:focus, .field textarea:focus{border-color:var(--red);}
@@ -592,7 +608,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .danger-zone button{background:#5a2222;color:#fff;border:none;padding:11px 16px;border-radius:8px;font-size:13px;font-weight:600;width:100%;}
   .about-section{margin-top:30px;padding-top:18px;border-top:1px solid #333;}
   .about-section .about-body{color:#ccc;font-size:14px;padding:4px 0;}
-  .about-section button{background:transparent;color:#bbb;border:1px solid #555;padding:11px 16px;border-radius:8px;font-size:13px;font-weight:600;width:100%;}
+  .about-section button{background:transparent;color:#bbb;border:1px solid #e3e6ea;padding:11px 16px;border-radius:8px;font-size:13px;font-weight:600;width:100%;}
 
   /* Common Jobs section */
   .cj-section{margin-top:24px;padding-top:18px;border-top:1px solid #444;}
@@ -618,7 +634,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
   /* Edit-job modal form fields */
   .cj-edit-form .field{margin-bottom:12px;}
-  .cj-edit-form .field input{width:100%;background:#222;border:1px solid #555;color:#fff;
+  .cj-edit-form .field input{width:100%;background:#f3f4f6;border:1px solid #e3e6ea;color:#fff;
     padding:10px 12px;border-radius:8px;font-size:14px;}
 
   /* history list */
@@ -639,10 +655,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .cust-type-tag.ind{background:#2d4860;color:#9fd;}
   .cust-type-tag.biz{background:#603830;color:#fda;}
   .veh-dropdown{
-    width:100%;background:#222;border:1px solid #555;color:#fff;
+    width:100%;background:#f3f4f6;border:1px solid #e3e6ea;color:#fff;
     padding:10px;border-radius:8px;font-size:15px;
   }
-  .hist-item .hi-desc{font-size:11.5px;color:#999;margin-top:2px;}
+  .hist-item .hi-desc{font-size:11.5px;color:#5a616c;margin-top:2px;}
   .hist-item .hi-actions{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
   .hist-item .hi-actions button{
     flex:1;min-width:80px;min-height:44px;background:#444;border:none;color:#ddd;padding:10px 8px;border-radius:7px;font-size:12px;font-weight:600;
@@ -650,7 +666,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .hist-item .hi-actions button:active{background:var(--red);color:#fff;}
   .hist-filter{display:flex;gap:6px;margin-bottom:12px;}
   .hist-filter button{
-    flex:1;background:#333;border:1px solid #555;color:#ddd;padding:9px;border-radius:8px;font-size:12px;font-weight:600;
+    flex:1;background:#333;border:1px solid #e3e6ea;color:#ddd;padding:9px;border-radius:8px;font-size:12px;font-weight:600;
   }
   .hist-filter button.active{background:var(--red);border-color:var(--red);color:#fff;}
   .pp-empty{text-align:center;color:#9a9a9a;margin-top:40px;font-size:14px;}
@@ -719,7 +735,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     font-size:15px;font-weight:700;cursor:pointer;
   }
   #welcome button.secondary{
-    background:transparent;color:#bbb;border:1px solid #555;
+    background:transparent;color:#bbb;border:1px solid #e3e6ea;
     padding:14px 22px;border-radius:10px;
     font-size:14px;font-weight:600;cursor:pointer;
   }
@@ -730,6 +746,70 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     width:8px;height:8px;border-radius:50%;background:#444;
   }
   .welcome-step-dot.active{background:var(--red);}
+
+  /* ===== Studio light theme — chat shell + panels (the receipt-card preview keeps its paper look) ===== */
+  body{color:#14171b;}
+  header,.pp-head{background:#fff;}
+  header .sub{color:#5a616c;}
+  .pp-head b{color:#14171b;}
+  .hdr-btn,#skipBtn,#backBtn,.pp-head button,.file-btn,.save-row .secondary,
+  .cj-item .cj-actions button,.hist-item .hi-actions button,.sig-clear,.mbtn-no{background:#eef0f3;color:#14171b;}
+  .bot .bubble{background:#fff;border:1px solid #e3e6ea;color:#14171b;}
+  .hint,.field-hint,.pp-empty,.il-title,.il-row .tag,.cj-item .cj-tag.no-tax,
+  .hist-item .hi-desc,.modal-box .mbody,.about-section .about-body,#welcome p,#welcome li{color:#5a616c;}
+  .bubble.callout{background:#fff7e6;color:#14171b;}
+  .opt{background:#fff;color:var(--red);}
+  .itemlist,.checklist,.sigwrap,.cj-item,.hist-item,.modal-box{background:#fff;}
+  .checklist .cl-item,.cj-item .cj-desc,.hist-item .hi-cust,.modal-box .mtitle{color:#14171b;}
+  #inputbar{background:#fff;border-top:1px solid #e3e6ea;}
+  #inputbar input{background:#eef0f3;color:#14171b;}
+  #inputbar input::placeholder{color:#9aa1ac;}
+  .field label{color:#5a616c;}
+  .field input,.field textarea,.cj-edit-form .field input,.veh-dropdown,.hist-filter button{background:#fff;border:1px solid #e3e6ea;color:#14171b;}
+  .hist-filter button{background:#f3f4f6;}
+  .logo-preview{background:#f3f4f6;}
+  .danger-zone,.about-section,.cj-section{border-top-color:#e3e6ea;}
+  .about-section button{color:#5a616c;border:1px solid #e3e6ea;}
+  .hist-item.estimate .hi-num{color:#5a616c;}
+  .cust-type-tag.ind{background:#e6eef6;color:#1f6fd0;}
+  .cust-type-tag.biz{background:#f6ece6;color:#9a6a00;}
+
+  /* ===== DARK chrome — follows the global Light/Dark toggle. Overrides the light rules above by
+     specificity. The printable RECEIPT-CARD PREVIEW intentionally keeps its paper (white) look. ===== */
+  [data-bt-theme="dark"]{ --bg:#14171b; --light:#1f232a; }
+  [data-bt-theme="dark"] body{ background:#14171b; color:#f4f5f7; }
+  [data-bt-theme="dark"] header,[data-bt-theme="dark"] .pp-head{ background:#1f232a; }
+  [data-bt-theme="dark"] header .sub{ color:#9aa1ac; }
+  [data-bt-theme="dark"] .pp-head b{ color:#f4f5f7; }
+  [data-bt-theme="dark"] .hdr-btn,[data-bt-theme="dark"] #skipBtn,[data-bt-theme="dark"] #backBtn,
+  [data-bt-theme="dark"] .pp-head button,[data-bt-theme="dark"] .file-btn,[data-bt-theme="dark"] .save-row .secondary,
+  [data-bt-theme="dark"] .cj-item .cj-actions button,[data-bt-theme="dark"] .hist-item .hi-actions button,
+  [data-bt-theme="dark"] .sig-clear,[data-bt-theme="dark"] .mbtn-no{ background:#2c313a;color:#f4f5f7; }
+  [data-bt-theme="dark"] .bot .bubble{ background:#252a32;border-color:#3a414c;color:#f4f5f7; }
+  [data-bt-theme="dark"] .hint,[data-bt-theme="dark"] .field-hint,[data-bt-theme="dark"] .pp-empty,
+  [data-bt-theme="dark"] .il-title,[data-bt-theme="dark"] .il-row .tag,[data-bt-theme="dark"] .cj-item .cj-tag.no-tax,
+  [data-bt-theme="dark"] .hist-item .hi-desc,[data-bt-theme="dark"] .modal-box .mbody,
+  [data-bt-theme="dark"] .about-section .about-body,[data-bt-theme="dark"] #welcome p,[data-bt-theme="dark"] #welcome li{ color:#9aa1ac; }
+  [data-bt-theme="dark"] .bubble.callout{ background:#3a2f12;color:#ffce6b; }
+  [data-bt-theme="dark"] .opt{ background:#252a32;color:#ff8a93; }
+  [data-bt-theme="dark"] .itemlist,[data-bt-theme="dark"] .checklist,[data-bt-theme="dark"] .sigwrap,
+  [data-bt-theme="dark"] .cj-item,[data-bt-theme="dark"] .hist-item,[data-bt-theme="dark"] .modal-box{ background:#1f232a; }
+  [data-bt-theme="dark"] .checklist .cl-item,[data-bt-theme="dark"] .cj-item .cj-desc,
+  [data-bt-theme="dark"] .hist-item .hi-cust,[data-bt-theme="dark"] .modal-box .mtitle{ color:#f4f5f7; }
+  [data-bt-theme="dark"] #inputbar{ background:#1f232a;border-top-color:#2c313a; }
+  [data-bt-theme="dark"] #inputbar input{ background:#2c313a;color:#f4f5f7; }
+  [data-bt-theme="dark"] #inputbar input::placeholder{ color:#5a616c; }
+  [data-bt-theme="dark"] .field label{ color:#9aa1ac; }
+  [data-bt-theme="dark"] .field input,[data-bt-theme="dark"] .field textarea,
+  [data-bt-theme="dark"] .cj-edit-form .field input,[data-bt-theme="dark"] .veh-dropdown,
+  [data-bt-theme="dark"] .hist-filter button{ background:#2c313a;border-color:#3a414c;color:#f4f5f7; }
+  [data-bt-theme="dark"] .hist-filter button{ background:#252a32; }
+  [data-bt-theme="dark"] .logo-preview{ background:#252a32; }
+  [data-bt-theme="dark"] .danger-zone,[data-bt-theme="dark"] .about-section,[data-bt-theme="dark"] .cj-section{ border-top-color:#2c313a; }
+  [data-bt-theme="dark"] .about-section button{ color:#9aa1ac;border-color:#3a414c; }
+  [data-bt-theme="dark"] .hist-item.estimate .hi-num{ color:#9aa1ac; }
+  [data-bt-theme="dark"] .cust-type-tag.ind{ background:rgba(74,163,255,.16);color:#7fb8ff; }
+  [data-bt-theme="dark"] .cust-type-tag.biz{ background:rgba(242,180,58,.16);color:#f2b43a; }
 </style>
 </head>
 <body>
@@ -754,6 +834,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   <button id="sendBtn">&#10148;</button>
 </div>
 
+<!-- Persistent app navigation — main + quick menu, always one tap away (bottom bar on phones). -->
+<nav id="appnav">
+  <a href="index.html"><span class="ic">🏠</span>Home</a>
+  <a href="bittings.html" class="active"><span class="ic">🧾</span>Receipts</a>
+  <a href="index.html?go=customers"><span class="ic">👤</span>Customers</a>
+  <a href="scheduler.html"><span class="ic">📅</span>Scheduler</a>
+  <a href="lishi.html"><span class="ic">🔑</span>Lishi</a>
+</nav>
+<script>
+/* When this page is embedded inside the dashboard (iframe), the parent's left menu is the nav —
+   hide our bottom bar and the header "‹ Apps" link so we don't nest the dashboard in itself. */
+try{ if(window.self!==window.top){
+  var _an=document.getElementById('appnav'); if(_an) _an.style.display='none';
+  document.querySelectorAll('header a[href="index.html"]').forEach(function(a){ a.style.display='none'; });
+} }catch(e){}
+</script>
+
 <!-- Custom modal (replaces browser confirm/alert) -->
 <div id="modalBackdrop">
   <div class="modal-box">
@@ -772,7 +869,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <h2>Bittings</h2>
     <div class="welcome-tagline">Built by a locksmith, for locksmiths.</div>
     <p>Modern receipt, invoice, and estimate builder with NASTF compliance baked in.</p>
-    <p style="font-size:13.5px;color:#999;">Every NASTF security transaction needs a D1 form, and the audit data has to be ready when you need it. Bittings collects it in the flow of building your work order. The customer copy hides it automatically — you stay compliant; they get a clean receipt.</p>
+    <p style="font-size:13.5px;color:#5a616c;">Every NASTF security transaction needs a D1 form, and the audit data has to be ready when you need it. Bittings collects it in the flow of building your work order. The customer copy hides it automatically — you stay compliant; they get a clean receipt.</p>
     <div class="welcome-steps">
       <div class="welcome-step-dot active"></div>
       <div class="welcome-step-dot"></div>
@@ -895,8 +992,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <label>About Bittings</label>
         <div class="about-body">
           <div><b>Bittings</b> v1.0</div>
-          <div style="color:#999;font-size:13px;margin-top:4px;">Built by a locksmith, for locksmiths.</div>
-          <div style="color:#999;font-size:13px;margin-top:8px;line-height:1.5;">A receipt, invoice, and estimate builder with NASTF compliance fields built in. Three D1 types supported: Customer, Auction/Fleet, and Contracting. Customer Copy hides NASTF audit data automatically.</div>
+          <div style="color:#5a616c;font-size:13px;margin-top:4px;">Built by a locksmith, for locksmiths.</div>
+          <div style="color:#5a616c;font-size:13px;margin-top:8px;line-height:1.5;">A receipt, invoice, and estimate builder with NASTF compliance fields built in. Three D1 types supported: Customer, Auction/Fleet, and Contracting. Customer Copy hides NASTF audit data automatically.</div>
         </div>
       </div>
       <div class="save-row">
@@ -1009,6 +1106,44 @@ function configTaxRate(){
 // A receipt's own rate (per-receipt override), defaulting to the config rate.
 function receiptTaxRate(r){
   return (r && r.taxRate!=null && r.taxRate!=='') ? Number(r.taxRate) : configTaxRate();
+}
+// ---- Warranty (standard labor/parts warranty configured in Setup) ----
+function configWarranty(){
+  try{ const w=(window.TKS&&TKS.Config&&TKS.Config.warranty)?TKS.Config.warranty():null;
+       if(w) return {months:Number(w.months)||0, defaultOn:!!w.defaultOn}; }catch(e){}
+  return {months:0, defaultOn:false};
+}
+// expiry timestamp = start date + N calendar months
+function warrantyUntilTs(startMs, months){ const d=new Date(startMs||Date.now()); d.setMonth(d.getMonth()+(Number(months)||0)); return d.getTime(); }
+// {until, days, expired, months} for a saved receipt, or null if it carries no warranty
+function warrantyInfo(r){
+  if(!r || !r.warranty || !Number(r.warrantyMonths)) return null;
+  const start=r.warrantyStart||r.savedAt; if(!start) return null;
+  const until=r.warrantyUntil||warrantyUntilTs(start, r.warrantyMonths);
+  const days=Math.ceil((until-Date.now())/86400000);
+  return {until, days, expired:days<0, months:Number(r.warrantyMonths)};
+}
+// Customer-facing warranty term, e.g. "6 months limited warranty" (no dates). "" if none.
+function warrantyTermText(r){
+  if(!r || !r.warranty || !Number(r.warrantyMonths) || r.docType==="estimate") return "";
+  const m=Number(r.warrantyMonths);
+  return m+" month"+(m===1?"":"s")+" limited warranty";
+}
+// Configured Terms & Conditions URL (Setup → identity). "" when the shop has none.
+function configTermsUrl(){
+  try{ const id=(window.TKS&&TKS.Config)?TKS.Config.identity():null; if(id&&id.termsUrl!=null && String(id.termsUrl).trim()) return String(id.termsUrl).trim(); }catch(e){}
+  return (SETTINGS && SETTINGS.termsUrl) ? String(SETTINGS.termsUrl).trim() : "";
+}
+function termsHref(u){ return /^https?:\/\//i.test(u) ? u : ("https://"+u); }
+function termsDisplay(u){ return u.replace(/^https?:\/\//i,"").replace(/\/+$/,""); }
+// Pill HTML for a receipt's warranty (or "" if none). Green→amber→red as it runs down.
+function warrantyPillHTML(r){
+  const w=warrantyInfo(r); if(!w) return "";
+  let bg,fg,txt;
+  if(w.expired){ bg="rgba(200,50,60,.14)"; fg="#b3242f"; txt="Warranty expired"; }
+  else if(w.days<=30){ bg="rgba(217,138,0,.18)"; fg="#9a6a00"; txt=w.days+" day"+(w.days===1?"":"s")+" warranty left"; }
+  else { bg="rgba(34,153,74,.16)"; fg="#1f8f43"; txt=w.days+" days warranty left"; }
+  return '<span style="display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;background:'+bg+';color:'+fg+'">🛡 '+txt+'</span>';
 }
 
 // Common jobs: {desc, taxable, category, svc, useCount}
@@ -1186,7 +1321,7 @@ function askSignature(onDone){
   const row=document.createElement("div");
   row.className="row bot";
   row.innerHTML='<div class="sigwrap"><div class="il-title">CUSTOMER SIGNATURE</div>'+
-    '<div class="sig-auth" style="font-size:12px;color:#9aa3af;margin:0 0 8px;line-height:1.4">By signing, I authorize the work described and agree to Turbo Keysmith\'s <a href="https://turbokeysmith.com/terms" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Terms &amp; Conditions</a> (turbokeysmith.com/terms).</div>'+
+    '<div class="sig-auth" style="font-size:12px;color:#5a616c;margin:0 0 8px;line-height:1.4">'+(function(){ const shop=escapeHtml(SETTINGS.name||"the shop"), tu=configTermsUrl(); return tu ? ("By signing, I authorize the work described and agree to "+shop+"&rsquo;s <a href=\""+escapeHtml(termsHref(tu))+"\" target=\"_blank\" rel=\"noopener\" style=\"color:inherit;text-decoration:underline\">Terms &amp; Conditions</a> ("+escapeHtml(termsDisplay(tu))+").") : "By signing, I authorize the work described."; })()+'</div>'+
     '<canvas id="sigCanvas" width="600" height="280"></canvas>'+
     '<div class="sig-actions">'+
       '<button class="sig-clear" id="sigClear">Clear</button>'+
@@ -1666,7 +1801,7 @@ function askVinWithDecode(q){
   wrap.className = "bubble"; wrap.style.background="transparent"; wrap.style.padding="0";
   const opts = document.createElement("div"); opts.className = "opts";
   const decodeBtn = document.createElement("button");
-  decodeBtn.className = "opt"; decodeBtn.style.background = "#2A2A2A";
+  decodeBtn.className = "opt"; decodeBtn.style.background = "#2A2A2A"; decodeBtn.style.color = "#fff"; decodeBtn.style.borderColor = "#C83232";
   decodeBtn.textContent = "🔍 Decode VIN";
   decodeBtn.onclick = ()=>{
     const vin = (input.value || "").trim();
@@ -1833,7 +1968,7 @@ function showJobPickerForCategory(catKey){
   // Owner-only: pull a real part from Inventory so its COST rides along (for profit).
   if(_isOwnerForCosts()){
     const pk=document.createElement("button");
-    pk.className="opt"; pk.style.background="#1c2f24"; pk.style.borderColor="#2f6b46";
+    pk.className="opt"; pk.style.background="#1c2f24"; pk.style.borderColor="#2f6b46"; pk.style.color="#fff";
     pk.textContent="📦 From Inventory (captures cost)";
     pk.onclick=()=>{
       pickInventoryPart(p=>{
@@ -1879,7 +2014,7 @@ function showJobPickerForCategory(catKey){
         seen[name.toLowerCase()]=1;
         const price=(s.price!=='' && s.price!=null) ? Number(s.price) : null;
         const b=document.createElement("button");
-        b.className="opt"; b.style.background="#2b2718"; b.style.borderColor="#6b5a2f";
+        b.className="opt"; b.style.background="#2b2718"; b.style.borderColor="#6b5a2f"; b.style.color="#fff";
         b.textContent="★ "+name+(price!=null ? "  · $"+price : "");
         b.onclick=()=>{
           opts.querySelectorAll(".opt").forEach(x=>x.disabled=true);
@@ -1919,7 +2054,7 @@ function showJobPickerForCategory(catKey){
   // Custom escape hatch — always present in every category
   const custom=document.createElement("button");
   custom.className="opt";
-  custom.style.background="#2A2A2A";
+  custom.style.background="#2A2A2A"; custom.style.color="#fff"; custom.style.borderColor="#C83232";
   custom.textContent="✎ Custom "+catLabel(catKey)+" item";
   custom.onclick=()=>{
     opts.querySelectorAll(".opt").forEach(x=>x.disabled=true);
@@ -1956,7 +2091,7 @@ function askItemAmount(){
     wrap.className="bubble"; wrap.style.background="transparent"; wrap.style.padding="0";
     const opts=document.createElement("div"); opts.className="opts";
     const useBtn=document.createElement("button");
-    useBtn.className="opt"; useBtn.style.background="#2A2A2A";
+    useBtn.className="opt"; useBtn.style.background="#2A2A2A"; useBtn.style.color="#fff"; useBtn.style.borderColor="#C83232";
     useBtn.textContent = "Use $"+itemDraft.lastPrice;
     useBtn.onclick=()=>{
       opts.querySelectorAll(".opt").forEach(x=>x.disabled=true);
@@ -2447,16 +2582,41 @@ function computeTotals(its, payment, taxRatePct){
   };
 }
 
+// A lockout (just opening a door) has no key/lock/part to stand behind, so it gets
+// no warranty. True when every line item is a lockout/unlock and none are parts/programming.
+function isLockoutOnly(its){
+  if(!its || !its.length) return false;
+  let real=false, nonLockout=false, partOrProg=false;
+  its.forEach(it=>{ const d=(it.desc||"").toLowerCase().trim(); if(!d) return; real=true;
+    const cat=it.category||""; if(cat==="Materials"||cat==="Programming") partOrProg=true;
+    if(!/lock\s*out|unlock/.test(d)) nonLockout=true; });
+  return real && !nonLockout && !partOrProg;
+}
 function finish(){
   inputbar.classList.add("hidden");
   clearUndo();
   receipt.docType=docType;
-  receipt.number=nextDocNumber(docType);
-  receipt.date=todayStr();
-  receipt.savedAt=Date.now();
+  // Preserve identity when EDITING an existing doc (quick-form edit sets these); only
+  // mint a new number/date/timestamp for a brand-new document.
+  if(!receipt.number) receipt.number=nextDocNumber(docType);
+  if(!receipt.date) receipt.date=todayStr();
+  if(!receipt.savedAt) receipt.savedAt=Date.now();
   if(!receipt.id) receipt.id="rcpt_"+Date.now().toString(36)+Math.random().toString(36).slice(2,7); // stable id for cloud sync + Pay Now
   receipt.items=items.slice();
   if(receipt.taxRate==null || receipt.taxRate==='') receipt.taxRate=configTaxRate(); // snapshot rate (per-receipt override defaults to config)
+  // Warranty: quick form sets receipt.warranty explicitly; chat flow leaves it undefined →
+  // apply the Setup default. Estimates never carry a warranty. Stamp the expiry once.
+  (function(){
+    const w=configWarranty();
+    if(docType==="estimate"){ receipt.warranty=false; receipt.warrantyMonths=0; }
+    else{
+      if(receipt.warranty===undefined) receipt.warranty = (w.defaultOn && w.months>0);
+      if(!receipt.warrantyMonths) receipt.warrantyMonths = w.months;
+      if(isLockoutOnly(items)) receipt.warranty=false;   // lockouts carry no warranty
+      if(receipt.warranty && receipt.warrantyMonths){ receipt.warrantyStart=receipt.savedAt; receipt.warrantyUntil=warrantyUntilTs(receipt.savedAt, receipt.warrantyMonths); }
+      else receipt.warranty=false;
+    }
+  })();
   receipt.totals=computeTotals(items, receipt.payment, receipt.taxRate);
   receipt.signature=signatureData;
   receipt.nastf=nastfInfo;
@@ -2475,6 +2635,18 @@ function finish(){
       if(existing){ Object.assign(existing, shopData); existing.lastUsed=Date.now(); }
       else{ list.push(Object.assign({}, shopData, {lastUsed:Date.now()})); }
       saveShops(list);
+      // Also save the VEHICLE OWNER as a customer — they're not the bill-to, but we
+      // already have their info (referrals + marketing list).
+      if((receipt.voName||"").trim()){
+        const cl=getCustomers(); const vn=receipt.voName.trim();
+        const ex=cl.find(c=>(c.customer||"").toLowerCase()===vn.toLowerCase());
+        const voData={ customer:vn, contact:"", phone:receipt.voPhone||"", email:"",
+          address:[receipt.voCity,receipt.voState].filter(Boolean).join(", "),
+          customerType:"individual", source:"contracting-vehicle-owner" };
+        if(ex){ Object.assign(ex, voData); ex.lastUsed=Date.now(); }
+        else{ cl.push(Object.assign({}, voData, {lastUsed:Date.now()})); }
+        saveCustomers(cl);
+      }
     }else{
       const list=getCustomers();
       const existing=list.find(c=>(c.customer||"").toLowerCase()===receipt.customer.toLowerCase());
@@ -2489,9 +2661,22 @@ function finish(){
       saveCustomers(list);
     }
   }
-  const hist=getHistory(); hist.unshift(receipt); saveHistory(hist);
+  const hist=getHistory();
+  const _exIdx=hist.findIndex(x=> (receipt.id&&x.id===receipt.id) || (receipt.number&&x.number===receipt.number));
+  if(_exIdx>=0) hist[_exIdx]=receipt; else hist.unshift(receipt);   // update on edit, add when new
+  saveHistory(hist);
   // A paid sale (cash/check/marked-paid receipt) consumes its parts now.
   if(_receiptIsPaid(receipt)) applyStockForReceipt(receipt);
+  // Log cash/check paid sales as a transaction so they show in Dashboard/Reports/Closeout
+  // (card sales log via Pay Now; estimates/unpaid don't; never logs the same receipt twice).
+  if(receipt.docType==="receipt" && receipt.status==="Paid in Full"
+     && /^(cash|check)$/i.test(receipt.payment||"") && !receipt.cashLogged
+     && typeof window.recordCashSale==="function"){
+    window.recordCashSale(receipt, String(receipt.payment).toLowerCase()).then(function(res){
+      if(res && !res.error){ receipt.cashLogged=true; try{ _syncReceiptInHistory(receipt); }catch(_){ } }
+      else { try{ console.warn("Cash/check sale not logged to transactions:", res&&res.error); }catch(_){ } }
+    });
+  }
 
   botSay("Done! Here's "+receipt.number+":");
   renderReceiptCard(receipt);
@@ -2625,6 +2810,12 @@ function renderReceiptCard(r){
          '<div class="rc-totrow"><span>Total:</span><span>'+money(t.total)+'</span></div>'+
          statusLine+
        '</div>'+
+       (function(){
+          const term=warrantyTermText(r), pill=warrantyPillHTML(r), tu=configTermsUrl();
+          const line1=[ term?('<span style="font-weight:700;color:#1f8f43">'+escapeHtml(term)+'</span>'):'', pill ].filter(Boolean).join('&nbsp;&nbsp;');
+          const terms = tu?('<div style="font-size:11.5px;color:#5a616c;margin-top:4px">Terms &amp; Conditions: <a href="'+escapeHtml(termsHref(tu))+'" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">'+escapeHtml(termsDisplay(tu))+'</a></div>'):'';
+          return (line1||terms)?('<div style="margin-top:8px">'+line1+terms+'</div>'):'';
+       })()+
        (r.notes?'<div class="rc-notes">Notes: '+escapeHtml(r.notes)+'</div>':'')+
      '</div>'+
      '<div class="rc-actions">'+
@@ -2903,6 +3094,13 @@ function makePDF(r, lang, forCustomer){
     doc.text(tr("Status",lang)+": "+tr("UNPAID",lang)+" — "+tr("Due upon receipt",lang).toUpperCase(),306,toY+35);
   }
 
+  // warranty (customer-facing, no date) — right column under the status; receipts & invoices only
+  const _warrText = warrantyTermText(r);
+  if(_warrText){
+    doc.setFont("helvetica","bold"); doc.setFontSize(9.5); doc.setTextColor(...GREEN);
+    doc.text(_warrText, 306, toY+52);
+  }
+
   // notes
   if(r.notes){
     let nY = toY + 60;
@@ -2926,7 +3124,11 @@ function makePDF(r, lang, forCustomer){
       try{ doc.addImage(r.signature,"PNG",40,sY+5,260,60); }catch(e){}
     }
     doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(140,140,140);
-    doc.text("By signing, the customer authorized the work described and agreed to Turbo Keysmith's Terms & Conditions (turbokeysmith.com/terms).",40,sY+78,{maxWidth:520});
+    const _authShop=(SETTINGS.name||"the shop"), _authTu=configTermsUrl();
+    const _authTxt=_authTu
+      ? ("By signing, the customer authorized the work described and agreed to "+_authShop+"'s Terms & Conditions ("+termsDisplay(_authTu)+").")
+      : "By signing, the customer authorized the work described.";
+    doc.text(_authTxt,40,sY+78,{maxWidth:520});
   }
 
   // footer
@@ -3004,6 +3206,7 @@ function renderHistList(){
       '<span class="hi-amt">'+money(total)+'</span></div>'+
       '<div class="hi-cust">'+escapeHtml(r.customer||"(no name)")+'</div>'+
       '<div class="hi-desc">'+escapeHtml(r.date||"")+' · '+escapeHtml(descPart)+'</div>'+
+      (warrantyPillHTML(r)?'<div style="margin-top:5px">'+warrantyPillHTML(r)+'</div>':'')+
       '<div class="hi-actions">'+actions+'</div>';
     list.appendChild(div);
   });
@@ -3052,6 +3255,13 @@ function renderHistList(){
 /* ---------- Edit existing receipt (simple field editor) ---------- */
 function editReceipt(r){
   closeHist();
+  // When the Quick invoice is on, edit through that form (full screen, all fields) instead
+  // of the field-by-field chat editor.
+  if(typeof quickInvoiceAvailable==="function" && quickInvoiceAvailable() && typeof openQuickInvoice==="function"){
+    chat.innerHTML="";
+    openQuickInvoice(function(){}, r);
+    return;
+  }
   chat.innerHTML="";
   const origNumber=r.number;
   botSay("Editing "+r.number+". Pick a field to change, or tap Done.");
@@ -3186,7 +3396,7 @@ function syncOwnerUI(){
 function hydrateIdentityFromConfig(){
   try{ if(!(window.TKS && TKS.Config) || !SETTINGS) return;
     const ci=TKS.Config.identity()||{};
-    ['name','address','phone','email','license','logo','footer'].forEach(k=>{ if(ci[k]!=null && ci[k]!=='') SETTINGS[k]=ci[k]; });
+    ['name','address','phone','email','license','logo','footer','termsUrl'].forEach(k=>{ if(ci[k]!=null && ci[k]!=='') SETTINGS[k]=ci[k]; });
     if(ci.logoCustom) SETTINGS.logoCustom=true;
     if(typeof applyBranding==='function') applyBranding();
   }catch(e){}
@@ -3295,7 +3505,7 @@ function cjEditForm(job, idx){
   const svcOptions = svcList.concat(["Any"]).map(s=>
     '<option value="'+s+'"'+((job.svc||"Any")===s?' selected':'')+'>'+s+(s==="Any"?" (all jobs)":"")+'</option>'
   ).join("");
-  const selStyle = 'style="width:100%;background:#222;border:1px solid #555;color:#fff;padding:10px;border-radius:8px;font-size:14px;"';
+  const selStyle = 'style="width:100%;background:#f3f4f6;border:1px solid #e3e6ea;color:#fff;padding:10px;border-radius:8px;font-size:14px;"';
   body.innerHTML =
     '<div class="cj-edit-form">'+
       '<div class="field"><label style="font-size:11px;color:#aaa;font-weight:600;">Description</label>'+
@@ -3311,7 +3521,7 @@ function cjEditForm(job, idx){
         '</select></div>'+
       '<div class="field"><label style="font-size:11px;color:#aaa;font-weight:600;">Default Price (optional)</label>'+
         '<input id="cjEditPrice" type="number" step="0.01" min="0" value="'+(job.lastPrice||"")+
-        '" placeholder="e.g. 75" style="width:100%;background:#222;border:1px solid #555;color:#fff;padding:10px;border-radius:8px;font-size:14px;"></div>'+
+        '" placeholder="e.g. 75" style="width:100%;background:#f3f4f6;border:1px solid #e3e6ea;color:#fff;padding:10px;border-radius:8px;font-size:14px;"></div>'+
     '</div>';
   const btns = document.getElementById("modalBtns");
   btns.innerHTML = "";
@@ -3582,6 +3792,19 @@ function _receiptsRefresh(){
     render();
   };
 
+  // Log a CASH / CHECK paid sale as a transaction (same pay-record endpoint as the
+  // Payments tile) so it shows up in Dashboard, Reports and Closeout. Card sales log
+  // themselves via Pay Now. Returns {error} on failure (caller decides whether to retry).
+  window.recordCashSale = async function(receipt, method){
+    try{
+      if(!receipt || !receipt.id) return {error:"missing id"};
+      const c=client(); const tok=await token();
+      if(!c || !tok) return {error:"not signed in"};
+      await c.from("receipts").upsert({ id:receipt.id, data:receipt });
+      return await call("pay-record", { invoiceId:receipt.id, method:method });
+    }catch(e){ return {error:(e&&e.message)||String(e)}; }
+  };
+
   function render(){
     if(modal) modal.remove();
     const sur=Math.round(S.baseCents*0.02);
@@ -3589,13 +3812,13 @@ function _receiptsRefresh(){
     const taxC=Math.round((Number(_t.tax)||0)*100);
     const rateLbl=_t.taxRate?(" ("+_t.taxRate+"%)"):"";
     const taxRows = taxC>0 ? (
-        '<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#9aa3af"><span>Subtotal (goods + labor)</span><span>'+m(S.baseCents-taxC)+'</span></div>'+
-        '<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#9aa3af"><span>Sales Tax'+rateLbl+'</span><span>'+m(taxC)+'</span></div>') : "";
+        '<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5a616c"><span>Subtotal (goods + labor)</span><span>'+m(S.baseCents-taxC)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5a616c"><span>Sales Tax'+rateLbl+'</span><span>'+m(taxC)+'</span></div>') : "";
     modal=node(`<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center">
-      <div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:440px;border-radius:18px 18px 0 0;padding:18px;max-height:92vh;overflow:auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:18px">Pay Now</b><button id="pnX" style="background:none;border:none;color:#9aa3af;font-size:26px;cursor:pointer;line-height:1;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
-        <div style="font-size:13px;color:#9aa3af;margin-bottom:10px">Invoice ${esc(S.receipt.number||S.receipt.id)}</div>
-        <div style="background:#11141a;border:1px solid #2a2f3a;border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="background:#ffffff;color:#14171b;width:100%;max-width:440px;border-radius:18px 18px 0 0;padding:18px;max-height:92vh;overflow:auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:18px">Pay Now</b><button id="pnX" style="background:none;border:none;color:#5a616c;font-size:26px;cursor:pointer;line-height:1;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
+        <div style="font-size:13px;color:#5a616c;margin-bottom:10px">Invoice ${esc(S.receipt.number||S.receipt.id)}</div>
+        <div style="background:#f3f4f6;border:1px solid #e3e6ea;border-radius:12px;padding:12px;margin-bottom:12px">
           ${taxRows}
           <div style="display:flex;justify-content:space-between;margin-top:${taxC>0?'4px':'0'}"><span>Amount${taxC>0?' (incl. tax)':''}</span><b>${m(S.baseCents)}</b></div>
           <div style="font-size:12px;color:#f2b43a;margin-top:6px">Then a 2% surcharge (${m(sur)}) is added on top for <b>credit</b> cards only — debit &amp; prepaid are never surcharged.</div>
@@ -3607,15 +3830,15 @@ function _receiptsRefresh(){
     modal.querySelector("#pnX").onclick=close;
     modal.addEventListener("click",e=>{ if(e.target===modal) close(); });
     modal.querySelectorAll(".pnM").forEach(b=>{ const on=b.dataset.m===S.method;
-      b.style.cssText="flex:1;padding:11px;border-radius:11px;border:1.5px solid "+(on?"#f2b43a":"#2a2f3a")+";background:"+(on?"rgba(242,180,58,.14)":"transparent")+";color:#f4f5f7;font-weight:700;cursor:pointer";
+      b.style.cssText="flex:1;padding:11px;border-radius:11px;border:1.5px solid "+(on?"#f2b43a":"#e3e6ea")+";background:"+(on?"rgba(242,180,58,.14)":"transparent")+";color:#14171b;font-weight:700;cursor:pointer";
       b.onclick=()=>{ S.method=b.dataset.m; render(); }; });
     (S.method==="reader"?renderReader:renderKeyed)();
   }
   function payBtn(label,id){ return `<button id="${id}" style="width:100%;padding:13px;border-radius:11px;border:none;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;cursor:pointer">${label}</button>`; }
 
   function renderReader(){
-    modal.querySelector("#pnBody").innerHTML=`<label style="font-size:12px;color:#9aa3af">Reader</label>
-      <div style="display:flex;gap:8px;margin:4px 0 10px"><select id="pnReader" style="flex:1;background:#11141a;border:1px solid #2a2f3a;border-radius:10px;color:#f4f5f7;padding:10px"><option>Loading…</option></select><button id="pnReload" style="background:#2a2f3a;border:none;color:#9aa3af;border-radius:10px;padding:0 12px;cursor:pointer">&#8635;</button></div>
+    modal.querySelector("#pnBody").innerHTML=`<label style="font-size:12px;color:#5a616c">Reader</label>
+      <div style="display:flex;gap:8px;margin:4px 0 10px"><select id="pnReader" style="flex:1;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:10px;color:#14171b;padding:10px"><option>Loading…</option></select><button id="pnReload" style="background:#e3e6ea;border:none;color:#5a616c;border-radius:10px;padding:0 12px;cursor:pointer">&#8635;</button></div>
       ${payBtn("Send "+m(S.baseCents)+" to reader","pnGo")}<div id="pnSim" style="margin-top:10px"></div>`;
     modal.querySelector("#pnReload").onclick=loadReaders; modal.querySelector("#pnGo").onclick=startReader; loadReaders();
   }
@@ -3626,8 +3849,8 @@ function _receiptsRefresh(){
     sel.innerHTML=(j.readers||[]).map(r=>`<option value="${esc(r.id)}">${esc(r.label||r.id)} &middot; ${esc(r.status)}</option>`).join("")||"<option value=''>(no readers — register one in Stripe)</option>";
     if(!S.reader && j.readers&&j.readers[0]) S.reader=j.readers[0].id;
     sel.value=S.reader||""; sel.onchange=()=>{ S.reader=sel.value; localStorage.setItem("tks_pay_reader",S.reader); };
-    if(j.mode==="test"){ modal.querySelector("#pnSim").innerHTML=`<div style="font-size:11px;color:#9aa3af;margin-bottom:4px">TEST — simulate a tap:</div><div style="display:flex;gap:6px"><button class="pnSimB" data-k="credit">Credit</button><button class="pnSimB" data-k="debit">Debit</button><button class="pnSimB" data-k="decline">Decline</button></div>`;
-      modal.querySelectorAll(".pnSimB").forEach(b=>{ b.style.cssText="flex:1;padding:8px;border-radius:9px;border:1px solid #2a2f3a;background:transparent;color:#9aa3af;cursor:pointer"; b.onclick=()=>simulate(b.dataset.k); }); }
+    if(j.mode==="test"){ modal.querySelector("#pnSim").innerHTML=`<div style="font-size:11px;color:#5a616c;margin-bottom:4px">TEST — simulate a tap:</div><div style="display:flex;gap:6px"><button class="pnSimB" data-k="credit">Credit</button><button class="pnSimB" data-k="debit">Debit</button><button class="pnSimB" data-k="decline">Decline</button></div>`;
+      modal.querySelectorAll(".pnSimB").forEach(b=>{ b.style.cssText="flex:1;padding:8px;border-radius:9px;border:1px solid #e3e6ea;background:transparent;color:#5a616c;cursor:pointer"; b.onclick=()=>simulate(b.dataset.k); }); }
   }
   async function startReader(){
     if(!S.reader){ status("Pick a reader first.","bad"); return; }
@@ -3644,8 +3867,8 @@ function _receiptsRefresh(){
 
   function renderKeyed(){
     const pk=localStorage.getItem("tks_pay_pk")||"";
-    const pkRow = pk ? "" : `<label style="font-size:12px;color:#9aa3af">Stripe publishable key (one-time)</label>
-      <input id="pnPK" type="text" inputmode="text" autocomplete="off" placeholder="pk_test_…" style="width:100%;background:#11141a;border:1px solid #2a2f3a;border-radius:10px;color:#f4f5f7;padding:11px;font-size:16px;box-sizing:border-box;margin:4px 0 10px">`;
+    const pkRow = pk ? "" : `<label style="font-size:12px;color:#5a616c">Stripe publishable key (one-time)</label>
+      <input id="pnPK" type="text" inputmode="text" autocomplete="off" placeholder="pk_test_…" style="width:100%;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:10px;color:#14171b;padding:11px;font-size:16px;box-sizing:border-box;margin:4px 0 10px">`;
     modal.querySelector("#pnBody").innerHTML=`${pkRow}<div id="pnPE" style="background:#fff;border-radius:10px;padding:10px;margin-bottom:10px;min-height:42px"></div>${payBtn("Start card entry","pnGo")}`;
     modal.querySelector("#pnGo").onclick=startKeyed;
   }
@@ -3685,11 +3908,16 @@ function _receiptsRefresh(){
           // Offer to send the receipt straight from the success screen (native share / file).
           const body=modal&&modal.querySelector("#pnBody");
           if(body && !body.querySelector(".pnSend")){
-            const sb=document.createElement("button"); sb.type="button"; sb.className="pnSend";
-            sb.textContent="📤 Send receipt to customer";
-            sb.style.cssText="width:100%;margin-top:12px;padding:13px;border-radius:11px;border:1px solid #2a2f3a;background:#11141a;color:#f4f5f7;font-weight:700;cursor:pointer";
-            sb.onclick=()=>{ try{ shareDocument(r,"en",true); }catch(e){ alert("Sharing isn't available on this device — open the receipt and use Share or Print."); } };
-            body.appendChild(sb);
+            const wrap=document.createElement("div"); wrap.className="pnSend";
+            wrap.style.cssText="display:flex;gap:8px;margin-top:12px";
+            const mkBtn=(label)=>{ const b=document.createElement("button"); b.type="button";
+              b.style.cssText="flex:1;min-height:44px;padding:13px;border-radius:11px;border:1px solid #e3e6ea;background:#f3f4f6;color:#14171b;font-weight:700;cursor:pointer";
+              b.textContent=label; return b; };
+            const dl=mkBtn("⬇ Download receipt");
+            dl.onclick=()=>{ try{ makePDF(r,"en",true); }catch(e){ alert("Couldn't build the PDF — open the receipt and use Print."); } };
+            const sn=mkBtn("📤 Send receipt");
+            sn.onclick=()=>{ try{ shareDocument(r,"en",true); }catch(e){ alert("Sharing isn't available on this device — open the receipt and use Share or Print."); } };
+            wrap.appendChild(dl); wrap.appendChild(sn); body.appendChild(wrap);
           }
         } }catch(_){}
         return;
@@ -3730,9 +3958,9 @@ function pickInventoryPart(onPick){
   if(!window.TKS || !TKS.Inventory){ alert("Inventory isn't available here yet."); return; }
   const ov=document.createElement("div");
   ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px";
-  ov.innerHTML=`<div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:460px;border-radius:16px;padding:16px;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:17px">📦 Pick a part</b><button id="ipX" style="background:none;border:none;color:#9aa3af;font-size:26px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
-    <input id="ipQ" placeholder="Search name, SKU, fitment, VIN…" style="width:100%;background:#11141a;border:1px solid #2a2f3a;border-radius:10px;color:#f4f5f7;padding:11px;font-size:15px;box-sizing:border-box">
+  ov.innerHTML=`<div style="background:#ffffff;color:#14171b;width:100%;max-width:460px;border-radius:16px;padding:16px;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:17px">📦 Pick a part</b><button id="ipX" style="background:none;border:none;color:#5a616c;font-size:26px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
+    <input id="ipQ" placeholder="Search name, SKU, fitment, VIN…" style="width:100%;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:10px;color:#14171b;padding:11px;font-size:15px;box-sizing:border-box">
     <div id="ipList" style="margin-top:10px;max-height:60vh;overflow:auto"></div>
   </div>`;
   document.body.appendChild(ov);
@@ -3744,16 +3972,16 @@ function pickInventoryPart(onPick){
     const low = TKS.Inventory.isLow(p);
     const costTxt = (p.cost!=null && p.cost!=="") ? ("$"+Number(p.cost).toFixed(2)) : "no cost set";
     const costCol = (p.cost!=null && p.cost!=="") ? "#7fd49b" : "#f2b43a";
-    return `<button class="ipRow" data-id="${escapeHtml(p.id)}" style="width:100%;text-align:left;background:#11141a;border:1px solid ${low?'#7a5b12':'#2a2f3a'};border-radius:11px;padding:10px 12px;margin-bottom:7px;color:#f4f5f7;cursor:pointer">
+    return `<button class="ipRow" data-id="${escapeHtml(p.id)}" style="width:100%;text-align:left;background:#f3f4f6;border:1px solid ${low?'#7a5b12':'#e3e6ea'};border-radius:11px;padding:10px 12px;margin-bottom:7px;color:#14171b;cursor:pointer">
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
         <b style="font-size:14px">${escapeHtml(p.name||"(unnamed part)")}</b>
         <span style="font-size:12px;color:${costCol};white-space:nowrap">cost ${costTxt}</span></div>
-      <div style="font-size:12px;color:#9aa3af;margin-top:2px">${escapeHtml([p.sku, "qty "+(parseInt(p.qty,10)||0)+(low?" · LOW":""), p.fitment].filter(Boolean).join(" · "))}</div>
+      <div style="font-size:12px;color:#5a616c;margin-top:2px">${escapeHtml([p.sku, "qty "+(parseInt(p.qty,10)||0)+(low?" · LOW":""), p.fitment].filter(Boolean).join(" · "))}</div>
     </button>`;
   }
   function draw(){
     const res=TKS.Inventory.search(q.value||"");
-    if(!res.length){ listBox.innerHTML='<div style="color:#9aa3af;font-size:14px;padding:14px;text-align:center">'+(((q.value||"").trim())?"No parts match.":"No parts in inventory yet. Add them in the Inventory tile, or type a manual cost on the line.")+'</div>'; return; }
+    if(!res.length){ listBox.innerHTML='<div style="color:#5a616c;font-size:14px;padding:14px;text-align:center">'+(((q.value||"").trim())?"No parts match.":"No parts in inventory yet. Add them in the Inventory tile, or type a manual cost on the line.")+'</div>'; return; }
     listBox.innerHTML=res.slice(0,60).map(row).join("");
     listBox.querySelectorAll(".ipRow").forEach(b=> b.onclick=()=>{ const p=TKS.Inventory.get(b.dataset.id); if(p){ close(); onPick(p); } });
   }
@@ -3827,51 +4055,119 @@ function reverseStockForReceipt(r){
   let modal=null;
   function close(){ if(modal){ modal.remove(); modal=null; } }
   function itemRow(){
-    const inp="background:#11141a;border:1px solid #2a2f3a;border-radius:8px;color:#f4f5f7;padding:8px;font-size:14px;box-sizing:border-box;margin-left:3px";
-    const lbl="font-size:11px;color:#9aa3af;display:flex;align-items:center;gap:2px";
+    const inp="background:#f3f4f6;border:1px solid #e3e6ea;border-radius:8px;color:#14171b;padding:8px;font-size:14px;box-sizing:border-box;margin-left:3px";
+    const lbl="font-size:11px;color:#5a616c;display:flex;align-items:center;gap:2px";
     return `<div class="qiItem" data-part="" style="border:1px solid #232833;border-radius:10px;padding:8px;margin-bottom:7px">
       <div style="display:flex;gap:6px;margin-bottom:5px;align-items:center">
-        <input class="qiDesc" placeholder="Description" style="flex:1;background:#11141a;border:1px solid #2a2f3a;border-radius:8px;color:#f4f5f7;padding:9px;font-size:15px">
-        <button type="button" class="qiPick" title="Pick a part from Inventory (captures its cost)" style="background:#2a2f3a;border:none;color:#cbd2da;border-radius:8px;min-width:44px;min-height:44px;font-size:18px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">📦</button>
-        <button type="button" class="qiDel" title="Remove" style="background:none;border:none;color:#9aa3af;cursor:pointer;font-size:22px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center">&times;</button></div>
+        <input class="qiDesc" list="qiSvcList" placeholder="Description — type or pick a service" style="flex:1;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:8px;color:#14171b;padding:9px;font-size:15px">
+        <button type="button" class="qiPick" title="Pick a part from Inventory (captures its cost)" style="background:#e3e6ea;border:none;color:#5a616c;border-radius:8px;min-width:44px;min-height:44px;font-size:18px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">📦</button>
+        <button type="button" class="qiDel" title="Remove" style="background:none;border:none;color:#5a616c;cursor:pointer;font-size:22px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center">&times;</button></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <label style="${lbl}">Qty<input class="qiQty" inputmode="numeric" value="1" style="width:44px;${inp}"></label>
         <label style="${lbl}">Sale $<input class="qiAmt" placeholder="0.00" inputmode="decimal" style="width:72px;${inp}"></label>
         <label style="${lbl}">Cost $<input class="qiCost" placeholder="0.00" inputmode="decimal" style="width:72px;${inp}"></label>
-        <label style="font-size:11px;color:#9aa3af;display:flex;align-items:center;gap:3px;margin-left:auto"><input type="checkbox" class="qiTax">tax</label></div>
+        <label style="font-size:11px;color:#5a616c;display:flex;align-items:center;gap:3px;margin-left:auto"><input type="checkbox" class="qiTax">tax</label></div>
       <div class="qiPartTag" style="font-size:11px;color:#7fd49b;margin-top:4px;display:none"></div></div>`;
   }
-  window.openQuickInvoice = function(onCancel){
+  window.openQuickInvoice = function(onCancel, edit){
+    const isEdit = !!(edit && edit.id);
     if(modal) modal.remove();
     modal=node(`<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px">
-      <div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:460px;border-radius:16px;padding:18px;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:18px">⚡ Quick invoice</b><button type="button" id="qiX" style="background:none;border:none;color:#9aa3af;font-size:26px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
+      <div style="background:#ffffff;color:#14171b;width:100%;max-width:460px;border-radius:16px;padding:18px;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:18px">⚡ Quick invoice</b><button type="button" id="qiX" style="background:none;border:none;color:#5a616c;font-size:26px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
         <label class="qiL">Type</label>
         <div id="qiType" style="display:flex;gap:6px;margin-bottom:4px"><button type="button" class="qiTB" data-t="receipt">Receipt (paid)</button><button type="button" class="qiTB" data-t="invoice">Invoice (unpaid)</button><button type="button" class="qiTB" data-t="estimate">Estimate</button></div>
         <label class="qiL">Service</label>
         <div id="qiSvc" style="display:flex;gap:6px;margin-bottom:4px"><button type="button" class="qiSB" data-s="Automotive">Auto</button><button type="button" class="qiSB" data-s="Residential">Residential</button><button type="button" class="qiSB" data-s="Commercial">Commercial</button></div>
+        <div id="qiNastfWrap" style="display:none">
+          <label class="qiL">NASTF D1 <span style="color:#9a9a9a">(automotive key paperwork — optional)</span></label>
+          <div id="qiNastf" style="display:flex;gap:6px;margin-bottom:4px;flex-wrap:wrap"><button type="button" class="qiNB" data-n="">None</button><button type="button" class="qiNB" data-n="Customer D1">Customer</button><button type="button" class="qiNB" data-n="Auction/Fleet D1">Auction/Fleet</button><button type="button" class="qiNB" data-n="Contracting D1">Contracting</button></div>
+          <div id="qiNastfNote" style="font-size:12px;color:#5a616c;margin:0 0 4px;display:none"></div>
+          <div id="qiNastfFields"></div>
+        </div>
         <label class="qiL">Customer name *</label><input id="qiName" class="qiI" list="qiCustList" placeholder="Name"><datalist id="qiCustList"></datalist>
         <div style="display:flex;gap:8px"><div style="flex:1"><label class="qiL">Phone</label><input id="qiPhone" class="qiI" type="tel"></div><div style="flex:1"><label class="qiL">Email</label><input id="qiEmail" class="qiI" type="email"></div></div>
         <label class="qiL">Address</label><input id="qiAddr" class="qiI">
-        <details style="margin:8px 0"><summary style="cursor:pointer;color:#9aa3af;font-size:13px">Vehicle (optional)</summary>
+        <details style="margin:8px 0"><summary style="cursor:pointer;color:#5a616c;font-size:13px">Vehicle (optional)</summary>
           <div style="display:flex;gap:6px;margin-top:6px"><input id="qiVYear" class="qiI" placeholder="Year" style="width:74px"><input id="qiVMake" class="qiI" placeholder="Make"><input id="qiVModel" class="qiI" placeholder="Model"></div>
-          <input id="qiVin" class="qiI" placeholder="VIN" style="margin-top:6px"></details>
+          <input id="qiVin" class="qiI" placeholder="VIN (auto-fills year / make / model)" style="margin-top:6px">
+          <div id="qiVinMsg" style="font-size:11px;color:#5a616c;margin-top:3px"></div></details>
         <label class="qiL">Line items *</label><div id="qiItems"></div>
-        <button type="button" id="qiAdd" style="background:#2a2f3a;border:none;color:#cbd2da;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;margin-bottom:8px">+ Add item</button>
+        <button type="button" id="qiAdd" style="background:#e3e6ea;border:none;color:#5a616c;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;margin-bottom:8px">+ Add item</button>
         <div id="qiPayWrap"><label class="qiL">Payment method</label><div id="qiPay" style="display:flex;gap:6px;margin-bottom:4px"><button type="button" class="qiPB" data-p="Cash">Cash</button><button type="button" class="qiPB" data-p="Card">Card</button><button type="button" class="qiPB" data-p="Check">Check</button></div></div>
         <label class="qiL">Technician <span style="color:#9a9a9a">(for commission — optional)</span></label><input id="qiTech" class="qiI" placeholder="Who did the job">
         <label class="qiL">Tax rate % <span style="color:#9a9a9a">(this receipt — blank uses the shop default)</span></label><input id="qiTaxRate" class="qiI" type="number" step="0.001" inputmode="decimal" placeholder="shop default">
+        <div id="qiWarrantyWrap" style="display:none;margin:8px 0 2px"><label style="display:flex;align-items:center;gap:8px;font-size:14px;color:#14171b;cursor:pointer"><input type="checkbox" id="qiWarranty" style="width:18px;height:18px"> <span id="qiWarrantyLabel">Include standard warranty</span></label></div>
         <label class="qiL">Notes</label><textarea id="qiNotes" class="qiI" style="min-height:46px"></textarea>
         <div id="qiErr" style="color:#f0a0a6;font-size:13px;margin:6px 0;min-height:16px"></div>
-        <div style="display:flex;gap:8px;margin-top:4px"><button type="button" id="qiGo" style="flex:1;padding:13px;border:none;border-radius:11px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;cursor:pointer">Create</button><button type="button" id="qiCancel" style="padding:13px 16px;border:1px solid #2a2f3a;background:transparent;color:#9aa3af;border-radius:11px;cursor:pointer">Cancel</button></div>
+        <div style="display:flex;gap:8px;margin-top:4px"><button type="button" id="qiGo" style="flex:1;padding:13px;border:none;border-radius:11px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;cursor:pointer">Create</button><button type="button" id="qiCancel" style="padding:13px 16px;border:1px solid #e3e6ea;background:transparent;color:#5a616c;border-radius:11px;cursor:pointer">Cancel</button></div>
       </div></div>`);
     document.body.appendChild(modal);
-    modal.querySelectorAll(".qiL").forEach(l=>l.style.cssText="display:block;font-size:12px;color:#9aa3af;margin:8px 0 3px");
-    modal.querySelectorAll(".qiI").forEach(i=>i.style.cssText="width:100%;background:#11141a;border:1px solid #2a2f3a;border-radius:9px;color:#f4f5f7;padding:10px;font-size:15px;box-sizing:border-box");
+    modal.querySelectorAll(".qiL").forEach(l=>l.style.cssText="display:block;font-size:12px;color:#5a616c;margin:8px 0 3px");
+    modal.querySelectorAll(".qiI").forEach(i=>i.style.cssText="width:100%;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:9px;color:#14171b;padding:10px;font-size:15px;box-sizing:border-box");
     const seg=(cls,attr,def)=>{ let cur=def; const bs=modal.querySelectorAll(cls);
-      const paint=()=>bs.forEach(b=>{ const on=b.dataset[attr]===cur; b.style.cssText="flex:1;padding:9px;border-radius:9px;border:1.5px solid "+(on?"#f2b43a":"#2a2f3a")+";background:"+(on?"rgba(242,180,58,.14)":"transparent")+";color:#f4f5f7;font-weight:700;cursor:pointer;font-size:13px"; });
+      const paint=()=>bs.forEach(b=>{ const on=b.dataset[attr]===cur; b.style.cssText="flex:1;padding:9px;border-radius:9px;border:1.5px solid "+(on?"#f2b43a":"#e3e6ea")+";background:"+(on?"rgba(242,180,58,.14)":"transparent")+";color:#14171b;font-weight:700;cursor:pointer;font-size:13px"; });
       bs.forEach(b=>b.onclick=()=>{ cur=b.dataset[attr]; paint(); if(cls===".qiTB"){ modal.querySelector("#qiPayWrap").style.display = (cur==="receipt")?"block":"none"; } }); paint(); return ()=>cur; };
-    const getType=seg(".qiTB","t","receipt"), getSvc=seg(".qiSB","s","Automotive"), getPay=seg(".qiPB","p","Cash");
+    const getType=seg(".qiTB","t", (isEdit&&edit.docType)?edit.docType:"receipt"),
+          getSvc=seg(".qiSB","s", (isEdit&&edit.serviceType)?edit.serviceType:"Automotive"),
+          getPay=seg(".qiPB","p", (isEdit&&edit.payment&&/^(Cash|Card|Check)$/.test(edit.payment))?edit.payment:"Cash");
+    // ---- NASTF quick-fill (automotive only): mirrors the chat's NASTF_FIELDS into the quick form ----
+    let nastfType="";
+    const nastfWrap=modal.querySelector("#qiNastfWrap"), nastfFieldsBox=modal.querySelector("#qiNastfFields"),
+          nastfNote=modal.querySelector("#qiNastfNote"), nastfBtns=modal.querySelectorAll(".qiNB");
+    const qiInputCss="width:100%;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:9px;color:#14171b;padding:10px;font-size:15px;box-sizing:border-box";
+    const qiLblCss="display:block;font-size:12px;color:#5a616c;margin:8px 0 3px";
+    function paintNastfBtns(){ nastfBtns.forEach(b=>{ const on=b.dataset.n===nastfType;
+      b.style.cssText="flex:1;min-width:84px;padding:9px;border-radius:9px;border:1.5px solid "+(on?"#f2b43a":"#e3e6ea")+";background:"+(on?"rgba(242,180,58,.14)":"transparent")+";color:#14171b;font-weight:700;cursor:pointer;font-size:13px"; }); }
+    function renderNastfFields(){
+      nastfFieldsBox.innerHTML="";
+      // Contracting D1: the "Customer name" field is the SHOP (bill-to); vehicle owner goes below.
+      if(nastfType==="Contracting D1"){ nastfNote.style.display="block"; nastfNote.textContent="↑ Put the contracting shop/dealer in “Customer name”. The vehicle owner goes below."; }
+      else if(nastfType==="Auction/Fleet D1"){ nastfNote.style.display="block"; nastfNote.textContent="↑ “Customer name” is who you bill (the auction/fleet). Authorizing-party details go below."; }
+      else { nastfNote.style.display="none"; nastfNote.textContent=""; }
+      const fields=(typeof NASTF_FIELDS!=="undefined" && NASTF_FIELDS[nastfType]) || [];
+      fields.forEach(f=>{
+        if(f.key==="address") return; // already collected by the modal's main Address field
+        const lab=document.createElement("label"); lab.style.cssText=qiLblCss;
+        lab.innerHTML=esc(f.ask)+(f.req?' <span style="color:#c8323c">*</span>':'')+(f.hint?' <span style="color:#9a9a9a;font-weight:400">— '+esc(f.hint)+'</span>':'');
+        nastfFieldsBox.appendChild(lab);
+        let el;
+        if(f.options){ el=document.createElement("select"); el.innerHTML='<option value=""></option>'+f.options.map(o=>'<option value="'+esc(o)+'">'+esc(o)+'</option>').join(""); }
+        else { el=document.createElement("input"); if(f.numeric) el.setAttribute("inputmode","numeric"); }
+        el.className="qiNF"; el.style.cssText=qiInputCss; el.dataset.key=f.key; el.dataset.req=f.req?"1":""; el.dataset.ask=f.ask;
+        nastfFieldsBox.appendChild(el);
+      });
+      // jobLocation auto-fills from the address field when present
+      const jl=nastfFieldsBox.querySelector('.qiNF[data-key="jobLocation"]'); const addr=modal.querySelector("#qiAddr");
+      if(jl && addr && addr.value.trim() && !jl.value) jl.value=addr.value.trim();
+    }
+    nastfBtns.forEach(b=>b.onclick=()=>{ nastfType=b.dataset.n; paintNastfBtns(); renderNastfFields(); });
+    paintNastfBtns();
+    function syncNastfVisibility(){ const auto=getSvc()==="Automotive"; nastfWrap.style.display=auto?"block":"none";
+      if(!auto && nastfType){ nastfType=""; paintNastfBtns(); renderNastfFields(); } }
+    modal.querySelectorAll(".qiSB").forEach(b=>b.addEventListener("click",syncNastfVisibility));
+    syncNastfVisibility();
+    function getNastf(){
+      if(getSvc()!=="Automotive" || !nastfType) return null;
+      const vals={}; nastfFieldsBox.querySelectorAll(".qiNF").forEach(el=>{ const v=(el.value||"").trim(); if(v) vals[el.dataset.key]=v; });
+      return {type:nastfType, values:vals, fields:(typeof NASTF_FIELDS!=="undefined"?(NASTF_FIELDS[nastfType]||[]):[])};
+    }
+    // ---- line-item presets: type or pick a service for this category; auto-fills price + taxable ----
+    const qiSvcList=document.createElement("datalist"); qiSvcList.id="qiSvcList"; modal.appendChild(qiSvcList);
+    let qiPresets=[];
+    function presetTaxable(name){ return /(lock|deadbolt|key blank|cut key|fob|remote|cylinder|exit bar|panic|hardware|smart lock|keypad|card reader|reader|mailbox|cabinet|blank)/.test(String(name).toLowerCase()); }
+    function buildPresets(){
+      const svcLabel=getSvc(), map={};
+      try{ if(window.TKS && TKS.ServiceCats){
+        const key=TKS.ServiceCats.keyForInvoice(svcLabel);
+        (key?TKS.ServiceCats.servicesFor(key):[]).forEach(s=>{ const n=(s&&(s.value||s.en))||""; if(n) map[n.toLowerCase()]={name:n, price:(s.price!==""&&s.price!=null)?Number(s.price):null, taxable:presetTaxable(n)}; });
+      } }catch(e){}
+      try{ getCommonJobs().filter(j=>j.svc===svcLabel||j.svc==="Any"||!j.svc).forEach(j=>{ const n=j.desc; if(n && !map[n.toLowerCase()]) map[n.toLowerCase()]={name:n, price:(j.price!==""&&j.price!=null)?Number(j.price):null, taxable:!!j.taxable}; }); }catch(e){}
+      qiPresets=Object.keys(map).map(k=>map[k]).sort((a,b)=>a.name.localeCompare(b.name));
+      qiSvcList.innerHTML=qiPresets.map(p=>'<option value="'+esc(p.name)+'">'+(p.price!=null?("$"+p.price.toFixed(2)):"")+'</option>').join("");
+    }
+    buildPresets();
+    modal.querySelectorAll(".qiSB").forEach(b=>b.addEventListener("click",buildPresets));
     try{ const all=(typeof getCustomers==="function"?getCustomers():[]).concat(typeof getShops==="function"?getShops():[]);
       modal.querySelector("#qiCustList").innerHTML=all.map(c=>`<option value="${esc(c.customer||c.name||"")}">`).join("");
       modal.querySelector("#qiName").addEventListener("change",function(){ const hit=all.find(c=>(c.customer||c.name||"").toLowerCase()===this.value.trim().toLowerCase()); if(hit){ if(hit.phone)modal.querySelector("#qiPhone").value=hit.phone; if(hit.email)modal.querySelector("#qiEmail").value=hit.email; if(hit.address)modal.querySelector("#qiAddr").value=hit.address; } });
@@ -3879,6 +4175,10 @@ function reverseStockForReceipt(r){
     const itemsBox=modal.querySelector("#qiItems");
     function addItem(){ const r=node(itemRow()); itemsBox.appendChild(r);
       r.querySelector(".qiDel").onclick=()=>r.remove();
+      const desc=r.querySelector(".qiDesc");
+      desc.addEventListener("change",()=>{ const hit=qiPresets.find(p=>p.name.toLowerCase()===desc.value.trim().toLowerCase()); if(!hit) return;
+        const amt=r.querySelector(".qiAmt"); if(hit.price!=null && !amt.value) amt.value=hit.price.toFixed(2);
+        r.querySelector(".qiTax").checked=!!hit.taxable; });
       r.querySelector(".qiPick").onclick=()=> pickInventoryPart(p=>{
         r.dataset.part=p.id;
         const desc=r.querySelector(".qiDesc"); if(!desc.value.trim()) desc.value=p.name||"";
@@ -3890,16 +4190,69 @@ function reverseStockForReceipt(r){
       });
     }
     addItem(); modal.querySelector("#qiAdd").onclick=addItem;
+    // VIN auto-decode → fills Year / Make / Model on the invoice (vPIC, same as Start-a-job).
+    (function(){
+      var vinEl=modal.querySelector("#qiVin"), vmsg=modal.querySelector("#qiVinMsg"); if(!vinEl) return;
+      var lastVin="";
+      function tryDecode(){
+        var v=(vinEl.value||"").trim().toUpperCase();
+        if(v===lastVin) return;
+        if(!/^[A-HJ-NPR-Z0-9]{17}$/.test(v)){ if(vmsg) vmsg.textContent=(v.length>=17?"That doesn't look like a 17-character VIN.":""); return; }
+        lastVin=v; if(vmsg){ vmsg.style.color="#5a616c"; vmsg.textContent="Decoding VIN…"; }
+        if(!(window.TKS&&TKS.decodeVin)){ if(vmsg) vmsg.textContent=""; return; }
+        TKS.decodeVin(v).then(function(res){
+          var y=modal.querySelector("#qiVYear"), mk=modal.querySelector("#qiVMake"), md=modal.querySelector("#qiVModel");
+          if(res.year&&y) y.value=res.year; if(res.make&&mk) mk.value=res.make; if(res.model&&md) md.value=res.model;
+          if(vmsg) vmsg.textContent="✓ "+[res.year,res.make,res.model].filter(Boolean).join(" ");
+        }).catch(function(e){ if(vmsg){ vmsg.style.color="#b3242f"; vmsg.textContent=(e&&e.message)||"Couldn't decode that VIN — enter the vehicle manually."; } });
+      }
+      vinEl.addEventListener("change", tryDecode);
+      vinEl.addEventListener("blur", tryDecode);
+      vinEl.addEventListener("input", function(){ if((vinEl.value||"").replace(/\s/g,"").length===17) tryDecode(); });
+    })();
     try{ modal.querySelector("#qiTech").value=currentTechnician(); }catch(e){}
     try{ modal.querySelector("#qiTaxRate").placeholder="default "+configTaxRate()+"%"; }catch(e){}
+    try{ const w=configWarranty(); if(w.months>0){
+      const wrap=modal.querySelector("#qiWarrantyWrap");
+      modal.querySelector("#qiWarranty").checked=!!w.defaultOn;
+      modal.querySelector("#qiWarrantyLabel").textContent="Include standard warranty ("+w.months+" month"+(w.months===1?"":"s")+")";
+      const syncWar=()=>{ wrap.style.display=(getType()==="estimate")?"none":"block"; };  // estimates carry no warranty
+      modal.querySelectorAll(".qiTB").forEach(b=>b.addEventListener("click",syncWar)); syncWar();
+    } }catch(e){}
+    // ---- EDIT MODE: pre-fill every field from the existing receipt ----
+    if(isEdit){
+      const $q=s=>modal.querySelector(s);
+      $q("#qiName").value=edit.customer||""; $q("#qiPhone").value=edit.phone||""; $q("#qiEmail").value=edit.email||"";
+      $q("#qiAddr").value=edit.address||""; $q("#qiVYear").value=edit.vehYear||""; $q("#qiVMake").value=edit.vehMake||"";
+      $q("#qiVModel").value=edit.vehModel||""; $q("#qiVin").value=edit.vin||""; $q("#qiTech").value=edit.technician||"";
+      $q("#qiTaxRate").value=(edit.taxRate!=null&&edit.taxRate!=="")?edit.taxRate:""; $q("#qiNotes").value=edit.notes||"";
+      itemsBox.innerHTML="";
+      (edit.items||[]).forEach(it=>{ addItem(); const row=itemsBox.lastElementChild;
+        row.querySelector(".qiDesc").value=it.desc||"";
+        row.querySelector(".qiQty").value=(it.qty!=null?it.qty:1);
+        row.querySelector(".qiAmt").value=(it.amount!=null?it.amount:"");
+        row.querySelector(".qiCost").value=(it.unitCost?it.unitCost:"");
+        row.querySelector(".qiTax").checked=!!it.taxable;
+        if(it.partId) row.dataset.part=it.partId; });
+      if(!itemsBox.children.length) addItem();
+      if(edit.nastf && edit.nastf.type && getSvc()==="Automotive"){
+        nastfType=edit.nastf.type; paintNastfBtns(); renderNastfFields();
+        nastfFieldsBox.querySelectorAll(".qiNF").forEach(el=>{ const k=el.dataset.key; if(edit[k]!=null && edit[k]!=="") el.value=edit[k]; });
+      }
+      const wcb=$q("#qiWarranty"); if(wcb) wcb.checked=!!edit.warranty;
+      try{ modal.querySelector("b").textContent="✏️ Edit "+(edit.number||"invoice"); }catch(_){}
+      $q("#qiGo").textContent="Save changes";
+    }
     const cancel=()=>{ close(); if(typeof onCancel==="function") onCancel(); };
     modal.querySelector("#qiX").onclick=cancel; modal.querySelector("#qiCancel").onclick=cancel;
-    modal.querySelector("#qiGo").onclick=()=>submit(getType,getSvc,getPay);
+    modal.querySelector("#qiGo").onclick=()=>submit(getType,getSvc,getPay,getNastf,edit);
   };
-  function submit(getType,getSvc,getPay){
+  function submit(getType,getSvc,getPay,getNastf,edit){
     const err=modal.querySelector("#qiErr"); err.textContent="";
     const name=(modal.querySelector("#qiName").value||"").trim();
     if(!name){ err.textContent="Customer name is required."; return; }
+    const nastf=(typeof getNastf==="function")?getNastf():null;
+    if(nastf){ for(const f of nastf.fields){ if(f.req && !nastf.values[f.key]){ err.textContent="NASTF ("+nastf.type+"): “"+f.ask+"” is required."; return; } } }
     const its=[];
     modal.querySelectorAll(".qiItem").forEach(row=>{
       const d=(row.querySelector(".qiDesc").value||"").trim();
@@ -3928,9 +4281,27 @@ function reverseStockForReceipt(r){
     if(dt==="invoice"){ receipt.payment="Not specified"; receipt.status="Unpaid"; }
     else if(dt==="estimate"){ receipt.payment="Not specified"; receipt.status=""; }
     else { receipt.payment=getPay(); receipt.status="Paid in Full"; }
+    // Warranty: explicit checkbox wins (finish() won't override a set value). Estimates never carry one.
+    try{ const wcb=modal.querySelector("#qiWarranty"), wcfg=configWarranty();
+      if(dt!=="estimate" && wcb && wcb.checked && wcfg.months>0){ receipt.warranty=true; receipt.warrantyMonths=wcfg.months; }
+      else { receipt.warranty=false; receipt.warrantyMonths=0; }
+    }catch(e){}
     items = its;
     try{ signatureData=null; }catch(e){}
-    try{ nastfInfo=null; }catch(e){}
+    // NASTF: set the type (drives the audit blocks) and mirror the collected fields onto the receipt
+    try{
+      if(nastf){ nastfInfo={type:nastf.type}; Object.assign(receipt, nastf.values); }
+      else { nastfInfo=null; }
+    }catch(e){}
+    // EDIT: keep the original doc's identity so finish() UPDATES it instead of creating a new one.
+    if(edit && edit.id){
+      receipt.id=edit.id;
+      if(edit.number) receipt.number=edit.number;
+      if(edit.savedAt) receipt.savedAt=edit.savedAt;
+      if(edit.date) receipt.date=edit.date;
+      if(edit.cashLogged) receipt.cashLogged=edit.cashLogged;   // already-logged: don't double-log
+      try{ signatureData=edit.signature||null; }catch(e){}        // keep the original signature
+    }
     if(typeof clearUndo==="function") clearUndo();
     close();
     finish();

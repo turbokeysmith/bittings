@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bittings reskin — reference</title>
+<!-- no-flash: apply remembered theme before paint -->
+<script>try{if(localStorage.getItem('bt_theme')==='dark')document.documentElement.setAttribute('data-bt-theme','dark');}catch(e){}</script>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta name="theme-color" content="#f6f7f9">
+<link rel="stylesheet" href="bittings-ui.css">
+<style>
+  html,body{margin:0;}
+  /* demo-only helper rows */
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+  @media(max-width:720px){.grid4{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body class="bt">
+<div class="bt-app">
+
+  <!-- ===== SIDEBAR (desktop) — every real destination, in order ===== -->
+  <aside class="bt-sidebar">
+    <div class="bt-sidebar__brand">
+      <img src="assets/mark.svg" alt="">
+      <div class="bt-sidebar__name">Bittings</div>
+    </div>
+    <div class="bt-workspace">
+      <div class="bt-workspace__label">Locksmith</div>
+      <div class="bt-workspace__name">Turbo Keysmith</div>
+    </div>
+    <nav class="bt-nav">
+      <button class="bt-nav__item is-active"><span class="bt-nav__ic">🔑</span>Start a job</button>
+      <button class="bt-nav__item"><span class="bt-nav__ic">👤</span>Customers</button>
+      <button class="bt-nav__item"><span class="bt-nav__ic">🧾</span>Receipts &amp; NASTF</button>
+      <button class="bt-nav__item"><span class="bt-nav__ic">📅</span>Scheduler</button>
+      <button class="bt-nav__item"><span class="bt-nav__ic">💳</span>Payments</button>
+      <button class="bt-nav__item"><span class="bt-nav__ic">📦</span>Inventory</button>
+      <button class="bt-nav__item"><span class="bt-nav__ic">📇</span>Lishi &amp; Keys</button>
+      <button class="bt-nav__item"><span class="bt-nav__ic">🛠</span>Programmers</button>
+      <button class="bt-nav__item"><span class="bt-nav__ic">📊</span>Dashboard</button>
+      <button class="bt-nav__item"><span class="bt-nav__ic">🧮</span>Closeout</button>
+      <button class="bt-nav__item"><span class="bt-nav__ic">📈</span>Reports</button>
+    </nav>
+    <div style="padding:0 16px 10px"><div class="bt-themetoggle">
+      <button data-bt-set="light">☀ Light</button>
+      <button data-bt-set="dark">🌙 Dark</button>
+    </div></div>
+    <div class="bt-user">
+      <div class="bt-user__avatar">S</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:800">Samer K.</div>
+        <div class="eyebrow" style="font-size:8.5px;color:var(--brand-amber-deep)">Manager</div>
+      </div>
+      <span style="color:var(--text-tertiary)">⌄</span>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN — a restyled "Receipts / NASTF" page (illustration) ===== -->
+  <main class="bt-main">
+    <div class="bt-pagewrap">
+
+      <!-- ====== START A JOB — step 1: what kind of job? ====== -->
+      <div class="bt-pagehead">
+        <div>
+          <div class="eyebrow">Start a job</div>
+          <h1>What kind of job?</h1>
+        </div>
+      </div>
+      <div class="row" id="jobtype" style="margin-bottom:24px">
+        <button class="bt-jobtype is-active" data-jt="auto"><span style="font-size:26px">🚗</span><span class="bt-jobtype__title">Automotive</span><span class="bt-jobtype__sub">VIN → keyway, tool &amp; programming</span></button>
+        <button class="bt-jobtype" data-jt="res"><span style="font-size:26px">🏠</span><span class="bt-jobtype__title">Residential</span><span class="bt-jobtype__sub">Rekey · lockout · install</span></button>
+        <button class="bt-jobtype" data-jt="com"><span style="font-size:26px">🏢</span><span class="bt-jobtype__title">Commercial</span><span class="bt-jobtype__sub">Master key · access control</span></button>
+      </div>
+
+      <!-- ====== Automotive flow: the one-page VIN hero ====== -->
+      <div id="autoFlow">
+      <div class="bt-pagehead">
+        <div>
+          <div class="eyebrow">Automotive · Lishi &amp; programming</div>
+          <h1>Job lookup</h1>
+        </div>
+        <div class="bt-pagehead__actions">
+          <button class="bt-btn bt-btn--secondary">Browse vehicles</button>
+        </div>
+      </div>
+
+      <div class="bt-card" style="margin-bottom:18px">
+        <div class="eyebrow" style="margin-bottom:12px">Enter a VIN, or year / make / model</div>
+        <div class="row">
+          <div class="bt-field bt-field--icon" style="flex:2;min-width:240px">
+            <span class="bt-field__icon">🔎</span>
+            <input class="bt-input bt-input--mono" value="1FTFW1E50MFA12345" aria-label="VIN" maxlength="17">
+          </div>
+          <select class="bt-input bt-select" style="flex:0 0 auto;width:auto"><option>2021</option></select>
+          <select class="bt-input bt-select" style="flex:0 0 auto;width:auto"><option>Ford</option></select>
+          <select class="bt-input bt-select" style="flex:0 0 auto;width:auto"><option>F-150</option></select>
+          <button class="bt-btn bt-btn--primary bt-btn--lg">Look up</button>
+        </div>
+      </div>
+
+      <!-- result + side rail: everything visible at once -->
+      <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:20px;align-items:start;margin-bottom:26px">
+        <div class="bt-card bt-card--spine-amber">
+          <div class="row" style="justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="eyebrow">Job lookup result</div>
+              <div style="font-size:var(--fs-display);font-weight:900;letter-spacing:var(--ls-tight);margin-top:2px">2021 Ford F-150</div>
+              <div class="mono" style="font-size:12.5px;color:var(--text-secondary)">1FTFW1E50MFA12345</div>
+            </div>
+            <span class="bt-pill is-ok">✓ Confirmed</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px">
+            <div>
+              <div class="eyebrow" style="margin-bottom:4px">Keyway — Lishi tool</div>
+              <div style="font-weight:800;color:var(--brand-red)">HU101 <span class="mono" style="color:var(--text-secondary);font-weight:600;font-size:12.5px">· HU101(10) V.3</span></div>
+            </div>
+            <div>
+              <div class="eyebrow" style="margin-bottom:4px">Inventory check</div>
+              <span class="bt-pill is-ok">12 blanks · 4 fobs in van</span>
+            </div>
+            <div>
+              <div class="eyebrow" style="margin-bottom:4px">Transponder</div>
+              <div class="mono" style="font-size:13px;font-weight:600">Ford 128-bit (PATS)</div>
+            </div>
+            <div>
+              <div class="eyebrow" style="margin-bottom:4px">Ignition pickable</div>
+              <span class="bt-pill is-ok">Yes</span>
+            </div>
+          </div>
+          <div class="bt-card--flush" style="margin-top:16px;border-top:1px solid var(--border-subtle);padding-top:14px">
+            <div class="eyebrow" style="margin-bottom:8px">Programmers</div>
+            <div class="row" style="gap:8px">
+              <span class="bt-pill is-info">AutoProPad G2 · AKL</span>
+              <span class="bt-pill is-info">Autel IM608 · NASTF</span>
+              <span class="bt-pill is-warn">Lonsdor K518 · add-key</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="bt-card">
+            <div class="eyebrow" style="margin-bottom:10px">Next step</div>
+            <button class="bt-btn bt-btn--brand bt-btn--full bt-btn--lg" style="margin-bottom:9px">Start all-keys-lost job</button>
+            <button class="bt-btn bt-btn--secondary bt-btn--full">Add key to invoice</button>
+          </div>
+          <div class="bt-card">
+            <div class="eyebrow" style="margin-bottom:12px">In your van</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border-subtle)"><span style="font-size:13.5px;font-weight:600">HU101 blank</span><span class="bt-pill is-ok">12</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border-subtle)"><span style="font-size:13.5px;font-weight:600">Ford 4-btn fob</span><span class="bt-pill is-ok">4</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0"><span style="font-size:13.5px;font-weight:600">4D-63 chip</span><span class="bt-pill is-ok">23</span></div>
+          </div>
+        </div>
+      </div>
+
+      </div><!-- /#autoFlow -->
+
+      <!-- ====== Residential / Commercial flow (shown when chosen) ====== -->
+      <div id="otherFlow" style="display:none">
+        <div class="bt-pagehead"><div><div class="eyebrow" id="otherEyebrow">Residential</div><h1>Job details</h1></div></div>
+        <div class="bt-card" style="margin-bottom:24px">
+          <div class="eyebrow" style="margin-bottom:12px">Describe the job</div>
+          <div class="row">
+            <select class="bt-input bt-select" id="otherService" style="flex:1;min-width:220px"></select>
+            <button class="bt-btn bt-btn--primary bt-btn--lg">Continue</button>
+          </div>
+          <div style="font-size:var(--fs-body-sm);color:var(--text-secondary);margin-top:12px;line-height:1.5">No VIN needed for this job type — pick the service and continue to the work order. In the app this pulls the shop's real service catalog for the chosen category.</div>
+        </div>
+      </div>
+
+      <!-- ====== existing receipt / NASTF content continues below ====== -->
+      <div class="bt-pagehead">
+        <div>
+          <div class="eyebrow">Receipt · invoice · estimate</div>
+          <h1>Receipt #1042</h1>
+        </div>
+        <div class="bt-pagehead__actions">
+          <button class="bt-btn bt-btn--secondary">My Copy</button>
+          <button class="bt-btn bt-btn--secondary">Customer Copy</button>
+        </div>
+      </div>
+
+      <!-- NASTF compliance card (styling only — real D1 logic stays as-is) -->
+      <div class="bt-card bt-card--spine-red" style="margin-bottom:20px">
+        <div class="row" style="justify-content:space-between">
+          <div class="eyebrow">NASTF compliance</div>
+          <span class="bt-pill is-no">D1 required</span>
+        </div>
+        <div style="font-size:var(--fs-body-sm);color:var(--text-secondary);margin:8px 0 14px;line-height:1.5">
+          The right D1 fields appear automatically for each type. Required fields can't be skipped, and the
+          Customer Copy hides audit data — exactly as your flow does today. This is the same screen, reskinned.
+        </div>
+        <div class="row">
+          <span class="bt-pill is-info">Customer D1</span>
+          <span class="bt-pill is-info">Auction / Fleet D1</span>
+          <span class="bt-pill is-info">Contracting D1</span>
+        </div>
+      </div>
+
+      <!-- KPI row to show the dashboard styling -->
+      <div class="grid4" style="margin-bottom:20px">
+        <div class="bt-card bt-stat bt-stat--green"><div class="bt-stat__label">Revenue</div><div class="bt-stat__value">$18,420</div><div class="bt-stat__sub">▲ 12% vs May</div></div>
+        <div class="bt-card bt-stat"><div class="bt-stat__label">Jobs</div><div class="bt-stat__value">94</div><div class="bt-stat__sub">6.3 / day</div></div>
+        <div class="bt-card bt-stat bt-stat--blue"><div class="bt-stat__label">Repeat customers</div><div class="bt-stat__value">38%</div><div class="bt-stat__sub">▲ 4 pts</div></div>
+        <div class="bt-card bt-stat"><div class="bt-stat__label">Avg ticket</div><div class="bt-stat__value">$196</div><div class="bt-stat__sub">▲ $8</div></div>
+      </div>
+
+      <!-- line items + payment, to show cards/inputs/buttons -->
+      <div class="bt-card bt-card--flush" style="margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--border-subtle)">
+          <span class="eyebrow">Line items</span><span class="mono" style="font-size:12px;color:var(--text-secondary)">Jun 15, 2026</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 22px;border-bottom:1px solid var(--border-subtle)">
+          <span style="flex:1;font-weight:600">Transponder key — cut</span><span class="mono" style="color:var(--text-tertiary)">×1</span><span class="mono" style="font-weight:700">$85.00</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 22px;border-bottom:1px solid var(--border-subtle)">
+          <span style="flex:1;font-weight:600">Key programming (OBD)</span><span class="mono" style="color:var(--text-tertiary)">×1</span><span class="mono" style="font-weight:700">$75.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:18px 22px">
+          <span style="font-weight:900;font-size:18px">Total due</span>
+          <span class="mono" style="font-weight:900;font-size:28px;color:var(--accent)">$184.00</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="bt-field bt-field--icon" style="flex:1;min-width:220px">
+          <span class="bt-field__icon">🔎</span>
+          <input class="bt-input bt-input--mono" value="1FTFW1E50MFA12345" aria-label="VIN">
+        </div>
+        <button class="bt-btn bt-btn--primary bt-btn--lg">💳 Take payment</button>
+        <button class="bt-btn bt-btn--brand bt-btn--lg">Start all-keys-lost job</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== BOTTOM NAV (phone) — primary destinations + More ===== -->
+<nav class="bt-bottomnav">
+  <a class="bt-bottomnav__item is-active"><span class="bt-nav__ic">🔑</span>Start job</a>
+  <a class="bt-bottomnav__item"><span class="bt-nav__ic">🧾</span>Receipts</a>
+  <a class="bt-bottomnav__item"><span class="bt-nav__ic">👤</span>Customers</a>
+  <a class="bt-bottomnav__item"><span class="bt-nav__ic">📦</span>Stock</a>
+  <a class="bt-bottomnav__item"><span class="bt-nav__ic">⋯</span>More</a>
+</nav>
+
+<script src="bittings-ui.js"></script>
+<script>
+  // demo only — Start-a-job step 1: pick Automotive / Residential / Commercial
+  (function(){
+    var SERVICES = {
+      res: ['Rekey locks','Lockout / unlock','Lock install or repair','Smart lock setup','Other (describe)'],
+      com: ['Master key system','Access control','Panic / exit device','Commercial rekey','Other (describe)']
+    };
+    var auto = document.getElementById('autoFlow');
+    var other = document.getElementById('otherFlow');
+    var eyebrow = document.getElementById('otherEyebrow');
+    var sel = document.getElementById('otherService');
+    function fill(jt){
+      var list = SERVICES[jt] || [];
+      sel.innerHTML = list.map(function(s){ return '<option>'+s+'</option>'; }).join('');
+      eyebrow.textContent = jt === 'com' ? 'Commercial' : 'Residential';
+    }
+    document.querySelectorAll('#jobtype .bt-jobtype').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        document.querySelectorAll('#jobtype .bt-jobtype').forEach(function(b){ b.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        var jt = btn.getAttribute('data-jt');
+        if (jt === 'auto'){ auto.style.display=''; other.style.display='none'; }
+        else { auto.style.display='none'; other.style.display=''; fill(jt); }
+        window.scrollTo({ top:0, behavior:'smooth' });
+      });
+    });
+  })();
+</script>
+</body>
+</html>

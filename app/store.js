@@ -625,8 +625,14 @@
     taxRate: 0,
     taxableByCategory: { Labor: false, Materials: true, Travel: false, Programming: false, AfterHours: false },
     // groups
-    identity: { name: '', address: '', phone: '', email: '', license: '', logo: '', logoCustom: false, footer: '' },
+    identity: { name: '', address: '', phone: '', email: '', license: '', logo: '', logoCustom: false, footer: '', termsUrl: '' },
     payments: { surchargePct: 2, drawerFloatCents: 12000 },     // surcharge DISPLAY ONLY (server enforces 2% credit-only); drawerFloatCents = standard cash-drawer float (default $120)
+    // standard labor/parts warranty offered on receipts & invoices (not estimates).
+    // months=0 disables; defaultOn pre-checks the warranty box on new documents.
+    warranty: { months: 6, defaultOn: true },
+    // where the shop operates: mobile (van) and/or a physical storefront. Drives whether
+    // inventory splits into van vs shop + shows "move" buttons. Mobile-first default.
+    locations: { van: true, shop: false },
     // employees: [{name,email,owner}]; ownerEmails is derived from owner=true rows.
     access: { employees: [], ownerEmails: [], staffEmails: [], quickFormPin: '', quickInvoiceEnabled: true, quickInvoiceDefault: true },
     quickLinks: DEFAULT_QUICKLINKS.map(function (c) { return { key: c.key, label: c.label, icon: c.icon, links: c.links.slice() }; }),
@@ -684,6 +690,7 @@
       taxableByCategory: Object.assign({}, d.taxableByCategory, c.taxableByCategory || {}),
       identity: Object.assign({}, d.identity, c.identity || {}),
       payments: Object.assign({}, d.payments, c.payments || {}),
+      locations: Object.assign({}, d.locations, c.locations || {}),
       access: Object.assign({}, d.access, c.access || {}),
       quickLinks: normalizeQuickLinks(c.quickLinks, c.vendors),
       services: Array.isArray(c.services) ? c.services : [],
@@ -807,6 +814,8 @@
       identity: function () { return getConfig().identity; },
       access: function () { return getConfig().access; },
       payments: function () { return getConfig().payments; },
+      warranty: function () { return getConfig().warranty || { months: 0, defaultOn: false }; },
+      locations: function () { return getConfig().locations; },
       quickLinks: function () { return getConfig().quickLinks; },
       // back-compat: the links in the "vendors" category
       vendors: function () { var q = getConfig().quickLinks.filter(function (c) { return c.key === 'vendors'; })[0]; return q ? q.links : []; },
@@ -828,7 +837,7 @@
         partial = partial || {};
         var cur = getConfig();
         var merged = Object.assign({}, cur);
-        ['identity', 'payments', 'access', 'setup'].forEach(function (g) {
+        ['identity', 'payments', 'access', 'setup', 'locations', 'warranty'].forEach(function (g) {
           if (partial[g]) merged[g] = Object.assign({}, cur[g], partial[g]);
         });
         if (partial.taxableByCategory) merged.taxableByCategory = Object.assign({}, cur.taxableByCategory, partial.taxableByCategory);

@@ -3,19 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#14171b">
-<title>Turbo Keysmith</title>
+<meta name="theme-color" content="#f6f7f9">
+<title>Bittings</title>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="tks_mark.png">
+<!-- Bittings design system: apply remembered theme before paint, then load the shared stylesheet -->
+<script>try{if(localStorage.getItem('bt_theme')==='dark')document.documentElement.setAttribute('data-bt-theme','dark');}catch(e){}</script>
+<link rel="stylesheet" href="app/ui/bittings-ui.css">
+<link rel="icon" type="image/svg+xml" href="app/ui/assets/favicon.svg">
 <style>
   :root{
-    --bg:#14171b; --bg2:#1b1f25; --card:#1f232a; --edge:#2c313a; --ink:#f4f5f7; --dim:#9aa1ac;
-    --red:#c8323c; --red-deep:#8f1f27; --amber:#f2b43a; --green:#22994a; --off:#5a616c;
+    --bg:#f6f7f9; --bg2:#eef0f3; --card:#ffffff; --edge:#e3e6ea; --ink:#14171b; --dim:#5a616c;
+    --red:#c8323c; --red-deep:#8f1f27; --amber:#f2b43a; --green:#22994a; --off:#9aa1ac;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:radial-gradient(1100px 520px at 50% -10%,#23272f 0%,rgba(35,39,47,0) 60%),linear-gradient(180deg,var(--bg),var(--bg2));
+    background:radial-gradient(1100px 520px at 50% -10%,#ffffff 0%,rgba(255,255,255,0) 60%),linear-gradient(180deg,var(--bg),var(--bg2));
     background-attachment:fixed;color:var(--ink);min-height:100vh;min-height:100dvh;
     padding:calc(22px + env(safe-area-inset-top)) 18px calc(22px + env(safe-area-inset-bottom));}
   .wrap{max-width:620px;margin:0 auto;}
@@ -24,7 +28,7 @@
   header.app img{height:38px;width:auto;max-width:140px;object-fit:contain;}
   header.app h1{margin:0;font-size:20px;font-weight:800;}
   header.app h1 .red{color:var(--red);}
-  header.app .back{margin-left:10px;background:rgba(255,255,255,.06);border:1px solid var(--edge);
+  header.app .back{margin-left:10px;background:rgba(20,23,27,.05);border:1px solid var(--edge);
     color:var(--dim);border-radius:10px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;display:none;}
   .cloudpill{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.3px;color:var(--dim);
     border:1px solid var(--edge);border-radius:999px;padding:5px 10px;white-space:nowrap;}
@@ -35,13 +39,13 @@
   .authbar b{color:var(--ink,#f4f5f7);font-weight:700;}
   .authbar a,.authbar button{font:inherit;cursor:pointer;border-radius:9px;padding:6px 11px;font-weight:700;}
   .authbar a{background:linear-gradient(180deg,var(--red),var(--red-deep));color:#fff;text-decoration:none;border:none;}
-  .authbar button{background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--dim);}
+  .authbar button{background:rgba(20,23,27,.05);border:1px solid var(--edge);color:var(--dim);}
   .rolebadge{font-size:10px;font-weight:800;letter-spacing:.5px;border-radius:5px;padding:2px 6px;}
   .rolebadge.owner{background:rgba(242,180,58,.18);color:#f2b43a;}
   .rolebadge.staff{background:rgba(74,163,255,.16);color:#7fb8ff;}
 
   .tiles{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  .tile{background:linear-gradient(180deg,var(--card),#181b21);border:1px solid var(--edge);border-radius:18px;
+  .tile{background:linear-gradient(180deg,var(--card),#eef1f5);border:1px solid var(--edge);border-radius:18px;
     padding:18px;cursor:pointer;position:relative;overflow:hidden;transition:transform .12s ease,border-color .2s ease;text-align:left;}
   .tile:hover{border-color:#3a414c;}
   .tile:active{transform:scale(.98);}
@@ -52,19 +56,20 @@
   .tile.t-payments::before{background:linear-gradient(180deg,var(--green),#156632);}
   .tile.t-inventory::before{background:linear-gradient(180deg,#9b6bd6,#5e3a91);}
   .tile.t-vendor::before{background:linear-gradient(180deg,#3ba3a0,#1f6f6c);}
+  .tile.t-programmers::before{background:linear-gradient(180deg,#7b6bf0,#463aa0);}
   .tile.t-keycodes::before{background:linear-gradient(180deg,#d98a3a,#a35e16);}
   .tile.t-nastf::before{background:linear-gradient(180deg,#6b8cff,#3a4fb0);}
   .tile.t-quick::before{background:linear-gradient(180deg,#7c8694,#4a525e);}
   a.tile{text-decoration:none;color:inherit;display:block;}
   /* link-list overlay (Vendors / Keycodes / NASTF) */
   .ll-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99997;display:flex;align-items:flex-end;justify-content:center;}
-  .ll-sheet{background:#1b1f27;color:var(--ink);width:100%;max-width:560px;border-radius:18px 18px 0 0;
+  .ll-sheet{background:#ffffff;color:var(--ink);width:100%;max-width:560px;border-radius:18px 18px 0 0;
     padding:16px 16px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;}
   .ll-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
   .ll-head b{font-size:17px;}
   .ll-x{margin-left:auto;background:none;border:none;color:var(--dim);font-size:26px;cursor:pointer;
     width:44px;height:44px;display:flex;align-items:center;justify-content:center;}
-  .ll-row{display:flex;align-items:center;gap:12px;background:#11141a;border:1px solid var(--edge);
+  .ll-row{display:flex;align-items:center;gap:12px;background:#f3f4f6;border:1px solid var(--edge);
     border-radius:13px;padding:12px 14px;margin-bottom:9px;min-height:56px;text-decoration:none;color:var(--ink);}
   .ll-row:active{border-color:#3a414c;}
   .ll-ico{width:34px;height:34px;border-radius:8px;flex:0 0 auto;object-fit:contain;background:#fff;}
@@ -137,7 +142,7 @@
   .denom-row{display:flex;align-items:center;gap:10px;}
   .denom-row .dlbl{flex:0 0 78px;font-size:14px;color:var(--ink);font-weight:700;}
   .denom-row .dx{flex:0 0 14px;color:var(--dim);text-align:center;}
-  .denom-row input.dcount{flex:1 1 60px;min-width:0;background:#11141a;border:1px solid var(--edge);border-radius:10px;
+  .denom-row input.dcount{flex:1 1 60px;min-width:0;background:#f3f4f6;border:1px solid var(--edge);border-radius:10px;
     color:var(--ink);padding:10px;font-size:16px;text-align:right;box-sizing:border-box;}
   .denom-row .damt{flex:0 0 92px;text-align:right;font-size:14px;color:var(--dim);font-weight:700;font-variant-numeric:tabular-nums;}
   .drawer-tot{margin-top:14px;border-top:1px dashed var(--edge);padding-top:12px;display:flex;flex-direction:column;gap:7px;}
@@ -152,20 +157,20 @@
   .float-warn b{color:#ffd0d4;}
   .floatrow{display:flex;align-items:center;gap:10px;margin-top:12px;}
   .floatrow label{flex:1;font-size:14px;color:var(--ink);font-weight:700;}
-  .floatrow .amountwrap{flex:0 0 130px;display:flex;align-items:center;background:#11141a;border:1px solid var(--edge);border-radius:10px;padding:0 10px;}
+  .floatrow .amountwrap{flex:0 0 130px;display:flex;align-items:center;background:#f3f4f6;border:1px solid var(--edge);border-radius:10px;padding:0 10px;}
   .floatrow .amountwrap span{color:var(--dim);font-size:15px;}
   .floatrow input{flex:1;min-width:0;background:transparent;border:0;color:var(--ink);padding:10px 4px;font-size:16px;text-align:right;box-sizing:border-box;}
   .drawer-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
   .drawer-actions button{flex:1 1 45%;min-width:140px;min-height:44px;border-radius:11px;border:1px solid var(--edge);
-    background:#1b2330;color:var(--ink);font-weight:800;font-size:14px;cursor:pointer;}
-  .drawer-actions button.primary{background:#1c2f24;border-color:#2f6b46;}
+    background:#f3f4f6;color:var(--ink);font-weight:800;font-size:14px;cursor:pointer;}
+  .drawer-actions button.primary{background:#e3f3e9;border-color:#2f6b46;}
   .crow.part{align-items:center;}
   .crow.part .pinfo{flex:1;min-width:0;}
   .crow.part .pinfo .nm{display:flex;align-items:center;gap:8px;}
   .lowbadge{font-size:9.5px;font-weight:800;letter-spacing:.5px;color:#1b1f25;background:var(--amber);
     border-radius:999px;padding:2px 7px;}
   .pq{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
-  .qbtn{width:34px;height:34px;border-radius:9px;border:1px solid var(--edge);background:rgba(255,255,255,.05);
+  .qbtn{width:34px;height:34px;border-radius:9px;border:1px solid var(--edge);background:rgba(20,23,27,.06);
     color:var(--ink);font-size:19px;font-weight:800;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;}
   .qbtn:active{transform:scale(.94);}
   .qbtn.plus{border-color:rgba(34,153,74,.5);color:#7fd49b;}
@@ -195,7 +200,7 @@
   .pay-secret-note{background:rgba(242,180,58,.10);border:1px dashed rgba(242,180,58,.45);border-radius:11px;
     padding:12px 14px;font-size:12.5px;line-height:1.5;color:var(--dim);margin:6px 0 2px;}
   .pay-secret-note b{color:#f2d18a;}
-  .pay-secret-note code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:5px;color:var(--ink,#f4f5f7);}
+  .pay-secret-note code{background:rgba(20,23,27,.06);padding:1px 5px;border-radius:5px;color:var(--ink,#14171b);}
 
   /* ---- Owner-only tiles (Closeout / Transaction History) ---- */
   .tile.t-closeout::before{background:linear-gradient(180deg,#22994a,#0f5a2a);}
@@ -249,11 +254,139 @@
   @media (prefers-reduced-motion:reduce){
     *{animation-duration:.001ms!important;transition-duration:.001ms!important;}
   }
+
+  /* ===== Manager Dashboard (approved "Studio" light surface — self-contained, scoped) ===== */
+  .tile.t-dashboard::before{background:linear-gradient(180deg,#c92c3d,#b82334);}
+  #view-dashboard .dash{--ds-card:#fff;--ds-sunk:#eef0f3;--ds-bd:#e3e6ea;--ds-ink:#14171b;--ds-2:#5a616c;--ds-3:#9aa1ac;
+    background:#f6f7f9;border:1px solid var(--ds-bd);border-radius:16px;padding:18px;color:var(--ds-ink);}
+  #view-dashboard .dash-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;}
+  #view-dashboard .dash-eyebrow{font-size:9.5px;font-weight:800;letter-spacing:.16em;color:var(--ds-2);text-transform:uppercase;}
+  #view-dashboard .dash-title{margin:4px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em;color:var(--ds-ink);line-height:1.05;}
+  #view-dashboard .dash-export{margin-left:auto;background:var(--ds-card);border:1px solid var(--ds-bd);color:var(--ds-ink);
+    border-radius:10px;padding:10px 14px;font-weight:800;font-size:13px;cursor:pointer;min-height:44px;white-space:nowrap;}
+  #view-dashboard .dash-export:active{background:var(--ds-sunk);}
+  #view-dashboard .dash-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+  #view-dashboard .kpi{background:var(--ds-card);border:1px solid var(--ds-bd);border-radius:14px;padding:16px;
+    box-shadow:0 1px 2px rgba(20,23,27,.04),0 8px 24px rgba(20,23,27,.06);}
+  #view-dashboard .kpi-lbl{font-size:9.5px;font-weight:800;letter-spacing:.12em;color:var(--ds-2);text-transform:uppercase;}
+  #view-dashboard .kpi-num{font-size:26px;font-weight:900;margin-top:8px;line-height:1;font-variant-numeric:tabular-nums;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+  #view-dashboard .kpi-sub{font-size:11.5px;color:var(--ds-2);margin-top:7px;font-weight:600;min-height:14px;}
+  #view-dashboard .dash-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;}
+  #view-dashboard .dash-card{background:var(--ds-card);border:1px solid var(--ds-bd);border-radius:14px;padding:16px;
+    box-shadow:0 1px 2px rgba(20,23,27,.04),0 8px 24px rgba(20,23,27,.06);}
+  #view-dashboard .dash-sec{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--ds-2);margin-bottom:14px;}
+  #view-dashboard .dash-week{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:180px;}
+  #view-dashboard .wk{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%;}
+  #view-dashboard .wk-val{font-size:11px;color:var(--ds-2);font-family:ui-monospace,Menlo,Consolas,monospace;}
+  #view-dashboard .wk-bar{width:100%;max-width:30px;background:var(--ds-sunk);border-radius:7px 7px 3px 3px;min-height:4px;}
+  #view-dashboard .wk-bar.hot{background:linear-gradient(180deg,#c92c3d,#b82334);}
+  #view-dashboard .wk-lbl{font-size:11px;color:var(--ds-3);font-family:ui-monospace,Menlo,Consolas,monospace;}
+  #view-dashboard .ty{margin-bottom:13px;}
+  #view-dashboard .ty:last-child{margin-bottom:0;}
+  #view-dashboard .ty-top{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--ds-ink);margin-bottom:6px;}
+  #view-dashboard .ty-track{height:11px;background:var(--ds-sunk);border-radius:999px;overflow:hidden;}
+  #view-dashboard .ty-fill{height:100%;border-radius:999px;}
+  #view-dashboard .dash-empty{color:var(--ds-2);font-size:13px;padding:8px 0;}
+  #view-dashboard .dash-foot{font-size:11.5px;color:var(--ds-3);margin:14px 2px 0;line-height:1.5;}
+  @media(max-width:560px){
+    #view-dashboard .dash-kpis{grid-template-columns:1fr 1fr;}
+    #view-dashboard .dash-grid{grid-template-columns:1fr;}
+    #view-dashboard .dash-title{font-size:24px;}
+  }
+
+  /* ===== Studio light theme — accent contrast tuned for white surfaces ===== */
+  .cloudpill.on{color:#1f8f43;border-color:#9bd6b0;}
+  .rolebadge.owner{color:#9a6a00;} .rolebadge.staff{color:#1f6fd0;}
+  .crow .avatar{color:#1f6fd0;} .crow.biz .avatar{color:#9a6a00;}
+  .seg button.on,.typeseg button.on{color:#fff;background:linear-gradient(180deg,var(--red),var(--red-deep));border-color:var(--red);}
+  .btn.del{color:#b3242f;}
+  .pay-banner{color:#8a6d1f;} .pay-banner.test{color:#1f6fd0;} .pay-banner.live{color:#b3242f;}
+  .pay-secret-note b{color:#8a6d1f;}
+  .float-warn{color:#b3242f;} .float-warn b{color:#8f1f27;}
+  .drawer-tot .tr.over b{color:#1f8f43;} .drawer-tot .tr.short b{color:#b3242f;}
+  .invsummary .chip.low b{color:#9a6a00;}
+  .rep-toggles button.m-jobs.on{color:#6d3fb0;} .rep-toggles button.m-sales.on{color:#1f8f43;}
+  .rep-toggles button.m-cost.on{color:#9a6a00;} .rep-toggles button.m-profit.on{color:#1f6fd0;}
+  .rep-cards .chip b{color:var(--ink);}
+  .qbtn.plus{color:#1f8f43;} .qbtn.minus{color:#b3242f;}
+  .lowbadge{color:#1a1300;}
+
+  /* ===== Dark theme — flip the LEGACY palette so the dashboard / customers / forms / reports
+     match the dark .bt shell. The .bt design system themes via --surface-*/--text-*, but this
+     page's own vars (--bg/--card/--ink/--dim/--edge) and the dashboard --ds-* set had NO dark
+     values — which left some text black-on-dark and some white-on-white. These overrides win by
+     coming later in source (same/greater specificity). ===== */
+  html[data-bt-theme="dark"]{
+    --bg:#14171b; --bg2:#1b1f25; --card:#1f232a; --edge:#2c313a; --ink:#f4f5f7; --dim:#9aa1ac; --off:#7e8693;
+  }
+  [data-bt-theme="dark"] #view-dashboard .dash{
+    --ds-card:#1f232a; --ds-sunk:#11141a; --ds-bd:#2c313a; --ds-ink:#f4f5f7; --ds-2:#9aa1ac; --ds-3:#5a616c;
+  }
+  /* hardcoded light surfaces → dark equivalents */
+  [data-bt-theme="dark"] .ll-sheet{background:var(--card);}
+  [data-bt-theme="dark"] .ll-row,
+  [data-bt-theme="dark"] .ll-ico,
+  [data-bt-theme="dark"] .denom-row input.dcount,
+  [data-bt-theme="dark"] .floatrow .amountwrap,
+  [data-bt-theme="dark"] .es-card{background:var(--bg2);}
+  [data-bt-theme="dark"] .ll-ico.fallback{background:#3a414c;color:#f4f5f7;}
+  [data-bt-theme="dark"] .drawer-actions button.primary{background:rgba(34,153,74,.2);border-color:#2f6b46;}
+  /* accents that were tuned for WHITE surfaces — restore the brighter on-dark values */
+  [data-bt-theme="dark"] .cloudpill.on{color:#7fd49b;border-color:rgba(34,153,74,.5);}
+  [data-bt-theme="dark"] .rolebadge.owner{color:#f2b43a;}
+  [data-bt-theme="dark"] .rolebadge.staff{color:#7fb8ff;}
+  /* Customer list: keep the white "index-card" look with BLACK text even in dark mode
+     (owner preference — the cards read like printed cards; the box stays white either way). */
+  html[data-bt-theme="dark"] #view-customers .crow{ background:#ffffff; border-color:#e6e8ec; }
+  html[data-bt-theme="dark"] #view-customers .crow .nm{ color:#14171b; }
+  html[data-bt-theme="dark"] #view-customers .crow .sub,
+  html[data-bt-theme="dark"] #view-customers .crow .tag{ color:#5a616c; }
+  html[data-bt-theme="dark"] #view-customers .crow .tag{ border-color:#e6e8ec; }
+  html[data-bt-theme="dark"] #view-customers .crow .avatar{ color:#1f6fd0; }
+  html[data-bt-theme="dark"] #view-customers .crow.biz .avatar{ color:#9a6a00; }
+  html[data-bt-theme="dark"] #view-customers .search{ background:#ffffff; border-color:#e6e8ec; color:#14171b; }
+  html[data-bt-theme="dark"] #view-customers .search::placeholder{ color:#9aa1ac; }
+  [data-bt-theme="dark"] .pay-banner{color:#ffce6b;}
+  [data-bt-theme="dark"] .pay-secret-note b{color:#ffce6b;}
+  [data-bt-theme="dark"] .invsummary .chip.low b{color:#f2b43a;}
+  [data-bt-theme="dark"] .drawer-tot .tr.over b{color:#7fd49b;}
+  [data-bt-theme="dark"] .drawer-tot .tr.short b{color:#e0636f;}
+  [data-bt-theme="dark"] .rep-toggles button.m-jobs.on{color:#b89be0;}
+  [data-bt-theme="dark"] .rep-toggles button.m-sales.on{color:#7fd49b;}
+  [data-bt-theme="dark"] .rep-toggles button.m-cost.on{color:#f2b43a;}
+  [data-bt-theme="dark"] .rep-toggles button.m-profit.on{color:#7fb8ff;}
+  [data-bt-theme="dark"] .qbtn.plus{color:#7fd49b;}
+  [data-bt-theme="dark"] .qbtn.minus{color:#e0636f;}
+
+  /* ===== Bittings shell host — let the .bt-app sidebar/bottom-nav lay out full-bleed ===== */
+  body.bt{padding:0;}
+  .bt .wrap{max-width:760px;}
+  .moveloc{flex:0 0 auto;align-self:center;background:rgba(20,23,27,.05);border:1px solid var(--edge);color:var(--dim);border-radius:9px;padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;min-height:40px;}
+  .moveloc:active{transform:scale(.96);}
+  .bt-navhead{font-size:8px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--text-tertiary);padding:16px 14px 6px;}
+  /* Sidebar footer: Settings + who's signed in + cloud status, sitting above the theme toggle. */
+  .bt-sidefoot{padding:6px 12px 2px;margin-top:4px;border-top:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:1px;}
+  .bt-sidestat{font-size:11px;font-weight:700;color:var(--text-tertiary);padding:5px 14px 0;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bt-sidestat b{color:var(--text-secondary);font-weight:800;}
+  #sideSynced.on{color:#1f8f43;}   /* green once it's syncing to the cloud */
+  /* Embedded tool panel — a sub-tool opens INSIDE the content box; the left menu stays put. */
+  .bt-embed{display:none;width:100%;height:100vh;border:0;background:var(--surface-card);}
+  .bt-app.is-embedding .bt-pagewrap{display:none;}
+  .bt-app.is-embedding .bt-embed{display:block;}
+  .bt-scrim{display:none;}
+  .ms-chip{-webkit-appearance:none;appearance:none;cursor:pointer;border:1px solid var(--border-subtle);background:var(--surface-card);color:var(--text-primary);border-radius:999px;padding:8px 14px;font-family:var(--font-sans);font-weight:700;font-size:13px;min-height:40px;}
+  .ms-chip.on{background:var(--tint-red);border-color:var(--brand-red);color:var(--brand-red);}
+  @media(max-width:720px){
+    .bt-sidebar.is-open{display:flex;position:fixed;left:0;top:0;bottom:0;width:84%;max-width:300px;z-index:90;box-shadow:var(--shadow-pop);overflow-y:auto;}
+    .bt-scrim.is-open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:89;}
+    #sjResult .sj-grid{grid-template-columns:1fr!important;}
+  }
 </style>
 <!-- Loaded early so the entry gate below can read TKS_CLOUD before the app renders. -->
 <script src="app/cloud-config.js"></script>
 </head>
-<body>
+<body class="bt">
 <script>
 /* ===================== ENTRY GATE (login-first, never a dead-end) =====================
    Decides, BEFORE the home screen renders, whether to bounce to the Staff Login:
@@ -279,51 +412,114 @@
   }catch(e){}
 })();
 </script>
+<div class="bt-app">
+  <aside class="bt-sidebar">
+    <div class="bt-sidebar__brand">
+      <img src="app/ui/assets/mark.svg" alt="">
+      <div class="bt-sidebar__name">Bittings</div>
+    </div>
+    <div class="bt-workspace">
+      <div class="bt-workspace__label">Locksmith</div>
+      <div class="bt-workspace__name" id="btWorkspaceName">Your shop</div>
+    </div>
+    <nav class="bt-nav">
+      <button class="bt-nav__item" data-go="startjob"><span class="bt-nav__ic">🔑</span>Start a job</button>
+      <button class="bt-nav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
+      <button class="bt-nav__item" data-embed="bittings.html"><span class="bt-nav__ic">🧾</span>Receipts &amp; NASTF</button>
+      <button class="bt-nav__item" data-embed="scheduler.html"><span class="bt-nav__ic">📅</span>Scheduler</button>
+      <button class="bt-nav__item owner-soft" data-go="payments" style="display:none"><span class="bt-nav__ic">💳</span>Payments</button>
+      <button class="bt-nav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Inventory</button>
+      <button class="bt-nav__item" data-embed="lishi.html"><span class="bt-nav__ic">📇</span>Lishi &amp; Keys</button>
+      <button class="bt-nav__item" data-embed="programmers.html"><span class="bt-nav__ic">🛠</span>Programmers</button>
+      <button class="bt-nav__item owner-only" data-go="dashboard" style="display:none"><span class="bt-nav__ic">📊</span>Dashboard</button>
+      <button class="bt-nav__item owner-only" data-go="history" style="display:none"><span class="bt-nav__ic">🧮</span>Closeout</button>
+      <button class="bt-nav__item owner-only" data-go="reports" style="display:none"><span class="bt-nav__ic">📈</span>Reports</button>
+      <div class="bt-navhead">Vendor tools</div>
+      <div id="quickTiles"></div>
+    </nav>
+    <div class="bt-sidefoot">
+      <button class="bt-nav__item owner-soft" id="sideSettings" data-embed="setup.html" style="display:none"><span class="bt-nav__ic">⚙</span>Settings</button>
+      <div class="bt-sidestat" id="sideSignedIn">Not signed in</div>
+      <div class="bt-sidestat" id="sideSynced" title="Where your data is stored">On this device</div>
+    </div>
+    <div style="padding:0 16px 12px"><div class="bt-themetoggle">
+      <button data-bt-set="light">☀ Light</button>
+      <button data-bt-set="dark">🌙 Dark</button>
+    </div></div>
+  </aside>
+  <main class="bt-main"><iframe id="btEmbed" class="bt-embed" title="Tool"></iframe><div class="bt-pagewrap">
 <div class="wrap">
   <header class="app">
-    <img src="tks_mark.png" alt="Turbo Keysmith logo">
-    <h1>Turbo <span class="red">Keysmith</span></h1>
-    <span class="cloudpill" id="cloudPill" title="Where your data is stored">On this device</span>
-    <button class="back" id="backBtn">‹ Home</button>
+    <img id="appLogo" src="tks_mark.png" alt="logo">
+    <h1 id="appName">Your shop</h1>
+    <button class="back" id="backBtn" style="margin-left:auto">‹ Home</button>
   </header>
 
   <div class="authbar" id="authBar"></div>
 
-  <div class="view active" id="view-home">
-    <div class="tiles">
-      <button class="tile t-customers" data-go="customers">
-        <div class="ic">👤</div><h2>Customers</h2><p>Add or edit anyone, anytime.</p>
-      </button>
-      <button class="tile t-receipts" data-open="bittings.html">
-        <div class="ic">🧾</div><h2>Receipts</h2><p>Invoices &amp; NASTF paperwork.</p>
-      </button>
-      <button class="tile t-scheduler" data-open="scheduler.html">
-        <div class="ic">🗓️</div><h2>Scheduler</h2><p>Front-desk booking &amp; intake.</p>
-      </button>
-      <button class="tile t-payments owner-soft" data-go="payments" style="display:none">
-        <div class="ic">💳</div><h2>Payments</h2><p>Take a card, counter or field.</p>
-      </button>
-      <button class="tile t-inventory" data-go="inventory">
-        <div class="ic">📦</div><h2>Inventory</h2><p>Parts, stock &amp; low-stock alerts.</p>
-      </button>
-      <button class="tile t-lishi" data-open="lishi.html">
-        <div class="ic">🔑</div><h2>Lishi &amp; Keys</h2><p>Keyway, tool &amp; programming lookup.</p>
-      </button>
-      <button class="tile t-closeout owner-only" data-go="history" style="display:none">
-        <span class="owner-pin">MANAGER</span>
-        <div class="ic">🧮</div><h2>Closeout</h2><p>Count today’s drawer.</p>
-      </button>
-      <button class="tile t-reports owner-only" data-go="reports" style="display:none">
-        <span class="owner-pin">MANAGER</span>
-        <div class="ic">📊</div><h2>Transaction History</h2><p>Totals, profit &amp; graphs.</p>
-      </button>
+  <!-- Tile hub removed — every destination lives in the left menu (sidebar / phone "More"). Landing = Start a job. -->
+  <p class="note" id="homeNote" style="display:none"></p>
+
+  <div class="view active" id="view-startjob">
+    <div class="bt-pagehead"><div><div class="eyebrow">Start a job</div><h1>What kind of job?</h1></div></div>
+    <div id="sjType" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px">
+      <button class="bt-jobtype" data-jt="automotive"><span style="font-size:26px">🚗</span><span class="bt-jobtype__title">Automotive</span><span class="bt-jobtype__sub">VIN → keyway, tool &amp; programming</span></button>
+      <button class="bt-jobtype" data-jt="residential"><span style="font-size:26px">🏠</span><span class="bt-jobtype__title">Residential</span><span class="bt-jobtype__sub">Rekey · lockout · install</span></button>
+      <button class="bt-jobtype" data-jt="commercial"><span style="font-size:26px">🏢</span><span class="bt-jobtype__title">Commercial</span><span class="bt-jobtype__sub">Master key · access control</span></button>
     </div>
+    <div id="sjAuto" style="display:none">
+      <div class="bt-card" style="margin-bottom:16px">
+        <div id="sjMode" style="display:flex;gap:8px;margin-bottom:14px">
+          <button type="button" class="bt-btn bt-btn--sm bt-btn--primary" data-mode="vin">VIN</button>
+          <button type="button" class="bt-btn bt-btn--sm bt-btn--secondary" data-mode="ymm">Year / Make / Model</button>
+        </div>
+        <div id="sjVinBox">
+          <div class="eyebrow" style="margin-bottom:10px">Enter a VIN</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <div class="bt-field bt-field--icon" style="flex:2;min-width:220px"><span class="bt-field__icon">🔎</span><input id="sjVin" class="bt-input bt-input--mono" placeholder="17-character VIN" maxlength="17" style="text-transform:uppercase"></div>
+            <button class="bt-btn bt-btn--primary bt-btn--lg" id="sjLookup">Look up</button>
+          </div>
+        </div>
+        <div id="sjYmmBox" style="display:none">
+          <div class="eyebrow" style="margin-bottom:10px">No VIN — pick year / make / model</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <select id="sjYear" class="bt-input bt-select" style="flex:0 0 auto;width:auto"></select>
+            <input id="sjMake" class="bt-input" list="sjMakeList" placeholder="Make" autocomplete="off" style="flex:1;min-width:130px">
+            <input id="sjModel" class="bt-input" list="sjModelList" placeholder="Model" autocomplete="off" style="flex:1;min-width:130px">
+            <button class="bt-btn bt-btn--primary bt-btn--lg" id="sjLookupYmm">Look up</button>
+          </div>
+          <datalist id="sjMakeList"></datalist>
+          <datalist id="sjModelList"></datalist>
+        </div>
+      </div>
+      <div id="sjResult"></div>
+    </div>
+    <div id="sjOther" style="display:none">
+      <div class="bt-pagehead"><div><div class="eyebrow" id="sjOtherEyebrow">Residential</div><h1>Job details</h1></div></div>
+      <div class="bt-card">
+        <div class="eyebrow" style="margin-bottom:12px">Describe the job</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <select id="sjService" class="bt-input bt-select" style="flex:1;min-width:220px"></select>
+          <button class="bt-btn bt-btn--primary bt-btn--lg" id="sjContinue">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <div class="vendor-h">Vendor tools</div>
-    <div class="tiles" id="quickTiles"><!-- Keycodes (built-in) + non-empty quick-link categories from config --></div>
-
-    <p class="note" id="homeNote">Customers, bookings &amp; receipts are shared across every tool here.
-    Sign in (Staff Login) to sync them to the cloud across devices.</p>
+  <div class="view" id="view-matsvc">
+    <div class="bt-pagehead"><div><div class="eyebrow" id="msEyebrow">Materials &amp; services</div><h1>Build the job</h1></div></div>
+    <div class="bt-card" style="margin-bottom:16px;max-width:680px">
+      <div class="eyebrow" style="margin-bottom:10px">Line items <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--text-tertiary)">— set or edit each amount; it's remembered next time</span></div>
+      <div id="msItems"></div>
+      <div id="msTotal" style="margin-top:12px;text-align:right;font-weight:900;font-size:18px"></div>
+      <div class="eyebrow" style="margin:18px 0 8px">Quick add</div>
+      <div id="msAddons" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <div style="margin:14px 0 4px"><div class="eyebrow" style="margin-bottom:6px">Add another item</div><select id="msCatalog" class="bt-input bt-select" style="max-width:360px"></select></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button type="button" class="bt-btn bt-btn--brand bt-btn--lg" id="msContinue">Continue to invoice →</button>
+      <button type="button" class="bt-btn bt-btn--ghost" id="msBack">Back</button>
+    </div>
   </div>
 
   <div class="view" id="view-customers">
@@ -364,6 +560,8 @@
       <p class="note" id="formNote"></p>
       <!-- Read-only job history (from the scheduler), newest-first -->
       <div id="custHistory" class="cust-history"></div>
+      <!-- Invoice/receipt history + running balance owed (from Receipts), newest-first -->
+      <div id="custInvoices" class="cust-history"></div>
     </div>
   </div>
 
@@ -420,7 +618,7 @@
         <option value="pie">Pie</option>
         <option value="doughnut">Doughnut</option>
       </select>
-      <button class="add" id="repReload" title="Refresh" style="background:#2a2f3a">↻</button>
+      <button class="add" id="repReload" title="Refresh" style="background:#e7e9ee">↻</button>
     </div>
     <div class="rep-controls">
       <select id="repTech" class="rep-select" aria-label="Filter by technician (for commission)"><option value="all">All technicians</option></select>
@@ -435,11 +633,12 @@
   <div class="view" id="view-inventory">
     <div class="bar">
       <input class="search" id="invSearch" type="text" placeholder="Search part, SKU, fitment, VIN…">
-      <button class="add" id="invImport" title="Import from a spreadsheet (.xlsx/.csv)" style="background:#2a2f3a">📥 Import</button>
-      <button class="add" id="invVin" title="Find the key/fob for a VIN" style="background:#2a2f3a">🔎 VIN</button>
+      <button class="add" id="invImport" title="Import from a spreadsheet (.xlsx/.csv)" style="background:#e7e9ee">📥 Import</button>
+      <button class="add" id="invVin" title="Find the key/fob for a VIN" style="background:#e7e9ee">🔎 VIN</button>
       <button class="add" id="invAdd">+ Add</button>
     </div>
     <div class="invsummary" id="invSummary"></div>
+    <div class="seg" id="invLocSeg" style="display:none;margin-bottom:12px"></div>
     <div class="clist" id="invList"></div>
     <p class="note" id="invNote">Stock is saved on this device. Sign in to sync it to the cloud.</p>
   </div>
@@ -458,7 +657,11 @@
       <input id="pCategory" type="text" placeholder="Key blanks, fobs, tools…">
       <div class="row2">
         <div><label for="pCost">Unit cost ($)</label><input id="pCost" type="number" inputmode="decimal" placeholder="0.00"></div>
-        <div><label for="pLocation">Location</label><input id="pLocation" type="text" placeholder="Van A · bin 3"></div>
+        <div><label for="pLocation">Bin / shelf</label><input id="pLocation" type="text" placeholder="e.g. bin 3"></div>
+      </div>
+      <div id="pLocWrap" style="display:none">
+        <label>Where is it kept?</label>
+        <div class="typeseg"><button type="button" id="pLocVan" class="on">🚐 Van</button><button type="button" id="pLocShop">🏪 Shop</button></div>
       </div>
       <div class="row2">
         <div><label for="pSupplier">Supplier</label><input id="pSupplier" type="text" placeholder="Where you reorder from"></div>
@@ -475,7 +678,42 @@
       <p class="note" id="partNote"></p>
     </div>
   </div>
+  <div class="view" id="view-dashboard">
+    <div class="dash">
+      <div class="dash-head">
+        <div>
+          <div class="dash-eyebrow" id="dashEyebrow">—</div>
+          <h1 class="dash-title">Manager dashboard</h1>
+        </div>
+        <button class="dash-export" id="dashExport" type="button">⇩ Export CSV</button>
+      </div>
+      <div class="dash-kpis" id="dashKpis"></div>
+      <div class="dash-grid">
+        <div class="dash-card">
+          <div class="dash-sec">Jobs this week</div>
+          <div class="dash-week" id="dashWeek"></div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-sec">Jobs by type</div>
+          <div class="dash-types" id="dashTypes"></div>
+        </div>
+      </div>
+      <p class="dash-foot" id="dashFoot"></p>
+    </div>
+  </div>
 </div>
+      </div>
+    </main>
+  </div>
+
+  <nav class="bt-bottomnav">
+    <button class="bt-bottomnav__item" data-go="startjob"><span class="bt-nav__ic">🔑</span>Start job</button>
+    <button class="bt-bottomnav__item" data-open="bittings.html"><span class="bt-nav__ic">🧾</span>Receipts</button>
+    <button class="bt-bottomnav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
+    <button class="bt-bottomnav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Stock</button>
+    <button class="bt-bottomnav__item" id="btMore"><span class="bt-nav__ic">⋯</span>More</button>
+  </nav>
+  <div class="bt-scrim" id="btScrim"></div>
 
 <!-- Supabase client + project config (auto-connects only when signed in) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -491,11 +729,14 @@
 <script src="app/cloud-config.js"></script>
 <!-- Shared data layer (localStorage today; flips to cloud via TKS.connectCloud) -->
 <script src="app/store.js"></script>
+<!-- Lishi tool + vehicle seed (so Start a Job populates even if the Lishi page was never opened) -->
+<script src="app/lishi-seed.js"></script>
 <!-- Shared Pay Now engine (Payments tile "New Charge"; invoice flow has its own) -->
 <script src="app/pay.js"></script>
 <!-- Shared inventory importer (Inventory tile + Setup wizard); SheetJS for .xlsx -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="app/inventory-import.js"></script>
+<script src="app/corrections.js"></script>
 <script>
 function readLS(k,f){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):f; }catch(e){ return f; } }
 function writeLS(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
@@ -505,25 +746,75 @@ function saveCustomers(a){ TKS.saveList("customers", a); }
 function getShops(){ return TKS.list("shops"); }
 function saveShops(a){ TKS.saveList("shops", a); }
 
-const views = ['home','customers','form','payments','history','reports','inventory','part'];
+const views = ['startjob','matsvc','customers','form','payments','history','reports','dashboard','inventory','part'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
-  back.style.display = (name==='home') ? 'none' : 'block';
-  back.dataset.to = (name==='form') ? 'customers' : (name==='part' ? 'inventory' : 'home');
+  back.style.display = (name==='startjob') ? 'none' : 'block';
+  back.dataset.to = (name==='form') ? 'customers' : (name==='part' ? 'inventory' : 'startjob');
+  document.querySelectorAll('.bt-nav__item,.bt-bottomnav__item').forEach(el=>el.classList.toggle('is-active', el.dataset.go===name));
   window.scrollTo(0,0);
 }
-document.getElementById('backBtn').onclick = function(){ show(this.dataset.to || 'home'); };
+document.getElementById('backBtn').onclick = function(){ show(this.dataset.to || 'startjob'); };
 
 document.querySelectorAll('[data-go]').forEach(b=>{
   b.onclick = ()=>{ const t=b.dataset.go;
+    closeEmbed();                                   // leaving an embedded tool for a built-in view
     if(t==='history'){ openHistory(); return; }
     if(t==='reports'){ openReports(); return; }
+    if(t==='dashboard'){ openDashboard(); return; }
+    if(t==='startjob'){ openStartJob(); return; }
     if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } if(t==='payments'){ renderPayments(); } show(t); };
 });
 document.querySelectorAll('[data-open]').forEach(b=>{
   b.onclick = ()=>{ location.href = b.dataset.open; };
 });
+/* Embedded tools: on DESKTOP, the sub-tools (Receipts, Scheduler, Lishi, Programmers, Settings)
+   open INSIDE the content panel so the left menu never leaves. On a PHONE they open as their own
+   full page (an iframe in a narrow column would be cramped, and the bottom nav covers navigation). */
+var _btApp = document.querySelector('.bt-app');
+function isPhoneView(){ return window.matchMedia('(max-width:720px)').matches; }
+function openEmbed(url){
+  if(isPhoneView()){ location.href = url; return; }
+  var f=document.getElementById('btEmbed');
+  if(f && f.getAttribute('src')!==url) f.setAttribute('src', url);   // don't reload if already loaded
+  if(_btApp) _btApp.classList.add('is-embedding');
+  document.querySelectorAll('.bt-nav__item,.bt-bottomnav__item').forEach(el=>el.classList.toggle('is-active', el.dataset.embed===url));
+  // close the phone slide-in menu if it happens to be open
+  try{ document.querySelector('.bt-sidebar.is-open')?.classList.remove('is-open'); document.querySelector('.bt-scrim.is-open')?.classList.remove('is-open'); }catch(_){}
+  window.scrollTo(0,0);
+}
+function closeEmbed(){ if(_btApp) _btApp.classList.remove('is-embedding'); }
+document.querySelectorAll('[data-embed]').forEach(b=>{
+  b.onclick = ()=> openEmbed(b.dataset.embed);
+});
+/* Live theme sync: if a tool is embedded when the Light/Dark toggle is clicked, push the new
+   theme into the iframe too (same-origin) so it flips immediately instead of on next open.
+   Sets both attributes — data-bt-theme (Receipts/Lishi/Programmers/Setup) and data-theme
+   (Scheduler). Runs alongside bittings-ui.js's own toggle handler. */
+document.querySelectorAll('.bt-themetoggle [data-bt-set]').forEach(function(b){
+  b.addEventListener('click', function(){
+    try{
+      var f=document.getElementById('btEmbed');
+      if(!f || !f.contentDocument) return;
+      var t=b.getAttribute('data-bt-set'), de=f.contentDocument.documentElement;
+      if(t==='dark') de.setAttribute('data-bt-theme','dark'); else de.removeAttribute('data-bt-theme');
+      de.setAttribute('data-theme', t);
+    }catch(e){}
+  });
+});
+/* Deep-link: index.html?go=<view> opens that view on load (used by the sub-page nav bars,
+   e.g. the Receipts page links here to "Customers"). Fires the matching nav button so the
+   exact same load/render path runs as a real tap. */
+try{
+  var _goView = new URLSearchParams(location.search).get('go');
+  if(_goView){
+    setTimeout(function(){
+      var _b = document.querySelector('[data-go="'+_goView+'"]');
+      if(_b) _b.click();
+    }, 0);
+  }
+}catch(e){}
 /* ====================== FIELD QUICK LINKS (Home "Vendor tools") ======================
    Home tiles each open a tappable list that opens links in a new tab. Available to
    ANY signed-in staff (field tools, not owner-only). Keycodes is a BUILT-IN dealer/
@@ -578,7 +869,7 @@ function renderQuickTiles(){
     const cls = c.key==='vendors'?'t-vendor':c.key==='nastf'?'t-nastf':'t-quick';
     tiles.push({cat:'ql:'+c.key, cls, ic:c.icon||'🔗', label:c.label, sub:links.length+' link'+(links.length>1?'s':'')});
   });
-  box.innerHTML = tiles.map(t=>'<button class="tile '+t.cls+'" data-links="'+esc2(t.cat)+'"><div class="ic">'+t.ic+'</div><h2>'+esc2(t.label)+'</h2><p>'+esc2(t.sub)+'</p></button>').join('');
+  box.innerHTML = tiles.map(t=>'<button class="bt-nav__item" data-links="'+esc2(t.cat)+'"><span class="bt-nav__ic">'+t.ic+'</span>'+esc2(t.label)+'</button>').join('');
   box.querySelectorAll('[data-links]').forEach(b=> b.onclick=()=> openLinks(b.dataset.links));
 }
 function openLinks(cat){
@@ -626,6 +917,13 @@ function renderCustomers(){
     return;
   }
   wrap.innerHTML = '';
+  // One pass over receipts → unpaid balance per customer name (avoids re-scanning per row)
+  let owedByName={};
+  try{ (TKS.list('receipts')||[]).forEach(function(r){
+    if((r.docType||'')==='invoice' && r.status!=='Paid in Full'){
+      const k=(r.customer||'').trim().toLowerCase(); if(k) owedByName[k]=(owedByName[k]||0)+Number((r.totals&&r.totals.total)||0);
+    }
+  }); }catch(e){}
   filtered.forEach(c=>{
     const idx = store.indexOf(c);
     const isBiz = mode==='shops' || c.customerType==='business';
@@ -635,15 +933,18 @@ function renderCustomers(){
     const sub = [c.phone, c.email].filter(Boolean).join('  ·  ') || (c.address||'');
     // "ES" badge = lead came through the Spanish form → expect Spanish on callback.
     const esBadge = (c.lang==='es') ? '<span class="es-badge" title="Spanish-speaking lead">ES</span>' : '';
+    const owed = owedByName[(c.customer||'').trim().toLowerCase()]||0;
+    const owedTag = owed>0 ? '<span class="tag" title="Unpaid invoices" style="background:rgba(200,50,60,.14);color:#b3242f;border-color:rgba(200,50,60,.30)">OWES '+_money(owed)+'</span>' : '';
     row.innerHTML =
       '<div class="avatar">'+(name.trim()[0]||'?').toUpperCase()+'</div>'+
       '<div><div class="nm">'+esc(name)+esBadge+'</div>'+(sub?'<div class="sub">'+esc(sub)+'</div>':'')+'</div>'+
+      owedTag+
       '<span class="tag">'+(mode==='shops'?'CONTRACTING':(isBiz?'BUSINESS':'INDIVIDUAL'))+'</span>';
     row.onclick = ()=> openForm(idx);
     wrap.appendChild(row);
   });
 }
-function esc(s){ return (s||'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
 
 let editIndex = -1;
 let formType = 'individual';
@@ -671,8 +972,9 @@ function openForm(idx){
   document.getElementById('fDelete').style.display = idx>=0 ? 'block' : 'none';
   document.getElementById('formNote').textContent = idx>=0 ? '' :
     (isShop ? 'New Contracting (NASTF) account.' : 'New customer. Shared with Receipts automatically.');
-  renderCustHistory(idx>=0 ? c : null);
-  show('form');
+  try{ renderCustHistory(idx>=0 ? c : null); }catch(e){ try{console.error('renderCustHistory failed:',e);}catch(_){} }
+  try{ renderCustInvoices(idx>=0 ? c : null); }catch(e){ try{console.error('renderCustInvoices failed:',e);}catch(_){} }
+  show('form');   // always open the record, even if a sub-section failed to render
   document.getElementById('fName').focus();
 }
 
@@ -692,13 +994,211 @@ function renderCustHistory(c){
   let jobs = [];
   try{ jobs = TKS.Bookings.forCustomer(c); }catch(e){ jobs = []; }
   if(!jobs.length){ box.innerHTML = '<div class="hist-h">Job history</div><div class="hist-empty">No past jobs yet.</div>'; return; }
-  const rows = jobs.map(b=>{
+  const rows = jobs.map((b,i)=>{
     const when = b.date ? (b.date + (b.time? ' · '+b.time : '')) : '—';
     const svc = b.serviceLabel || b.serviceCategory || b.jobType || 'Job';
-    return '<div class="hist-row"><div class="hist-main"><b>'+esc(when)+'</b>'+
+    return '<div class="hist-row job-row" data-i="'+i+'" style="cursor:pointer"><div class="hist-main"><b>'+esc(when)+'</b>'+
            '<div class="hist-svc">'+esc(svc)+'</div></div>'+statusTagHTML(b.status||'Scheduled')+'</div>';
   }).join('');
-  box.innerHTML = '<div class="hist-h">Job history ('+jobs.length+')</div>'+rows;
+  box.innerHTML = '<div class="hist-h">Job history ('+jobs.length+')</div>'+
+    '<div class="hist-empty" style="margin:-2px 0 6px">Tap a job to see details.</div>'+rows;
+  box.querySelectorAll('.job-row').forEach(function(el){ el.onclick=function(){ try{ openJobModal(jobs[+el.dataset.i]); }catch(e){ alert('Could not open this job: '+((e&&e.message)||e)); } }; });
+}
+// Job detail — opened from a customer's Job history row.
+function openJobModal(b){
+  if(!b) return;
+  const when = b.date ? (b.date + (b.time? ' · '+b.time : '')) : '—';
+  const svc = b.serviceLabel || b.serviceCategory || b.jobType || 'Job';
+  const veh = b.vehicle ? [b.vehicle.year,b.vehicle.make,b.vehicle.model].filter(Boolean).join(' ') : '';
+  const lines=[];
+  function line(lbl,val){ if(val) lines.push('<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-subtle)"><span style="color:var(--text-secondary)">'+esc(lbl)+'</span><span style="text-align:right;font-weight:600">'+esc(val)+'</span></div>'); }
+  line('When', when);
+  line('Service', svc);
+  if(veh) line('Vehicle', veh);
+  if(b.vehicle&&b.vehicle.vin) line('VIN', b.vehicle.vin);
+  line('Address', b.address);
+  if(b.customer) line('Customer', (b.customer.name||'')+(b.customer.phone?(' · '+b.customer.phone):''));
+  if(b.bookedBy) line('Booked by', b.bookedBy);
+  if(b.duration) line('Duration', (Number(b.duration)? (Number(b.duration)+' min') : b.duration));
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px';
+  ov.innerHTML='<div style="background:var(--surface-card);color:var(--text-primary);width:100%;max-width:460px;border-radius:16px;padding:18px;margin-top:24px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px"><div style="font-weight:900;font-size:18px">'+esc(svc)+'</div>'+statusTagHTML(b.status||'Scheduled')+'</div>'+
+      lines.join('')+
+      (b.notes?'<div style="margin-top:10px;font-size:13px;color:var(--text-secondary)">Notes: '+esc(b.notes)+'</div>':'')+
+      '<button type="button" id="jobClose" class="bt-btn bt-btn--brand bt-btn--lg" style="width:100%;margin-top:12px">Close</button>'+
+    '</div>';
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+  ov.querySelector('#jobClose').onclick=function(){ ov.remove(); };
+  document.body.appendChild(ov);
+}
+
+/* ---- Invoice/receipt history + running balance owed (from Receipts) ---- */
+function _money(n){ n=Number(n)||0; return '$'+n.toFixed(2); }
+function custReceipts(c){
+  if(!c) return [];
+  const nm=(c.customer||'').trim().toLowerCase(); if(!nm) return [];
+  let docs=[]; try{ docs=TKS.list('receipts')||[]; }catch(e){ docs=[]; }
+  return docs.filter(r=>(r.customer||'').trim().toLowerCase()===nm);
+}
+// What a customer still owes = their unpaid invoices. Paying an invoice either converts it
+// to a receipt or flips status to "Paid in Full", so both are correctly excluded here.
+function custOwed(c){
+  return custReceipts(c).reduce(function(sum,r){
+    return ((r.docType||'')==='invoice' && r.status!=='Paid in Full')
+      ? sum + Number((r.totals&&r.totals.total)||0) : sum;
+  },0);
+}
+// Total received from a customer, in rolling windows from now + all-time.
+// "Paid" = any document marked Paid in Full (cash receipts + card/marked-paid invoices).
+function custPaid(c){
+  const now=Date.now(), DAY=86400000;
+  const win={month:30*DAY, quarter:91*DAY, half:182*DAY, year:365*DAY};
+  const out={month:0,quarter:0,half:0,year:0,all:0};
+  custReceipts(c).forEach(function(r){
+    if(r.status!=='Paid in Full') return;
+    const amt=Number((r.totals&&r.totals.total)||r.amount||0);
+    out.all+=amt;
+    const age=now-(r.paidAt||r.savedAt||0);
+    if(age<=win.month)   out.month+=amt;
+    if(age<=win.quarter) out.quarter+=amt;
+    if(age<=win.half)    out.half+=amt;
+    if(age<=win.year)    out.year+=amt;
+  });
+  return out;
+}
+// Total outstanding across ALL customers (accounts receivable) — for dashboard/reports.
+function totalOwedAll(){
+  let owed=0, n=0;
+  try{ (TKS.list('receipts')||[]).forEach(function(r){
+    if((r.docType||'')==='invoice' && r.status!=='Paid in Full'){ owed+=Number((r.totals&&r.totals.total)||0); n++; }
+  }); }catch(e){}
+  return {amount:owed, count:n};
+}
+// Mark an invoice paid — mirrors Receipts (docType→receipt, status→Paid in Full,
+// INV→TKS number, paidAt, consume stock once via the shared TKS.Inventory).
+function markInvoicePaid(ref){
+  let arr=[]; try{ arr=TKS.list('receipts')||[]; }catch(e){ return false; }
+  const t=arr.find(function(x){ return (ref.id&&x.id===ref.id) || (ref.number&&x.number===ref.number); });
+  if(!t) return false;
+  if((t.docType||'')==='receipt' || t.status==='Paid in Full') return false; // already paid
+  t.docType='receipt'; t.status='Paid in Full';
+  if(t.number) t.number=String(t.number).replace(/^INV/,'TKS');
+  t.paidAt=Date.now();
+  try{ if(!t.stockApplied && window.TKS && TKS.Inventory){
+    (t.items||[]).forEach(function(it){ const qn=parseInt(it.qty,10)||0; if(it.partId && qn>0) TKS.Inventory.adjustQty(it.partId,-qn); });
+    t.stockApplied=true; t.stockAppliedAt=Date.now();
+  } }catch(e){}
+  try{ TKS.saveList('receipts', arr); }catch(e){ return false; }
+  return true;
+}
+function invStatusTag(r){
+  const dt=r.docType||'receipt';
+  if(dt==='estimate') return '<span class="hist-tag" style="background:rgba(155,107,214,.18);color:#6d3fb0">ESTIMATE</span>';
+  if(dt==='invoice' && r.status!=='Paid in Full') return '<span class="hist-tag" style="background:rgba(200,50,60,.16);color:#b3242f">UNPAID</span>';
+  return '<span class="hist-tag" style="background:rgba(46,160,80,.18);color:#1f8f43">PAID</span>';
+}
+// Warranty pill (mirrors bittings.html): days left, amber under 30, red when expired.
+function warrantyInfo(r){
+  if(!r || !r.warranty || !Number(r.warrantyMonths)) return null;
+  const start=r.warrantyStart||r.savedAt; if(!start) return null;
+  let until=r.warrantyUntil;
+  if(!until){ const d=new Date(start); d.setMonth(d.getMonth()+Number(r.warrantyMonths)); until=d.getTime(); }
+  const days=Math.ceil((until-Date.now())/86400000);
+  return {until,days,expired:days<0};
+}
+function warrantyPill(r){
+  const w=warrantyInfo(r); if(!w) return '';
+  let bg,fg,txt;
+  if(w.expired){ bg='rgba(200,50,60,.14)'; fg='#b3242f'; txt='Warranty expired'; }
+  else if(w.days<=30){ bg='rgba(217,138,0,.18)'; fg='#9a6a00'; txt=w.days+' day'+(w.days===1?'':'s')+' warranty left'; }
+  else { bg='rgba(46,160,80,.16)'; fg='#1f8f43'; txt=w.days+' days warranty left'; }
+  return '<span style="display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;background:'+bg+';color:'+fg+'">🛡 '+esc(txt)+'</span>';
+}
+function renderCustInvoices(c){
+  const box=document.getElementById('custInvoices'); if(!box) return;
+  if(!c || !(c.customer||'').trim()){ box.innerHTML=''; return; }
+  const mine=custReceipts(c).slice().sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
+  if(!mine.length){ box.innerHTML='<div class="hist-h">Invoices &amp; receipts</div><div class="hist-empty">No invoices yet.</div>'; return; }
+  const owed=custOwed(c);
+  const nUnpaid=mine.filter(r=>(r.docType||'')==='invoice' && r.status!=='Paid in Full').length;
+  const owedBanner = owed>0
+    ? '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:2px 0 10px;padding:10px 12px;border-radius:10px;background:rgba(200,50,60,.10);border:1px solid rgba(200,50,60,.30)">'+
+        '<span style="font-weight:700;color:#b3242f">Balance owed</span>'+
+        '<span style="font-weight:900;color:#b3242f;font-family:var(--font-mono)">'+_money(owed)+'</span></div>'+
+      '<div class="hist-empty" style="margin:-6px 0 8px">'+nUnpaid+' unpaid invoice'+(nUnpaid===1?'':'s')+'. (Mark them paid in Receipts to clear.)</div>'
+    : '';
+  const rows=mine.map(function(r,i){
+    const when=r.date||'—';
+    const num=r.number||((r.docType||'receipt').toUpperCase());
+    const total=_money((r.totals&&r.totals.total)||r.amount||0);
+    const wp=warrantyPill(r);
+    return '<div class="hist-row inv-row" data-i="'+i+'" style="cursor:pointer"><div class="hist-main"><b>'+esc(when)+'</b>'+
+      '<div class="hist-svc">'+esc(num)+' · '+total+(wp?'  '+wp:'')+'</div></div>'+invStatusTag(r)+'</div>';
+  }).join('');
+  // Total received from this customer, all-time + rolling windows
+  const paid=custPaid(c);
+  const pcell=function(lbl,v){ return '<div style="background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:8px;padding:6px 4px"><div style="font-size:9.5px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.04em">'+lbl+'</div><div style="font-weight:800;font-family:var(--font-mono);font-size:13px">'+_money(v)+'</div></div>'; };
+  const paidBlock = paid.all>0
+    ? '<div style="margin:2px 0 10px;padding:10px 12px;border-radius:10px;background:rgba(46,160,80,.06);border:1px solid rgba(46,160,80,.25)">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><span style="font-weight:700">Total paid (all-time)</span><span style="font-weight:900;font-family:var(--font-mono);color:#1f8f43">'+_money(paid.all)+'</span></div>'+
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center">'+
+          pcell('30 days',paid.month)+pcell('90 days',paid.quarter)+pcell('6 months',paid.half)+pcell('1 year',paid.year)+
+        '</div></div>'
+    : '';
+  box.innerHTML='<div class="hist-h">Invoices &amp; receipts ('+mine.length+')</div>'+owedBanner+paidBlock+
+    '<div class="hist-empty" style="margin:-2px 0 6px">Tap an invoice to see what was sold'+(nUnpaid?' or mark it paid':'')+'.</div>'+rows;
+  box.querySelectorAll('.inv-row').forEach(function(el){ el.onclick=function(){ try{ openInvoiceModal(mine[+el.dataset.i], c); }catch(e){ alert('Could not open this invoice: '+((e&&e.message)||e)); } }; });
+}
+// Invoice detail — "what was sold" — opened from a customer's invoice list. `cust` lets
+// us refresh the list after marking paid.
+function openInvoiceModal(r, cust){
+  if(!r) return;
+  const isUnpaid = (r.docType||'')==='invoice' && r.status!=='Paid in Full';
+  const items=(r.items||[]);
+  const itemRows = items.length ? items.map(function(it){
+    const qty=Number(it.qty)||1; const amt=Number(it.amount)||0;
+    const qpart=qty>1?('<span style="color:var(--text-secondary)">'+qty+'× </span>'):'';
+    return '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border-subtle)">'+
+      '<span>'+qpart+esc(it.desc||'Item')+(it.taxable?' <span style="color:var(--text-tertiary);font-size:11px">(tax)</span>':'')+'</span>'+
+      '<span style="font-family:var(--font-mono);white-space:nowrap">'+_money(amt)+'</span></div>';
+  }).join('') : '<div class="hist-empty">No line items recorded.</div>';
+  const t=r.totals||{};
+  let totsHTML='';
+  if(t.subtotal!=null) totsHTML+='<div style="display:flex;justify-content:space-between;padding:3px 0;color:var(--text-secondary)"><span>Subtotal</span><span style="font-family:var(--font-mono)">'+_money(t.subtotal)+'</span></div>';
+  if(t.tax) totsHTML+='<div style="display:flex;justify-content:space-between;padding:3px 0;color:var(--text-secondary)"><span>Tax'+(t.taxRate?' ('+t.taxRate+'%)':'')+'</span><span style="font-family:var(--font-mono)">'+_money(t.tax)+'</span></div>';
+  if(t.surcharge) totsHTML+='<div style="display:flex;justify-content:space-between;padding:3px 0;color:var(--text-secondary)"><span>Card surcharge</span><span style="font-family:var(--font-mono)">'+_money(t.surcharge)+'</span></div>';
+  totsHTML+='<div style="display:flex;justify-content:space-between;padding:6px 0 0;font-weight:900;font-size:16px"><span>Total</span><span style="font-family:var(--font-mono)">'+_money((t.total!=null?t.total:r.amount)||0)+'</span></div>';
+  const veh=[r.vehYear,r.vehMake,r.vehModel].filter(Boolean).join(' ');
+  const meta=[r.date, (r.serviceType||''), (veh?('Vehicle: '+veh):''), (r.vin?('VIN: '+r.vin):''), (r.technician?('Tech: '+r.technician):'')].filter(Boolean).map(esc).join(' · ');
+  const wp=warrantyPill(r);
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px';
+  ov.innerHTML='<div style="background:var(--surface-card);color:var(--text-primary);width:100%;max-width:460px;border-radius:16px;padding:18px;margin-top:24px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px">'+
+        '<div><div style="font-weight:900;font-size:18px">'+esc(r.number||'Invoice')+'</div>'+
+          '<div style="font-size:12.5px;color:var(--text-secondary);margin-top:2px">'+meta+'</div></div>'+
+        invStatusTag(r)+'</div>'+
+      (wp?'<div style="margin:6px 0 2px">'+wp+'</div>':'')+
+      '<div class="eyebrow" style="margin:12px 0 4px">What was sold</div>'+itemRows+
+      '<div style="margin-top:10px">'+totsHTML+'</div>'+
+      (r.notes?'<div style="margin-top:10px;font-size:13px;color:var(--text-secondary)">Notes: '+esc(r.notes)+'</div>':'')+
+      '<div style="font-size:11.5px;color:var(--text-tertiary);margin-top:12px">To edit, reprint, or PDF this document, open it in Receipts.</div>'+
+      (isUnpaid?'<button type="button" id="invPaid" class="bt-btn bt-btn--lg" style="width:100%;margin-top:12px;background:#1f8f43;color:#fff;border:none">✓ Mark as paid</button>':'')+
+      '<button type="button" id="invClose" class="bt-btn '+(isUnpaid?'bt-btn--ghost':'bt-btn--brand')+' bt-btn--lg" style="width:100%;margin-top:8px">Close</button>'+
+    '</div>';
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+  ov.querySelector('#invClose').onclick=function(){ ov.remove(); };
+  const paidBtn=ov.querySelector('#invPaid');
+  if(paidBtn) paidBtn.onclick=function(){
+    if(!confirm('Mark '+(r.number||'this invoice')+' as paid? This converts it to a receipt and clears it from the balance owed.')) return;
+    if(markInvoicePaid(r)){
+      ov.remove();
+      if(cust){ renderCustInvoices(cust); }
+      try{ renderCustomers(); }catch(e){}
+    } else { alert('Could not update this invoice.'); }
+  };
+  document.body.appendChild(ov);
 }
 
 document.getElementById('fSave').onclick = ()=>{
@@ -771,15 +1271,30 @@ document.getElementById('invVin').onclick = ()=>{
 
 function money(n){ n=parseFloat(n); return isNaN(n)?'':'$'+n.toFixed(2); }
 
+// ---- inventory location (van vs shop) — only active when Setup enables BOTH ----
+function locCfg(){ try{ return TKS.Config.locations()||{van:true,shop:false}; }catch(e){ return {van:true,shop:false}; } }
+function bothLoc(){ var l=locCfg(); return !!(l.van&&l.shop); }
+function defaultLoc(){ var l=locCfg(); return (l.shop&&!l.van)?'shop':'van'; }
+function partLoc(p){ if(p&&(p.loc==='van'||p.loc==='shop')) return p.loc; return defaultLoc(); }
+function locLabel(loc){ return loc==='shop'?'🏪 Shop':'🚐 Van'; }
+let invLocFilter='all';
 function renderInventory(){
   const q = invSearchEl.value.trim();
   const all = TKS.Inventory.all();
-  const list = TKS.Inventory.search(q).slice().sort((a,b)=>{
+  let list = TKS.Inventory.search(q).slice().sort((a,b)=>{
     // low-stock first, then name
     const la = TKS.Inventory.isLow(a)?0:1, lb = TKS.Inventory.isLow(b)?0:1;
     if(la!==lb) return la-lb;
     return (a.name||'').toLowerCase().localeCompare((b.name||'').toLowerCase());
   });
+  // location filter (only when the shop uses both van + shop)
+  const seg=document.getElementById('invLocSeg'), showLoc=bothLoc();
+  if(showLoc && seg){
+    seg.style.display='flex';
+    seg.innerHTML=['all','van','shop'].map(f=>'<button data-lf="'+f+'" class="'+(invLocFilter===f?'on':'')+'">'+(f==='all'?'All':locLabel(f))+'</button>').join('');
+    seg.querySelectorAll('[data-lf]').forEach(b=> b.onclick=()=>{ invLocFilter=b.dataset.lf; renderInventory(); });
+    if(invLocFilter!=='all') list=list.filter(p=>partLoc(p)===invLocFilter);
+  } else if(seg){ seg.style.display='none'; }
   // summary chips
   const low = TKS.Inventory.lowCount();
   document.getElementById('invSummary').innerHTML =
@@ -794,9 +1309,10 @@ function renderInventory(){
   wrap.innerHTML = '';
   list.forEach(p=>{
     const isLow = TKS.Inventory.isLow(p);
+    const loc = partLoc(p);
     const row = document.createElement('div');
     row.className = 'crow part' + (isLow?' islow':'');
-    const sub = [p.sku, p.category, p.location].filter(Boolean).join('  ·  ') || '—';
+    const sub = [ showLoc?locLabel(loc):'', p.sku, p.category, p.location ].filter(Boolean).join('  ·  ') || '—';
     row.innerHTML =
       '<div class="pq">'+
         '<button class="qbtn minus" aria-label="Decrease quantity of '+esc(p.name||'part')+'">−</button>'+
@@ -809,9 +1325,12 @@ function renderInventory(){
         (isLow && (parseInt(p.reorderQty,10)||0)>0
           ? '<div class="sub reorder">↻ Reorder '+(parseInt(p.reorderQty,10)||0)+(p.supplier?' · '+esc(p.supplier):'')+'</div>'
           : '')+'</div>'+
+      (showLoc?'<button class="moveloc" title="Move to '+(loc==='van'?'shop':'van')+'">→ '+(loc==='van'?'Shop':'Van')+'</button>':'')+
       (p.cost?'<span class="tag">'+money(p.cost)+'</span>':'');
     row.querySelector('.minus').onclick = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id,-1); renderInventory(); };
     row.querySelector('.plus').onclick  = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id, 1); renderInventory(); };
+    const mv=row.querySelector('.moveloc');
+    if(mv) mv.onclick=(e)=>{ e.stopPropagation(); const np=TKS.Inventory.get(p.id)||p; np.loc=(loc==='van'?'shop':'van'); TKS.Inventory.save(np); renderInventory(); };
     const info = row.querySelector('.pinfo');
     info.onclick = ()=> openPart(p.id);
     info.setAttribute('tabindex','0');
@@ -821,6 +1340,13 @@ function renderInventory(){
     wrap.appendChild(row);
   });
 }
+// part-form van/shop selector
+let partLocSel='van';
+function setPartLoc(loc){ partLocSel=(loc==='shop')?'shop':'van';
+  var v=document.getElementById('pLocVan'), s=document.getElementById('pLocShop');
+  if(v) v.classList.toggle('on', partLocSel==='van'); if(s) s.classList.toggle('on', partLocSel==='shop'); }
+(function(){ var v=document.getElementById('pLocVan'), s=document.getElementById('pLocShop');
+  if(v) v.onclick=()=>setPartLoc('van'); if(s) s.onclick=()=>setPartLoc('shop'); })();
 
 let editPartId = null;
 function openPart(id){
@@ -833,6 +1359,8 @@ function openPart(id){
   document.getElementById('pCategory').value = p.category || '';
   document.getElementById('pCost').value = (p.cost!=null? p.cost : '');
   document.getElementById('pLocation').value = p.location || '';
+  var lw=document.getElementById('pLocWrap'); if(lw) lw.style.display = bothLoc()?'block':'none';
+  setPartLoc(partLoc(p));
   document.getElementById('pSupplier').value = p.supplier || '';
   document.getElementById('pReorderQty').value = (p.reorderQty!=null? p.reorderQty : '');
   document.getElementById('pFitment').value = p.fitment || '';
@@ -854,6 +1382,7 @@ document.getElementById('pSave').onclick = ()=>{
     category: document.getElementById('pCategory').value.trim(),
     cost: document.getElementById('pCost').value.trim() ? parseFloat(document.getElementById('pCost').value) : '',
     location: document.getElementById('pLocation').value.trim(),
+    loc: bothLoc() ? partLocSel : defaultLoc(),
     supplier: document.getElementById('pSupplier').value.trim(),
     reorderQty: parseInt(document.getElementById('pReorderQty').value,10) || 0,
     fitment: document.getElementById('pFitment').value.trim(),
@@ -928,13 +1457,13 @@ function chgClear(){ const e=chgEls(); e.amt.value=''; e.label.value=''; e.cust.
 function chgSummaryText(r){
   const total=(r.totals&&r.totals.total!=null)?('$'+Number(r.totals.total).toFixed(2)):'';
   const svc=(r.items&&r.items[0]&&r.items[0].desc)||'Service';
-  return 'Receipt from Turbo Keysmith — '+svc+(total?(' — Total '+total):'')+'. Thank you!';
+  return 'Receipt from '+bizName()+' — '+svc+(total?(' — Total '+total):'')+'. Thank you!';
 }
 function sendChargeReceipt(r){
   if(!r) return; const text=chgSummaryText(r);
-  if(navigator.share){ navigator.share({ title:'Turbo Keysmith receipt', text }).catch(()=>{}); return; }
+  if(navigator.share){ navigator.share({ title:bizName()+' receipt', text }).catch(()=>{}); return; }
   const email=(r.email||'').trim();
-  if(email){ window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Your Turbo Keysmith receipt')+'&body='+encodeURIComponent(text); return; }
+  if(email){ window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Your '+bizName()+' receipt')+'&body='+encodeURIComponent(text); return; }
   try{ navigator.clipboard.writeText(text); chgSay('Receipt summary copied — paste into a text/email.',true); }catch(e){ alert(text); }
 }
 function showChgSend(r){
@@ -944,7 +1473,7 @@ function showChgSend(r){
     (email?'<button class="btn ghostbtn" id="chgSendEmail" style="flex:1">✉️ Email</button>':'');
   sr.style.display='flex';
   const sh=document.getElementById('chgSendShare'); if(sh) sh.onclick=()=>sendChargeReceipt(r);
-  const em=document.getElementById('chgSendEmail'); if(em) em.onclick=()=>{ window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Your Turbo Keysmith receipt')+'&body='+encodeURIComponent(chgSummaryText(r)); };
+  const em=document.getElementById('chgSendEmail'); if(em) em.onclick=()=>{ window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Your '+bizName()+' receipt')+'&body='+encodeURIComponent(chgSummaryText(r)); };
 }
 function chgSay(msg,ok){ const e=chgEls(); e.status.textContent=msg; e.status.style.color=ok?'#7fd49b':(ok===false?'#f0a0a6':'var(--dim)'); }
 function renderPayments(){
@@ -1338,12 +1867,11 @@ async function renderReports(){
     byMethod[t.method==='cash'?'cash':t.method==='check'?'check':'card']+=sales;
     const k=repBucketKey(new Date(t.created_at), gran); if(agg[k]){ agg[k].sales+=sales; agg[k].cost+=cost; agg[k].profit+=profit; agg[k].jobs+=1; }
   });
-  // Metric cards (only the toggled-on ones) + an always-on "Tax collected" (pass-through).
-  cards.innerHTML = (REP_METRICS.filter(x=>m[x.key]).map(x=>{
+  // Metric cards — only the toggled-on ones. (Tax collected moved to the Dashboard.)
+  cards.innerHTML = REP_METRICS.filter(x=>m[x.key]).map(x=>{
     const val = x.kind==='money' ? repMoney(tot[x.key]) : String(tot[x.key]);
     return '<div class="chip m-'+x.key+'">'+x.label+'<b>'+val+'</b></div>';
-  }).join('')) +
-    '<div class="chip" style="border-color:rgba(154,161,172,.4)">Tax collected <span style="font-weight:400;color:var(--dim)">· pass-through</span><b>'+repMoney(tot.tax)+'</b></div>';
+  }).join('');
   drawRepChart(v.chart, buckets, agg, m, byMethod);
   // Transaction list (period rows, newest first)
   if(!rows.length){ list.innerHTML='<div class="empty">No transactions in this period.</div>'; return; }
@@ -1400,11 +1928,140 @@ function drawRepChart(type, buckets, agg, m, byMethod){
       plugins:{ legend:{ labels:{ color:'#9aa1ac' } },
         tooltip:{ callbacks:{ label:c=>{ const cnt=c.dataset.yAxisID==='y1'; return c.dataset.label+': '+(cnt?c.parsed.y:('$'+Number(c.parsed.y).toFixed(2))); } } } },
       scales:{
-        x:{ ticks:{ color:'#9aa1ac' }, grid:{ color:'rgba(255,255,255,.05)' } },
-        y:{ position:'left', ticks:{ color:'#9aa1ac', callback:v=>'$'+v }, grid:{ color:'rgba(255,255,255,.05)' } },
+        x:{ ticks:{ color:'#9aa1ac' }, grid:{ color:'rgba(20,23,27,.06)' } },
+        y:{ position:'left', ticks:{ color:'#9aa1ac', callback:v=>'$'+v }, grid:{ color:'rgba(20,23,27,.06)' } },
         y1:{ position:'right', display:jobsOn, ticks:{ color:'#9aa1ac', precision:0 }, grid:{ drawOnChartArea:false } }
       } } });
 }
+
+/* ===================== MANAGER DASHBOARD (read-only · manager-only) =====================
+   Wires every number to real data through the existing layer:
+   • Revenue / Jobs / Avg ticket = payment_transactions via TKPay.dayTransactions
+     (Sales = base_cents − tax_cents of COMPLETED rows) — the SAME definition the
+     Transaction History (Reports) view uses, so the figures reconcile.
+   • Repeat customers + the two job charts = TKS.Bookings (customer linkage, per-day
+     date, serviceCategory) + TKS.ServiceCats. A "job" in the charts = a booking marked
+     Completed. Deltas show ONLY when real prior-month data exists (else the line is hidden).
+   No writes, no schema/key changes. */
+const DASH_MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+let _dashData=null;
+function dashMoney0(c){ return '$'+Math.round((c||0)/100).toLocaleString(); }
+function dashMoney2(c){ return '$'+((c||0)/100).toFixed(2); }
+function dashISO(d){ const x=new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,10); }
+function dashMonthBounds(offset){ const n=new Date(), y=n.getFullYear(), m=n.getMonth()+(offset||0); return {start:new Date(y,m,1), end:new Date(y,m+1,1), mIdx:((m%12)+12)%12}; }
+async function dashTx(start,end){
+  if(!window.TKPay || !TKPay.dayTransactions) return {sales:0,jobs:0,tax:0,ok:false};
+  let res; try{ res=await TKPay.dayTransactions(start.toISOString(), end.toISOString()); }catch(e){ return {sales:0,jobs:0,tax:0,ok:false}; }
+  if(!res || res.error) return {sales:0,jobs:0,tax:0,ok:false};
+  let sales=0,jobs=0,tax=0;
+  (res.rows||[]).forEach(t=>{ if(t.status!=='completed') return; sales+=Math.max(0,(t.base_cents||0)-(t.tax_cents||0)); tax+=(t.tax_cents||0); jobs+=1; });
+  return {sales,jobs,tax,ok:true};
+}
+function dashAllBookings(){ try{ return TKS.Bookings.all()||[]; }catch(e){ return []; } }
+function dashCustKey(b){ return b.customerId || ((b.customer&&b.customer.phone)||'').replace(/\D/g,'') || ((b.customer&&b.customer.name)||'').trim().toLowerCase() || null; }
+function dashInMonth(dateStr,b){ if(!dateStr) return false; const d=new Date(dateStr+'T00:00:00'); return d>=b.start && d<b.end; }
+function dashRepeat(monthB){
+  const all=dashAllBookings(), lifetime={}, active={};
+  all.forEach(b=>{ const k=dashCustKey(b); if(!k) return; lifetime[k]=(lifetime[k]||0)+1; if(dashInMonth(b.date,monthB)) active[k]=1; });
+  const keys=Object.keys(active); if(!keys.length) return {pct:null,n:0};
+  const repeat=keys.filter(k=>(lifetime[k]||0)>=2).length;
+  return {pct:Math.round(repeat/keys.length*100), n:keys.length};
+}
+function dashWeekJobs(){
+  const all=dashAllBookings(), n=new Date(), dow=(n.getDay()+6)%7;
+  const mon=new Date(n.getFullYear(),n.getMonth(),n.getDate()-dow), L=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const days=[]; for(let i=0;i<7;i++){ const d=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i); days.push({key:dashISO(d),label:L[i],n:0}); }
+  all.forEach(b=>{ if((b.status||'')!=='Completed') return; const i=days.findIndex(x=>x.key===b.date); if(i>=0) days[i].n++; });
+  return {days, todayKey:dashISO(n)};
+}
+function dashTypes(monthB){
+  const all=dashAllBookings(), counts={}; let total=0;
+  all.forEach(b=>{ if((b.status||'')!=='Completed') return; if(!dashInMonth(b.date,monthB)) return; const c=b.serviceCategory||'other'; counts[c]=(counts[c]||0)+1; total++; });
+  if(!total) return {rows:[],total:0};
+  let cats=[]; try{ cats=TKS.ServiceCats.active()||[]; }catch(e){}
+  const order=cats.map(c=>c.key); Object.keys(counts).forEach(k=>{ if(order.indexOf(k)<0) order.push(k); });
+  let rows=order.filter(k=>counts[k]).map(k=>{ let lbl=k; try{ lbl=TKS.ServiceCats.label(k,'en')||k; }catch(e){} return {key:k,label:lbl,n:counts[k],pct:Math.round(counts[k]/total*100)}; });
+  if(rows.length>5){ const head=rows.slice(0,4), tail=rows.slice(4), tn=tail.reduce((s,r)=>s+r.n,0); head.push({key:'_other',label:'Other',n:tn,pct:Math.round(tn/total*100)}); rows=head; }
+  return {rows,total};
+}
+function dashDeltaPct(cur,prev){ if(!(prev>0)) return null; return Math.round((cur-prev)/prev*100); }
+function dashArrow(n){ return n>0?'▲':(n<0?'▼':'•'); }
+function dashKpiCard(lbl,val,sub,color){
+  return '<div class="kpi"><div class="kpi-lbl">'+lbl+'</div><div class="kpi-num" style="color:'+color+'">'+val+'</div>'+
+    '<div class="kpi-sub">'+(sub||'&nbsp;')+'</div></div>';
+}
+function openDashboard(){ show('dashboard'); renderDashboard(); }
+async function renderDashboard(){
+  const monthB=dashMonthBounds(0), prevB=dashMonthBounds(-1), now=new Date();
+  document.getElementById('dashEyebrow').textContent=(DASH_MONTHS[now.getMonth()]+' '+now.getFullYear()).toUpperCase();
+  const kbox=document.getElementById('dashKpis');
+  kbox.innerHTML='<div class="dash-empty" style="grid-column:1/-1">Loading…</div>';
+  const cur=await dashTx(monthB.start,monthB.end), prev=await dashTx(prevB.start,prevB.end);
+  const prevName=DASH_MONTHS[prevB.mIdx];
+  // Revenue
+  const revD=prev.ok?dashDeltaPct(cur.sales,prev.sales):null;
+  const revSub=revD==null?'':(dashArrow(revD)+' '+Math.abs(revD)+'% vs '+prevName);
+  // Jobs (this month) + per-day-elapsed
+  const elapsed=Math.max(1,now.getDate());
+  const jobsSub=(cur.jobs/elapsed).toFixed(1)+' / day';
+  // Repeat customers
+  const rc=dashRepeat(monthB), rcPrev=dashRepeat(prevB);
+  const rcVal=rc.pct==null?'—':rc.pct+'%';
+  let rcSub=''; if(rc.pct!=null && rcPrev.pct!=null && rcPrev.n>0){ const dp=rc.pct-rcPrev.pct; rcSub=dashArrow(dp)+' '+Math.abs(dp)+' pts vs '+prevName; }
+  // Avg ticket
+  const curAvg=cur.jobs?cur.sales/cur.jobs:0, prevAvg=prev.jobs?prev.sales/prev.jobs:0;
+  const avgVal=cur.jobs?dashMoney2(curAvg):'$0';
+  let avgSub=''; if(prev.ok && prev.jobs>0 && cur.jobs>0){ const dd=Math.round((curAvg-prevAvg)/100); avgSub=dashArrow(curAvg-prevAvg)+' $'+Math.abs(dd)+' vs '+prevName; }
+  // Outstanding (A/R) = unpaid invoices across all customers (a live snapshot, not month-bound)
+  const owedAll=totalOwedAll();
+  const owedSub=owedAll.count?(owedAll.count+' unpaid invoice'+(owedAll.count===1?'':'s')):'All settled';
+  kbox.innerHTML =
+    dashKpiCard('Revenue', dashMoney0(cur.sales), revSub, '#22994a')+
+    dashKpiCard('Jobs', String(cur.jobs), jobsSub, '#14171b')+
+    dashKpiCard('Repeat customers', rcVal, rcSub, '#4aa3ff')+
+    dashKpiCard('Avg ticket', avgVal, avgSub, '#14171b')+
+    dashKpiCard('Owed (A/R)', '$'+Math.round(owedAll.amount).toLocaleString(), owedSub, owedAll.amount>0?'#c92c3d':'#22994a')+
+    dashKpiCard('Tax collected', dashMoney0(cur.tax), 'this month · pass-through', '#5a616c');
+  // Jobs this week
+  const wk=dashWeekJobs(), max=Math.max(1,...wk.days.map(d=>d.n));
+  let hi=wk.days.findIndex(d=>d.key===wk.todayKey);
+  if(hi<0 || wk.days[hi].n===0){ let pk=0; wk.days.forEach((d,i)=>{ if(d.n>wk.days[pk].n) pk=i; }); hi=wk.days[pk].n>0?pk:-1; }
+  document.getElementById('dashWeek').innerHTML = wk.days.map((d,i)=>{
+    const h=Math.max(4,Math.round(d.n/max*150));
+    return '<div class="wk"><div class="wk-val">'+d.n+'</div><div class="wk-bar'+(i===hi?' hot':'')+'" style="height:'+h+'px"></div><div class="wk-lbl">'+d.label+'</div></div>';
+  }).join('');
+  // Jobs by type
+  const ty=dashTypes(monthB), tcolors=['#ffb000','#4aa3ff','#9b6bd6','#22994a','#c92c3d','#5a616c'];
+  const tbox=document.getElementById('dashTypes');
+  tbox.innerHTML = ty.total ? ty.rows.map((r,i)=>'<div class="ty"><div class="ty-top"><span>'+esc2(r.label)+'</span><span>'+r.pct+'%</span></div>'+
+      '<div class="ty-track"><div class="ty-fill" style="width:'+r.pct+'%;background:'+tcolors[i%tcolors.length]+'"></div></div></div>').join('')
+    : '<div class="dash-empty">No completed jobs logged this month yet.</div>';
+  document.getElementById('dashFoot').innerHTML =
+    'Revenue, Jobs &amp; Tax collected match Transaction History for '+DASH_MONTHS[now.getMonth()]+'. Owed (A/R) is your current unpaid-invoice total across all customers. The two job charts read completed scheduler bookings. Deltas appear only when last month has real data.';
+  _dashData={ month:DASH_MONTHS[now.getMonth()]+' '+now.getFullYear(), revenue:cur.sales, jobs:cur.jobs,
+    repeatPct:rc.pct, avgTicket:cur.jobs?curAvg:null, week:wk.days.map(d=>({label:d.label,n:d.n})), types:ty.rows.map(r=>({label:r.label,n:r.n,pct:r.pct})) };
+}
+(function(){ const b=document.getElementById('dashExport'); if(b) b.onclick=function(){
+  const d=_dashData; if(!d){ return; }
+  const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
+  const lines=[];
+  lines.push(bizName()+' — Manager dashboard,'+q(d.month));
+  lines.push('');
+  lines.push('Metric,Value');
+  lines.push('Revenue (this month),'+dashMoney2(d.revenue));
+  lines.push('Jobs (this month),'+d.jobs);
+  lines.push('Repeat customers,'+(d.repeatPct==null?'—':d.repeatPct+'%'));
+  lines.push('Avg ticket,'+(d.avgTicket==null?'—':dashMoney2(d.avgTicket)));
+  lines.push('');
+  lines.push('Jobs this week,Completed');
+  d.week.forEach(w=>lines.push(w.label+','+w.n));
+  lines.push('');
+  lines.push('Jobs by type (this month),Jobs,Share');
+  d.types.forEach(t=>lines.push(q(t.label)+','+t.n+','+t.pct+'%'));
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const u=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=u; a.download='manager_dashboard_'+dashISO(new Date())+'.csv'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),1500);
+}; })();
 
 /* ============================ CLOUD BOOTSTRAP ============================
    Connects to Supabase ONLY when an employee is already signed in (a session
@@ -1415,12 +2072,15 @@ function setCloudPill(state){
   const el = document.getElementById('cloudPill');
   const homeNote = document.getElementById('homeNote');
   const invNote  = document.getElementById('invNote');
+  const side = document.getElementById('sideSynced');   // mirror into the sidebar footer
   if(state==='on'){
     if(el){ el.textContent='☁ Synced'; el.className='cloudpill on'; el.title='Signed in — saving to the shared cloud database'; }
+    if(side){ side.textContent='☁ Synced'; side.className='bt-sidestat on'; side.title='Signed in — saving to the shared cloud database'; }
     if(homeNote) homeNote.textContent = '☁ Synced to the cloud — customers, bookings & receipts appear on every signed-in device.';
     if(invNote)  invNote.textContent  = '☁ Synced to the cloud — stock appears on every signed-in device.';
   } else {
     if(el){ el.textContent='On this device'; el.className='cloudpill'; el.title='Not signed in — saving locally. Use Staff Login to sync.'; }
+    if(side){ side.textContent='On this device'; side.className='bt-sidestat'; side.title='Not signed in — saving locally. Use Staff Login to sync.'; }
     if(homeNote) homeNote.textContent = 'Customers, bookings & receipts are shared across every tool here. Sign in (Staff Login) to sync to the cloud across devices.';
     if(invNote)  invNote.textContent  = 'Stock is saved on this device. Sign in to sync it to the cloud.';
   }
@@ -1449,23 +2109,24 @@ function updateAuthUI(){
   syncOwnerTiles();
   const bar = document.getElementById('authBar'); if(!bar) return;
   const a = window.TKS && TKS.auth;
+  const sideSignedIn = document.getElementById('sideSignedIn');   // sidebar footer "Signed in:"
   if(a && a.isSignedIn()){
     const owner = a.isOwner();
-    bar.innerHTML = '<span>Signed in: <b>'+esc2(a.email())+'</b></span>'+
-      '<span class="rolebadge '+(owner?'owner':'staff')+'">'+(owner?'MANAGER':'STAFF')+'</span>'+
-      setupLinkHTML()+
+    // "Signed in" now lives in the sidebar footer; the top bar just keeps the role + Sign out.
+    if(sideSignedIn) sideSignedIn.innerHTML = 'Signed in: <b>'+esc2(a.email())+'</b>';
+    bar.innerHTML = '<span class="rolebadge '+(owner?'owner':'staff')+'">'+(owner?'MANAGER':'STAFF')+'</span>'+
       '<button id="signOutBtn">Sign out</button>';
     const so = document.getElementById('signOutBtn');
     if(so) so.onclick = ()=>{ try{ a.signOut().then(()=>location.reload()); }catch(e){ location.reload(); } };
   } else {
+    if(sideSignedIn) sideSignedIn.textContent = 'Not signed in';
     bar.innerHTML = '<span>Not signed in — saving on this device.</span>'+
-      setupLinkHTML()+
       '<a href="cloud-test.html" rel="nofollow">Staff Login</a>';
   }
   renderQuickTiles();
 }
 // "⚙ Setup" relaunch link — owner, or signed-out/first-run (soft). Hidden for staff.
-function setupLinkHTML(){ return ownerSoft() ? '<a href="setup.html" rel="nofollow" style="background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--dim)">⚙ Setup</a>' : ''; }
+function setupLinkHTML(){ return ownerSoft() ? '<a href="setup.html" rel="nofollow" style="background:rgba(20,23,27,.05);border:1px solid var(--edge);color:var(--dim)">⚙ Setup</a>' : ''; }
 // First-run / incomplete setup → guide the owner (or a fresh signed-out device) to
 // the wizard before Home. Never sends staff; "Finish later" sets a per-session skip.
 function maybeRedirectToSetup(){
@@ -1505,5 +2166,294 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
   }).catch(()=>{ /* stay local */ });
 })();
 </script>
+<!-- Start-a-job front door (job-type chooser → Automotive VIN hero / Res-Com service picker).
+     Reuses TKS.decodeVin + inventory + ServiceCats and routes into the EXISTING flows
+     (Lishi, Programmers, Receipts). The Lishi & Keys tab stays the source of truth for keyway/tool detail. -->
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+  function safe(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  // The shop's business name (Setup → Business). NEVER hardcode a shop name — this is multi-tenant.
+  function bizName(){ try{ var n=((window.TKS&&TKS.Config&&TKS.Config.identity&&TKS.Config.identity().name)||'').trim(); return n||'your shop'; }catch(e){ return 'your shop'; } }
+  // The SHOP's branding (their business) drives the TOP header + the workspace subheading + tab title.
+  // NOTE: the left "Bittings" mark/name is the SOFTWARE/product brand — it is intentionally hardcoded and
+  // must NOT be changed per shop.
+  try{
+    var _nm=bizName();
+    var w=$('btWorkspaceName'); if(w) w.textContent=_nm;       // sidebar "Locksmith" subheading = the shop
+    var an=$('appName'); if(an) an.textContent=_nm;            // top header title = the shop
+    try{ document.title=_nm; }catch(_e){}                       // browser tab = the shop
+  }catch(e){}
+  // The shop's uploaded logo (Setup → Logo) shows in the TOP header only (not the Bittings sidebar mark).
+  try{
+    var _logo=(window.TKS&&TKS.Config&&TKS.Config.identity&&TKS.Config.identity().logo)||'';
+    if(_logo){ var hl=$('appLogo'); if(hl) hl.src=_logo; }
+  }catch(e){}
+
+  // phone "More" → slide-in full menu (reuses the sidebar)
+  var _sb=document.querySelector('.bt-sidebar'), _scrim=$('btScrim'), _more=$('btMore');
+  function closeDrawer(){ if(_sb)_sb.classList.remove('is-open'); if(_scrim)_scrim.classList.remove('is-open'); }
+  if(_more) _more.addEventListener('click', function(){ if(_sb)_sb.classList.add('is-open'); if(_scrim)_scrim.classList.add('is-open'); });
+  if(_scrim) _scrim.addEventListener('click', closeDrawer);
+  if(_sb) _sb.addEventListener('click', function(e){ if(e.target.closest('.bt-nav__item')) closeDrawer(); });
+
+  var MAKES=['Acura','Audi','BMW','Buick','Cadillac','Chevrolet','Chrysler','Dodge','Ford','GMC','Genesis','Honda','Hyundai','Infiniti','Jaguar','Jeep','Kia','Land Rover','Lexus','Lincoln','Mazda','Mercedes-Benz','MINI','Mitsubishi','Nissan','Pontiac','Ram','Saturn','Scion','Subaru','Suzuki','Toyota','Volkswagen','Volvo'];
+  (function(){ var y=$('sjYear'); if(y){ var o=''; for(var yr=2026;yr>=1998;yr--) o+='<option>'+yr+'</option>'; y.innerHTML=o; }
+    var ml=$('sjMakeList'); if(ml) ml.innerHTML=MAKES.map(function(m){ return '<option value="'+m+'">'; }).join(''); })();
+  // Model dropdown — cascades off the chosen Make (+Year), from the full per-make model
+  // catalog (TKS_LISHI_SEED.models) and any vehicles in the Lishi data.
+  function fillModels(){
+    var sel=$('sjModelList'); if(!sel) return;
+    var mk=(($('sjMake')&&$('sjMake').value)||'').trim();
+    var yr=Number(($('sjYear')&&$('sjYear').value)||0);
+    if(!mk){ sel.innerHTML=''; return; }
+    var seen={}, out=[];
+    function add(name){ name=(name||'').trim(); if(!name) return; var k=name.toLowerCase(); if(seen[k]) return; seen[k]=1; out.push(name); }
+    // 1) full catalog (array of [model, yearStart, yearEnd]) — year-filtered when a year is set
+    try{ var cat=(window.TKS_LISHI_SEED&&TKS_LISHI_SEED.models)||{};
+      var key=Object.keys(cat).filter(function(k){return k.toLowerCase()===mk.toLowerCase();})[0];
+      (key?cat[key]:[]).forEach(function(r){ var nm=r[0], a=Number(r[1])||0, b=Number(r[2])||9999; if(!yr||(yr>=a&&yr<=b)) add(nm); });
+    }catch(e){}
+    // 2) any models present in the Lishi vehicle data for this make
+    try{ _ls('tks_vehicle_keyways').forEach(function(r){ if(r.make&&r.make.toLowerCase()===mk.toLowerCase() && (!yr||yMatch(r,yr))) add(r.model); }); }catch(e){}
+    out.sort(function(a,b){ return a.localeCompare(b); });
+    sel.innerHTML=out.map(function(m){ return '<option value="'+safe(m)+'">'; }).join('');
+  }
+  (function(){ var mk=$('sjMake'), yy=$('sjYear');
+    if(mk){ mk.addEventListener('input',fillModels); mk.addEventListener('change',fillModels); }
+    if(yy){ yy.addEventListener('change',fillModels); } })();
+  function setMode(mode){
+    var vin=mode!=='ymm';
+    if($('sjVinBox')) $('sjVinBox').style.display=vin?'':'none';
+    if($('sjYmmBox')) $('sjYmmBox').style.display=vin?'none':'';
+    document.querySelectorAll('#sjMode [data-mode]').forEach(function(b){ b.className='bt-btn bt-btn--sm '+(b.getAttribute('data-mode')===mode?'bt-btn--primary':'bt-btn--secondary'); });
+  }
+
+  var _jt='automotive';
+  function pick(jt){ _jt=jt;
+    document.querySelectorAll('#sjType .bt-jobtype').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-jt')===jt); });
+    var isAuto = jt==='automotive';
+    if($('sjAuto'))  $('sjAuto').style.display  = isAuto?'':'none';
+    if($('sjOther')) $('sjOther').style.display = isAuto?'none':'';
+    if(!isAuto){ fillServices(jt); if($('sjOtherEyebrow')) $('sjOtherEyebrow').textContent = jt==='commercial'?'Commercial':'Residential'; }
+  }
+  function fillServices(jt){
+    function catMatch(c){ c=c||'other'; if(c===jt) return true; try{ return TKS.ServiceCats.codeToKey(c)===jt; }catch(e){ return false; } }
+    var list=[];
+    // 1) your Setup services for this category, if configured. 2) the app's canonical service
+    //    list (Services.list() returns configured-OR-default). 3) sensible recommended defaults.
+    try{ list=(TKS.ServiceCats.servicesFor(jt)||[]).map(function(s){ return (s&&(s.name||s.label||s.value))||s; }).filter(Boolean); }catch(e){}
+    if(!list.length){ try{ list=(TKS.Services.list()||[]).filter(function(s){ return catMatch(s.cat); }).map(function(s){ return (s&&(s.value||s.name||s.label))||s; }).filter(Boolean); }catch(e){} }
+    if(!list.length){ list = (jt==='commercial')
+      ? ['Master key system','Access control','Panic / exit device','Commercial rekey','Other (describe)']
+      : ['Rekey locks','Lockout / unlock','Lock install or repair','Smart lock setup','Other (describe)']; }
+    var sel=$('sjService'); if(sel) sel.innerHTML=list.map(function(s){ return '<option>'+safe(s)+'</option>'; }).join('');
+  }
+  // ---- shared reference stores (seeded by Lishi & Programmers) read here so the
+  //      whole job is in front of you on one screen ----
+  function _ls(k){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):[]; }catch(e){ return []; } }
+  function _inv(){ try{ return TKS.list('inventory')||[]; }catch(e){ return _ls('tks_inventory'); } }
+  var KW_ALIAS={DA34:'NSN14', KK10:'HY20', HU162T:'HU162', B102:'B111'};
+  function toolForKeyway(kw){ if(!kw) return null; kw=String(kw).toUpperCase().trim(); kw=KW_ALIAS[kw]||kw; var L=_ls('tks_lishi_tools');
+    return L.find(function(t){return String(t.keyway).toUpperCase()===kw;}) || L.find(function(t){var k=String(t.keyway).toUpperCase(); return k&&(kw.indexOf(k)>=0||k.indexOf(kw)>=0);}) || null; }
+  function yMatch(r,y){ y=Number(y); if(!y) return true; var a=Number(r.year_start)||0,b=Number(r.year_end)||9999; return y>=a&&y<=b; }
+  function matchVeh(make,year,model){
+    var mk=(make||'').toLowerCase(), md=(model||'').toLowerCase();
+    var rows=_ls('tks_vehicle_keyways').filter(function(r){ return r.make&&r.make.toLowerCase()===mk && yMatch(r,year); });
+    if(md){ var bm=rows.filter(function(r){ var m=(r.model||'').toLowerCase(); return m&&(md.indexOf(m)>=0||m.indexOf(md)>=0); }); if(bm.length) return bm[0]; }
+    return rows[0]||null;
+  }
+  function vanParts(keys){
+    var needles=keys.filter(Boolean).map(function(s){return String(s).toUpperCase();}); if(!needles.length) return [];
+    return _inv().filter(function(it){ var hay=((it.name||'')+' '+(it.sku||'')+' '+(it.fitment||'')+' '+(it.notes||'')).toUpperCase(); return needles.some(function(n){return n&&hay.indexOf(n)>=0;}); })
+      .map(function(it){ return {name:it.name||it.sku||'Part', qty:Number(it.qty!=null?it.qty:it.quantity)||0}; });
+  }
+  function progTag(c){ if(!c) return null; var a=String(c.akl||'').toLowerCase(), ad=String(c.add||'').toLowerCase();
+    if(a==='yes') return 'AKL'; if(a==='pin') return 'AKL · PIN'; if(a==='license') return 'AKL · license'; if(a==='points') return 'AKL · points';
+    if(a==='bench') return 'bench'; if(ad==='yes') return 'add-key'; return null; }
+  function progPills(make,year){
+    var rows=_ls('tks_prog_coverage').filter(function(r){ return r.make&&r.make.toLowerCase()===(make||'').toLowerCase() && yMatch(r,year); });
+    if(!rows.length) return []; var row=rows[0], out=[];
+    _ls('tks_prog_devices').filter(function(d){return d.owned!==false;}).forEach(function(d){
+      var c=row.cov&&row.cov[d.covkey||d.key], tag=progTag(c); if(tag) out.push({name:d.name, tag:tag, cls:/AKL/.test(tag)?'is-info':(tag==='add-key'?'is-warn':'is-info')}); });
+    return out;
+  }
+  function pill(state,label){ return '<span class="bt-pill '+state+'">'+safe(label)+'</span>'; }
+  function ynPill(v){ var s=String(v||'').toLowerCase();
+    if(s==='yes') return pill('is-ok','Yes'); if(s==='no') return pill('is-no','No');
+    if(s.indexOf('caution')>=0) return pill('is-warn','⚠ Caution'); return pill('is-info', v||'N/A'); }
+  function autoServices(){
+    var s=[]; try{ s=(TKS.ServiceCats.servicesFor('automotive')||[]).map(function(x){return (x.name||x.label||x.value)||x;}).filter(Boolean); }catch(e){}
+    if(!s.length){ try{ s=(TKS.Services.list()||[]).filter(function(x){var c=x.cat||'other'; return c==='automotive'||c==='auto';}).map(function(x){return x.value||x.name;}).filter(Boolean); }catch(e){} }
+    if(!s.length) s=['Car key — add a key','Car key — all keys lost','Car lockout','Ignition repair','Other (describe)']; return s;
+  }
+  function renderResult(year, make, model, vin){
+    var box=$('sjResult'); if(!box) return;
+    var veh=matchVeh(make,year,model);
+    var kw=veh?veh.keyway:'', tool=kw?toolForKeyway(kw):null;
+    var trans=veh?veh.transponder_system:'', ign=veh?veh.can_pick_ignition:'';
+    var prog=progPills(make,year), parts=vanParts([kw, tool&&tool.key_blank, make]);
+    var inStockN=parts.reduce(function(s,p){return s+(p.qty>0?1:0);},0);
+    var vehLabel=((year||'')+' '+(make||'')+' '+(model||'')).trim();
+    var oem=veh&&String(veh.oem_only).toLowerCase()==='yes', nastf=veh&&String(veh.nastf_required).toLowerCase()==='yes';
+    function cell(lbl,val){ return '<div><div class="eyebrow" style="margin-bottom:4px">'+lbl+'</div>'+val+'</div>'; }
+    box.innerHTML =
+     '<div class="sj-grid" style="display:grid;grid-template-columns:1.55fr 1fr;gap:20px;align-items:start">'+
+       '<div class="bt-card bt-card--spine-amber">'+
+         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'+
+           '<div><div class="eyebrow">Job lookup result</div>'+
+             '<div style="font-size:var(--fs-h1);font-weight:900;letter-spacing:var(--ls-tight);margin:2px 0">'+safe(vehLabel||'—')+'</div>'+
+             (vin?'<div class="mono" style="font-size:12.5px;color:var(--text-secondary)">'+safe(vin)+'</div>':'')+'</div>'+
+           (veh?pill('is-ok','✓ Confirmed'):pill('is-warn','Verify in Lishi'))+
+         '</div>'+
+         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px">'+
+           cell('Keyway — Lishi tool','<div style="font-weight:800;color:var(--brand-red)">'+safe(kw||'—')+(tool?' <span class="mono" style="color:var(--text-secondary);font-weight:600;font-size:12.5px">· '+safe(tool.tool_designation)+'</span>':'')+'</div>')+
+           cell('Code series', (veh&&veh.code_series) ? '<div class="mono" style="font-weight:800;font-size:14px;color:var(--brand-red)">'+safe(veh.code_series)+'</div>'+(veh.code_card?'<div class="bt-stat__sub" style="font-size:11px">HPC card: <b>'+safe(veh.code_card)+'</b></div>':'')+(veh.code_series_note?'<div class="bt-stat__sub" style="font-size:11px">'+safe(veh.code_series_note)+'</div>':'') : '<span class="bt-stat__sub">Add in Lishi</span>')+
+           cell('Inventory check', parts.length?pill('is-ok', inStockN+' matching in van'):pill('is-warn','No matching stock'))+
+           cell('Transponder','<div class="mono" style="font-size:13px;font-weight:600">'+safe(trans||'—')+'</div>')+
+           cell('Ignition pickable', ynPill(ign))+
+         '</div>'+
+         '<div style="margin-top:16px;border-top:1px solid var(--border-subtle);padding-top:14px">'+
+           '<div class="eyebrow" style="margin-bottom:8px">Programmers</div>'+
+           '<div style="display:flex;gap:8px;flex-wrap:wrap">'+(prog.length?prog.map(function(p){return pill(p.cls, p.name+' · '+p.tag);}).join(''):'<span class="bt-stat__sub">Add your tools in Programmers.</span>')+'</div>'+
+         '</div>'+
+         ((oem||nastf)?'<div style="margin-top:12px">'+pill('is-no',(oem?'OEM-only ':'')+(nastf?'NASTF required':''))+'</div>':'')+
+       '</div>'+
+       '<div style="display:flex;flex-direction:column;gap:16px">'+
+         '<div class="bt-card">'+
+           '<div class="eyebrow" style="margin-bottom:10px">Next step</div>'+
+           '<button type="button" class="bt-btn bt-btn--brand bt-btn--full bt-btn--lg" data-ms="akl" style="margin-bottom:12px">Start all-keys-lost job</button>'+
+           '<div class="eyebrow" style="margin-bottom:6px">Add a service to the invoice</div>'+
+           '<select id="sjSvcPick" class="bt-input bt-select" style="margin-bottom:9px">'+autoServices().map(function(s){return '<option>'+safe(s)+'</option>';}).join('')+'</select>'+
+           '<button type="button" class="bt-btn bt-btn--secondary bt-btn--full" data-ms="svc">Add to invoice</button>'+
+         '</div>'+
+         '<div class="bt-card">'+
+           '<div class="eyebrow" style="margin-bottom:12px">In your van</div>'+
+           (parts.length?parts.slice(0,8).map(function(p,i,a){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i<Math.min(a.length,8)-1?'border-bottom:1px solid var(--border-subtle)':'')+'"><span style="font-size:13.5px;font-weight:600">'+safe(p.name)+'</span>'+pill(p.qty>0?'is-ok':'is-no',String(p.qty))+'</div>';}).join(''):'<div class="bt-stat__sub">No matching parts in Inventory yet.</div>')+
+         '</div>'+
+       '</div>'+
+     '</div>'+
+     '<div id="sjCorrBox" style="margin-top:18px"></div>';   // "Something wrong?" — log a correction for this vehicle
+    var akl=box.querySelector('[data-ms="akl"]'); if(akl) akl.onclick=function(){ openMatSvc('automotive','All keys lost — new key', vehLabel); };
+    var av=box.querySelector('[data-ms="svc"]'); if(av) av.onclick=function(){ var sv=$('sjSvcPick')?$('sjSvcPick').value:''; openMatSvc('automotive', sv||'Add a key to invoice', vehLabel); };
+    try{ if(window.TKS_CORR) TKS_CORR.mountBox($('sjCorrBox'), {scope:'vehicle', ref:vehLabel, refLabel:vehLabel}); }catch(e){}
+  }
+  function lookupVin(){
+    var box=$('sjResult'); if(!box) return;
+    var vin=(($('sjVin')&&$('sjVin').value)||'').trim().toUpperCase();
+    if(!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)){ box.innerHTML='<div class="bt-stat__sub">Enter a full 17-character VIN, or switch to Year / Make / Model.</div>'; return; }
+    box.innerHTML='<div class="bt-stat__sub">Decoding…</div>';
+    TKS.decodeVin(vin).then(function(res){ renderResult(res.year, res.make, res.model, vin); })
+      .catch(function(e){ box.innerHTML='<div class="bt-stat__sub">'+safe((e&&e.message)||'Could not read that VIN.')+'</div>'; });
+  }
+  function lookupYmm(){
+    var box=$('sjResult'); if(!box) return;
+    var yr=($('sjYear')&&$('sjYear').value)||'', mk=(($('sjMake')&&$('sjMake').value)||'').trim(), md=(($('sjModel')&&$('sjModel').value)||'').trim();
+    if(!mk){ box.innerHTML='<div class="bt-stat__sub">Pick at least a make.</div>'; return; }
+    renderResult(yr, mk, md, '');
+  }
+
+  // ---- Materials & Services step (after picking a service, ANY job type). Smart bundles:
+  //      a rekey can include a replacement lock; a car lockout can become a lost-key job. ----
+  function suggestAddons(service, category){
+    var s=(service||'').toLowerCase(), out;
+    if(/rekey|re-key/.test(s)) out=['Replacement lock','Deadbolt','Smart lock','Extra key copies'];
+    else if(/lockout/.test(s) && category==='automotive') out=['Lost key — make a new key','Spare key','Remote / fob'];
+    else if(/lockout/.test(s)) out=['Rekey existing locks','Replacement lock','Lock repair'];
+    else if(/all.?keys|lost key|key replace|new key|add a key|spare/.test(s)) out=['Spare key','Remote / fob','All-keys-lost programming','Key cut only'];
+    else if(/new lock|install|deadbolt/.test(s)) out=['Deadbolt','Smart lock','Rekey to match','High-security cylinder'];
+    else if(/master key/.test(s)) out=['Additional cylinders','Key copies','Restricted keyway'];
+    else if(/access control/.test(s)) out=['Keypad / reader','Maglock','Exit device','Power supply'];
+    else out=['Extra key copies','Trip / service call','Other (describe)'];
+    return out;
+  }
+  function _lsObj(k){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):{}; }catch(e){ return {}; } }
+  function priceFor(name){
+    var key=String(name||'').toLowerCase().trim(); if(!key) return '';
+    var store=_lsObj('tks_service_prices'); if(store[key]!=null && store[key]!=='') return store[key];
+    try{ var svcs=TKS.Services.list()||[]; for(var i=0;i<svcs.length;i++){ var s=svcs[i], n=((s.value||s.name||'')+'').toLowerCase(); if(n===key && s.price!=null && s.price!=='') return Number(s.price); } }catch(e){}
+    return '';
+  }
+  function rememberPrice(name, price){
+    var key=String(name||'').toLowerCase().trim(); if(!key||price===''||price==null||isNaN(Number(price))) return;
+    var store=_lsObj('tks_service_prices'); store[key]=Number(price); try{ localStorage.setItem('tks_service_prices', JSON.stringify(store)); }catch(e){}
+  }
+  function msMoney(n){ n=Number(n)||0; return '$'+n.toFixed(2); }
+  function msTotal(){ return _msItems.reduce(function(s,it){ return s+(Number(it.price)||0); },0); }
+  var _msCtx={}, _msItems=[];
+  function renderMsItems(){
+    var box=$('msItems'); if(!box) return;
+    box.innerHTML = _msItems.length ? _msItems.map(function(it,i){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border-subtle)">'+
+        '<input type="text" class="ms-name" data-i="'+i+'" value="'+safe(it.name)+'" placeholder="Item / service" style="flex:1;min-width:0;border:1px solid var(--border-subtle);border-radius:8px;padding:8px 10px;min-height:38px;background:var(--surface-card);color:var(--text-primary);font-weight:600">'+
+        '<span style="color:var(--text-secondary)">$</span>'+
+        '<input type="number" inputmode="decimal" class="ms-price" data-i="'+i+'" value="'+((it.price!==''&&it.price!=null)?safe(it.price):'')+'" placeholder="0.00" style="width:84px;text-align:right;font-family:var(--font-mono);border:1px solid var(--border-subtle);border-radius:8px;padding:8px 10px;min-height:38px;background:var(--surface-card);color:var(--text-primary)">'+
+        '<button type="button" class="ms-rm" data-i="'+i+'" title="Remove" style="-webkit-appearance:none;appearance:none;border:1px solid var(--border-subtle);background:var(--surface-card);color:var(--text-secondary);border-radius:8px;min-width:38px;min-height:38px;cursor:pointer;font-weight:700">✕</button>'+
+      '</div>';
+    }).join('') : '<div class="bt-stat__sub">No items yet — add one below.</div>';
+    if($('msTotal')) $('msTotal').textContent='Total: '+msMoney(msTotal());
+    box.querySelectorAll('.ms-name').forEach(function(inp){ inp.onchange=function(){ var i=+inp.dataset.i; if(!_msItems[i]) return; _msItems[i].name=inp.value.trim();
+      var pin=box.querySelector('.ms-price[data-i="'+i+'"]'); if(pin && (pin.value===''||pin.value==null)){ var pf=priceFor(_msItems[i].name); if(pf!==''){ pin.value=pf; _msItems[i].price=Number(pf); if($('msTotal')) $('msTotal').textContent='Total: '+msMoney(msTotal()); } } }; });
+    box.querySelectorAll('.ms-price').forEach(function(inp){ inp.onchange=function(){ var i=+inp.dataset.i; if(_msItems[i]) _msItems[i].price=(inp.value===''?'':Number(inp.value)); if($('msTotal')) $('msTotal').textContent='Total: '+msMoney(msTotal()); }; });
+    box.querySelectorAll('.ms-rm').forEach(function(b){ b.onclick=function(){ syncMsFromDom(); _msItems.splice(+b.dataset.i,1); renderMsItems(); }; });
+  }
+  function syncMsFromDom(){ var box=$('msItems'); if(!box) return;
+    box.querySelectorAll('.ms-name').forEach(function(inp){ var i=+inp.dataset.i; if(_msItems[i]) _msItems[i].name=inp.value.trim(); });
+    box.querySelectorAll('.ms-price').forEach(function(inp){ var i=+inp.dataset.i; if(_msItems[i]) _msItems[i].price=(inp.value===''?'':Number(inp.value)); }); }
+  function addMsItem(name){ name=(name||'').trim(); if(!name) return; syncMsFromDom(); if(_msItems.some(function(it){return (it.name||'').toLowerCase()===name.toLowerCase();})) return; _msItems.push({name:name, price:priceFor(name)}); renderMsItems(); }
+  function openMatSvc(category, service, vehicle){
+    show('matsvc');
+    var catLbl=category==='automotive'?'Automotive':category==='commercial'?'Commercial':'Residential';
+    if($('msEyebrow')) $('msEyebrow').textContent=catLbl+' · materials & services'+(vehicle?(' · '+vehicle):'');
+    _msCtx={category:category, vehicle:vehicle||''};
+    _msItems=[]; if(service) _msItems.push({name:service, price:priceFor(service)});
+    renderMsItems();
+    if($('msAddons')) $('msAddons').innerHTML=suggestAddons(service,category).map(function(a){ return '<button type="button" class="ms-chip" data-add="'+safe(a)+'">'+safe(a)+'</button>'; }).join('');
+    fillMsCatalog(category);
+  }
+  // Items common to every job, plus per-category items — so a Residential job never
+  // offers "Transponder key" and an Automotive job never offers "Deadbolt".
+  var MS_CATALOG_COMMON=['Service call','Trip / mileage charge','Diagnostic fee','Labor (per hour)','After-hours fee','Lockout'];
+  var MS_CATALOG_BY_CAT={
+    automotive:['Transponder key','Remote / fob','Smart key / proximity','Key fob battery','Programming','Ignition repair','Broken key extraction','High-security / laser cut key','Key cut','Key duplicate'],
+    residential:['Rekey','Replacement lock','Deadbolt','Smart lock','Lock repair','Mailbox lock','Key cut','Key duplicate'],
+    commercial:['Rekey','Replacement lock','Deadbolt','Smart lock','Master key system','Exit / panic device','Access control / keypad','Door closer','Key cut','Key duplicate']
+  };
+  function fillMsCatalog(category){ var sel=$('msCatalog'); if(!sel) return;
+    var list=MS_CATALOG_COMMON.concat(MS_CATALOG_BY_CAT[category]||MS_CATALOG_BY_CAT.residential);
+    sel.innerHTML='<option value="">+ Add a common item…</option>'+list.map(function(c){return '<option value="'+safe(c)+'">'+safe(c)+'</option>';}).join('')+'<option value="__blank__">✏️ Blank line — type your own</option>'; }
+  fillMsCatalog('');
+  if($('msAddons')) $('msAddons').addEventListener('click', function(e){ var b=e.target.closest('.ms-chip'); if(b){ addMsItem(b.getAttribute('data-add')); b.classList.add('on'); } });
+  if($('msCatalog')) $('msCatalog').addEventListener('change', function(){ var v=$('msCatalog').value; $('msCatalog').value=''; if(!v) return;
+    if(v==='__blank__'){ syncMsFromDom(); _msItems.push({name:'',price:''}); renderMsItems(); var ins=$('msItems').querySelectorAll('.ms-name'); if(ins.length) ins[ins.length-1].focus(); }
+    else addMsItem(v); });
+  if($('msBack')) $('msBack').addEventListener('click', function(){ show('startjob'); });
+  if($('msContinue')) $('msContinue').addEventListener('click', function(){
+    syncMsFromDom();
+    var items=_msItems.filter(function(it){ return (it.name||'').trim(); });
+    items.forEach(function(it){ rememberPrice(it.name, it.price); });
+    try{ sessionStorage.setItem('tks_job_draft', JSON.stringify({category:_msCtx.category, vehicle:_msCtx.vehicle, items:items, ts:Date.now()})); }catch(e){}
+    location.href='bittings.html';
+  });
+
+  document.querySelectorAll('#sjType .bt-jobtype').forEach(function(b){ b.addEventListener('click', function(){ pick(b.getAttribute('data-jt')); }); });
+  document.querySelectorAll('#sjMode [data-mode]').forEach(function(b){ b.addEventListener('click', function(){ setMode(b.getAttribute('data-mode')); }); });
+  if($('sjLookup')) $('sjLookup').addEventListener('click', lookupVin);
+  if($('sjVin')) $('sjVin').addEventListener('keydown', function(e){ if(e.key==='Enter') lookupVin(); });
+  if($('sjLookupYmm')) $('sjLookupYmm').addEventListener('click', lookupYmm);
+  if($('sjModel')) $('sjModel').addEventListener('keydown', function(e){ if(e.key==='Enter') lookupYmm(); });
+  if($('sjContinue')) $('sjContinue').addEventListener('click', function(){ var sv=$('sjService')?$('sjService').value:''; openMatSvc(_jt, sv); });
+
+  // called by the sidebar / bottom-nav "Start a job" item (via the data-go handler)
+  window.openStartJob = function(){
+    show('startjob');
+    if($('sjResult')) $('sjResult').innerHTML='';
+    pick('automotive'); setMode('vin');
+  };
+  // landing default: Start a job → Automotive / VIN ready
+  pick('automotive'); setMode('vin');
+})();
+</script>
+<script src="app/ui/bittings-ui.js"></script>
 </body>
 </html>

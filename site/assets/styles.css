@@ -1,266 +1,359 @@
 /* ============================================================
-   Turbo Keysmith — public website
-   Mobile-first, responsive (phones → tablets → desktop).
+   Turbo Keysmith — public website  ·  PREMIUM (blackout) theme
+   Single source of visual truth: turbo-premium.html (reference).
    Plain CSS, no build step. Shared by every page in /site/.
+
+   This stylesheet does two jobs:
+     1) Defines the reference's premium components (.nav/.brand/.hero/
+        .stats/.cards .card/.dealer/.steps/.rev/.cta/.foot …) for pages
+        converted to the new structure.
+     2) Re-skins the LEGACY shared classes (header.site/.scard/.prose/
+        .faq-item/footer.site/.trust/.mobilebar …) to the same dark look,
+        so every not-yet-converted page still reads as one family.
    ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Saira:wght@500;600;700;800&display=swap');
 
 :root{
-  /* ---- Brand palette (exact) ---- */
-  --bg:#FFFFFF;            /* page background */
-  --surface:#F4F6F8;       /* section surfaces */
-  --ink:#1A1D21;           /* body text */
-  --red:#C8102E;           /* brand red — logo, headings, accents */
-  --red-deep:#9d0c24;      /* darker red for hovers */
-  --amber:#FFB200;         /* PRIMARY call-to-action ONLY */
-  --amber-ink:#3A2A00;     /* dark text on amber so it pops */
-  --amber-deep:#e6a000;    /* amber hover */
-  --dim:#5b6570;           /* muted text */
-  --edge:#e3e8ee;          /* hairlines / borders */
-  --maxw:1100px;
-  --r:14px;                /* card radius */
-  --shadow:0 6px 22px rgba(20,30,45,.08);
+  /* premium tokens (from the reference) */
+  --bg:#000000; --bg2:#08090B; --panel:#101216; --panel2:#15181E; --line:#22262E; --line2:#2E333C;
+  --ink:#F4F5F6; --mut:#9AA0A8; --mut2:#666C75;
+  --red:#D62A3D; --red-lo:#9E1521; --red-hi:#EC4A58;
+  --chrome-hi:#EDEFF1; --chrome:#C2C6CA; --chrome-lo:#878D94;
+  --chrome-grad:linear-gradient(180deg,#F2F3F4 0%,#C9CDD1 45%,#878D94 55%,#E4E6E8 100%);
+  --red-grad:linear-gradient(135deg,#EC4A58 0%,#D62A3D 48%,#9E1521 100%);
+  /* legacy aliases kept so old rules/utilities resolve to the dark palette */
+  --surface:var(--bg2); --dim:var(--mut); --edge:var(--line); --red-deep:var(--red-lo);
+  --maxw:1200px; --r:14px; --shadow:0 18px 50px rgba(0,0,0,.55);
 }
-*{box-sizing:border-box;}
-html{scroll-behavior:smooth;}
-html,body{overflow-x:hidden;max-width:100%;}
-body{
-  margin:0;font-family:"Montserrat",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-  color:var(--ink);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased;
-  padding-bottom:0;
-  zoom:0.95;   /* shrink the whole site ~5% per owner request */
-}
-img{max-width:100%;display:block;}
-a{color:var(--red);text-decoration:none;}
-a:hover{text-decoration:underline;}
-.wrap{max-width:var(--maxw);margin:0 auto;padding:0 18px;}
-h1,h2,h3{line-height:1.2;color:var(--red);}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{overflow-x:hidden;max-width:100%}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+a:hover{text-decoration:none}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+.saira{font-family:'Saira',sans-serif}
+.red{color:var(--red)}
+.eyebrow{font-family:'Saira';font-weight:600;letter-spacing:.26em;text-transform:uppercase;font-size:12px;color:var(--chrome-lo)}
+h1,h2,h3,h4{color:var(--ink);line-height:1.15}
 
-/* ---------- Buttons ---------- */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;
-  font-size:16px;padding:14px 22px;border-radius:12px;border:2px solid transparent;cursor:pointer;
-  text-align:center;transition:transform .08s ease,background .15s ease;white-space:nowrap;}
-.btn:hover{text-decoration:none;transform:translateY(-1px);}
-/* PRIMARY = amber Call-now (reserved) */
-.btn-call{background:var(--amber);color:var(--amber-ink);box-shadow:0 4px 14px rgba(255,178,0,.4);}
-.btn-call:hover{background:var(--amber-deep);color:var(--amber-ink);}
-/* secondary actions */
-.btn-red{background:var(--red);color:#fff;}
-.btn-red:hover{background:var(--red-deep);color:#fff;}
-.btn-ghost{background:#fff;color:var(--red);border-color:var(--red);}
-.btn-ghost:hover{background:#fff;}
-.btn-lg{font-size:18px;padding:16px 28px;}
-/* generic centered button row (e.g. financing CTA) — spreads + wraps with gaps */
-.btnrow{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center;}
+/* ---------------- Buttons ---------------- */
+.btn{font-family:'Saira';font-weight:700;font-size:15px;letter-spacing:.02em;padding:14px 26px;border-radius:8px;
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;transition:.18s;border:1px solid transparent;cursor:pointer;white-space:nowrap}
+.btn:hover{text-decoration:none;transform:translateY(-1px)}
+/* primary = red gradient + glow (reference). Legacy primaries map here too. */
+/* white text stays readable across the WHOLE red gradient (incl. the light top) via the shadow */
+.btn.pri,.btn-call,.btn-red{background:var(--red-grad);color:var(--chrome);text-shadow:0 1px 3px rgba(0,0,0,.6);box-shadow:0 8px 26px rgba(214,42,61,.32)}
+.btn.pri:hover,.btn-call:hover,.btn-red:hover{filter:brightness(1.08);color:#fff}
+/* secondary = ghost w/ chrome border */
+.btn.ghost,.btn-ghost{background:transparent;color:var(--ink);border-color:var(--line2)}
+.btn.ghost:hover,.btn-ghost:hover{border-color:var(--chrome-lo);background:#0c0d10;color:var(--ink)}
+/* Pay = green payment CTA */
+.btn-pay{background:linear-gradient(135deg,#34c878,#1f9b53 55%,#147a3f);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:0 8px 26px rgba(31,155,83,.30)}
+.btn-pay:hover{filter:brightness(1.06);color:#fff}
+/* BNPL buttons in each brand's own colour */
+.btn-klarna{background:#FFB3C7;color:#17120F;border:none;text-shadow:none;font-weight:800}
+.btn-klarna:hover{background:#ffc6d6;color:#17120F}
+.btn-afterpay{background:#B2FCE4;color:#03301f;border:none;text-shadow:none;font-weight:800}
+.btn-afterpay:hover{background:#c8ffee;color:#03301f}
+.btn-lg{font-size:17px;padding:16px 30px}
+.btnrow{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;align-items:center}
 
-/* ---------- Sticky header (every page) ---------- */
-header.site{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--edge);
-  box-shadow:0 2px 10px rgba(20,30,45,.05);}
-/* Row 1: the logo, on its own, centered above everything */
-header.site .brandbar{display:flex;justify-content:center;align-items:center;padding:12px 18px 4px;}
-/* Row 2: menu tabs + call (+ hamburger on mobile), centered below the logo */
-header.site .bar{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 18px;max-width:var(--maxw);margin:0 auto;}
-.brand{display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.brand img{height:64px;width:auto;}
-.brand b{font-size:19px;color:var(--red);letter-spacing:.2px;font-weight:800;}
-nav.main{display:none;}
-nav.main a{color:var(--ink);font-weight:600;font-size:14.5px;padding:8px 10px;border-radius:8px;}
-nav.main a:hover{background:var(--surface);text-decoration:none;}
-nav.main a.active{color:var(--red);}
-.head-call{margin-left:0;}
-.head-call .btn{padding:10px 16px;font-size:15px;}
-.navtoggle{margin-left:8px;background:var(--surface);border:1px solid var(--edge);border-radius:10px;
-  width:44px;height:44px;font-size:20px;cursor:pointer;color:var(--ink);flex-shrink:0;}
-nav.mobile{display:none;border-top:1px solid var(--edge);background:#fff;}
-nav.mobile.open{display:block;}
-nav.mobile a{display:block;padding:13px 18px;color:var(--ink);font-weight:600;border-bottom:1px solid var(--edge);}
-nav.mobile a:hover{background:var(--surface);text-decoration:none;}
+/* ---------------- Header (reference structure) ---------------- */
+header,header.site{position:sticky;top:0;z-index:100;background:rgba(0,0,0,.82);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);box-shadow:none}
+.nav{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:18px 28px;min-height:56px;padding:8px 0}
+.brand{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.brand img{height:38px;width:auto}
+.brand .wm{font-family:'Saira';font-weight:800;font-size:19px;letter-spacing:.04em;line-height:1;color:var(--chrome-hi)}
+.brand .wm .k,.brand b .k{color:var(--red)}
+.navlinks{display:flex;gap:20px;font-family:'Saira';font-weight:600;font-size:13.5px;letter-spacing:.02em;color:var(--mut)}
+.navlinks a:hover{color:var(--ink)}
+.navcta{display:flex;align-items:center;gap:14px}
+.navphone{font-family:'Saira';font-weight:700;font-size:15px;color:var(--ink)}
+/* Language toggle — small pill, same size as the Pay Now button */
+.langtoggle{display:inline-flex;align-items:center;gap:5px;font-family:'Saira';font-weight:700;font-size:13px;letter-spacing:.04em;
+  padding:6px 12px;border-radius:7px;background:#0c0d10;border:1px solid var(--line2);color:var(--chrome);cursor:pointer;white-space:nowrap;line-height:1;min-height:0}
+.langtoggle:hover{border-color:var(--chrome-lo);color:#fff}
+/* header Call-now button is a small pill too (the big hero buttons keep their size) */
+.navcta .btn{padding:7px 14px;font-size:13.5px}
+/* Pay Now = green payment CTA wherever it appears in the nav (desktop + legacy nav.main) */
+.navlinks a[href$="pay-now/"],nav.main a[href$="pay-now/"]{color:#fff;background:linear-gradient(135deg,#34c878,#1f9b53);padding:7px 13px;border-radius:7px}
+.navlinks a[href$="pay-now/"]:hover,nav.main a[href$="pay-now/"]:hover{filter:brightness(1.08);color:#fff;background:linear-gradient(135deg,#34c878,#1f9b53)}
+nav.mobile a[href$="pay-now/"]{color:#3ddc97;font-weight:700}
+@media(max-width:900px){.navlinks{display:none}.navphone{display:none}}
 
-/* ---------- Hero ---------- */
-.hero{background:linear-gradient(180deg,var(--surface),#fff);border-bottom:1px solid var(--edge);}
-.hero .wrap{padding:40px 18px;text-align:center;}
-.hero h1{font-size:30px;margin:0 0 14px;font-weight:800;}
-.hero h1 .nowrap{white-space:nowrap;}
-.hero p.lead{font-size:17px;color:var(--ink);max-width:640px;margin:0 auto 22px;font-weight:500;}
-.hero .btnrow{display:flex;flex-direction:column;gap:12px;align-items:stretch;max-width:340px;margin:0 auto;}
+/* ---------------- Header (LEGACY two-row structure, re-skinned dark) ---------------- */
+/* OTHER PAGES keep the full logo lockup centered ABOVE the nav (two-row header).
+   logo.png already contains the "TURBO KEYSMITH" wordmark, so hide the duplicate text beside it. */
+header.site .brandbar{display:flex;justify-content:center;align-items:center;padding:12px 24px 6px}
+header.site .brandbar .brand img{height:52px;width:auto}
+header.site .brandbar .brand b{display:none}
+header.site .bar{display:flex;align-items:center;justify-content:center;gap:14px;padding:6px 24px 10px;max-width:var(--maxw);margin:0 auto}
+.brand b{font-family:'Saira';font-size:19px;color:var(--chrome-hi);letter-spacing:.04em;font-weight:800}
+nav.main{display:none}
+nav.main a{font-family:'Saira';color:var(--mut);font-weight:600;font-size:14px;letter-spacing:.03em;padding:8px 10px;border-radius:8px}
+nav.main a:hover{color:var(--ink);background:transparent;text-decoration:none}
+nav.main a.active{color:var(--red)}
+.head-call .btn{padding:11px 18px;font-size:14px}
+.navtoggle{margin-left:8px;background:#0c0d10;border:1px solid var(--line2);border-radius:10px;width:44px;height:44px;
+  font-size:20px;cursor:pointer;color:var(--ink);flex-shrink:0}
+nav.mobile{display:none;border-top:1px solid var(--line);background:#050608}
+nav.mobile.open{display:block}
+nav.mobile a{display:block;padding:14px 24px;color:var(--ink);font-weight:600;border-bottom:1px solid var(--line)}
+nav.mobile a:hover{background:#0c0d10;text-decoration:none}
 
-/* ---------- Trust strip ---------- */
-.trust{background:var(--red);color:#fff;}
-.trust .wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px 10px;padding:18px;text-align:center;}
-.trust .item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:13px;font-weight:700;line-height:1.25;}
-.trust .item .big{font-size:17px;font-weight:800;}
-.trust .item .ic{font-size:20px;}
+/* ---------------- Hero ---------------- */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line);background:var(--bg)}
+.hero:before{content:"";position:absolute;width:760px;height:760px;right:-200px;top:-280px;border-radius:50%;
+  background:radial-gradient(circle,rgba(214,42,61,.20),transparent 62%);pointer-events:none}
+.hero:after{content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;
+  background:repeating-linear-gradient(125deg,transparent 0 44px,rgba(255,255,255,.012) 44px 45px)}
+.hero .wrap{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;
+  gap:4px;padding-top:26px;padding-bottom:44px}
+.hero h1{font-family:'Saira';font-weight:800;font-size:clamp(34px,5.4vw,64px);line-height:1.03;letter-spacing:-.01em;margin:10px 0 0;color:var(--ink)}
+.hero h1 .red,.hero h1 .nowrap .red{display:inline;color:var(--red)}
+.hero .sub,.hero p.lead{color:var(--mut);font-size:18px;max-width:60ch;margin:18px auto 26px;font-weight:400}
+.hero .ctas,.hero .btnrow{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:none}
+.hero .trust{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-top:26px;padding-top:22px;border-top:1px solid var(--line)}
+.hero .trust div{font-size:13px;color:var(--mut)}
+.hero .trust b{font-family:'Saira';font-weight:700;color:var(--ink);font-size:15px;display:block;letter-spacing:.02em}
+.hero .art{order:-1;display:flex;justify-content:center;align-items:center}
+.hero .art img{width:100%;max-width:185px;filter:drop-shadow(0 18px 50px rgba(214,42,61,.18))}
+@media(max-width:880px){.hero .art img{max-width:150px}}
 
-/* ---------- Sections ---------- */
-section{padding:42px 0;}
-section.surface{background:var(--surface);}
-.sec-head{text-align:center;max-width:640px;margin:0 auto 28px;}
-.sec-head h2{font-size:25px;margin:0 0 8px;font-weight:800;}
-.sec-head p{color:var(--dim);margin:0;font-size:16px;}
+/* ---------------- Stat / trust strip ---------------- */
+.stats{background:var(--bg2);border-bottom:1px solid var(--line)}
+.stats .wrap{display:grid;grid-template-columns:repeat(5,1fr);padding-left:0;padding-right:0}
+.stats .s{padding:26px 18px;border-right:1px solid var(--line);text-align:center}
+.stats .s:last-child{border-right:none}
+.stats .n{font-family:'Saira';font-weight:800;font-size:24px;background:var(--chrome-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stats .l{font-size:12px;color:var(--mut);letter-spacing:.04em;margin-top:2px}
+@media(max-width:760px){.stats .wrap{grid-template-columns:1fr 1fr 1fr}.stats .s:nth-child(n+4){border-top:1px solid var(--line)}}
 
-/* ---------- Service cards (with icons) ---------- */
-/* Flex (not grid) so a partial last row (e.g. 2 of 4 cards) stays CENTERED
-   instead of left-aligned. Cards grow to fill a full row and cap so a short
-   row doesn't stretch too wide. */
-.cards{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;}
-.scard{flex:1 1 240px;max-width:340px;
-  background:#fff;border:1px solid var(--edge);border-radius:var(--r);padding:22px;box-shadow:var(--shadow);
-  display:block;color:inherit;transition:transform .1s ease,box-shadow .15s ease;}
-.scard:hover{text-decoration:none;transform:translateY(-2px);box-shadow:0 10px 28px rgba(20,30,45,.12);}
-.scard .icon{width:52px;height:52px;border-radius:13px;background:var(--surface);display:flex;align-items:center;
-  justify-content:center;font-size:26px;margin-bottom:12px;border:1px solid var(--edge);}
-.scard h3{margin:0 0 6px;font-size:19px;color:var(--red);}
-.scard p{margin:0;color:var(--dim);font-size:15px;}
-.scard .more{display:inline-block;margin-top:10px;color:var(--red);font-weight:800;font-size:14px;}
+/* legacy red trust strip → dark band with red accents */
+.trust{background:var(--bg2);color:var(--ink);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.trust .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 10px;padding:24px;text-align:center}
+.trust .item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:13px;font-weight:600;color:var(--mut);line-height:1.25}
+.trust .item .big{font-family:'Saira';font-size:18px;font-weight:800;background:var(--chrome-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.trust .item .ic{font-size:20px;color:var(--red)}
+@media(max-width:640px){.trust .wrap{grid-template-columns:1fr 1fr}}
 
-/* ---------- How it works ---------- */
-.steps{display:grid;grid-template-columns:1fr;gap:18px;counter-reset:step;}
-.step{background:#fff;border:1px solid var(--edge);border-radius:var(--r);padding:22px;text-align:center;position:relative;}
-.step .num{width:46px;height:46px;border-radius:50%;background:var(--red);color:#fff;font-weight:800;font-size:20px;
-  display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
-.step h3{margin:0 0 6px;font-size:18px;}
-.step p{margin:0;color:var(--dim);font-size:15px;}
+/* ---------------- Sections ---------------- */
+section{padding:84px 0}
+section.blk{padding:84px 0}
+section.surface{background:var(--bg2)}
+.sec-head{max-width:760px;margin:0 auto;text-align:center}
+.sec-head h2,.sec-title{font-family:'Saira';font-weight:800;font-size:clamp(28px,3.6vw,42px);line-height:1.06;letter-spacing:-.01em;color:var(--ink)}
+.sec-head p,.sec-sub{color:var(--mut);font-size:17px;margin-top:14px}
+.rule{height:3px;width:54px;background:var(--red-grad);border-radius:2px;margin:0 auto 18px}
+.dealer .panel{text-align:left;width:100%;max-width:600px}   /* keep the checklist rows readable */
 
-/* ---------- Before / after + photo slots ---------- */
-.ba{display:grid;grid-template-columns:1fr;gap:16px;}
-.ba .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.photo-slot{border:2px dashed var(--red);border-radius:var(--r);min-height:170px;display:flex;align-items:center;
-  justify-content:center;text-align:center;padding:18px;
-  background:repeating-linear-gradient(45deg,#fff,#fff 12px,var(--surface) 12px,var(--surface) 24px);}
-.photo-slot span{font-weight:800;color:var(--red);font-size:13.5px;max-width:300px;}
-.photo-slot small{display:block;font-weight:600;color:var(--dim);margin-top:6px;font-size:12px;}
-.ba .pair .photo-slot{min-height:150px;}
-.ba .tag{font-weight:800;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--red);margin-bottom:6px;text-align:center;}
-/* Real "Our Work" gallery (only rendered when a city has photos) */
-.photo-grid{display:grid;grid-template-columns:1fr;gap:14px;}
-.photo-grid .photo{margin:0;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);background:#eee;}
-.photo-grid .photo img{display:block;width:100%;height:100%;object-fit:cover;aspect-ratio:3/2;}
-@media(min-width:640px){ .photo-grid{grid-template-columns:1fr 1fr;} }
+/* ---------------- Service cards ---------------- */
+/* Centered flexbox so ANY number of cards (1, 2, 3, partial rows) stays centered
+   instead of left-aligning in a fixed grid. */
+.cards{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;margin-top:44px}
+.cards > .card,.cards > .scard{flex:1 1 240px;max-width:300px}
+.cards.duo{max-width:800px;margin-left:auto;margin-right:auto}
+.cards.duo > .card,.cards.duo > .scard{flex:1 1 300px;max-width:380px}
+/* three across, remainder centered underneath (e.g. service-area city cards: 5 -> 3 + 2) */
+.cards.three{max-width:1080px;margin-left:auto;margin-right:auto}
+.cards.three > .card,.cards.three > .scard{flex:0 1 320px;max-width:340px}
+@media(max-width:740px){.cards.three > .card,.cards.three > .scard{flex:1 1 240px}}
+/* a lone card (e.g. the financing teaser) gets a roomier centered width */
+.cards > .scard:only-child,.cards > .card:only-child{flex:0 1 600px;max-width:600px}
+.cards .card{position:relative;background:linear-gradient(180deg,var(--panel),#0c0e12);border:1px solid var(--line);
+  border-radius:14px;padding:30px 24px;overflow:hidden;transition:.2s;color:inherit;box-shadow:none}
+.cards .card:before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--chrome-grad);opacity:.35;transition:.2s}
+.cards .card:hover{transform:translateY(-5px);border-color:var(--line2)}
+.cards .card:hover:before{background:var(--red-grad);opacity:1}
+.card .ic{width:48px;height:48px;margin-bottom:18px}
+.card .ic svg{width:100%;height:100%;stroke:var(--chrome);fill:none;stroke-width:1.6}
+.cards .card:hover .ic svg{stroke:var(--red-hi)}
+.cards .card h3{font-family:'Saira';font-weight:700;font-size:20px;letter-spacing:.01em;color:var(--ink);margin:0}
+.card .tag{font-family:'Saira';font-size:12px;font-weight:600;color:var(--red);letter-spacing:.08em;text-transform:uppercase;margin:2px 0 12px}
+.cards .card p{color:var(--mut);font-size:14.5px;margin:0}
+.card .go{font-family:'Saira';font-weight:600;font-size:13px;color:var(--chrome);margin-top:16px;display:inline-flex;gap:6px;letter-spacing:.03em}
+.cards .card:hover .go{color:var(--ink)}
 
-/* ---------- Widget placeholder (paste exact embed from doc) ---------- */
-.widget-slot{border:2px dashed var(--amber);background:#fffaf0;border-radius:var(--r);padding:22px;text-align:center;}
-.widget-slot b{color:var(--amber-ink);display:block;font-size:15px;margin-bottom:4px;}
-.widget-slot small{color:var(--dim);}
+/* legacy .scard (emoji-icon cards) → dark premium card */
+.cards .scard,.scard{flex:1 1 240px;max-width:340px;background:linear-gradient(180deg,var(--panel),#0c0e12);
+  border:1px solid var(--line);border-radius:14px;padding:28px 24px;box-shadow:none;display:block;color:inherit;transition:.2s;position:relative;overflow:hidden}
+.scard:before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--chrome-grad);opacity:.35;transition:.2s}
+.scard:hover{text-decoration:none;transform:translateY(-5px);border-color:var(--line2)}
+.scard:hover:before{background:var(--red-grad);opacity:1}
+.scard .icon{display:block;font-size:34px;line-height:1;margin-bottom:16px;color:var(--chrome)}
+.scard:hover .icon .emi{stroke:var(--red-hi)}
+.emi{vertical-align:-.15em}
+.scard h3{margin:0 0 6px;font-family:'Saira';font-size:19px;color:var(--ink);font-weight:700}
+.scard p{margin:0;color:var(--mut);font-size:14.5px}
+.scard .more{display:inline-block;margin-top:12px;color:var(--chrome);font-family:'Saira';font-weight:600;font-size:13px}
+.scard:hover .more{color:var(--ink)}
+/* Owner preference — center card content (icon + text), not just headings */
+.cards .card,.scard{text-align:center}
+.cards .card .ic,.scard .icon{margin-left:auto;margin-right:auto}
 
-/* ---------- Map ---------- */
-.mapbox{border-radius:var(--r);overflow:hidden;border:1px solid var(--edge);box-shadow:var(--shadow);}
-.mapbox iframe{display:block;width:100%;height:340px;border:0;}
+/* ---------------- Dealer / "Why Turbo" band ---------------- */
+.dealer{background:radial-gradient(1100px 400px at 80% -10%,rgba(214,42,61,.12),transparent 60%),linear-gradient(180deg,#0a0b0e,#000);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.dealer .wrap{display:flex;flex-direction:column;align-items:center;text-align:center;gap:30px;padding:72px 24px}
+.dealer .badges{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:24px}
+.dealer .badge{font-family:'Saira';font-weight:600;font-size:13px;letter-spacing:.03em;color:var(--ink);
+  border:1px solid var(--line2);border-radius:999px;padding:9px 16px;background:#0c0d10}
+.dealer .badge .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:8px;vertical-align:middle}
+.dealer .panel{background:linear-gradient(180deg,var(--panel2),#0a0b0e);border:1px solid var(--line);border-radius:16px;padding:34px}
+.dealer .panel .row{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+.dealer .panel .row:last-child{border-bottom:none}
+.dealer .panel .row svg{flex:none;width:22px;height:22px;stroke:var(--red);fill:none;stroke-width:1.8;margin-top:2px}
+.dealer .panel .row b{font-family:'Saira';font-weight:600;display:block;font-size:15px;color:var(--ink)}
+.dealer .panel .row span{color:var(--mut);font-size:14px}
+@media(max-width:880px){.dealer .wrap{grid-template-columns:1fr;gap:34px}}
 
-/* ---------- Generic content (subpages) ---------- */
-.prose{max-width:760px;margin:0 auto;}
-.prose h2{font-size:23px;margin:28px 0 10px;}
-.prose h3{font-size:18px;margin:22px 0 8px;color:var(--ink);}
-.prose p{margin:0 0 14px;font-size:16px;}
-.prose ul{margin:0 0 16px;padding-left:20px;}
-.prose li{margin:6px 0;font-size:16px;}
-.info-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:8px;}
-.info-grid .card{background:#fff;border:1px solid var(--edge);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);}
-.info-grid .card b{color:var(--red);display:block;margin-bottom:4px;}
+/* ---------------- Steps ---------------- */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:46px;counter-reset:step}
+@media(max-width:760px){.steps{grid-template-columns:1fr}}
+.step{padding:28px 24px;border:1px solid var(--line);border-radius:14px;background:var(--bg2);text-align:center;position:relative}
+.step .num{font-family:'Saira';font-weight:800;font-size:40px;background:var(--chrome-grad);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1;
+  width:auto;height:auto;border-radius:0;margin:0}
+.step h3,.step h4{margin:12px 0 6px;font-family:'Saira';font-weight:700;font-size:18px;color:var(--ink)}
+.step p{margin:0;color:var(--mut);font-size:14.5px}
 
-/* ---------- FAQ (native text + schema) ---------- */
-.faq-item{background:#fff;border:1px solid var(--edge);border-radius:var(--r);padding:18px 20px;margin-bottom:12px;box-shadow:var(--shadow);}
-.faq-item h3{margin:0 0 6px;font-size:17px;color:var(--red);}
-.faq-item p{margin:0;color:var(--ink);font-size:15.5px;}
+/* ---------------- Reviews ---------------- */
+.reviews .cards > .rev{flex:1 1 280px;max-width:340px}
+.rev{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px}
+.rev .stars{color:var(--red);letter-spacing:3px;font-size:15px}
+.rev p{font-size:15px;margin:12px 0 16px;color:#dfe2e5}
+.rev .who{font-family:'Saira';font-weight:600;font-size:13px;color:var(--mut);letter-spacing:.03em}
 
-/* ---------- Footer ---------- */
-footer.site{background:#15181c;color:#c2cad3;font-size:14px;}
-footer.site .wrap{padding:34px 18px;}
-footer.site .cols{display:grid;grid-template-columns:1fr;gap:24px;}
-footer.site h4{color:#fff;margin:0 0 10px;font-size:15px;}
-footer.site a{color:#c2cad3;display:block;padding:3px 0;}
-footer.site a:hover{color:#fff;}
-footer.site .social a{display:inline-block;margin-right:14px;}
-footer.site .legal{border-top:1px solid rgba(255,255,255,.14);margin-top:24px;padding-top:16px;
-  display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;}
-.staff-login{color:#6f7b88;font-size:12.5px;}
-.staff-login:hover{color:#fff;}
+/* ---------------- Big CTA band ---------------- */
+.cta{background:radial-gradient(900px 360px at 50% 120%,rgba(214,42,61,.22),transparent 60%),#000;
+  border-top:1px solid var(--line);text-align:center;padding:90px 24px}
+.cta h2{font-family:'Saira';font-weight:800;font-size:clamp(30px,4.4vw,52px);letter-spacing:-.01em;line-height:1.05;color:var(--ink)}
+.cta p{color:var(--mut);font-size:17px;margin:14px 0 30px}
+.cta .ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
 
-/* ---------- Sticky mobile bottom bar (Call / Text / WhatsApp) ---------- */
+/* ---------------- Generic content (subpages) ---------------- */
+.prose{max-width:760px;margin:0 auto}
+.prose h2{font-family:'Saira';font-size:26px;margin:30px 0 12px;color:var(--ink);font-weight:800}
+.prose h3{font-family:'Saira';font-size:19px;margin:24px 0 8px;color:var(--ink);font-weight:700}
+.prose p{margin:0 0 14px;font-size:16px;color:#cdd2d7}
+.prose ul{margin:0 0 16px;padding-left:20px}
+.prose li{margin:6px 0;font-size:16px;color:#cdd2d7}
+.prose a:not(.btn){color:var(--chrome)}      /* silver links… */
+.prose a:not(.btn):hover{color:#fff}          /* …white on hover (and never override .btn styling) */
+.info-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:8px}
+.info-grid .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:none}
+.info-grid .card b{color:var(--ink);display:block;margin-bottom:4px;font-family:'Saira'}
+/* Contact = 4 clickable 2x2 tiles */
+.contact-tiles{grid-template-columns:1fr 1fr;max-width:680px;margin:0 auto;gap:16px}
+.contact-tiles .card{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:7px;min-height:132px;color:inherit;transition:.18s}
+.contact-tiles .card:hover{border-color:var(--line2);transform:translateY(-3px);text-decoration:none}
+.contact-tiles .card b{color:var(--chrome-lo);margin:0;text-transform:uppercase;letter-spacing:.1em;font-size:11.5px}
+.contact-tiles .card span{color:var(--ink);font-size:14.5px;line-height:1.55}
+.contact-tiles .card em{display:inline-block;color:var(--red-hi);font-style:normal;font-family:'Saira';font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-right:5px}
+
+/* FAQ */
+.faq-item{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:12px;box-shadow:none}
+.faq-item h3{margin:0 0 6px;font-family:'Saira';font-size:17px;color:var(--ink);font-weight:700}
+.faq-item p{margin:0;color:var(--mut);font-size:15.5px}
+
+/* ---------------- Footer ---------------- */
+footer,footer.site{background:#000;border-top:1px solid var(--line);color:var(--mut);font-size:14px}
+footer .wrap,footer.site .wrap{padding:54px 24px 36px}
+.foot{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px}
+footer.site .cols{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:26px;align-items:start}
+.foot .img img{height:54px;width:auto;margin-bottom:16px}
+.foot p,footer.site p{color:var(--mut);font-size:14px}
+.foot h5,footer.site h4{font-family:'Saira';font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--chrome-lo);margin:0 0 14px}
+.foot a,footer.site a{color:var(--mut);font-size:14px;display:block;padding:4px 0}
+.foot a:hover,footer.site a:hover{color:var(--ink)}
+.legal,footer.site .legal{border-top:1px solid var(--line);margin-top:36px;padding-top:22px;color:var(--mut2);font-size:12.5px;
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.staff-login{color:var(--mut2);font-size:12.5px}
+.staff-login:hover{color:var(--ink)}
+@media(max-width:760px){.foot{grid-template-columns:1fr} footer.site .cols{grid-template-columns:1fr 1fr;gap:18px 20px}}
+
+/* ---------------- Map ---------------- */
+.mapbox{border-radius:var(--r);overflow:hidden;border:1px solid var(--line);box-shadow:none}
+.mapbox iframe{display:block;width:100%;height:340px;border:0;filter:grayscale(.2) contrast(1.05) brightness(.9)}
+
+/* ---------------- Sticky mobile bottom bar ---------------- */
 .mobilebar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;grid-template-columns:1fr 1fr 1fr;
-  background:#fff;border-top:1px solid var(--edge);box-shadow:0 -4px 16px rgba(20,30,45,.12);}
+  background:#050608;border-top:1px solid var(--line)}
 .mobilebar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:9px 4px;
-  font-size:11.5px;font-weight:800;color:var(--ink);}
-.mobilebar a:hover{text-decoration:none;}
-.mobilebar a .ic{font-size:19px;}
-.mobilebar a.call{background:var(--amber);color:var(--amber-ink);}   /* primary CTA = amber */
-.mobilebar a.text{color:var(--red);}
-.mobilebar a.wa{color:#128c5e;}
+  font-family:'Saira';font-size:11.5px;font-weight:700;color:var(--mut)}
+.mobilebar a:hover{text-decoration:none}
+.mobilebar a .ic{font-size:19px}
+.mobilebar a.call{background:var(--red-grad);color:#fff}
+.mobilebar a.text{color:var(--chrome)}
+.mobilebar a.wa{color:#3ddc97}
 
-/* ============================================================
-   RESPONSIVE — tablets and up
-   ============================================================ */
-@media (min-width:640px){
-  .hero .wrap{padding:58px 18px;}
-  .hero h1{font-size:38px;}
-  .hero p.lead{font-size:19px;}
-  .hero .btnrow{flex-direction:row;justify-content:center;max-width:none;}
-  .trust .wrap{grid-template-columns:repeat(4,1fr);}
-  .cards{grid-template-columns:1fr 1fr;}
-  .steps{grid-template-columns:repeat(3,1fr);}
-  .ba{grid-template-columns:1fr 1fr;}
-  .info-grid{grid-template-columns:1fr 1fr;}
-  footer.site .cols{grid-template-columns:repeat(2,1fr);}
-}
-@media (min-width:960px){
-  nav.main{display:flex;margin-left:0;}
-  .navtoggle{display:none;}
-  nav.mobile{display:none !important;}
-  .cards{grid-template-columns:repeat(4,1fr);}
-  .hero h1{font-size:44px;}
-  footer.site .cols{grid-template-columns:repeat(4,1fr);}
-  .mobilebar{display:none;}   /* hide phone bottom-bar on desktop */
-  body{padding-bottom:0;}
-}
-/* keep content clear of the mobile bottom bar on small screens */
-@media (max-width:959px){
-  body{padding-bottom:64px;}
-}
+/* ---------------- Social icons / sub-bar ---------------- */
+.social-icons{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.social-icons a{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;
+  border:1px solid var(--line2);background:#0c0d10;color:var(--mut);padding:0;transition:.15s}
+.social-icons a:hover{background:var(--red);border-color:var(--red);color:#fff}
+.social-icons svg{width:22px;height:22px;fill:currentColor;display:block}
+.social-follow{text-align:center}
+.social-follow .social-icons{flex-wrap:nowrap;justify-content:space-between;gap:10px;width:100%;margin-top:14px}
+.social-follow .social-icons a{flex:1 1 0;width:auto;height:auto;max-width:90px;aspect-ratio:1/1}
+.social-follow .social-icons svg{width:44%;height:44%}
+.subbar{border-top:1px solid var(--line);background:var(--bg2)}
+.subbar .wrap{display:flex;justify-content:center;padding:8px 24px}
+.social-icons.subbar-icons{gap:16px;justify-content:center;flex-wrap:wrap}
+.social-icons.subbar-icons a{width:34px;height:34px}
+.social-icons.subbar-icons svg{width:18px;height:18px}
+/* footer social — keep each glyph dead-centered in its circle */
+.footer-social .social-icons a{display:inline-flex;align-items:center;justify-content:center;line-height:0;padding:0}
+.footer-social .social-icons svg{display:block;margin:auto}
+.footer-social{margin-top:22px}
 
-/* ============================================================
-   Accessibility + mobile polish
-   ============================================================ */
-:focus-visible{outline:3px solid var(--amber);outline-offset:2px;border-radius:6px;}
-.btn:focus-visible{outline-offset:3px;}
-.langtoggle:focus-visible{outline:3px solid var(--red);}
-/* comfortable tap targets on touch screens */
-nav.mobile a,.mobilebar a{min-height:48px;}
-.navtoggle,.langtoggle{min-height:44px;}
-@media (prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto;}
-  *{animation-duration:.001ms!important;transition-duration:.001ms!important;}
-}
-
-/* ============================================================
-   Social icon links (header / footer / "follow us")
-   ============================================================ */
-.social-icons{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
-.social-icons a{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;
-  border-radius:50%;border:1px solid var(--edge);background:#fff;color:var(--ink);padding:0;
-  transition:background .15s,color .15s,border-color .15s;}
-.social-icons a:hover{background:var(--red);border-color:var(--red);color:#fff;}
-.social-icons svg{width:24px;height:24px;fill:currentColor;display:block;}
-/* "Follow us" row (above the map): one row spanning the full width, icons sized
-   up to fill it. flex:1 lets all six share the width equally; aspect-ratio keeps
-   them circular; the cap stops them ballooning on wide desktops. */
-.social-follow{text-align:center;}
-.social-follow .social-icons{flex-wrap:nowrap;justify-content:space-between;gap:10px;width:100%;margin-top:14px;}
-.social-follow .social-icons a{flex:1 1 0;width:auto;height:auto;max-width:96px;aspect-ratio:1/1;}
-.social-follow .social-icons svg{width:46%;height:46%;}
-/* dark footer variant */
-footer.site .social-icons a{background:transparent;border-color:rgba(255,255,255,.22);color:#c2cad3;}
-footer.site .social-icons a:hover{background:#fff;color:#15181c;border-color:#fff;}
-/* sub-header strip: social icons run horizontally UNDER the nav tabs, like a thin
-   secondary bar (slightly shorter than the main header). Used in header + footer. */
-.subbar{border-top:1px solid var(--edge);background:var(--surface);}
-.subbar .wrap{display:flex;justify-content:center;padding:7px 18px;}
-.social-icons.subbar-icons{gap:16px;justify-content:center;flex-wrap:wrap;}
-.social-icons.subbar-icons a{width:34px;height:34px;}
-.social-icons.subbar-icons svg{width:18px;height:18px;}
-.footer-social{margin-top:22px;}
-
-/* ============================================================
-   Award / recognition badge (sits beside the reviews)
-   ============================================================ */
-.award-wrap{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:0 0 14px;}
+/* ---------------- Award / recognition badge ---------------- */
+.award-wrap{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:0 0 14px}
 .award-badge{display:inline-block;max-width:600px;margin:0;padding:10px 18px;border-radius:999px;
-  background:rgba(200,16,46,.07);border:1.5px solid var(--red);color:var(--red);
-  font-weight:800;font-size:15.5px;line-height:1.3;text-align:center;}
+  background:rgba(214,42,61,.12);border:1px solid var(--red);color:var(--chrome);
+  font-family:'Saira';font-weight:700;font-size:15px;line-height:1.3;text-align:center;transition:.18s;cursor:default}
+.award-badge:hover{color:#fff;border-color:var(--chrome-lo)}
+
+/* ---------------- Misc legacy bits (photo slots / widget) ---------------- */
+.photo-slot{border:2px dashed var(--line2);border-radius:var(--r);min-height:170px;display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:18px;background:#0c0d10}
+.photo-slot span{font-family:'Saira';font-weight:700;color:var(--chrome);font-size:13.5px;max-width:300px}
+.photo-slot small{display:block;font-weight:500;color:var(--mut);margin-top:6px;font-size:12px}
+.photo-grid{display:grid;grid-template-columns:1fr;gap:14px}
+.photo-grid .photo{margin:0;border-radius:var(--r);overflow:hidden;box-shadow:none;background:#15181E}
+.photo-grid .photo img{display:block;width:100%;height:100%;object-fit:cover;aspect-ratio:3/2}
+@media(min-width:640px){.photo-grid{grid-template-columns:1fr 1fr}}
+.widget-slot{border:1px solid var(--line2);background:var(--panel);border-radius:var(--r);padding:22px;text-align:center}
+.widget-slot b{color:var(--ink);display:block;font-size:15px;margin-bottom:4px;font-family:'Saira'}
+.widget-slot small{color:var(--mut)}
+.ba{display:grid;grid-template-columns:1fr;gap:16px}
+.ba .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ba .tag{font-family:'Saira';font-weight:700;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--red);margin-bottom:6px;text-align:center}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media(max-width:959px){
+  body{padding-bottom:64px}                 /* clear the mobile bottom bar */
+  section,section.blk{padding:56px 0}
+  .dealer .wrap{padding:56px 24px}
+}
+@media(min-width:901px){
+  nav.main{display:flex}
+  .navtoggle{display:none}
+  nav.mobile{display:none !important}
+}
+@media(min-width:960px){
+  .mobilebar{display:none}
+  body{padding-bottom:0}
+}
+
+/* ---------------- Accessibility ---------------- */
+:focus-visible{outline:3px solid var(--red-hi);outline-offset:2px;border-radius:6px}
+.btn:focus-visible{outline-offset:3px}
+nav.mobile a,.mobilebar a{min-height:48px}
+.navtoggle{min-height:44px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation-duration:.001ms!important;transition-duration:.001ms!important}}

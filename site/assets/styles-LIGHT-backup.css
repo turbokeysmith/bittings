@@ -1,0 +1,266 @@
+/* ============================================================
+   Turbo Keysmith — public website
+   Mobile-first, responsive (phones → tablets → desktop).
+   Plain CSS, no build step. Shared by every page in /site/.
+   ============================================================ */
+
+:root{
+  /* ---- Brand palette (exact) ---- */
+  --bg:#FFFFFF;            /* page background */
+  --surface:#F4F6F8;       /* section surfaces */
+  --ink:#1A1D21;           /* body text */
+  --red:#C8102E;           /* brand red — logo, headings, accents */
+  --red-deep:#9d0c24;      /* darker red for hovers */
+  --amber:#FFB200;         /* PRIMARY call-to-action ONLY */
+  --amber-ink:#3A2A00;     /* dark text on amber so it pops */
+  --amber-deep:#e6a000;    /* amber hover */
+  --dim:#5b6570;           /* muted text */
+  --edge:#e3e8ee;          /* hairlines / borders */
+  --maxw:1100px;
+  --r:14px;                /* card radius */
+  --shadow:0 6px 22px rgba(20,30,45,.08);
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+html,body{overflow-x:hidden;max-width:100%;}
+body{
+  margin:0;font-family:"Montserrat",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  color:var(--ink);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased;
+  padding-bottom:0;
+  zoom:0.95;   /* shrink the whole site ~5% per owner request */
+}
+img{max-width:100%;display:block;}
+a{color:var(--red);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 18px;}
+h1,h2,h3{line-height:1.2;color:var(--red);}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;
+  font-size:16px;padding:14px 22px;border-radius:12px;border:2px solid transparent;cursor:pointer;
+  text-align:center;transition:transform .08s ease,background .15s ease;white-space:nowrap;}
+.btn:hover{text-decoration:none;transform:translateY(-1px);}
+/* PRIMARY = amber Call-now (reserved) */
+.btn-call{background:var(--amber);color:var(--amber-ink);box-shadow:0 4px 14px rgba(255,178,0,.4);}
+.btn-call:hover{background:var(--amber-deep);color:var(--amber-ink);}
+/* secondary actions */
+.btn-red{background:var(--red);color:#fff;}
+.btn-red:hover{background:var(--red-deep);color:#fff;}
+.btn-ghost{background:#fff;color:var(--red);border-color:var(--red);}
+.btn-ghost:hover{background:#fff;}
+.btn-lg{font-size:18px;padding:16px 28px;}
+/* generic centered button row (e.g. financing CTA) — spreads + wraps with gaps */
+.btnrow{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center;}
+
+/* ---------- Sticky header (every page) ---------- */
+header.site{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--edge);
+  box-shadow:0 2px 10px rgba(20,30,45,.05);}
+/* Row 1: the logo, on its own, centered above everything */
+header.site .brandbar{display:flex;justify-content:center;align-items:center;padding:12px 18px 4px;}
+/* Row 2: menu tabs + call (+ hamburger on mobile), centered below the logo */
+header.site .bar{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 18px;max-width:var(--maxw);margin:0 auto;}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.brand img{height:64px;width:auto;}
+.brand b{font-size:19px;color:var(--red);letter-spacing:.2px;font-weight:800;}
+nav.main{display:none;}
+nav.main a{color:var(--ink);font-weight:600;font-size:14.5px;padding:8px 10px;border-radius:8px;}
+nav.main a:hover{background:var(--surface);text-decoration:none;}
+nav.main a.active{color:var(--red);}
+.head-call{margin-left:0;}
+.head-call .btn{padding:10px 16px;font-size:15px;}
+.navtoggle{margin-left:8px;background:var(--surface);border:1px solid var(--edge);border-radius:10px;
+  width:44px;height:44px;font-size:20px;cursor:pointer;color:var(--ink);flex-shrink:0;}
+nav.mobile{display:none;border-top:1px solid var(--edge);background:#fff;}
+nav.mobile.open{display:block;}
+nav.mobile a{display:block;padding:13px 18px;color:var(--ink);font-weight:600;border-bottom:1px solid var(--edge);}
+nav.mobile a:hover{background:var(--surface);text-decoration:none;}
+
+/* ---------- Hero ---------- */
+.hero{background:linear-gradient(180deg,var(--surface),#fff);border-bottom:1px solid var(--edge);}
+.hero .wrap{padding:40px 18px;text-align:center;}
+.hero h1{font-size:30px;margin:0 0 14px;font-weight:800;}
+.hero h1 .nowrap{white-space:nowrap;}
+.hero p.lead{font-size:17px;color:var(--ink);max-width:640px;margin:0 auto 22px;font-weight:500;}
+.hero .btnrow{display:flex;flex-direction:column;gap:12px;align-items:stretch;max-width:340px;margin:0 auto;}
+
+/* ---------- Trust strip ---------- */
+.trust{background:var(--red);color:#fff;}
+.trust .wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px 10px;padding:18px;text-align:center;}
+.trust .item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:13px;font-weight:700;line-height:1.25;}
+.trust .item .big{font-size:17px;font-weight:800;}
+.trust .item .ic{font-size:20px;}
+
+/* ---------- Sections ---------- */
+section{padding:42px 0;}
+section.surface{background:var(--surface);}
+.sec-head{text-align:center;max-width:640px;margin:0 auto 28px;}
+.sec-head h2{font-size:25px;margin:0 0 8px;font-weight:800;}
+.sec-head p{color:var(--dim);margin:0;font-size:16px;}
+
+/* ---------- Service cards (with icons) ---------- */
+/* Flex (not grid) so a partial last row (e.g. 2 of 4 cards) stays CENTERED
+   instead of left-aligned. Cards grow to fill a full row and cap so a short
+   row doesn't stretch too wide. */
+.cards{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;}
+.scard{flex:1 1 240px;max-width:340px;
+  background:#fff;border:1px solid var(--edge);border-radius:var(--r);padding:22px;box-shadow:var(--shadow);
+  display:block;color:inherit;transition:transform .1s ease,box-shadow .15s ease;}
+.scard:hover{text-decoration:none;transform:translateY(-2px);box-shadow:0 10px 28px rgba(20,30,45,.12);}
+.scard .icon{width:52px;height:52px;border-radius:13px;background:var(--surface);display:flex;align-items:center;
+  justify-content:center;font-size:26px;margin-bottom:12px;border:1px solid var(--edge);}
+.scard h3{margin:0 0 6px;font-size:19px;color:var(--red);}
+.scard p{margin:0;color:var(--dim);font-size:15px;}
+.scard .more{display:inline-block;margin-top:10px;color:var(--red);font-weight:800;font-size:14px;}
+
+/* ---------- How it works ---------- */
+.steps{display:grid;grid-template-columns:1fr;gap:18px;counter-reset:step;}
+.step{background:#fff;border:1px solid var(--edge);border-radius:var(--r);padding:22px;text-align:center;position:relative;}
+.step .num{width:46px;height:46px;border-radius:50%;background:var(--red);color:#fff;font-weight:800;font-size:20px;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
+.step h3{margin:0 0 6px;font-size:18px;}
+.step p{margin:0;color:var(--dim);font-size:15px;}
+
+/* ---------- Before / after + photo slots ---------- */
+.ba{display:grid;grid-template-columns:1fr;gap:16px;}
+.ba .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.photo-slot{border:2px dashed var(--red);border-radius:var(--r);min-height:170px;display:flex;align-items:center;
+  justify-content:center;text-align:center;padding:18px;
+  background:repeating-linear-gradient(45deg,#fff,#fff 12px,var(--surface) 12px,var(--surface) 24px);}
+.photo-slot span{font-weight:800;color:var(--red);font-size:13.5px;max-width:300px;}
+.photo-slot small{display:block;font-weight:600;color:var(--dim);margin-top:6px;font-size:12px;}
+.ba .pair .photo-slot{min-height:150px;}
+.ba .tag{font-weight:800;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--red);margin-bottom:6px;text-align:center;}
+/* Real "Our Work" gallery (only rendered when a city has photos) */
+.photo-grid{display:grid;grid-template-columns:1fr;gap:14px;}
+.photo-grid .photo{margin:0;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);background:#eee;}
+.photo-grid .photo img{display:block;width:100%;height:100%;object-fit:cover;aspect-ratio:3/2;}
+@media(min-width:640px){ .photo-grid{grid-template-columns:1fr 1fr;} }
+
+/* ---------- Widget placeholder (paste exact embed from doc) ---------- */
+.widget-slot{border:2px dashed var(--amber);background:#fffaf0;border-radius:var(--r);padding:22px;text-align:center;}
+.widget-slot b{color:var(--amber-ink);display:block;font-size:15px;margin-bottom:4px;}
+.widget-slot small{color:var(--dim);}
+
+/* ---------- Map ---------- */
+.mapbox{border-radius:var(--r);overflow:hidden;border:1px solid var(--edge);box-shadow:var(--shadow);}
+.mapbox iframe{display:block;width:100%;height:340px;border:0;}
+
+/* ---------- Generic content (subpages) ---------- */
+.prose{max-width:760px;margin:0 auto;}
+.prose h2{font-size:23px;margin:28px 0 10px;}
+.prose h3{font-size:18px;margin:22px 0 8px;color:var(--ink);}
+.prose p{margin:0 0 14px;font-size:16px;}
+.prose ul{margin:0 0 16px;padding-left:20px;}
+.prose li{margin:6px 0;font-size:16px;}
+.info-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:8px;}
+.info-grid .card{background:#fff;border:1px solid var(--edge);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);}
+.info-grid .card b{color:var(--red);display:block;margin-bottom:4px;}
+
+/* ---------- FAQ (native text + schema) ---------- */
+.faq-item{background:#fff;border:1px solid var(--edge);border-radius:var(--r);padding:18px 20px;margin-bottom:12px;box-shadow:var(--shadow);}
+.faq-item h3{margin:0 0 6px;font-size:17px;color:var(--red);}
+.faq-item p{margin:0;color:var(--ink);font-size:15.5px;}
+
+/* ---------- Footer ---------- */
+footer.site{background:#15181c;color:#c2cad3;font-size:14px;}
+footer.site .wrap{padding:34px 18px;}
+footer.site .cols{display:grid;grid-template-columns:1fr;gap:24px;}
+footer.site h4{color:#fff;margin:0 0 10px;font-size:15px;}
+footer.site a{color:#c2cad3;display:block;padding:3px 0;}
+footer.site a:hover{color:#fff;}
+footer.site .social a{display:inline-block;margin-right:14px;}
+footer.site .legal{border-top:1px solid rgba(255,255,255,.14);margin-top:24px;padding-top:16px;
+  display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;}
+.staff-login{color:#6f7b88;font-size:12.5px;}
+.staff-login:hover{color:#fff;}
+
+/* ---------- Sticky mobile bottom bar (Call / Text / WhatsApp) ---------- */
+.mobilebar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;grid-template-columns:1fr 1fr 1fr;
+  background:#fff;border-top:1px solid var(--edge);box-shadow:0 -4px 16px rgba(20,30,45,.12);}
+.mobilebar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:9px 4px;
+  font-size:11.5px;font-weight:800;color:var(--ink);}
+.mobilebar a:hover{text-decoration:none;}
+.mobilebar a .ic{font-size:19px;}
+.mobilebar a.call{background:var(--amber);color:var(--amber-ink);}   /* primary CTA = amber */
+.mobilebar a.text{color:var(--red);}
+.mobilebar a.wa{color:#128c5e;}
+
+/* ============================================================
+   RESPONSIVE — tablets and up
+   ============================================================ */
+@media (min-width:640px){
+  .hero .wrap{padding:58px 18px;}
+  .hero h1{font-size:38px;}
+  .hero p.lead{font-size:19px;}
+  .hero .btnrow{flex-direction:row;justify-content:center;max-width:none;}
+  .trust .wrap{grid-template-columns:repeat(4,1fr);}
+  .cards{grid-template-columns:1fr 1fr;}
+  .steps{grid-template-columns:repeat(3,1fr);}
+  .ba{grid-template-columns:1fr 1fr;}
+  .info-grid{grid-template-columns:1fr 1fr;}
+  footer.site .cols{grid-template-columns:repeat(2,1fr);}
+}
+@media (min-width:960px){
+  nav.main{display:flex;margin-left:0;}
+  .navtoggle{display:none;}
+  nav.mobile{display:none !important;}
+  .cards{grid-template-columns:repeat(4,1fr);}
+  .hero h1{font-size:44px;}
+  footer.site .cols{grid-template-columns:repeat(4,1fr);}
+  .mobilebar{display:none;}   /* hide phone bottom-bar on desktop */
+  body{padding-bottom:0;}
+}
+/* keep content clear of the mobile bottom bar on small screens */
+@media (max-width:959px){
+  body{padding-bottom:64px;}
+}
+
+/* ============================================================
+   Accessibility + mobile polish
+   ============================================================ */
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px;border-radius:6px;}
+.btn:focus-visible{outline-offset:3px;}
+.langtoggle:focus-visible{outline:3px solid var(--red);}
+/* comfortable tap targets on touch screens */
+nav.mobile a,.mobilebar a{min-height:48px;}
+.navtoggle,.langtoggle{min-height:44px;}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto;}
+  *{animation-duration:.001ms!important;transition-duration:.001ms!important;}
+}
+
+/* ============================================================
+   Social icon links (header / footer / "follow us")
+   ============================================================ */
+.social-icons{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+.social-icons a{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;
+  border-radius:50%;border:1px solid var(--edge);background:#fff;color:var(--ink);padding:0;
+  transition:background .15s,color .15s,border-color .15s;}
+.social-icons a:hover{background:var(--red);border-color:var(--red);color:#fff;}
+.social-icons svg{width:24px;height:24px;fill:currentColor;display:block;}
+/* "Follow us" row (above the map): one row spanning the full width, icons sized
+   up to fill it. flex:1 lets all six share the width equally; aspect-ratio keeps
+   them circular; the cap stops them ballooning on wide desktops. */
+.social-follow{text-align:center;}
+.social-follow .social-icons{flex-wrap:nowrap;justify-content:space-between;gap:10px;width:100%;margin-top:14px;}
+.social-follow .social-icons a{flex:1 1 0;width:auto;height:auto;max-width:96px;aspect-ratio:1/1;}
+.social-follow .social-icons svg{width:46%;height:46%;}
+/* dark footer variant */
+footer.site .social-icons a{background:transparent;border-color:rgba(255,255,255,.22);color:#c2cad3;}
+footer.site .social-icons a:hover{background:#fff;color:#15181c;border-color:#fff;}
+/* sub-header strip: social icons run horizontally UNDER the nav tabs, like a thin
+   secondary bar (slightly shorter than the main header). Used in header + footer. */
+.subbar{border-top:1px solid var(--edge);background:var(--surface);}
+.subbar .wrap{display:flex;justify-content:center;padding:7px 18px;}
+.social-icons.subbar-icons{gap:16px;justify-content:center;flex-wrap:wrap;}
+.social-icons.subbar-icons a{width:34px;height:34px;}
+.social-icons.subbar-icons svg{width:18px;height:18px;}
+.footer-social{margin-top:22px;}
+
+/* ============================================================
+   Award / recognition badge (sits beside the reviews)
+   ============================================================ */
+.award-wrap{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:0 0 14px;}
+.award-badge{display:inline-block;max-width:600px;margin:0;padding:10px 18px;border-radius:999px;
+  background:rgba(200,16,46,.07);border:1.5px solid var(--red);color:var(--red);
+  font-weight:800;font-size:15.5px;line-height:1.3;text-align:center;}
