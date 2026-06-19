@@ -1,7 +1,7 @@
 # Claude Code prompt — Build the Manager Dashboard (Studio look)
 
 Paste everything below the line into Claude Code, running in the
-`C:\Users\sakar\Desktop\bittings\_live-clone` repo.
+`C:\Users\sakar\Desktop\bittings\turbokeysmith-main` repo (staff app now under bittings-app/).
 
 ---
 

@@ -5,7 +5,7 @@
 > the paths given, then follow the instructions. The only non-text assets (PNG favicons) are
 > generated from the SVG — see step at the end.
 >
-> Run inside: `C:\\Users\\sakar\\Desktop\\bittings\\_live-clone`
+> Run inside: `C:\\Users\\sakar\\Desktop\\bittings\\turbokeysmith-main` (staff app now under bittings-app/)
 
 ---
 
