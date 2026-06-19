@@ -1,7 +1,8 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-17 21:15 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
-timeline of what was done and when.
+**Last updated:** 2026-06-19 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
+via Cloudflare (see the 2026-06-19 changelog entry).**
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
 Desktop) can understand everything that has been built and changed, and advise the owner without
@@ -390,6 +391,32 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-19 (🚀 WEBSITE LAUNCHED on turbokeysmith.com + premium skin + Spanish gaps + contact-form email)
+- **The public website is LIVE at `https://turbokeysmith.com`.** Domain DNS was moved from GoDaddy to
+  **Cloudflare** (registrar stays GoDaddy). The `site/` folder is served from **Cloudflare Pages** project
+  `turbokeysmith` (production branch **`main`**). Apex + `www` both point to Pages; **HTTPS with Full (strict)
+  SSL**, Always-Use-HTTPS, and automatic `http→https` redirect are on. All pages verified 200.
+- **Email was preserved.** The shop's **Microsoft 365 (Outlook)** email records (MX, SPF, the M365 verification
+  TXT, DKIM, DMARC, autodiscover, sip, lyncdiscover, msoid) were imported into Cloudflare and the mail/service
+  records set to **DNS-only (grey cloud)** so Outlook keeps working. MX confirmed intact after cutover.
+- **Deploy gotcha recorded:** deploys must use `npx wrangler pages deploy site --project-name=turbokeysmith
+  --branch=main`. Without `--branch=main` they land on a throwaway **preview** URL and the real
+  `turbokeysmith.pages.dev` (production) never updates — this caused an "the new skin won't show up" scare.
+- **Public site got a premium "blackout" skin** (dark theme, red-gradient buttons — `site/assets/styles.css`,
+  reference `site/turbo-premium.html`) across every EN/ES page.
+- **Two missing Spanish pages added** — `/es/pay-now/` and `/es/blog/` (the EN→ES toggle was dumping visitors on
+  the English homepage). EN/ES page parity is now complete; reciprocal `hreflang` added. `/es/` stays
+  **noindex** (hidden) pending proofread, as before.
+- **Contact form now emails leads to the shop.** Previously website leads saved only to the visitor's own
+  browser (owner never saw them). Both `/contact/` and `/es/contact/` now POST to **Web3Forms** → emails
+  **turbokeysmith@gmail.com** (Spanish leads use an English subject tagged `(ES)`), keeping the local save as a
+  backup. *(Cloud/Customers-list landing of leads is still a future step.)*
+- **Readability fix:** the contact "thank you" success box showed silver-on-white in the dark theme; its text
+  is now near-black (EN + ES), plus a shared safety rule so any white box always gets dark text.
+- *Still open after launch:* (optional) `www→apex` redirect rule for one canonical address; **proofread + publish
+  the `/es/` Spanish pages**; resubmit `sitemap.xml` in Google Search Console; the staff app still goes later on
+  its own `app.turbokeysmith.com` subdomain.
 
 ### 2026-06-17 PM-6 (Two brands kept straight: "Bittings" = the software · your shop = from Settings)
 - **"Bittings" is the software's own name + logo** (the mark and word in the **left menu**). That's the product
