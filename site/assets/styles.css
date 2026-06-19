@@ -357,3 +357,10 @@ footer.site .cols{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:26px;
 nav.mobile a,.mobilebar a{min-height:48px}
 .navtoggle{min-height:44px}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+/* ---------------- White boxes: force near-black text (dark theme safety net) ----------------
+   The premium theme's default text is near-white, so any element on a WHITE background must set
+   dark text or it goes silver-on-white. These are the only white boxes on the public site
+   (contact form + its "thank you" success card); this guarantees their text is always readable. */
+.cform,.cform label,.cform input,.cform textarea,.cform select,
+.cf-success,.cf-success h2,.cf-success h3,.cf-success p{color:#14171b}
