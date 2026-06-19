@@ -290,7 +290,7 @@ if(bad.length){m.textContent="Por favor agrega tu nombre, teléfono y el servici
 var notes=g('cNotes').value.trim();
 if(g('cService').value==='Other (describe)'&&other){notes='Other service: '+other+(notes?'\n'+notes:'');}
 try{TKS.Customers.addLead({customer:g('cName').value.trim(),phone:g('cPhone').value.trim(),email:g('cEmail').value.trim(),address:g('cAddress').value.trim(),serviceNeeded:g('cService').value,notes:notes,lang:'es'});}catch(err){}
-if(WEB3FORMS_KEY){var pl={access_key:WEB3FORMS_KEY,subject:'Nuevo lead del sitio — '+g('cName').value.trim(),from_name:'Turbo Keysmith website',name:g('cName').value.trim(),phone:g('cPhone').value.trim(),address:g('cAddress').value.trim(),service:g('cService').value,notes:notes,page:location.pathname};var ce=g('cEmail').value.trim();if(ce){pl.email=ce;}try{fetch('https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(pl),keepalive:true}).catch(function(){});}catch(e){}}
+if(WEB3FORMS_KEY){var pl={access_key:WEB3FORMS_KEY,subject:'New website lead — '+g('cName').value.trim()+' (ES)',from_name:'Turbo Keysmith website',name:g('cName').value.trim(),phone:g('cPhone').value.trim(),address:g('cAddress').value.trim(),service:g('cService').value,notes:notes,page:location.pathname};var ce=g('cEmail').value.trim();if(ce){pl.email=ce;}try{fetch('https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(pl),keepalive:true}).catch(function(){});}catch(e){}}
 f.style.display='none';g('cSuccess').style.display='block';window.scrollTo({top:0,behavior:'smooth'});});})();
 </script>
 <footer class="site"><div class="wrap">
