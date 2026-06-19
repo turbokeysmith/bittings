@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-16 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-17 21:15 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
@@ -153,6 +153,12 @@ customer list across all tools.
 - **Customers** — now also shows a read-only **Job history** under each customer (their past
   bookings, newest-first) and an **"ES" badge** on any lead that came in through the Spanish
   contact form, so staff know to expect Spanish on the callback.
+- **Programmers (Key Programmer Coverage)** — a Home tile (`programmers.html`) that, from a VIN or
+  make+year, shows a **per-tool capability matrix** (Add key / AKL / Remote · OBD or bench · what it needs)
+  across the tools you mark as owned (your seven by default — Autel IM608 Pro 2, IM508, KM100; Xhorse Key Tool
+  Max; SmartPro; AutoProPad G2; Lonsdor K518 — with variants like AutoProPad G2/Turbo/G3 selectable). Coverage is
+  grouped by immobilizer platform and is a **verify-on-tool guide** that hardens from real jobs via a corrections
+  loop. Staff app only. *(See the Changelog for detail.)*
 - **Vendor tools** — the Home screen has two quick-link buttons that open the shop's main vendor
   sites (**American Key Supply** and **Key Innovations**) in a new tab. *Note: actually locking the
   shop PC down so it can ONLY reach those sites + the app is a separate Windows/browser setup (a
@@ -319,6 +325,9 @@ bittings.html           Receipts/invoice builder (existing; added a back link)
 scheduler.html          Booking + intake flow (Day view, edit, status, VIN/ignition, Add-to-Schedule)
 lishi.html              Lishi/keyway/programming reference (VIN→card, search, notes + corrections log)
                         — stores: tks_lishi_tools, tks_vehicle_keyways, tks_lishi_corrections, tks_vin_cache
+programmers.html        Key Programmer Coverage (staff app) — VIN/make→year → per-tool add-key/AKL/remote
+                        matrix for the 7 owned tools; organized by immobilizer platform; corrections loop
+                        — stores: tks_prog_devices, tks_prog_coverage, tks_prog_corrections (+ tks_vin_cache)
 cloud-test.html         Staff login page (Supabase auth) — existed before
 app/store.js            THE data layer (Customers, Inventory, Bookings CRUD, Services, VIN decode)
 app/pay.js              Shared Pay Now engine (New Charge + cash/check + transaction queries)
@@ -382,7 +391,314 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
-### 2026-06-16
+### 2026-06-17 PM-6 (Two brands kept straight: "Bittings" = the software · your shop = from Settings)
+- **"Bittings" is the software's own name + logo** (the mark and word in the **left menu**). That's the product
+  brand and stays the same for every shop — it is intentionally hardcoded and never changes per shop.
+- **Your shop's branding now comes from Settings, everywhere it appears.** The **top header logo + name**, the
+  **left-menu workspace line**, the **browser tab**, and **receipt share/email text** all use your **Business name**
+  and **Logo** from Setup — nothing says "Turbo Keysmith" hardcoded anymore. So CCC Locksmith sees "CCC Locksmith",
+  Elite sees "Elite", etc. The Setup screen and the Lishi/Programmers tabs were de-hardcoded too; the **Sign-in
+  page** now shows the Bittings product brand (it's before login, so there's no shop yet).
+
+### 2026-06-17 PM-5 (Customer names black-on-white in dark mode · VIN decodes everywhere incl. the invoice)
+- **Customer list stays white with black text in dark mode** (owner preference) — the cards read like printed
+  index cards, names are black and clearly visible, the box stays white.
+- **VIN decoding works everywhere now, including the invoice.** Fixed the **Programmers** and **Lishi** "Decode VIN"
+  buttons (a bad data row was making a *successful* decode look like a failure). The **Quick invoice** now auto-fills
+  Year/Make/Model when you type or paste a 17-character VIN. (Start-a-job, the Inventory VIN search, and the chat
+  invoice already decoded.)
+
+### 2026-06-17 PM-4 (Dark-mode readability fix · hide data sources · "Something wrong?" corrections)
+- **Dark mode is readable now.** The tool pages (Lishi, Programmers, Setup) and the customer list had gone
+  dark-background-but-dark-text (invisible) — a stylesheet-priority bug. Fixed so text is light on dark everywhere.
+  Customer names are no longer washed out. **Hard-refresh (Ctrl+Shift+R) once** to clear the old cached styles.
+- **Data sources are hidden from the app.** The little "src: Ilco 2025"-style tags under code series (on the
+  Start-a-job result and the Lishi card) are gone — customers don't see where the data came from. (We still keep the
+  source in the file, just don't show it.)
+- **"Something wrong?" corrections.** Removed the separate **Corrections** tab from Programmers. Instead, after you
+  pick a vehicle in **Start a job**, there's a **"⚠ Something wrong?"** button at the bottom of the result — tap it to
+  jot what's incorrect or what actually worked for that exact vehicle. Those notes build one running list (saved on the
+  device, shared across the app) and show under that vehicle next time.
+
+### 2026-06-17 PM-3 (Dark mode everywhere: every tool follows the Light/Dark toggle)
+- **Receipts & NASTF, Scheduler, Lishi & Keys, Programmers, and Setup now switch to dark mode** along with the
+  dashboard — they read the same Light/Dark setting. Lishi/Programmers/Setup share the dashboard's color system, so
+  they pick up a shared dark stylesheet; Scheduler (which already had its own dark theme) now follows the global
+  toggle; Receipts got a dark "chrome" (the printable receipt-card **preview stays white/paper** on purpose).
+- **Toggling theme while a tool is open updates it live** (the embedded tool flips immediately, not on reopen).
+- **Customer names readable in dark mode** — the customer cards had stayed white in dark mode, so the near-white
+  names were washed out (white-on-white); the cards are now dark and the names full-contrast.
+
+### 2026-06-17 PM-2 (Desktop: tools open inside the dashboard · sidebar footer · dark-mode contrast fix)
+- **Tools now open inside the dashboard on desktop.** Click **Receipts, Scheduler, Lishi, Programmers, or Settings**
+  in the left menu and the tool loads in the content panel *with the left menu still on screen* — no more jumping to
+  a separate full page that hides the menu. On a **phone** they still open as their own full page (an embedded panel
+  in a narrow column would be cramped). Inside an embedded tool, its own bottom bar / "‹ Apps" link is hidden so it
+  can't nest the dashboard inside itself.
+- **New left-menu footer (desktop), bottom-up: Synced → Signed in → Settings**, sitting right above the Light/Dark
+  toggle. **Settings** (owner-only) replaces the old "⚙ Setup" link that used to sit in the top bar. "Signed in: you"
+  and the "☁ Synced / On this device" status moved out of the page body/top bar into this footer.
+- **Dark-mode contrast fixed.** In dark mode some text was showing **black-on-dark** or **white-on-white**. Cause:
+  the dashboard/customers/forms/reports used an older color set that had no dark values, so it stayed light while the
+  rest went dark. Added the missing dark colors so every screen now reads correctly in dark mode. *(The standalone
+  tool pages don't follow the Light/Dark toggle yet — noted as a follow-up.)*
+
+### 2026-06-17 PM (Edit through the Quick invoice form + a menu that's always on screen)
+- **Editing a receipt now opens the Quick invoice form** (the fast, full-screen form) instead of the slow
+  field-by-field chat editor — but only when the Quick invoice is turned on. Tap a past invoice → Edit → you get
+  the same screen you used to create it, pre-filled with everything (customer, vehicle, line items, NASTF,
+  warranty, payment). Saving **updates the original** invoice (same number/date) rather than creating a duplicate,
+  and it won't double-log a cash/check payment that was already recorded. If the Quick invoice is off, the old
+  chat editor still works exactly as before.
+- **The main menu is now always on screen — on every page.** A persistent bottom nav bar
+  (Home · Receipts · Customers · Scheduler · Lishi) is now fixed to the bottom of **every** staff page — Receipts,
+  Lishi, Scheduler, Programmers, and Setup. It never scrolls away and is always one tap from any main tool, like a
+  normal phone app's tab bar. (It's one shared component, so the bar looks and behaves the same everywhere.)
+- **Deep-link into the dashboard's views.** `index.html?go=customers` (and any other view name) now opens that
+  view on load — this is what the Receipts page's "Customers" tab uses to jump straight to the customer list.
+
+### 2026-06-17 (Key code series — by vehicle — on the Start-a-Job card)
+- **Code series now shows on the job lookup.** Start a Job → look up a vehicle → the result card has a **"Code
+  series"** field (the blind-code range for cutting keys by code, e.g. `F1-F1571`). When we have a sourced value it
+  shows with its source; otherwise it says **"Add in Lishi"** so you can type it.
+- **It's a per-vehicle field you can edit.** Each vehicle in the Lishi reference now has a **Code series** field —
+  edit it on the Lishi page and it sticks (and shows on the job card). Your edits are never overwritten by updates.
+- **Honesty note (per your no-guessing rule):** code series are **not consistently published** in free sources —
+  most modern high-security keys (Ford HU101, GM B119, etc.) don't list one at all, and American Key Supply blocks
+  automated lookups. So I seeded **only the handful I could verify with a source** (e.g. Mitsubishi Eclipse/Endeavor/
+  Galant '04–'07 → `F1-F1571`, lockpicks.com), and those specific vehicles aren't in the built-in list yet — so **no
+  code series will show on existing vehicles until they're entered.** I did **not** guess any. To get real coverage:
+  point me at a Strattec/AKS code-series chart and I'll import it accurately, name specific vehicles for me to verify
+  one by one, or type them on the Lishi page as you go.
+- **UPDATE (this session): real data loaded from your Keyline 2015 chart.** You provided two reference PDFs; the
+  **2015 Keyline Key Application Chart** turned out to be a clean one-row-per-vehicle table with a real **Code
+  Series** column, so I parsed it and filled **47 vehicles** with their code series (e.g. Toyota Camry/Corolla/RAV4
+  `50,000-69,999`, Honda/Acura `K001-N718`, GM `Z0001-Z6000`/`G0001-G3631`/`V0002-V5573`, Ford `10001-11500`,
+  Chrysler/Jeep/Ram/Dodge `M0001-M2618`, Nissan/Infiniti `00001-22185`). Each shows **src: Keyline 2015** and a
+  short note where the chart had one. I only filled vehicles where the chart was **unambiguous** (one code across
+  the matching years) — no guesses. The 2022 reference's tables are messier (multi-line) and I won't trust-parse
+  them without more care, so newer (2016+) vehicles and the **HPC card number** column are still to do.
+  *Status: 47 vehicles live; broader coverage + HPC card pending.*
+- **UPDATE 2 (overnight): 196 of 230 vehicles now have a code series + 182 have HPC card numbers.** You found the
+  Keycraze PDF library and the **2025 Ilco reference** (newest), and had Claude Desktop extract it into
+  `Bittings_Key_Blank_Reference.xlsx` (3,212 records). I reviewed that file, fixed a comma-chopping glitch in its
+  code column (e.g. `5,001-8442` had been split — I rebuilt them and confirmed against the clean rows), and mapped
+  it onto your vehicles: **code series, the HPC 1200 card number, and notes** now show on the Start-a-Job card and
+  are editable in Lishi. Vehicles with more than one key type show **all their code series** (e.g. a Corolla shows
+  `50000-69999 / 40000-49999`, regular vs prox) so you pick by the actual key. Each entry is tagged with its source
+  (mostly **Ilco 2025**, some **Keyline 2015** where 2025 didn't cover it). **Nothing was guessed.**
+  ⚠️ **Two things for you to look at (left for the end): (1)** the Excel extract had **gaps** — it dropped some
+  common models (Camry, Highlander, Prius, Avalon, Accord, C-HR); I hand-read the obvious ones back in from the
+  PDF, but the file isn't 100% complete. **(2)** **34 vehicles still have no code series** — mostly European
+  (BMW/Mercedes/Audi/Volvo, often OEM-only), heavy trucks, and a few ambiguous ones; list is in the task notes.
+  *Status: 196/230 with code series, 182 with HPC card; 34 pending; spot-check recommended.*
+- **UPDATE 3: second pass filled 12 more → 208/230 code series, 188 HPC cards, 22 blank.** Re-read both the PDF and
+  the xlsx for the 34 holdouts; added the ones with a direct read (Silverado 2500/3500, Lexus IS250/350, Dodge
+  Grand Caravan, Subaru WRX/Ascent, Cadillac CT5/XT4/XT5/XT6, Ford Super Duty, Scion xB). The remaining **22** are
+  mostly European/OEM-only (Audi Q5/Q7, BMW 3-Series, Mercedes C-Class, Volvo XC90), platform-inferable but
+  un-sourced (Chrysler 300 & Ram = Chrysler M-series; GMC Yukon/Canyon/Acadia = GM V-series; Subaru
+  Forester/Crosstrek — since filled from owner's Subaru rule: non-prox 32000-39999, prox 70000-79999/90000-99999),
+  and ambiguous/new-gen (Camry '02-06, Prius, C-HR, Scion tC, Tacoma '24-25) — left for owner
+  confirmation rather than guessed.
+- **UPDATE 5: owner keyway rules + group-1 fills → 215/230, 15 blank.** VW/Audi HU66 = 0001-8110 (corrected Ilco's
+  0001-6000); VW/Audi HU162T = unknown→blank/editable; BMW = no code series; Volvo HU56 = DH0001-DH4000, HU101 =
+  04001-09001 / 4001-9001 (with or without leading 0) — done as a one-time keyway migration in applyCodeSeries
+  (guarded by tks_cs_keyfix1; corrects existing data once, never clobbers owner edits). Filled Chrysler 300 /
+  Ram 1500 / Ram 2500-3500 = M1-M2618, GMC Yukon = V0001-V5573, GMC Canyon = Z0001-Z6000 (= Colorado). 15 still
+  blank — HU162T VW/Audi, BMW (none), Mercedes C-Class / Ram ProMaster / 1st-gen GMC Acadia, and Toyota/Scion
+  Camry'02-06 / Prius / C-HR / tC / Tacoma'24-25 (need owner values/rules).
+
+### 2026-06-16 PM-4 (Mark paid from a customer, A/R + tax on dashboard, total-paid, warranty/T&C on the receipt)
+- **Mark an invoice paid right from the customer.** Open a customer → tap an unpaid invoice → **"✓ Mark as paid"**.
+  It converts to a paid receipt (and clears from the balance owed) exactly like the Receipts screen does, including
+  using up any parts from inventory.
+- **Money on the Dashboard.** The dashboard now shows **"Owed (A/R)"** — your total unpaid-invoice amount across
+  all customers — and **"Tax collected"** (this month). 
+- **Tax moved off Reports.** The "Tax collected" figure that was stuck on the Reports screen (couldn't be toggled
+  off like the others) is **gone from Reports** and now lives on the Dashboard.
+- **Total paid per customer, by period.** Each customer record shows **"Total paid (all-time)"** plus a breakdown
+  for the **last 30 days / 90 days / 6 months / 1 year**.
+- **Warranty prints on the receipt/invoice.** Customer copies now show **"6 months limited warranty"** (your set
+  length, no date) on the receipt card and the PDF. (The in-app day-countdown pill is still there for you.)
+- **Terms & Conditions link is now a setting.** Setup → Business identity has a **"Terms & Conditions link"** field.
+  Whatever you paste prints on the receipt/PDF and in the signature line ("agreed to *[your shop]*'s Terms &
+  Conditions"). **Leave it blank and the T&C wording is dropped** — so a shop without a terms page doesn't show a
+  broken/placeholder link. *(Turbo Keysmith: set yours to `turbokeysmith.com/terms` in Setup — it's no longer
+  hardcoded.)*
+- *Status: code-complete, pending mobile sign-off.*
+
+### 2026-06-16 PM-3 (Warranty tracking + open past invoices to see what was sold)
+- **Standard warranty, set once in Setup.** Setup → Payments now has a **"Standard warranty (months)"** field
+  (defaults to **6**) and a **"Add the warranty to new documents by default"** toggle. Set months to **0** to turn
+  warranties off.
+- **Warranty on receipts & invoices, with a live countdown pill.** New receipts and invoices carry the standard
+  warranty (Quick invoice has a **warranty checkbox** you can untick per job; the chat flow applies your default).
+  Estimates never get one. Each document then shows a **🛡 pill** — "184 days warranty left" (green), turning
+  **amber under 30 days**, then **"Warranty expired"** (red) — on the receipt card and in the Receipts history, so
+  you can tell at a glance if a returning customer is still covered.
+- **Open a past invoice to see what was sold.** In a customer's record, the invoice list is now **tappable** —
+  tap any invoice to open a read-only view showing the **line items (what was sold)**, totals, status, and the
+  warranty pill. (Full edit/reprint/PDF still lives in Receipts.) Old invoices remain listed in Receipts → History
+  too, now with the warranty pill for warranty lookups.
+- *Status: code-complete, pending mobile sign-off.*
+
+### 2026-06-16 PM-2 (Customer invoice history + balance owed, quick-invoice presets, category-correct add-item)
+- **Customer invoice history + running balance owed.** Open any customer (Customers tile → tap a person/shop) and
+  you now see their **Invoices & receipts** list (each with date, number, amount, and a PAID / UNPAID / ESTIMATE
+  tag) **plus a "Balance owed"** total at the top when they have unpaid invoices — built for **Net-30 business
+  accounts**. The owed amount is the sum of their unpaid invoices (it clears automatically when you mark an
+  invoice paid in Receipts). Customers who owe money also show a red **"OWES $___"** badge right in the list, so
+  you can see who's behind at a glance.
+- **Quick invoice line items are no longer blank-only.** Each line's description now offers a **pick-list of your
+  services** for the chosen job type (your Setup services + common locksmith jobs); picking one **auto-fills the
+  price and the taxable box**. You can still type a custom description.
+- **Fixed: "Add another item" showed the wrong category's items.** On the Start-a-job → Materials & Services
+  screen, the "Add another item" dropdown listed automotive items (Transponder key, Remote/fob, Smart key) even on
+  a Residential job. It's now **category-aware** — common items always, plus the right items for Auto / Residential
+  / Commercial.
+- *Status: code-complete, pending mobile sign-off.*
+
+### 2026-06-16 PM (Repairs: NASTF quick-invoice, Lishi seed on Start-a-job, button contrast)
+- **NASTF added to the Quick invoice.** The ⚡ Quick invoice now has an optional **NASTF D1** picker (shown
+  only when Service = Automotive): **None / Customer / Auction-Fleet / Contracting**. Picking a type reveals
+  exactly the audit fields that type needs (plate, odometer, authorizing-party or vehicle-owner details, etc.),
+  required fields are enforced before "Create," and the finished receipt prints the same NASTF blocks as the
+  chat flow. For **Contracting**, a note reminds you the "Customer name" is the contracting shop and the vehicle
+  owner goes below. So you can now produce NASTF D1 paperwork from the fast path, not just the full interview.
+- **Fixed: "Start a job" now shows the Lishi tool even if you never opened the Lishi page.** The job result card
+  reads the Lishi tool + vehicle data from local storage, which was only ever filled in by visiting the Lishi
+  page first. The seed (120 Lishi tools + 230 vehicles) now loads on the home screen too, via a new shared
+  `app/lishi-seed.js`, so the keyway/tool/transponder populate on first use. (The Lishi page is unchanged.)
+- **Fixed: hard-to-see buttons in the manual (non-quick-form) invoice flow.** Five special buttons — Decode VIN,
+  From Inventory, owner Setup-service shortcuts, Custom item, and "Use $last-price" — had red text on a dark chip
+  in the light theme, which washed out in daylight. They now use white text so they read clearly outdoors.
+- *Status: code-complete, pending mobile sign-off (NASTF picker + buttons need an on-phone check).*
+
+### 2026-06-16 (Start-a-job result card, Materials & Services step, van/shop inventory)
+- **Start a job → Automotive now shows the whole job on one screen** (the selling point). After a VIN decode
+  *or* a year/make/model pick, the result card displays — pulled live from your Lishi + Programmers + Inventory
+  data — the **keyway + Lishi tool, transponder, ignition-pickable, an inventory check, programmer pills**
+  (e.g. "Autel IM608 · AKL"), an OEM/NASTF flag, and an **"In your van"** parts list. (The reference comes from
+  the Lishi & Programmers pages' data; empty → honest "—"/"Verify in Lishi", never fabricated.)
+- **NEW "Materials & Services" step.** Selecting a service (Automotive *or* Residential/Commercial) now goes to a
+  build-the-job screen that suggests **related materials & services to add** — your examples: a **rekey** offers a
+  replacement lock / deadbolt / smart lock; a **car lockout** offers lost-key / spare / fob. Tap to include, add
+  custom items, then **Continue to invoice** (opens Receipts). *(Auto-filling Receipts line items from that
+  selection is the one remaining wire-up.)*
+- **Inventory: "in the van" vs "in the shop".** In **Setup → Business identity** there's now a **"Where do you
+  work?"** choice — **Mobile (van)** and/or **Physical shop**. If you use **both**, Inventory splits into van vs
+  shop: each part shows its location, there's a **van / shop filter**, and a one-tap **"→ Shop" / "→ Van"** move
+  button on every row (plus a van/shop picker on the part form). If you pick **only one**, inventory stays a single
+  list with no split — fully mobile shops never see "shop" stock, and vice-versa. New parts default to **van**.
+- **Fixed:** the service picker no longer shows the old "continue to the work order in Receipts" line — it now
+  reads "continue to materials & services," matching the new step. *Status: code-complete, pending mobile sign-off.*
+
+### 2026-06-15 (Home = "Start a job"; receipt split; Key Tool Max Pro)
+- **"Start a job" is now the home screen.** When the app opens it lands on **Start a job** (was the tile grid).
+- **The tile hub is gone — everything lives in the left menu.** The old grid of tiles on the home screen was
+  removed; every destination (Customers, Receipts, Scheduler, Payments, Inventory, Lishi, Programmers, Dashboard,
+  Closeout, Reports) **and the Vendor tools** (Keycodes + your quick-links) now live in the **left sidebar** on a
+  computer and in a **slide-out "More" menu** on a phone (tap **More** in the bottom bar). Manager-only items stay
+  hidden from staff. Nothing was lost — just moved into the menu.
+- **Start a job → Automotive now works without a VIN.** A **"VIN / Year-Make-Model"** switch lets you look up by
+  **year, make, and model** when you don't have a VIN; either way it shows the vehicle + an inventory snapshot and
+  routes you into Lishi / Programmers / Receipts.
+- **Receipt sending is now two clear buttons.** After a card payment, instead of one "Send receipt," you get
+  **⬇ Download receipt** (saves the PDF) **and 📤 Send receipt** (opens the share sheet to text/email it).
+- **Programmers: added Xhorse VVDI Key Tool Max Pro** to the selectable tool catalog (🧰 My tools). It's the Key
+  Tool Max **with a built-in OBD + CAN-FD module** (so it does IMMO/OBD without the separate Mini OBD, and adds
+  GM 2020+ CAN-FD cars). It shares the Key Tool Max coverage column. *Note: Xhorse doesn't publish a single
+  compatibility chart — coverage lives in the device's own app + their remote-support list (links saved on the
+  tool's entry); treat it as verify-on-device like the rest.*
+
+### 2026-06-15 (Bittings design system — started; Home + "Start a job" done)
+- **Adopted the "Bittings" design system** (a shared, reusable UI kit) and began rolling it across the staff app.
+  This supersedes the ad-hoc light reskin earlier today with a real component library + a **theme toggle**.
+  - **New shared files** (under `app/ui/`): **`bittings-ui.css`** (the whole design system — cards, buttons,
+    pills, inputs, KPI stats, the sidebar/bottom-nav shell, tiles), **`bittings-ui.js`** (the light/dark theme
+    toggle + memory), the **Bittings logo** SVGs (`assets/mark.svg`, `mark-mono.svg`, `assets/favicon.svg`), and
+    **`demo.html`** — a reference page you can open to see the exact target look and flip the theme.
+  - **Two themes, one switch:** **Studio (light)** is the default; a **🌙 Dark "Tactical"** field theme is one tap
+    away (toggle in the sidebar; the choice is remembered, no flash on reload).
+  - **Brand hierarchy:** the sidebar shows **Bittings** (the software) as the brand, with **your shop's name**
+    (from your Setup config) as a separate boxed subheading beneath it — so the product and the locksmith company
+    read as distinct.
+  - **NEW "Start a job" front door** (first sidebar item): asks **Automotive / Residential / Commercial**, then
+    **Automotive** → a VIN box that decodes the vehicle, shows an inventory snapshot, and routes you into the
+    existing **Lishi & Keys** / **Programmers** / **Receipts** flows (those stay the source of truth — nothing
+    duplicated or fabricated); **Residential/Commercial** → your real service list → the work order. The existing
+    **Lishi & Keys** tab is unchanged.
+  - **Done so far:** the **Home screen (`index.html`)** is wrapped in the new sidebar + phone bottom-nav (every
+    existing destination wired to its real action; manager-only items still hidden from staff), plus the theme
+    toggle and "Start a job." **Behavior, data, and gating are unchanged — purely the shell + new feature.**
+  - **Still to do (next):** apply the same shell/components to the other pages — **Receipts (`bittings.html`),
+    Scheduler, Lishi, Programmers, Setup, Login** — and generate the PNG favicons. **NASTF D1 logic on Receipts is
+    untouchable** and will only be restyled, never changed. **Status = in progress; Home is code-complete pending
+    mobile sign-off.**
+
+### 2026-06-15 (light "Studio" reskin — whole staff app)
+- **The whole staff app was re-themed from dark to the light "Studio" look** (the same palette as the new
+  Manager Dashboard), so every screen now matches: light page (#f6f7f9), white cards, soft grey borders, dark
+  text, with the brand red kept as the accent. **Converted all seven staff pages:** Home + all its screens
+  (`index.html`), Receipts (`bittings.html`), Scheduler (`scheduler.html`), Lishi & Keys (`lishi.html`),
+  Programmers (`programmers.html`), Setup (`setup.html`), and Staff Login (`cloud-test.html`).
+  - **The public marketing website was deliberately NOT touched** — it keeps its own customer-facing design.
+  - **The printed receipt preview stays "paper"** (white with a dark brand band) on purpose — that's how the
+    receipt should look; only the app *around* it went light.
+  - How it was done: each page's shared color tokens were repointed to the Studio palette (so the bulk flips
+    cleanly), then the hand-picked dark spots were lightened and accent text was darkened for readability on
+    white. No behavior/logic/data changed — purely visual.
+  - **Status = code-complete, pending mobile sign-off.** A light theme needs a real-device contrast check —
+    `bittings.html` (Receipts) has the most hand-tuned spots, so look it over closely on a phone. See the test
+    steps the assistant provided.
+
+### 2026-06-15 (manager dashboard)
+- **NEW Manager Dashboard (staff app, manager-only).** A new **📈 Dashboard** Home tile opens a single
+  at-a-glance screen for the current month: four **KPI cards** — **Revenue · Jobs · Repeat customers · Avg
+  ticket** — over a **"Jobs this week"** bar chart and a **"Jobs by type"** breakdown. It's **read-only** (shows
+  numbers, changes nothing) and **manager-only** (hidden from a signed-in staff member, exactly like Closeout /
+  Transaction History).
+  - **Every number is real** — pulled live through the existing data layer, nothing hardcoded. **Revenue, Jobs,
+    and Avg ticket use the same definition as Transaction History** (completed card/cash/check sales, tax excluded),
+    so the figures reconcile. **Repeat customers** and the two job charts read the scheduler's bookings.
+  - **Honest deltas:** the little "▲ 12% vs last month" lines appear **only when there's real prior-month data**.
+    On a new/empty shop the screen shows **$0 / — / zeros and no made-up trends** — never sample numbers.
+  - **Export** button downloads the current month's figures as a CSV. The dashboard uses an approved **light
+    "Studio" look** (a light panel inside the otherwise-dark app). **Status = code-complete, pending mobile
+    sign-off** (iPhone Safari + Android Chrome, manager + staff). *(A full light reskin of the rest of the app is
+    the next task.)*
+
+### 2026-06-15 (key programmer coverage)
+- **Fixed a date error:** an earlier session stamped that day's Lishi work as **2026-06-16** (a day ahead of
+  the real clock). Corrected every occurrence back to **2026-06-15** across the handoff, `STRUCTURE_NOTES.md`,
+  `LISHI_CROSSREF_REVIEW.md`, and the provenance tags inside `lishi.html` — they now match the real file dates.
+- **NEW staff-app tool: Key Programmer Coverage (`programmers.html`)** — a new Home tile (**🖥️ Programmers**).
+  It answers "**which of MY key machines can do this car, and how?**" Type a VIN (or pick make + year) and it
+  shows, for each programmer the shop owns, whether it can **Add a key**, do an **All-Keys-Lost (AKL)**, or make
+  a **Remote** — by **OBD or bench** — and what it **needs** (a PIN, a paid online calculation/license, tokens, or
+  an add-on module). **Staff app only — not on the public website.**
+  - **The 7 tools it covers:** Autel **IM608 Pro 2**, Autel **IM508**, Autel **KM100**, Xhorse **VVDI Key Tool
+    Max**, **SmartPro** (Advanced Diagnostics), **AutoProPad G2** (XTool), and **Lonsdor K518**. Each is listed
+    under **🧰 My tools** with its tier, the add-on modules it needs (e.g. IM508 needs the XP400 Pro; Key Tool Max
+    needs a companion OBD tool), and how it's licensed (tokens, ADS cards, Lonsdor points) — editable to match
+    your exact kit.
+  - **Pick which tools you own:** the **🧰 My tools** tab is a **checklist** — only the tools you check appear in
+    the Lookup matrix. The catalog also carries **variants** (AutoProPad **G2 / G2 Turbo / G3**, Lonsdor **K518 /
+    Pro / ISE**, Autel **IM508 / IM508S**, Xhorse **Key Tool Max / Plus**, IM608 / IM608 Pro 2) so you can pick
+    your exact model; each variant shares its family's coverage column. (Your seven are checked by default.)
+  - **Organized by immobilizer platform** (e.g. "GM Hitag2," "Toyota H/4A," "FCA 4A (PIN)," "VAG MQB"), because
+    that's how programmer coverage really clusters — one platform row covers many models. Seeded broadly across
+    the major US makes (**~54 platform rows**, incl. older PK3/PATS/Sentry-Key eras and Volvo, Jaguar/Land Rover,
+    MINI, Genesis, Fiat, Suzuki) from each maker's published coverage plus general locksmith consensus.
+  - **Honesty (important):** programmer coverage **changes with every firmware update and by region**, and the
+    makers don't publish clean exportable lists. So every row is marked **"verify on the tool"** — a starting
+    guide, not a guarantee. The most trustworthy rows are the ones **you** confirm on a real job: a **📝
+    Corrections** log lets you jot what actually worked ("IM608 did this 2021 Camry AKL via OBD, 1 token"),
+    export it, and Code folds it into the table — so over time it becomes your shop's own proven coverage.
+  - **Editable/durable:** full add/edit/delete for both the tools and the coverage rows, plus CSV export/import
+    for backup. **Status = code-complete, pending mobile sign-off** (iPhone Safari + Android Chrome).
+
+### 2026-06-15 (continued)
 - **Lishi: easier way to set which tool works for a vehicle.** The recommended Lishi is matched from
   the vehicle's **keyway**, so adding a vehicle with the right keyway is what makes the tool show up.
   To make that foolproof: the Add/Edit-vehicle **Keyway box is now a pick-list** of the actual Lishi

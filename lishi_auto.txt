@@ -1,0 +1,577 @@
+COUNT 115
+
+TITLE: ORIGINAL LISHI - GM45 Pontiac G8 / 2-in-1 Pick & Decoder / HS
+KEYWAY: GM45
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Chevrolet, Pontiac
+
+TITLE: ORIGINAL LISHI - HON77 HS Honda / 2-In-1 Pick & Decoder / AG
+KEYWAY: HON77 Laser Keyway HS
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Honda
+
+TITLE: ORIGINAL LISHI - HU43 Pontiac GTO / 2-in-1 Pick & Decoder
+KEYWAY: HU43 HS 2-Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Pontiac
+
+TITLE: ORIGINAL LISHI - HU71 Land Rover Scania / 2-in-1 Pick & Decoder / Twin Lifter / AG
+KEYWAY: HU71
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Land Rover
+
+TITLE: ORIGINAL LISHI - HU83 Peugeot Citroen / 2-in-1 Pick & Decoder / AG
+KEYWAY: HU83 8-Cut 2-Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): 
+
+TITLE: ORIGINAL LISHI - HYN11 (HYN6) / 8-Cut / 2-in-1 Pick & Decoder / DR & BT
+KEYWAY: HYN11 (HYN6)
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): 
+
+TITLE: ORIGINAL LISHI - WT47T Saab / 4-Track / 2-in-1 Pick & Decoder / HS
+KEYWAY: WT47T / 4-Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. Pick and Read at the Same Direction SPECIFICATIONS
+MAKES(tags): Saab
+
+TITLE: ORIGINAL LISHI - NE71R V2 Volvo / 4-Track / 2-in-1 Pick & Decoder
+KEYWAY: NE71R / 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Honda, Land Rover, Volvo
+
+TITLE: ORIGINAL LISHI - HU36 Mercedes / 2-In-1 / Pick & Decoder / Ignition / Door / Trunk
+KEYWAY: . This tool is stainless steel. This tool can be used for early model Mercedes Benz vehicles such as the 1977 - 1985 Mercedes Benz 280E as well as other vehicles that uses the Silca HU36 keyway. Specification
+FOR: early model Mercedes Benz vehicles such as the 1977 - 1985 Mercedes Benz 280E as well as other vehicles that uses the Silca HU36
+MAKES(tags): Mercedes
+
+TITLE: ORIGINAL LISHI - HU87 / HU134 Suzuki / 10-Cut / 2-in-1 Pick & Decoder / Door Locks Only
+KEYWAY: HU87 V.2, Flat 10-Cut
+FOR: Door
+MAKES(tags): Suzuki
+
+TITLE: ORIGINAL LISHI - HU87 / HU133 / HU134 / 2-in-1 Pick & Decoder / Door & Trunk / AG
+KEYWAY: HU87 V.2, Flat 10-Cut
+FOR: Door, Trunk
+MAKES(tags): Suzuki
+
+TITLE: ORIGINAL LISHI - TOY2014 Toyota 2014 / 2-in-1 Pick & Decoder
+KEYWAY: TOY2014 / 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Toyota
+
+TITLE: ORIGINAL LISHI - TOY38R Toyota / 2-in-1 Reader & Decoder / IGN / AG
+KEYWAY: TOY38R / 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Toyota
+
+TITLE: ORIGINAL LISHI - HYN7R HY12 Hyundai Kia / 2-in-1 Pick & Decoder / Single Lifter
+KEYWAY: HYN7R / HY12 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Hyundai, KIA
+
+TITLE: ORIGINAL LISHI - NSN11 Nissan / 2-in-1 Pick & Decoder / AG
+KEYWAY: NSN11 / 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Ford, Infiniti, Nissan, Subaru
+
+TITLE: ORIGINAL LISHI - KIA3R KIA / 2-In-1 Pick & Decoder
+KEYWAY: KIA3R
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): KIA
+
+TITLE: ORIGINAL LISHI - HY16 HYN14 Hyundai / 2-in-1 Pick & Decoder / AG
+KEYWAY: HY16 / HYN14 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Hyundai, KIA
+
+TITLE: ORIGINAL LISHI - MIT8 Mitsubishi / 2-in-1 Pick & Decoder / IGN
+KEYWAY: MIT8
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Mitsubishi
+
+TITLE: ORIGINAL LISHI - TOY38R DH4R Toyota / 8-Cut / 2-in-1 Pick & Decoder
+KEYWAY: TOY38R / DH4R 8-Cut Cross-Reference: TR40 TR44 X174 X211 TOYO9 321726
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. Specifications
+MAKES(tags): Toyota
+
+TITLE: ORIGINAL LISHI - HU39 Mercedes / 4-Track / 2-in-1 Pick & Decoder / QL
+KEYWAY: HU39 8-Cut 4-Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): 
+
+TITLE: ORIGINAL LISHI - HON 2020+ Honda Models / 2-In-1 Pick & Decoder
+KEYWAY: Honda
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): 
+
+TITLE: ORIGINAL LISHI - CH1 DW04 DW05 GM / 2 Track / 2-In-1 Pick & Decoder
+KEYWAY: CH1 / DW04 / DW05 / 2 Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Chevrolet, Saturn
+
+TITLE: ORIGINAL LISHI - HY17 HYN15 Hyundai / 2-in-1 Pick & Decoder / AG
+KEYWAY: HY17 / HYN15 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Hyundai, KIA
+
+TITLE: ORIGINAL LISHI - NE66 Volvo / 4-Track / 2-in-1 Pick & Decoder / AG
+KEYWAY: NE66 / 4-Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Volvo
+
+TITLE: ORIGINAL LISHI - H50 FO14R Ford 1990 / 5 Cut / 2-in-1 Pick & Decoder / AG
+KEYWAY: H50 / FO14R / 5-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Ford, Lincoln, Mazda, Mercury
+
+TITLE: ORIGINAL LISHI - H51 FO6 Ford 1990 / 5 Cut / 2-in-1 Pick & Decoder / AG
+KEYWAY: H51 / FO6 / 5-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Ford, Lincoln, Mazda, Mercury
+
+TITLE: ORIGINAL LISHI - TOY43 Toyota / 8-Cut / 2-in-1 Pick & Decoder / IGN / AG
+KEYWAY: TOY43 / 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Chevrolet, Toyota
+
+TITLE: ORIGINAL LISHI - HU162T - 2015-2021 Audi / VW - 9 Cut - 2-in-1 Pick & Decoder - Ignition - AG
+KEYWAY: HU162T 9-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. Decoder takes very little practice to use. SPECIFICATIONS
+MAKES(tags): Audi, Volkswagen
+
+TITLE: ORIGINAL LISHI - DWO4R DWO5R GM / 2-In-1 Pick & Decoder / AG
+KEYWAY: DWO4R / DWO5R
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Chevrolet, Pontiac, Saturn, Subaru
+
+TITLE: ORIGINAL LISHI - HU66 VW Audi Porsche / 2-in-1 Pick & Decoder / Single Lifter / AG
+KEYWAY: HU66 8-Cut 2-Track HS
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Audi, Ford, Porsche, Volkswagen
+
+TITLE: ORIGINAL LISHI - CY24R-AG 2021+ Jeep Grand Cherokee / 2-In-1 Pick & Decoder / Reverse / AG
+KEYWAY: CY24R
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Jeep, new-2022
+
+TITLE: ORIGINAL LISHI - HU100 GM / 8 Cut / 2-In-1 Pick & Decoder / AG
+KEYWAY: HU100 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Buick, Chevrolet, GMC, Sale_Highlights
+
+TITLE: ORIGINAL LISHI - MIT11 Mitsubishi / 2-In-1 Pick & Decoder / DR & BT / AG
+KEYWAY: MIT11
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Mitsubishi
+
+TITLE: ORIGINAL LISHI - TOY40 Toyota / 2-in-1 Pick & Decoder / Quad Lifter / HS
+KEYWAY: TOY40 / 7-Cut / 4-Track HS
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Lexus, Toyota
+
+TITLE: ORIGINAL LISHI - TOY43R Subaru GMC Chevy / 2-in-1 Pick & Decoder / IGN / AG
+KEYWAY: TOY43R / 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Chevrolet, GMC, Subaru
+
+TITLE: ORIGINAL LISHI - TOY2T 80K Lexus and Toyota  / 2-In-1 Pick & Decoder / 8-Cut / 2-Track / AG / V4
+KEYWAY: TOY2T
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Lexus, Toyota
+
+TITLE: ORIGINAL LISHI - HU162 - 9 Cut With Side Cuts - Audi / Volkswagen - 2-In-1 Pick - V2 Golf MK8 - Ignition Only
+KEYWAY: HU162 9-Cut
+FOR: the new Volkswagen and Skoda 2016 high-security ignition locks. SPECIFICATIONS
+MAKES(tags): Audi, Volkswagen
+
+TITLE: ORIGINAL LISHI - HY20 Hyundai Kia V3 / 2-in-1 Pick & Decoder
+KEYWAY: HY20
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): 
+
+TITLE: ORIGINAL LISHI - HU162 - 9-Cut With Side Cuts - Audi / Volkswagen - 2-In-1 Pick - V2 Golf MK8 - Ignition Only - Anti-Glare
+KEYWAY: HU162 9-Cut
+FOR: the new Volkswagen and Skoda 2016 high-security ignition locks. SPECIFICATIONS
+MAKES(tags): Audi, Volkswagen
+
+TITLE: ORIGINAL LISHI - VA2T V2 Citroen / Renault / Peugeot Laser Key / 10-Cut / 2-in-1 Pick & Decoder / AG
+KEYWAY: VA2T
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Citroen, Peugeot, Renault
+
+TITLE: ORIGINAL LISHI - MAZR Mazda 2020+ / 2-In-1 Pick & Decoder / 10-Cut / Door / Boot
+KEYWAY: MAZ24R
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. Some Mazda vehicles manufactured from 2020 on, utilize a covered door lock. In fact, not only is the lock covered but the door handle will obscure the lock so that it can not be picked and decoded by the existing MAZ24R. This is because the door handle interferes with the tool’s rotation when picking. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Mazda
+
+TITLE: ORIGINAL LISHI - HU101 CutOut V3 Ford / 10-Cut / 2-in-1 Pick & Decoder / AG
+KEYWAY: HU101
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Ford, HolidayDeals_Lishi
+
+TITLE: ORIGINAL LISHI - H75 FO38 Ford / 8-Cut / 2-in-1 Pick & Decoder / AG
+KEYWAY: H75 / FO38
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Ford, Lincoln, Mazda, Mercury
+
+TITLE: ORIGINAL LISHI - B111 Z-Keyway GM / (Warded) 2-in-1 Pick & Decoder / AG
+KEYWAY: B111 Z-Keyway
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. Specifications
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Buick, Cadillac, Chevrolet, GMC, Pontiac, Saab, Sale_Highlights, Saturn, Suzuki
+
+TITLE: ORIGINAL LISHI - HU100 GM / 10 Cut / 2-In-1 Pick / AG
+KEYWAY: HU100 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Chevrolet, GMC
+
+TITLE: ORIGINAL LISHI - GM39 B102 GM / 10-Cut / 2-in-1 Pick & Decoder / AG
+KEYWAY: GM39 / B102
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Buick, Cadillac, Chevrolet, GMC, Oldsmobile, Pontiac, Saturn
+
+TITLE: ORIGINAL LISHI - HO01 HON66 Honda / 2-In-1 Pick & Decoder / AG
+KEYWAY: HO01 / HON66
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Acura, BF-PriceProtection, BF_PriceProtection, Honda
+
+TITLE: ORIGINAL LISHI - NSN14 Nissan Infiniti / 10-Cut / 2-in-1 Pick & Decoder / DR & BT / AG
+KEYWAY: NSN14 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Chevrolet, Ford, Infiniti, Nissan, Subaru, Suzuki
+
+TITLE: ORIGINAL LISHI - GM37 B106 GM / Non-Warded 2-In-1 Pick & Decoder / AG
+KEYWAY: GM37 / B106 / Z Keyway (Non-Warded)
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Buick, Cadillac, Chevrolet, GMC, Pontiac, Saab, Saturn, Suzuki
+
+TITLE: ORIGINAL LISHI - NSN14 Nissan Infiniti / 10-Cut / 2-in-1 Pick & Decoder / IGN / AG
+KEYWAY: NSN14 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Chevrolet, Ford, Infiniti, Nissan, Subaru, Suzuki
+
+TITLE: ORIGINAL LISHI - TOY43AT Toyota / 8-Cut / 2-in-1 Pick & Decoder / DR & BT / AG
+KEYWAY: TOY43AT / 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Pontiac, Scion, Subaru, Suzuki, Toyota
+
+TITLE: ORIGINAL LISHI - HU66 VW Audi Porsche / 2-in-1 Pick & Decoder / Twin Lifter / AG
+KEYWAY: HU66 8-Cut HS
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Audi, BF-PriceProtection, BF_PriceProtection, Ford, Porsche, Volkswagen
+
+TITLE: ORIGINAL LISHI - TOY43R Subaru GMC Chevy / 2-in-1 Pick & Decoder / DR & BT / AG
+KEYWAY: TOY43R / 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Chevrolet, GMC, Subaru
+
+TITLE: ORIGINAL LISHI - TOY43 Toyota / 8-Cut / 2-in-1 Pick & Decoder / DR & BT / AG
+KEYWAY: TOY43 / 8-Cut / Split Wafer
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Chevrolet, Toyota
+
+TITLE: ORIGINAL LISHI - HU92 BMW / 2-in-1 Pick & Decoder / Twin Lifter / AG
+KEYWAY: HU92 / 8-Cut / 2-Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, BMW, Land Rover
+
+TITLE: ORIGINAL LISHI - HU198 Ford 2017 / New Keyway 2-in-1 Pick & Decoder / AG
+KEYWAY: is similar to HU101 but with the internal track (groove). SPECIFICATIONS
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. You must pick lock first before decoding, but the lock is not difficult. The
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Ford
+
+TITLE: ORIGINAL LISHI - H60 FO26 Ford 1990 / 10 Cut / 2-in-1 Pick & Decoder / AG
+KEYWAY: H60 / FO26 / 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Ford, Mercury
+
+TITLE: ORIGINAL LISHI - HU100R HU127 BMW V.3 / 2-in-1 Pick & Decoder / AG
+KEYWAY: HU100R / HU127 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, BMW
+
+TITLE: ORIGINAL LISHI - MIT6 MIT9 Mitsubishi / 2-in-1 Pick & Decoder / Twin Lifter / AG
+KEYWAY: MIT6 MIT9 / 8-Cut / 4-Depth
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Chrysler, Mitsubishi
+
+TITLE: ORIGINAL LISHI - TOY43AT Toyota / 10-Cut / 2-in-1 Pick & Decoder / IGN / AG
+KEYWAY: TOY43AT / 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Pontiac, Scion, Subaru, Suzuki, Toyota
+
+TITLE: ORIGINAL LISHI - TOY48 Toyota Lexus / 2-in-1 Pick & Decoder / Quad Lifter / AG
+KEYWAY: TOY48 / 5-Cut / 4-Track / 40K
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. These locks DO need to be picked first before decoding. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Lexus, Scion, Subaru, Toyota
+
+TITLE: ORIGINAL LISHI - NSN14 Nissan Ford Subaru / 2-in-1 Pick & Decoder / DR & BT
+KEYWAY: NSN14
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. These locks DO NOT need to be picked first before decoding. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Chevrolet, Ford, Infiniti, Nissan, Subaru, Suzuki
+
+TITLE: ORIGINAL LISHI - DAT17 Subaru / 2-in-1 Pick & Decoder / HS
+KEYWAY: DAT17 / 4-Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Subaru
+
+TITLE: ORIGINAL LISHI - CY24 Y157 Y159 Chrysler TRUCK / 8-Cut / 2-in-1 Pick & Decoder / AG
+KEYWAY: and depth please use this tool. OLS-CY24-CV-AG For Commercial Vehicles Only! This new tool OLS-CY24-TRUCK-AG is designed to work on Commercial Vehicles only and can NOT be used on regular cars. SPECIFICATIONS
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. for use of all other vehicles under this
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Chrysler
+
+TITLE: ORIGINAL LISHI - HY22 Hyundai Kia / 2-in-1 Pick & Decoder / Quad Lifter / AG
+KEYWAY: HY22 / 6-Cut / 2-Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Hyundai, KIA
+
+TITLE: ORIGINAL LISHI - HU58 BMW / 2-in-1 Pick & Decoder / Twin Lifter / AG
+KEYWAY: HU58 12-Cut 4-Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BMW
+
+TITLE: ORIGINAL LISHI - HU92 BMW / 2-in-1 Pick & Decoder / Single Lifter / AG
+KEYWAY: HU92 / 8-Cut / 2-Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, BMW
+
+TITLE: ORIGINAL LISHI - MIT11 Mitsubishi / 2-In-1 Pick & Decoder / IGN / AG
+KEYWAY: MIT11
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Mitsubishi
+
+TITLE: ORIGINAL LISHI - NSN11 Nissan / 2-in-1 Pick & Decoder
+KEYWAY: NSN11 / 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Ford, Infiniti, Nissan, Subaru
+
+TITLE: ORIGINAL LISHI - YM15 Mercedes Sprinter / 10-Cut / 2-in-1 Pick & Decoder
+KEYWAY: YM15 / 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Dodge
+
+TITLE: ORIGINAL LISHI - HD75 Honda / 2-in-1 Pick & Decoder / AG
+KEYWAY: HD75
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Honda
+
+TITLE: ORIGINAL LISHI - B113 ISU5 Isuzu Trucks / 10 Cut / 2-in-1 Pick & Decoder
+KEYWAY: B113 / ISU5 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): GMC
+
+TITLE: ORIGINAL LISHI - KY14 KIA / 8-Cut / 2-in-1 Pick & Decoder
+KEYWAY: KY14 / 8-Cut / 5-Depth
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): KIA
+
+TITLE: ORIGINAL LISHI - HU92 BMW / 2-in-1 Pick & Decoder / Twin Lifter
+KEYWAY: HU92 / 8-Cut / 2-Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BMW, Land Rover
+
+TITLE: ORIGINAL LISHI - NE38 Land Rover MG / 2-in-1 Pick & Decoder
+KEYWAY: NE38 / 10-Cut / Double Sided
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Ford, Land Rover
+
+TITLE: ORIGINAL LISHI - HU162T / VAG2015 - 2015-2021 Audi / VW - 8 Cut - 2-in-1 Pick & Decoder - Door & Trunk / Ignition - AG
+KEYWAY: HU162T / VAG2015 8-Cut w/ Inverted Wafers
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Audi, Volkswagen
+
+TITLE: ORIGINAL LISHI - MB39/YM23 Mercedes Smart ForTwo / 8-Cut / 2-in-1 Pick & Decoder / AG
+KEYWAY: YM23 / 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): SMART
+
+TITLE: ORIGINAL LISHI - DAT12R X154 B54 Isuzu / Hino Heavy Truck / 2-In-1 Pick & Decoder / AG
+KEYWAY: DAT12R / X154 / B54
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Chevrolet, GMC
+
+TITLE: ORIGINAL LISHI - HI1 / X274 Hino Trucks / 2-In-1 Pick & Decoder
+KEYWAY: HI1 / X274
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): 
+
+TITLE: ORIGINAL LISHI - HU56 Volvo / 2-in-1 Pick & Decoder / HS
+KEYWAY: HU56 8-Cut 2-Track
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. These locks DO need to be picked first before decoding. SPECIFICATIONS
+MAKES(tags): Volvo
+
+TITLE: ORIGINAL LISHI - KIA2018 KIA Stinger / 2-In-1 Pick & Decoder / AG
+KEYWAY: KIA2018
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): KIA
+
+TITLE: ORIGINAL LISHI - K9 Kia Hyundai / 2-In-1 Pick & Decoder
+KEYWAY: K9
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Hyundai, KIA
+
+TITLE: ORIGINAL LISHI - GT15 Alfa Romeo Fiat / 8-Cut / 2-in-1 Pick & Decoder
+KEYWAY: GT15
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Alfa Romeo, Fiat
+
+TITLE: ORIGINAL LISHI - HONDA2021 - Honda 2021 Models / 5-Cuts / 2-in-1 Reader & Decoder
+KEYWAY: HONDA2021
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Honda
+
+TITLE: ORIGINAL LISHI - HY17 HYN15 Hyundai / 2-in-1 Pick & Decoder
+KEYWAY: HY17 / HYN15 8-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Hyundai, KIA
+
+TITLE: ORIGINAL LISHI - HYN11 (HYN6) / 8-Cut / 2-in-1 Pick & Decoder / IGN / DR / TRUNK
+KEYWAY: HYN11 (HYN6)
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): 
+
+TITLE: ORIGINAL LISHI - DAT17 Subaru / 2-in-1 Pick & Decoder / Ignition / Door / Boot / HS
+KEYWAY: DAT17 / 4-Track / SUB2
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): High Security, Subaru
+
+TITLE: ORIGINAL LISHI -  GM25R Kenworth Briggs Stratton / 2-in-1 Pick & Decoder / Twin Lifter - AG
+KEYWAY: GM25R/ B87/ K1994
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): 
+
+TITLE: ORIGINAL LISHI - HYN14R HY15 Hyundai V.3 / 2-In-1 Pick & Decoder / AG
+KEYWAY: HYN14R / HY15
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Hyundai, KIA
+
+TITLE: ORIGINAL LISHi - VA6 Peugeot Smart Fortwo / 2-In-1 Pick & Decoder / Quad Lifters / AG / V.3
+KEYWAY: VA6 / Laser / 4Lifter
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): SMART
+
+TITLE: ORIGINAL LISHI - MAZDA2024-SM Mazda 2024+ CX-30 / 2-In-1 Pick & Decoder / 10-Cut / Door / Boot / AG
+KEYWAY: MAZDA2024-SM-AG
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Mazda
+
+TITLE: ORIGINAL LISHI - MAZDA2024-SM Mazda 2024+ CX-30 / 2-In-1 Pick & Decoder / 10-Cut / Door / Boot
+KEYWAY: MAZDA2024-SM
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Mazda
+
+TITLE: ORIGINAL LISHI - HU162T - 10-Cut With Side Cuts - Audi / Volkswagen - 2-In-1 Pick & Decoder - Door & Trunk
+KEYWAY: HU162T 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Audi, Automotive, Volkswagen
+
+TITLE: Original Lishi - GT10 - 2-in-1 - Decoder And Pick - For FIAT And IVECO
+KEYWAY: 
+FOR: FIAT and IVECO [Flat 7 cut] List of makes and models: Citroen Jumper 1996-2001 Relay 1996-2001 Cinquecento 1995-1997 Croma 1995-1997 Ducato 1996-2001 Fiorino 1995-2002 Panda 1995-2002 Seicento 1995-1997 Fiat Cinquecento 1995-1997 Croma 1995-1997 Ducato 1996-2001 Fiorino 1995-2002 Panda 1995-2002 Seicento 1995-1997 Iveco 35C11 2000-2008 Daily 1998 onwards Eurostar 1998-2002 S2000 1998 onwards Peugeot Boxer 1996-2001
+MAKES(tags): Buick, Cadillac, Chevrolet, GMC, Pontiac, Saab, Saturn, Suzuki
+
+TITLE: ORIGINAL LISHI - HU46 - Keyway GM / 2-in-1 Pick & Decoder / Flat 10 cut
+KEYWAY: HU46T2-Keyway Number of cuts: Standard 10-cut - Double-Sided For Ignition, Door & Trunk
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. Specifications
+MAKES(tags): Cadillac, Chevrolet, Daewoo, HolidayDeals_Lishi, Opel, Vauxhall
+
+TITLE: ORIGINAL LISHI - ICF03 -Keyway Ford Escape/Mazda / 11-Cut - 2-in-1 Pick & Decoder
+KEYWAY: ICF03 - is a variant of MAZ24R and has 11 cuts, the same profile but a bit longer than MAZ24R
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. Specifications
+MAKES(tags): Ford, Mazda
+
+TITLE: ORIGINAL LISHI - HU49-Keyway VW Audi Porsche / Ignition Door Trunk /2-in-1 Pick & Decoder
+KEYWAY: HU49-Keyway
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. Specifications
+MAKES(tags): Audi, HolidayDeals_Lishi, Porsche, Volkswagen
+
+TITLE: ORIGINAL LISHI - MAZ Mazda 2014+ / 2-In-1 Pick & Decoder / 10-Cut / Door / Trunk
+KEYWAY: MZ17
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Automotive
+
+TITLE: ORIGINAL LISHI - YM30 Saab S32YS - Door/Trunk / 2-In-1 Pick & Decoder
+KEYWAY: YM30
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): HolidayDeals_Lishi
+
+TITLE: ORIGINAL LISHI - YM28 For Daewoo Opel And Vauxhall / 10-Cut / 2-in-1 Pick & Decoder
+KEYWAY: YM28 / 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): SMART
+
+TITLE: Original Lishi - HY20R-V3 Hyundai / 2-in-1 Pick & Decoder - Trunk and Ignition
+KEYWAY: 
+FOR: Hyundai vehicles.
+MAKES(tags): Hyundai, KIA, new-2023
+
+TITLE: Original Lishi - HU23/MB18 - Ignition and Door 2 in 1 Pick - Mercedes Benz Classic Vehicles
+KEYWAY: 
+FOR: classic Mercedes Benz vehicles.
+MAKES(tags): new-2023
+
+TITLE: ORIGINAL LISHI - Chrysler CY24 Y157 Y159 / V2 / 8-Cut / 2-in-1 Pick & Decoder / Anti Glare
+KEYWAY: s. This tool enables efficient picking and decoding of door and trunk locks, making it an essential instrument for locksmiths and automotive professionals. SPECIFICATIONS
+FOR: Chrysler, Dodge, Jeep, and select Mitsubishi vehicles utilizing the CY24, Y157, or Y159
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, Chrysler, new-2023
+
+TITLE: ORIGINAL LISHI - IONIG5 - Hyundai New Keyway for Ioniq 5 and Tuscon / 2-in-1 Pick & Decoder / Anti Glare
+KEYWAY: KK12 Anti-Glare: Yes Usage: Suitable for door, trunk, and ignition locks Please Note: this tool comes with a verification label attached on the back of each tool. That will guarantee that you are getting tools that offer only the highest level of quality. Verifying your tools is the only way to insure that you are getting TRUE Original Lishi Tools quality and design.
+FOR: Hyundai Ioniq 5 and Tucson vehicles.
+MAKES(tags): Hyundai, new-2023
+
+TITLE: ORIGINAL LISHI - Honda HON58R-AG Ignition / 2-in-1 Pick & Decoder / Anti Glare
+KEYWAY: HON58R / HD103 / HD106 / HOND-16D / HD98 / X214 / HO98 / HON55R
+FOR: locksmiths and automotive professionals to efficiently pick and decode ignition, door, and trunk locks of various Honda, Acura, Isuzu, and other vehicles. The "AG" designation indicates an anti-glare coating on the stainless steel surface, enhancing visibility and reducing reflections during use. SPECIFICATIONS
+MAKES(tags): Acura, Honda, Isuzu, new-2023
+
+TITLE: ORIGINAL LISHI - HU64-8910 V4 Mercedes Benz / 10-Cut / 2-in-1 Pick & Decoder / AG / Exterior
+KEYWAY: HU64
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. This Lishi is designed to access locks w/out causing damage to the vehicle's exterior. SPECIFICATIONS
+MAKES(tags): Mercedes, new-2023
+
+TITLE: ORIGINAL LISHI - K5 Kia / 2-In-1 Pick & Decoder / HS / AG
+KEYWAY: K5 / 8-Cut / HS
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): BF-PriceProtection, BF_PriceProtection, KIA, new-2023
+
+TITLE: ORIGINAL LISHI - HU162T - 2015-2021 Audi / VW - 10 Cut - 2-in-1 Pick & Decoder - Door & Trunk
+KEYWAY: HU162T 10-Cut
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Audi, Volkswagen
+
+TITLE: ORIGINAL LISHI - TOY2018 Toyota / 2-in-1 Pick & Decoder / DR & BT / AG Version 2
+KEYWAY: TOY2018
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): image_coming_soon, new-2023, new-2026, Toyota
+
+TITLE: ORIGINAL LISHI - HU198-4 Ford 150 P Series / 10-Cut / 2-in-1 Pick & Decoder / AG (PRE-ORDER)
+KEYWAY: HU198 "P" Series
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Ford, new-2023, new-2026, Pre-Order
+
+TITLE: ORIGINAL LISHI - MAZ Mazda 2014+ / 2-In-1 Pick & Decoder / 10-Cut / Door / Boot / AG
+KEYWAY: MZ17
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): 
+
+TITLE: ORIGINAL LISHI - CRY1 2-in-1 Lock Pick and Decoder for Carryboy Canopy and Utilities / Anti-Glare
+KEYWAY: CRY1
+FOR: Carryboy canopies, utility vehicle side windows, and related locking systems. It integrates both lock picking and code decoding functions in one compact instrument, allowing a skilled user to single-handedly manipulate the lock and extract the key cuts. Its anti-glare finish reduces surface reflections, improving visibility under strong light and aiding in accurate depth reading when decoding. The design is optimized for reliability, durability, and repeat usage in professional locksmith environments. SPECIFICATIONS
+MAKES(tags): new-2023
+
+TITLE: ORIGINAL LISHI - HYN14R HY15 Hyundai / 2-in-1 Pick & Decoder
+KEYWAY: HYN14R / HY15
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): Hyundai, KIA
+
+TITLE: ORIGINAL LISHI - VNL-2024 Volvo / 7-Cut / Ignition/Door / 2-in-1 Pick & Decoder / AG (PRE-ORDER)
+KEYWAY: 
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): new-2023, new-2026, Pre-Order, Volvo
+
+TITLE: ORIGINAL LISHI - ASTON MARTIN-VANTAGE / 8-Cut / Door Lock Only / 2-in-1 Pick & Decoder / AG (PRE-ORDER)
+KEYWAY: 
+FOR: a professional locksmith to use because the job can be easily completed within 3 minutes. SPECIFICATIONS
+MAKES(tags): new-2023, new-2026, Pre-Order
+

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Turbo Scheduler</title>
-<meta name="theme-color" content="#1C1C1E">
+<title>Scheduler</title>
+<meta name="theme-color" content="#f6f7f9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Scheduler">
@@ -18,8 +18,10 @@
 /* Set theme before the page paints so a dark-mode user never sees a white flash. */
 (function(){
   try{
-    var s = localStorage.getItem('tks_sched_theme');
-    var theme = s ? JSON.parse(s)
+    var g = localStorage.getItem('bt_theme');           // global Light/Dark toggle (shared w/ dashboard)
+    var s = localStorage.getItem('tks_sched_theme');     // this app's own remembered choice
+    var theme = g ? g
+      : s ? JSON.parse(s)
       : ((window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', theme);
   }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
@@ -39,12 +41,12 @@
   --gold:#E8A317;          /* brand accent (key gold) */
   --gold-soft:#FFF6E2;     /* tint for selected choices */
   --gold-line:#F0C462;
-  --ink:#1C1C1E;           /* main text */
-  --ink-soft:#5A5A60;      /* secondary text */
-  --bg:#F4F3F0;            /* page background */
+  --ink:#14171b;           /* main text */
+  --ink-soft:#5a616c;      /* secondary text */
+  --bg:#f6f7f9;            /* page background */
   --card:#FFFFFF;
   --input-bg:#FFFFFF;
-  --line:#E3E1DC;
+  --line:#e3e6ea;
   --green:#1F8A4C;
   --green-soft:#E7F4EC;
   --red:#C0392B;
@@ -59,7 +61,7 @@
   --header-h:64px;
   --maxw:540px;
   --radius:16px;
-  --shadow:0 1px 3px rgba(0,0,0,.06),0 6px 20px rgba(0,0,0,.05);
+  --shadow:0 1px 2px rgba(20,23,27,.04),0 8px 24px rgba(20,23,27,.06);
 }
 /* ---- DARK THEME ---- */
 :root[data-theme="dark"]{
@@ -312,7 +314,7 @@ textarea{min-height:70px;resize:vertical;}
 <body>
 
 <header>
-  <div class="brand"><span class="dot"></span>Turbo Scheduler</div>
+  <div class="brand"><span class="dot"></span>Scheduler</div>
   <div class="hdr-right">
     <div class="lang-toggle" id="langToggle">
       <button data-lang="en" class="active">EN</button>
@@ -391,7 +393,7 @@ const UI = {
     check_sched_sub:"Opens Google Calendar in a new tab",
     bk_export:"Back up", bk_import:"Restore", bk_caption:"Save a copy of your contacts so you never lose them. Keep the file in Google Drive.",
     bk_restored:"Restored:", bk_contacts:"new contacts", bk_bookings:"new bookings",
-    bk_badfile:"That file couldn't be read. Make sure it's a Turbo Scheduler backup.",
+    bk_badfile:"That file couldn't be read. Make sure it's a Scheduler backup.",
     upsell_q:"Did you offer the add-on?", yes:"Yes, I offered", no:"Not this time",
     upsell_acc:"Did they say yes to it?", acc_yes:"They said yes", acc_no:"They passed",
     confirm:"Confirm the booking", add_cal:"Add to calendar",
@@ -449,7 +451,7 @@ const UI = {
     check_sched_sub:"Abre Google Calendar en otra pestaña",
     bk_export:"Respaldar", bk_import:"Restaurar", bk_caption:"Guarda una copia de tus contactos para no perderlos nunca. Guarda el archivo en Google Drive.",
     bk_restored:"Restaurado:", bk_contacts:"contactos nuevos", bk_bookings:"citas nuevas",
-    bk_badfile:"No se pudo leer el archivo. Asegúrate de que sea un respaldo de Turbo Scheduler.",
+    bk_badfile:"No se pudo leer el archivo. Asegúrate de que sea un respaldo de Scheduler.",
     upsell_q:"¿Ofreciste el extra?", yes:"Sí, lo ofrecí", no:"Esta vez no",
     upsell_acc:"¿Lo aceptó?", acc_yes:"Dijo que sí", acc_no:"No esta vez",
     confirm:"Confirma la cita", add_cal:"Agregar al calendario",
@@ -806,7 +808,7 @@ function renderHome(){
   app.innerHTML = `
     <a href="index.html" style="display:inline-block;margin-bottom:12px;color:var(--ink-soft);font-weight:700;font-size:14px;text-decoration:none">‹ ${LANG==='es'?'Aplicaciones':'All apps'}</a>
     <div class="hero">
-      <h1>Turbo Scheduler</h1>
+      <h1>Scheduler</h1>
       <p>${t('home_sub')}</p>
     </div>
     <button class="tile" onclick="startFlow()">
@@ -1700,5 +1702,6 @@ if(window.TKS && TKS.onChange) TKS.onChange(function(){ render(); });
 
 render();
 </script>
+<script src="app/ui/appnav.js"></script>
 </body>
 </html>

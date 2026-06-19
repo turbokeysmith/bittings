@@ -1,6 +1,6 @@
 # Lishi tool list — cross-reference review (for owner approval)
 
-**Created:** 2026-06-16 (Claude Code) · **Scope:** AUTOMOTIVE Lishi tools only.
+**Created:** 2026-06-15 (Claude Code) · **Scope:** AUTOMOTIVE Lishi tools only.
 
 I scrubbed seven sources and compared every automotive tool against what was already in
 `lishi.html`. This file lists:
@@ -61,7 +61,7 @@ The app maps some alternate keyway codes to a tool. Two look mis-mapped:
   rename to `B106/GM37`, set its blank to **B106**, and keep B102 only on GM39.
 
 ### 1E. Sources DISAGREE with each other (need your call)
-- [x] **HU83** — RESOLVED 2026-06-16 from Classic Lishi's own product page
+- [x] **HU83** — RESOLVED 2026-06-15 from Classic Lishi's own product page
   (classiclishi.com/product/classic-lishi-hu83): both were partly right. Authoritative list =
   **Peugeot / Citroën / Fiat / Mini Cooper (2004-2010) / MAN** (2-track 8-cut). Applied live.
 
@@ -69,7 +69,7 @@ The app maps some alternate keyway codes to a tool. Two look mis-mapped:
 
 ## Part 2 — ADDITIONS already made (31 tools)
 Missing from the app but sold by multiple trusted suppliers. Added to the tool table this round
-(source tag: "Cross-ref 2026-06-16…"). Veto any you don't want.
+(source tag: "Cross-ref 2026-06-15…"). Veto any you don't want.
 
 Late-model US passenger:
 HONDA2020, HONDA2021, HON77, HY20R, HY30, K9, K9 V.4 (Ioniq6), KIA3R, KY14, IONIQ5, CY24R (Jeep GC

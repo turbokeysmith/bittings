@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Bittings">
+  <defs>
+    <mask id="bittings-keyhole-mono">
+      <rect width="120" height="120" fill="#fff"></rect>
+      <circle cx="60" cy="42" r="17" fill="#000"></circle>
+      <polygon points="52,50 66,50 66,62 73,62 73,74 63,74 63,86 70,86 70,97 52,97" fill="#000"></polygon>
+    </mask>
+  </defs>
+  <rect x="6" y="6" width="108" height="108" rx="30" fill="currentColor" mask="url(#bittings-keyhole-mono)"></rect>
+</svg>

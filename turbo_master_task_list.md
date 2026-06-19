@@ -3,7 +3,33 @@
 Keep this updated after each work session. Status key: ✅ done · 🔨 in progress ·
 ⏸️ parked (waiting on a decision/credential) · ⬜ not started.*
 
-Last updated: 2026-06-14 23:55 CDT (Claude Code) — NEW staff tool: Lishi & Programming Reference (lishi.html, VIN-fed, pre-populated, corrections loop); public-site UI polish + Cloudflare preview; Certifications hub; /es/ mirror
+Last updated: 2026-06-16 00:11 CDT (Claude Code) — Start-a-job Automotive result card now shows real keyway/tool/transponder/ignition/programmer + "in your van" on one screen; NEW Materials & Services step (smart add-ons: rekey→lock, car lockout→lost key) before the invoice; Inventory van vs shop with move buttons gated by a Setup "Where do you work?" toggle (mobile/physical). Earlier: Home is now "Start a job" (tile hub removed → everything in the left sidebar / phone "More" drawer); Start-a-job Automotive VIN⇄Year/Make/Model; receipt send split into ⬇ Download + 📤 Send; added Xhorse Key Tool Max Pro to Programmers. Earlier: STARTED Bittings design system (app/ui/bittings-ui.css+js, logo SVGs, demo.html, light/dark theme toggle, sidebar/bottom-nav shell, NEW "Start a job" front door) — applied to index.html (Home) so far; other pages pending. Prior same day: Manager Dashboard (index.html view-dashboard, manager-only, real TKS/TKPay data, light "Studio" look) + WHOLE STAFF APP reskinned dark→light "Studio" (all 7 pages; public site untouched). Prior same day: Key Programmer Coverage (programmers.html, VIN/make→year → per-tool add-key/AKL/remote matrix for the 7 owned machines, platform-based, corrections loop); fixed a 06-16→06-15 date mislabel across the Lishi docs/data. Prior: Lishi & Programming Reference; public-site UI polish + Cloudflare preview; Certifications hub; /es/ mirror
+
+> **Manager Dashboard + light reskin (2026-06-15):** ✅ **Manager Dashboard** — new **📈 Dashboard** tile +
+> `view-dashboard` in `index.html`, **manager-only** (`ownerHard`/`.owner-only`), **read-only**. KPI cards
+> **Revenue · Jobs · Repeat customers · Avg ticket** (current month) + **Jobs this week** bars + **Jobs by type**.
+> Revenue/Jobs/Avg = `TKPay.dayTransactions` (base−tax, completed) — **reconciles with Transaction History**;
+> repeat% + charts = `TKS.Bookings`/`ServiceCats`. **Honest deltas only when prior-month data exists** (empty
+> install → $0/—/zeros, no fabrication; 15-assertion node harness passed). CSV export. ⬜ Mobile sign-off pending.
+> ✅ **Whole staff app reskinned dark→light "Studio"** to match — all 7 pages (index, bittings, scheduler, lishi,
+> programmers, setup, cloud-test) via token repoint + targeted dark-color fixes + per-page accent-contrast
+> override block. **Public `site/` untouched; the printed receipt preview kept as paper.** ⬜ Real-device contrast
+> pass pending (Receipts = most hand-tuned).
+
+> **Key Programmer Coverage (2026-06-15):** ✅ New **staff-app** page `programmers.html` + 🖥️ Programmers Home tile.
+> Answers "which of MY key machines can do this car, and how?" VIN or make+year → a **per-tool matrix** (Add key /
+> AKL / Remote · OBD or bench · needs PIN/license/tokens/module) across the tools you check as owned (your 7 by
+> default: **Autel IM608 Pro 2, IM508, KM100; Xhorse VVDI Key Tool Max; SmartPro (Adv. Diagnostics); AutoProPad
+> G2 (XTool); Lonsdor K518** — plus a selectable variant catalog: AutoProPad G2/Turbo/G3, Lonsdor K518/Pro/ISE,
+> IM508/IM508S, Key Tool Max/Plus, via `owned`+`covkey`). **🧰 My tools = a checklist; only owned tools show in
+> the Lookup.** Coverage is organized by **immobilizer platform** (~54 seed rows across the major US makes incl.
+> older PK3/PATS/Sentry eras + Volvo/JLR/MINI/Genesis/Fiat/Suzuki), every row flagged
+> **"verify on tool"** (vendor lists drift with firmware/region; none expose a clean export). Stores
+> `tks_prog_devices` / `tks_prog_coverage` / `tks_prog_corrections`. Full add/edit/delete, CSV import/export,
+> **📝 Corrections loop** so real jobs become the shop's own proven coverage. Research-backed sourcing per device
+> (Autel OTOFIX, Xhorse app/blog, AD Info Quest/ADS#, XTool supportedvehicles, Lonsdor center). ⬜ Mobile sign-off
+> pending. NOT on the public site. *Date note: corrected an earlier 06-16 mislabel back to the real 06-15 across
+> the Lishi handoff/notes/review and `lishi.html` provenance tags.*
 
 > **Lishi & Programming Reference (2026-06-14):** ✅ New **staff-app** page `lishi.html` + 🔑 Home tile.
 > Two local stores `tks_lishi_tools` (89 — Original Lishi's actual published list, fetched from their site) + `tks_vehicle_keyways` (230, 25 makes), seeded from public
@@ -227,6 +253,47 @@ Netlify tile is fully superseded. Full design + ops in `supabase/PAYMENTS.md`. E
   in → PIN fallback (`TKS_OWNER.QUICK_FORM_PIN`). One swap point.
 - ✅ **Quick invoice** in Receipts — owner-only one-screen shortcut (skip the chat), with an on/off
   switch + "open automatically when I'm signed in" (`TKS_OWNER.QUICK_INVOICE_*`).
+- ✅ **NASTF D1 in the Quick invoice (2026-06-16) — ⏳ pending mobile sign-off.** Optional NASTF picker
+  (None / Customer / Auction-Fleet / Contracting), shows only for Automotive; renders the type's audit
+  fields, enforces required ones, and prints the same NASTF blocks as the chat flow.
+- ✅ **Fixed: Start-a-job now shows the Lishi tool without opening the Lishi page first (2026-06-16).**
+  Shared `app/lishi-seed.js` seeds `tks_lishi_tools`/`tks_vehicle_keyways` on the home screen too.
+- ✅ **Fixed: washed-out buttons in the manual invoice flow (2026-06-16)** — Decode VIN / From Inventory /
+  Setup-service / Custom item / Use-$last now use white text on their dark chips. ⏳ device contrast check.
+- ✅ **Quick-invoice line items now have a service pick-list (2026-06-16) — ⏳ pending mobile sign-off.** Type or
+  pick from your Setup services + common jobs for the chosen category; picking auto-fills price + taxable.
+- ✅ **Customer invoice history + Net-30 balance owed (2026-06-16) — ⏳ pending mobile sign-off.** Each customer
+  shows their invoices/receipts (PAID/UNPAID/ESTIMATE) and a "Balance owed" total; the Customers list shows a red
+  "OWES $X" badge for anyone with unpaid invoices.
+- ✅ **Fixed: "Add another item" on Materials & Services now category-aware (2026-06-16)** — no more Transponder/
+  Remote/Smart-key under a Residential job.
+- ✅ **Warranty tracking (2026-06-16) — ⏳ pending mobile sign-off.** Setup → Payments sets a standard warranty
+  (default 6 months) + default-on toggle; receipts/invoices carry it (Quick invoice has a checkbox), estimates
+  don't; a 🛡 pill shows days-left (green → amber ≤30d → red expired) on the receipt card + Receipts history.
+- ✅ **Open a past invoice to see what was sold (2026-06-16) — ⏳ pending mobile sign-off.** Customer invoice list
+  rows are tappable → read-only line-item view (what was sold + totals + warranty pill).
+- ✅ **Mark invoice paid from the customer (2026-06-16) — ⏳ pending mobile sign-off.** "✓ Mark as paid" in the
+  invoice view converts it to a paid receipt, clears the balance owed, and consumes stock — same as Receipts.
+- ✅ **Owed (A/R) + Tax collected on the Dashboard (2026-06-16).** Tax removed from Reports (was stuck always-on)
+  and moved to the dashboard alongside a new Owed (A/R) KPI.
+- ✅ **Total paid per customer by period (2026-06-16).** All-time + last 30d/90d/6mo/1yr on the customer record.
+- ✅ **Warranty + Terms on the receipt (2026-06-16) — ⏳ pending mobile sign-off.** "N months limited warranty"
+  prints on the receipt/PDF; Terms & Conditions link is now a Setup field (blank = no T&C clause; multi-tenant).
+- ✅ **Key code series + HPC card per vehicle (2026-06-17) — 196/230 vehicles, 182 with HPC card.** Start-a-Job
+  card shows code series + HPC 1200 card + note + source; editable per-vehicle in Lishi. Built from owner's
+  `Bittings_Key_Blank_Reference.xlsx` (2025 Ilco ref); fixed comma-chopping in its code column; aggregated all
+  variant codes (regular/prox) per vehicle. Tagged Ilco 2025 / Keyline 2015. No guesses.
+  ⚠️ FOR OWNER: xlsx dropped some common models (Camry/Highlander/Prius/Avalon/Accord/C-HR — partially hand-filled);
+  34 vehicles still blank (Euro/OEM-only/trucks/ambiguous — see handoff); spot-check recommended. Still open:
+  transponder/cloning-tool data for the Programmers page (Keyline 2015 + 2023/2025 refs have it).
+- ✅ **Code series now 222/230** (2026-06-17). Owner gave keyway rules: Subaru (non-prox 32000-39999 / prox 70000 or
+  90000), VW-Audi HU66=0001-8110 & HU162T=blank, BMW=none, Volvo HU56=DH0001-DH4000 / HU101=04001-09001(or 4001-9001),
+  GM B106=G0000-G3631 / HU100 8-cut=Z0001-Z6314 / 10-cut=V0001-V5573, Toyota by blade (TR47/TOY43=50000-69999,
+  TOY48=40000-49999, TOY40 prox=80000-89999), every CY24=M0001-M2618. SIP22 end found = DE1-DE11210. 8 blank left
+  (6 VW/Audi HU162T unknown, BMW none, Mercedes C-Class HU64 pending).
+- ✅ **Programmers: added Ilco/Keyline tools to the catalog (2026-06-17).** programmers.html SEED_DEVS +T-Code Pro(TCP),
+  MVP Pro(MVPP), TKO (older Advanced Diagnostics, share Smart Pro coverage) + Silca RW5 / RW4 Plus / Plus Box / M-Box,
+  Ilco EZ-Clone Plus (cloning machines, covkey 'clone', no per-make grid). SEEDVER 3→4 so existing installs pick them up.
 
 ### B3 — Money tools / reporting ✅ (2026-06-12)
 - ✅ **Closeout** — owner-only Home tile: today's **drawer count** (collected, split card/cash/check,
