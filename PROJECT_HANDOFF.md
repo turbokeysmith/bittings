@@ -392,6 +392,20 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-06-19 PM (🇪🇸 Spanish PUBLISHED + indexed · Contact links · WhatsApp green · www→apex redirect)
+- **Spanish `/es/` is now LIVE and indexable** (owner approved the translation). Removed `noindex` from all
+  **111** `/es/` pages, dropped the 8 red BORRADOR draft banners, unblocked `/es/` in `robots.txt`, and added
+  all 111 Spanish URLs to `sitemap.xml` (**222 URLs total**). The 🌐 EN/ES toggle (which navigates to the
+  matching `/es/` page) now works end-to-end. The `_build/` generator was updated to match (ES `noindex:false`,
+  banners removed, `/es/` mirrored into the sitemap, robots no longer blocks `/es/`) so a regenerate won't revert it.
+  *(Legal note: `/es/terms` and `/es/warranty` banners were removed on the owner's "approved" sign-off — if a
+  bilingual attorney hasn't reviewed the legal wording, that's worth a final check since terms are contract-binding.)*
+- **"Contact Us" added site-wide** — in the header nav (desktop + mobile) and footer of every EN/ES page, plus a
+  **"Contact Us Now" / "Contáctanos ahora"** button in the homepage hero (full-width under the Call/WhatsApp pills).
+- **All WhatsApp buttons/links are now WhatsApp brand green** (`#25D366`) via one site-wide CSS rule.
+- **`www.turbokeysmith.com` now 301-redirects to the apex** (Cloudflare Redirect Rule), keeping one canonical address.
+- **SSL set to Full (strict)** + Always-Use-HTTPS on.
+
 ### 2026-06-19 (🚀 WEBSITE LAUNCHED on turbokeysmith.com + premium skin + Spanish gaps + contact-form email)
 - **The public website is LIVE at `https://turbokeysmith.com`.** Domain DNS was moved from GoDaddy to
   **Cloudflare** (registrar stays GoDaddy). The `site/` folder is served from **Cloudflare Pages** project
