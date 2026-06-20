@@ -26,7 +26,7 @@
     padding:38px 20px calc(40px + env(safe-area-inset-bottom));box-sizing:border-box}
   .links-wrap{width:100%;max-width:440px;margin:0 auto;text-align:center}
   /* EN/ES language toggle */
-  .lang-toggle{display:inline-flex;gap:2px;margin:0 auto 22px;padding:3px;border:1px solid var(--line);
+  .lang-toggle{display:inline-flex;gap:2px;margin:24px auto 0;padding:3px;border:1px solid var(--line);
     border-radius:999px;background:var(--panel)}
   .lang-toggle a{font-family:'Saira',sans-serif;font-weight:700;font-size:13px;letter-spacing:.06em;
     color:var(--mut);text-decoration:none;padding:6px 15px;border-radius:999px;transition:color .12s ease}
@@ -67,10 +67,6 @@
 </head>
 <body class="links">
   <main class="links-wrap">
-    <div class="lang-toggle" aria-label="Language / Idioma">
-      <a class="active" href="/links/" aria-current="page" hreflang="en">EN</a>
-      <a href="/es/links/" hreflang="es">ES</a>
-    </div>
     <h1 class="sr-only">Turbo Keysmith</h1>
     <a href="/" aria-label="Turbo Keysmith home"><img class="links-logo" src="/assets/logo-full.png" alt="Turbo Keysmith" width="260"></a>
     <p class="links-tag">Your trusted mobile locksmith — fast, licensed, and always there when you need us. OKC metro.</p>
@@ -83,6 +79,11 @@
       <a class="lbtn" href="/financing/"><span class="em" aria-hidden="true">💰</span> Payment Plans / Financing</a>
       <a class="lbtn" href="/"><span class="em" aria-hidden="true">🌐</span> Full Website</a>
     </nav>
+
+    <div class="lang-toggle" aria-label="Language / Idioma">
+      <a class="active" href="/links/" aria-current="page" hreflang="en">EN</a>
+      <a href="/es/links/" hreflang="es">ES</a>
+    </div>
 
     <p class="links-trust">Licensed Oklahoma locksmith • OK Lic. #AC441081 • NASTF certified • OKC metro</p>
   </main>

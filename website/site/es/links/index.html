@@ -26,7 +26,7 @@
     padding:38px 20px calc(40px + env(safe-area-inset-bottom));box-sizing:border-box}
   .links-wrap{width:100%;max-width:440px;margin:0 auto;text-align:center}
   /* Cambio de idioma EN/ES */
-  .lang-toggle{display:inline-flex;gap:2px;margin:0 auto 22px;padding:3px;border:1px solid var(--line);
+  .lang-toggle{display:inline-flex;gap:2px;margin:24px auto 0;padding:3px;border:1px solid var(--line);
     border-radius:999px;background:var(--panel)}
   .lang-toggle a{font-family:'Saira',sans-serif;font-weight:700;font-size:13px;letter-spacing:.06em;
     color:var(--mut);text-decoration:none;padding:6px 15px;border-radius:999px;transition:color .12s ease}
@@ -66,10 +66,6 @@
 </head>
 <body class="links">
   <main class="links-wrap">
-    <div class="lang-toggle" aria-label="Language / Idioma">
-      <a href="/links/" hreflang="en">EN</a>
-      <a class="active" href="/es/links/" aria-current="page" hreflang="es">ES</a>
-    </div>
     <h1 class="sr-only">Turbo Keysmith</h1>
     <a href="/es/" aria-label="Turbo Keysmith inicio"><img class="links-logo" src="/assets/logo-full.png" alt="Turbo Keysmith" width="260"></a>
     <p class="links-tag">Tu cerrajero móvil de confianza — rápido, con licencia y siempre ahí cuando lo necesitas. Área metro de OKC.</p>
@@ -82,6 +78,11 @@
       <a class="lbtn" href="/es/financing/"><span class="em" aria-hidden="true">💰</span> Planes de pago / Financiamiento</a>
       <a class="lbtn" href="/es/"><span class="em" aria-hidden="true">🌐</span> Sitio web completo</a>
     </nav>
+
+    <div class="lang-toggle" aria-label="Language / Idioma">
+      <a href="/links/" hreflang="en">EN</a>
+      <a class="active" href="/es/links/" aria-current="page" hreflang="es">ES</a>
+    </div>
 
     <p class="links-trust">Cerrajero con licencia en Oklahoma • Lic. OK #AC441081 • Certificado NASTF • Área metro de OKC</p>
   </main>
