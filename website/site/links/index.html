@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turbo Keysmith — Links</title>
+<meta name="description" content="Quick links for Turbo Keysmith — call, text, pay your invoice, financing, the blog, and more. Licensed Oklahoma locksmith serving the OKC metro.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#000000">
+<meta property="og:title" content="Turbo Keysmith — Links">
+<meta property="og:description" content="Call, text, pay, financing, and more. Licensed Oklahoma locksmith — OKC metro.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://turbokeysmith.com/links/">
+<link rel="icon" href="/assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Saira:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/styles.css?v=2">
+<style>
+  /* Link-in-bio page — scoped layout. Colors/fonts inherit the site's premium dark skin (styles.css tokens). */
+  body.links{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    background:radial-gradient(120% 70% at 50% -10%, #15181E 0%, var(--bg2) 38%, var(--bg) 100%);
+    padding:38px 20px calc(40px + env(safe-area-inset-bottom));box-sizing:border-box}
+  .links-wrap{width:100%;max-width:440px;margin:0 auto;text-align:center}
+  .links-logo{width:96px;height:96px;border-radius:22px;object-fit:contain;background:var(--panel);
+    border:1px solid var(--line);box-shadow:var(--shadow);padding:10px}
+  .links-name{font-family:'Saira',sans-serif;font-weight:800;font-size:26px;letter-spacing:.04em;
+    color:var(--chrome-hi);margin:18px 0 6px;line-height:1.1}
+  .links-tag{font-family:'Inter',sans-serif;font-weight:500;font-size:15.5px;color:var(--mut);
+    margin:0 auto 26px;max-width:340px;line-height:1.45}
+  .links-stack{display:flex;flex-direction:column;gap:13px}
+  /* Big, thumb-friendly tap buttons */
+  .lbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;box-sizing:border-box;
+    min-height:60px;padding:16px 22px;border-radius:13px;border:1px solid var(--line2);
+    font-family:'Saira',sans-serif;font-weight:700;font-size:17px;letter-spacing:.02em;
+    color:var(--ink);background:var(--panel);text-decoration:none;
+    transition:transform .12s ease, filter .12s ease, background .12s ease, border-color .12s ease;
+    -webkit-tap-highlight-color:transparent}
+  .lbtn .em{font-size:20px;line-height:1}
+  .lbtn .lb{display:flex;flex-direction:column;align-items:center;line-height:1.15}
+  .lbtn .sub{font-family:'Inter',sans-serif;font-weight:500;font-size:12px;letter-spacing:.01em;color:var(--mut);margin-top:3px}
+  .lbtn:hover{transform:translateY(-2px);border-color:var(--chrome-lo);background:var(--panel2)}
+  .lbtn:active{transform:translateY(0) scale(.99);filter:brightness(.95)}
+  .lbtn:focus-visible{outline:2px solid var(--red-hi);outline-offset:3px}
+  /* Primary — biggest, brand red */
+  .lbtn.primary{min-height:72px;font-size:20px;font-weight:800;border:0;
+    background:var(--red-grad);color:var(--chrome-hi);text-shadow:0 1px 3px rgba(0,0,0,.55);
+    box-shadow:0 10px 30px rgba(214,42,61,.34)}
+  .lbtn.primary:hover{filter:brightness(1.08);color:#fff;background:var(--red-grad)}
+  .links-trust{font-family:'Inter',sans-serif;font-size:13px;line-height:1.5;color:var(--mut2);
+    margin:24px auto 0;max-width:360px}
+  @media(max-width:380px){
+    .links-name{font-size:23px}
+    .lbtn{font-size:16px}
+    .lbtn.primary{font-size:18.5px}
+  }
+</style>
+</head>
+<body class="links">
+  <main class="links-wrap">
+    <a href="/" aria-label="Turbo Keysmith home"><img class="links-logo" src="/assets/logo.png" alt="Turbo Keysmith logo"></a>
+    <h1 class="links-name">Turbo Keysmith</h1>
+    <p class="links-tag">Your trusted mobile locksmith — fast, licensed, and always there when you need us. OKC metro.</p>
+
+    <nav class="links-stack" aria-label="Quick links">
+      <a class="lbtn primary" href="tel:+14058705397"><span class="em" aria-hidden="true">📞</span> Call Now</a>
+      <a class="lbtn" href="sms:+14058705397"><span class="em" aria-hidden="true">💬</span> Text Us</a>
+      <a class="lbtn" href="/pay-now/"><span class="em" aria-hidden="true">💳</span> Pay Now</a>
+      <a class="lbtn" href="/blog/"><span class="em" aria-hidden="true">📝</span> <span class="lb">Read the Blog<span class="sub">Notes from the Key Man</span></span></a>
+      <a class="lbtn" href="/financing/"><span class="em" aria-hidden="true">💰</span> Payment Plans / Financing</a>
+      <a class="lbtn" href="/"><span class="em" aria-hidden="true">🌐</span> Full Website</a>
+    </nav>
+
+    <p class="links-trust">Licensed Oklahoma locksmith • OK Lic. #AC441081 • NASTF certified • OKC metro</p>
+  </main>
+</body>
+</html>
