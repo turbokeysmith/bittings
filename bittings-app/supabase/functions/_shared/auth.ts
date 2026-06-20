@@ -6,26 +6,18 @@
 //   2. Resolve their app ROLE and reject unless it is in the allowed set.
 //   3. Lock CORS to an EXPANDABLE allow-list of origins (not "*").
 //
-// Role source (self-upgrading):
-//   • Once the `staff` table exists (Stage 1a), the role comes from staff.role
-//     (active rows only) — the real source of truth.
-//   • Until then, an interim OWNER_EMAILS allow-list (env) is used so the hole
-//     is closed NOW without waiting for the table. When staff lands, this path
-//     is simply never taken anymore — no code change required.
-//
-// Config (all via Supabase function secrets — free to set, no plan upgrade):
-//   ALLOWED_ORIGINS  comma-separated extra origins (e.g. the web-app domain,
-//                    later native-app origins). Localhost dev origins are
-//                    always allowed. This is the expandable list (Q13).
-//   OWNER_EMAILS     comma-separated interim owner emails (defaults to the
-//                    real owner) — only consulted before `staff` exists.
+// Role source (self-upgrading): staff.role once that table exists (Stage 1a);
+// until then an interim owner-email allow-list. NOTE: supabase-js goes through
+// PostgREST, so a missing `staff` table surfaces as PGRST205 ("could not find
+// the table ... in the schema cache"), NOT the raw Postgres 42P01 — detect both.
+// The known owner email is always included so a missing/blank OWNER_EMAILS env
+// can't lock the owner out during Stage 0. (Stage 1a drops this allow-list.)
 // ============================================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Dev origins always allowed; extra (web domain, native apps) come from env.
 const DEFAULT_ORIGINS = [
   "http://localhost:8088", "http://127.0.0.1:8088",
   "http://localhost:5500", "http://127.0.0.1:5500",
@@ -37,7 +29,6 @@ function allowedOrigins(): string[] {
   return [...DEFAULT_ORIGINS, ...extra];
 }
 
-// Build CORS headers, echoing the Origin only when it's on the allow-list.
 export function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
   const ok = allowedOrigins().includes(origin);
@@ -49,9 +40,18 @@ export function corsHeaders(req: Request): Record<string, string> {
   };
 }
 
+// Interim owner allow-list (Stage 0 only). Always includes the known owner so a
+// missing/blank OWNER_EMAILS env can't lock them out. Removed in Stage 1a.
 function ownerEmailAllowlist(): string[] {
-  return (Deno.env.get("OWNER_EMAILS") ?? "samer@turbokeysmith.com")
+  const fromEnv = (Deno.env.get("OWNER_EMAILS") ?? "")
     .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  return Array.from(new Set(["samer@turbokeysmith.com", ...fromEnv]));
+}
+
+function staffTableMissing(err: { code?: string; message?: string } | null): boolean {
+  if (!err) return false;
+  if (err.code === "42P01" || err.code === "PGRST205") return true;
+  return /could not find the table|schema cache|does not exist/i.test(err.message ?? "");
 }
 
 export type AuthError = { status: number; error: string };
@@ -68,14 +68,17 @@ export async function requireRole(req: Request, allowed: string[]): Promise<Auth
   if (error || !data?.user) throw { status: 401, error: "invalid or expired session" } as AuthError;
   const user = { id: data.user.id, email: (data.user.email ?? "").toLowerCase() };
 
-  // Prefer the staff table; fall back to the interim owner allow-list only if
-  // the table doesn't exist yet (Postgres 42P01 = undefined_table).
+  // Resolve role: staff.role (active) when the table exists; otherwise fall back
+  // to the interim owner allow-list — but only when the table is genuinely
+  // missing, not merely when a real staff row is absent.
   let role = "";
   const s = await admin.from("staff").select("role, active").eq("user_id", user.id).maybeSingle();
-  if (s.error && (s.error as { code?: string }).code === "42P01") {
+  if (staffTableMissing(s.error as { code?: string; message?: string } | null)) {
     role = ownerEmailAllowlist().includes(user.email) ? "owner" : "";
-  } else if (s.data && s.data.active) {
+  } else if (!s.error && s.data && s.data.active) {
     role = String(s.data.role ?? "");
+  } else if (s.error) {
+    console.warn("staff lookup error", (s.error as { code?: string }).code, s.error.message);
   }
 
   if (!role || !allowed.includes(role)) {
