@@ -416,7 +416,13 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   (`sms:+14058705397`) · 💳 **Pay Now** (`/pay-now/`) · 📝 **Read the Blog** ("Notes from the Key Man", `/blog/`) ·
   💰 **Payment Plans / Financing** (`/financing/`) · 🌐 **Full Website** (`/`). Trust line underneath: "Licensed
   Oklahoma locksmith • OK Lic. #AC441081 • NASTF certified • OKC metro."
-- **SEO:** `<meta name="robots" content="noindex">` (utility page — intentionally not in the sitemap or nav).
+- **Bilingual (EN + ES).** English at `/links/`, Spanish mirror at `/es/links/`. **Every button stays in its own
+  language** — the Spanish page's buttons all point to `/es/...` (`/es/pay-now/`, `/es/blog/`, `/es/financing/`,
+  `/es/`); the English page's all point to the English pages. A small **EN/ES toggle** at the top is the only
+  cross-language link; `tel:`/`sms:` are shared (same phone). Reciprocal `hreflang` (en/es/x-default) on both.
+- **Now uses the full Turbo Keysmith wordmark logo** (`assets/logo-full.png`), centered; the separate text name
+  was dropped (a visually-hidden `h1` keeps it for accessibility).
+- **SEO:** `<meta name="robots" content="noindex">` on both (utility pages — intentionally not in the sitemap or nav).
 - **Status:** code-complete on the `links-page` branch; **deployed to a Cloudflare preview, pending the owner's
   two-phone check (iPhone Safari + Android Chrome)**. Promote to `--branch=main` and delete the preview only on the
   owner's OK.
