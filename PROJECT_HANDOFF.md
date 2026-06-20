@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-19 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-20 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,20 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-20 (🔗 Link-in-bio page for Instagram · preview, pending mobile sign-off)
+- **New mobile-first "link in bio" page at `/links/`** — hand-built static HTML (the retired generator was NOT
+  used), for the Instagram bio link. Clean Linktree-style layout: the Turbo Keysmith logo, a short tagline, then a
+  vertical stack of big thumb-friendly tap buttons, centered. Uses the site's premium dark skin (pulls in
+  `assets/styles.css` + the Inter/Saira fonts and brand tokens); the layout is a small scoped `<style>` block.
+- **Buttons, in order:** 📞 **Call Now** (`tel:+14058705397`, primary/biggest, brand-red gradient) · 💬 **Text Us**
+  (`sms:+14058705397`) · 💳 **Pay Now** (`/pay-now/`) · 📝 **Read the Blog** ("Notes from the Key Man", `/blog/`) ·
+  💰 **Payment Plans / Financing** (`/financing/`) · 🌐 **Full Website** (`/`). Trust line underneath: "Licensed
+  Oklahoma locksmith • OK Lic. #AC441081 • NASTF certified • OKC metro."
+- **SEO:** `<meta name="robots" content="noindex">` (utility page — intentionally not in the sitemap or nav).
+- **Status:** code-complete on the `links-page` branch; **deployed to a Cloudflare preview, pending the owner's
+  two-phone check (iPhone Safari + Android Chrome)**. Promote to `--branch=main` and delete the preview only on the
+  owner's OK.
 
 ### 2026-06-19 PM-4 (📝 Public blog launched · FAQ rewrite · CSS cache fix)
 - **New public blog at `/blog/`** — hand-built static HTML (the retired generator was NOT used). Display name
