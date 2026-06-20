@@ -24,6 +24,13 @@ it's a separate later step on its own subdomain (see §9). The Spanish **`/es/`*
 - ✅ Confirmed the site is **self-contained and depth-correct** — every page's links/assets use
   correct relative paths, so it serves on Cloudflare Pages exactly as it does today.
 - ✅ Added **`site/_headers`** — browser cache for `/assets/*` + safe security headers.
+
+> ⚠️ **CSS cache note (learned the hard way).** Cloudflare's dashboard **Browser Cache TTL** can override
+> `_headers` — it was forcing `max-age=14400` (4 h) over the file's `max-age=300`, so returning visitors kept a
+> stale `styles.css` and saw unstyled pages after a deploy. **Fixed:** Caching → Configuration → **Browser Cache
+> TTL → "Respect Existing Headers"** (now honors the 5-min rule). Belt-and-suspenders: the CSS link is versioned
+> `styles.css?v=N` site-wide — **bump N whenever `styles.css` changes** so the always-fresh HTML points at a new
+> CSS URL and everyone re-fetches instantly.
 - ✅ Confirmed `robots.txt` blocks `/es/` and `/*.md`, and `sitemap.xml` uses the apex domain.
 - 📝 Note: `site/turbo_city_seo_copy.md` is an internal planning doc that would ship in the upload.
   It's already `noindex` (robots blocks `.md`), but you can delete it from `site/` first if you

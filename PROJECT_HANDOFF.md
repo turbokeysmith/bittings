@@ -3,7 +3,9 @@
 **Last updated:** 2026-06-19 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
-**`website/`** (public site) and **`bittings-app/`** (staff app) — see §8.
+**`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
+and a rewritten **FAQ** are now live; the stale-CSS cache bug is fixed (see the 2026-06-19 PM-4 changelog).
+**Next session: the Bittings staff app.**
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
 Desktop) can understand everything that has been built and changed, and advise the owner without
@@ -363,7 +365,10 @@ site/                   The public website (115 pages)
   site/assets/i18n.js     Spanish/English chrome toggle (older, client-side)
   site/sitemap.xml, site/robots.txt
   site/app/store.js     Copy of the data layer for the contact form
-  site/es/              Spanish DRAFT site (noindex, unpublished); site/es/GLOSSARY.md = term list
+  site/es/              Spanish site (published + indexed; /es/blog/ is a noindex draft mirror)
+  site/blog/            Blog "Notes from the Key Man" — index (in-page search + category filter),
+                        /blog/{slug}/ posts, /blog/category/{6 slugs}/, feed.xml (RSS), search-index.json,
+                        blog/assets/ (hero images). Public FAQ lives at site/faq/.
 (no _build/)            Generator RETIRED — archived to _archive/_build-generator-RETIRED/. Site is
                         hand-maintained static HTML in website/site/. Do NOT run a generator.
 PROJECT_HANDOFF.md      This file
@@ -401,6 +406,31 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-19 PM-4 (📝 Public blog launched · FAQ rewrite · CSS cache fix)
+- **New public blog at `/blog/`** — hand-built static HTML (the retired generator was NOT used). Display name
+  **"Notes from the Key Man"** with the tagline "Locked & Loaded — straight talk on keys, locks, and getting
+  back on the road" (publisher in all schema stays the Organization **Turbo Keysmith**). The index has **in-page
+  search + clickable, color-coded category filtering** done in plain browser JS (progressive enhancement — every
+  post card is static HTML so it's fully crawlable and works with JS off). Built: **6 category pages**
+  (`/blog/category/{slug}/`), a **seed post** (`/blog/locked-out-of-car-okc/`) with
+  BlogPosting + Person (author "Sam The Key Man", with credentials) + Organization + BreadcrumbList + FAQPage
+  schema, author byline + bio box, two Call-Now CTA blocks, internal links, and a **real Lishi HU100R hero
+  photo**; an **RSS feed** (`/blog/feed.xml`), a `search-index.json`, blog + category URLs in the sitemap, a
+  **"Blog" link added to the desktop nav site-wide**, and a `/es/blog/` **noindex BORRADOR mirror** for a future
+  Spanish translator (no machine translation).
+- **FAQ page rewritten** — 12 questions in emergency-first order (added How fast / How much / Insurance-roadside),
+  hours now say **"24/6"**, the **FAQPage schema rebuilt** to match the visible Q&A word-for-word, LocalBusiness
+  Mon–Sat hours set to **00:00–24:00** (open 24h), and the body links made root-relative (`/pay-now/`,
+  `/financing/`, `/warranty/`).
+- **Fixed the recurring "stale CSS after a deploy" bug at the root.** Cloudflare's dashboard **Browser Cache TTL**
+  was overriding the `_headers` 5-minute rule with **4 hours**, so returning visitors kept old CSS and saw
+  unstyled pages after a change. Set Browser Cache TTL to **"Respect Existing Headers"** (CSS now `max-age=300`)
+  and adopted a site-wide **`styles.css?v=N`** version-bump convention. Future CSS changes reach everyone in
+  ~5 minutes.
+- **Workflow:** on owner approval, a change is promoted to `--branch=main` **and** its preview is deleted (the git
+  feature branch + the Cloudflare preview deployment). 24 stale preview deployments were purged.
+- **▶ Next session: the Bittings staff app (`bittings-app/`).**
 
 ### 2026-06-19 PM-3 (🗄️ Generator RETIRED — site is now hand-maintained static HTML)
 - **The page generator is retired and archived.** Moved `website/_build/` →

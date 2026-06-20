@@ -1,22 +1,26 @@
 # Turbo Keysmith
 
-The Turbo Keysmith web app — one tile home screen for a mobile locksmith
-business: **Customers, Receipts (Bittings), Scheduler, Payments, Inventory**.
+This repo (`turbokeysmith-main/`) holds **two products**, split into two top-level folders, in **one git history**:
 
-**Live site:** https://turbokeysmith.github.io/bittings/
+- **`website/`** — the public marketing website, **live at https://turbokeysmith.com** (hand-maintained static
+  HTML in `website/site/`, served by **Cloudflare Pages**). Includes the blog at `/blog/` ("Notes from the Key
+  Man"), the FAQ, 25 metro city pages, and a Spanish `/es/` mirror.
+- **`bittings-app/`** — the **Bittings staff app** (still in active development): `index.html`, `bittings.html`,
+  `scheduler.html`, `lishi.html`, `programmers.html`, `setup.html`, `cloud-test.html`, plus `app/` (the data
+  layer, UI kit, Lishi/programmer seeds) and `supabase/` (cloud sync + Stripe payment edge functions).
 
-## What's in this repo
-This is the public website, served by GitHub Pages from the repo root.
+Shared project docs live at the repo root — start with **`PROJECT_HANDOFF.md`** (plain-language overview of the
+whole project) and **`turbo_master_task_list.md`** (status of every track).
 
-- `index.html` — app home (tile screen + built-in Customers manager)
-- `bittings.html` — Receipts / invoices / NASTF paperwork
-- `scheduler.html` — booking & front-desk intake
-- `cloud-test.html` — Supabase cloud-sync test page (proof-of-concept; not linked from the app)
-- `supabase/customers_setup.sql` — cloud `customers` table + security rules (run once in Supabase)
-- `*.png` — logo and app icons
+## Deploying the public site
+The site is **hand-maintained static HTML** — there is **no build step and no generator** (the old page generator
+is retired/archived to `_archive/_build-generator-RETIRED/`; do **not** run it). To publish:
 
-Customers are shared across the apps on a device today; cloud sync and
-employee logins are being added via Supabase.
+```
+npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main
+```
 
-> Internal planning, architecture, and business-strategy docs are kept in a
-> private workspace, not in this public repo.
+Always use `--branch=main` for production. After editing `website/site/assets/styles.css`, bump the `?v=N` version
+on the CSS link site-wide so returning visitors get the new styles (cache-busting).
+
+> Internal planning and business-strategy docs are kept in a private workspace, not in this repo.

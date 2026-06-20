@@ -1,8 +1,12 @@
 # Public website — page audit (Title / Meta Description / H1)
 
-_Live English pages in `site/`. Spanish `/es/` drafts excluded (unpublished, noindex). Read-only snapshot — nothing changed._
+_Live English pages in `website/site/`. Spanish `/es/` pages excluded. Read-only snapshot — nothing changed._
 
-Total: **111** pages.
+Total: **111** pages at the time of this snapshot.
+
+> **Update 2026-06-19:** since this audit, a **blog** was added (8 EN pages: `/blog/` index, the post
+> `/blog/locked-out-of-car-okc/`, and 6 `/blog/category/{slug}/` pages) and the **FAQ** was rewritten. Not yet
+> re-audited here.
 
 ### /
 - **Targets:** Homepage
