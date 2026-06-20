@@ -8,7 +8,7 @@ a separate planning assistant, so they must never go stale:
 1. **`PROJECT_HANDOFF.md`** (repo root) — the single-file, **plain-language** overview of the
    whole project (public website + staff app + cloud). This is the file the owner uploads. Keep
    it self-contained and non-technical (the owner is not a developer).
-2. **`app/STRUCTURE_NOTES.md`** — the deeper technical notes on the staff app + cloud wiring.
+2. **`bittings-app/app/STRUCTURE_NOTES.md`** — the deeper technical notes on the staff app + cloud wiring.
 
 ### What counts as a "major change" (update the docs)
 - New or removed feature/page/tile/screen
@@ -26,7 +26,7 @@ a separate planning assistant, so they must never go stale:
   `date "+%Y-%m-%d %H:%M %Z"`) and add a dated bullet under the **Changelog** (section 11,
   newest first; group entries under the date heading).
 - When you finish a batch of work, end by confirming both files were updated (or say why not).
-- Keep `PROJECT_HANDOFF.md` plain-language; put technical depth in `app/STRUCTURE_NOTES.md`.
+- Keep `PROJECT_HANDOFF.md` plain-language; put technical depth in `bittings-app/app/STRUCTURE_NOTES.md`.
 
 ## 📱 Mobile verification is mandatory before anything is "done"
 **Standing rule — applies to EVERY feature, change, or build, with no exceptions.** Before you mark
