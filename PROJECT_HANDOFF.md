@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-06-19 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
-via Cloudflare (see the 2026-06-19 changelog entry).**
+via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
+**`website/`** (public site) and **`bittings-app/`** (staff app) — see §8.
 
 **Purpose of this file:** a single, self-contained briefing so another assistant (e.g. Claude
 Desktop) can understand everything that has been built and changed, and advise the owner without
@@ -320,6 +321,14 @@ with statuses is `turbo_master_task_list.md`.*
 ---
 
 ## 8. File map (where things live)
+
+> **📁 Repo structure (since 2026-06-19):** the repo folder is **`turbokeysmith-main/`**. Inside it the
+> staff-app files listed below now live under **`bittings-app/`** (e.g. `bittings-app/index.html`,
+> `bittings-app/app/store.js`, `bittings-app/supabase/`, `bittings-app/_source/` for the Lishi raw data), and
+> the public website lives under **`website/`** (`website/site/` + the `website/_build/` generator +
+> `website/_tools/`). Shared project docs stay at the repo root. Paths *within* each folder are unchanged —
+> only the parent folders are new. **Deploy:** `npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main`.
+
 ```
 index.html              Staff app shell (Customers + Job history, Payments, Inventory + VIN search)
 bittings.html           Receipts/invoice builder (existing; added a back link)
@@ -391,6 +400,22 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-19 PM-2 (🗂️ Repo restructured — turbokeysmith-main + website/ + bittings-app/)
+- **Renamed** the project folder `_live-clone/` → **`turbokeysmith-main/`** (cosmetic — the Cloudflare deploy is a
+  direct Wrangler upload, **not** git-connected, so the folder name is invisible to it).
+- **Split into two clear top-level folders, kept ONE git repo + history** (via `git mv` — 289 renames):
+  **`website/`** = public site (`website/site/`) + generator (`website/_build/`) + `website/_tools/`;
+  **`bittings-app/`** = the staff app (the 7 pages + `app/` + `supabase/` + app icons + `_source/` for Lishi raw
+  data). Shared docs stayed at the repo root.
+- **Public URLs did NOT change** — the move was rename-only (0 page-content changes). Verified byte-identical:
+  a preview deploy reported **"0 files uploaded, 239 already cached."** Worked on a `restructure` branch → verified
+  on a `restructure-preview` URL (owner mobile-checked iPhone + Android) → merged + deployed to production.
+  **New deploy command:** `npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main`.
+- **⚠️ Generator drift flagged:** running `website/_build/generate.mjs` no longer reproduces the live site (it emits
+  emoji icons where the live pages use SVGs — a post-gen `site-emoji-pass.py` + hand-edits were never folded back
+  into the templates). **Do NOT run the generator for deploys** — `website/site/` is the source of truth.
+  Re-syncing the generator to the live pages is a separate future task.
 
 ### 2026-06-19 PM (🇪🇸 Spanish PUBLISHED + indexed · Contact links · WhatsApp green · www→apex redirect)
 - **Spanish `/es/` is now LIVE and indexable** (owner approved the translation). Removed `noindex` from all
