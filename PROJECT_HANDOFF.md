@@ -407,6 +407,21 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-06-20 PM (🔐 Phase 1 / Stage 0 — refund & void endpoints secured)
+- **Closed an open-endpoint security hole.** `pay-refund` and `pay-void` ran as `service_role` with CORS `*` and
+  **no auth check** — anyone with the public anon key could trigger a refund/void. They now **verify the caller's
+  Supabase login (JWT) and reject anyone who isn't an active manager/owner** (401 no/invalid token · 403 wrong role).
+  CORS locked from `*` to an **expandable allow-list** (localhost now; web-domain + native-app origins added later
+  via env, no code change). Shared gate lives in `supabase/functions/_shared/auth.ts`; originals backed up under
+  `supabase/_originals_pre_phase1/`.
+- **Role source is self-upgrading:** uses the `staff` table once it exists (Stage 1a); until then an interim
+  owner-email allow-list (`samer@turbokeysmith.com`). Deployed to the live project (functions only — no data touched).
+- **Proven live:** unauthenticated / anon-key / garbage-token / no-token calls to refund **and** void all return 401;
+  disallowed CORS origin not echoed. (Owner-allowed path confirmed separately.)
+- This is **Stage 0** of Phase 1 (Roles, Security & Accountability). Next: **Stage 1a** — `staff` table +
+  `current_role()` + real RLS + soft-delete + `audit_log`. Work is on branch **`phase1-roles-security`**; staged
+  1a→1b→1c→1d, each tested with owner sign-off before the next. **Not yet merged to `main`.**
+
 ### 2026-06-20 (🔗 Link-in-bio page for Instagram · preview, pending mobile sign-off)
 - **New mobile-first "link in bio" page at `/links/`** — hand-built static HTML (the retired generator was NOT
   used), for the Instagram bio link. Clean Linktree-style layout: the Turbo Keysmith logo, a short tagline, then a
