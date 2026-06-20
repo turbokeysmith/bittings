@@ -87,12 +87,13 @@ A big SEO expansion so the business ranks for "locksmith in <city>" across the m
   the full contact form. Long city-page body text is still English (translating those is a
   content task, not done yet).
 
-**How the website is generated:** the city pages are produced by a small Node.js script in
-`/_build/` from a data file, so the design stays consistent and changes are one command. The
-owner does NOT need to run this; it's a developer tool.
-- `/_build/cities.mjs` — the per-city copy (titles, intros, sub-page hooks).
-- `/_build/engine.mjs` + `/_build/generate.mjs` — templates + generator.
-- To rebuild after editing copy: `node _build/generate.mjs` (from the repo folder).
+**How the website is maintained:** the public site is **hand-maintained static HTML** in
+`website/site/` — that folder is the single source of truth. **Edit those files directly and
+deploy.** There is **no build step** and **no generator to run.**
+
+> ⚠️ **The old page generator is RETIRED** (archived to `_archive/_build-generator-RETIRED/`). It
+> fell out of sync with the live site — it emits emoji icons where the live pages use SVG icons, so
+> running it would regress ~220 pages. **Do NOT run it.** It is kept only as a historical reference.
 
 ---
 
@@ -325,8 +326,8 @@ with statuses is `turbo_master_task_list.md`.*
 > **📁 Repo structure (since 2026-06-19):** the repo folder is **`turbokeysmith-main/`**. Inside it the
 > staff-app files listed below now live under **`bittings-app/`** (e.g. `bittings-app/index.html`,
 > `bittings-app/app/store.js`, `bittings-app/supabase/`, `bittings-app/_source/` for the Lishi raw data), and
-> the public website lives under **`website/`** (`website/site/` + the `website/_build/` generator +
-> `website/_tools/`). Shared project docs stay at the repo root. Paths *within* each folder are unchanged —
+> the public website lives under **`website/`** (`website/site/` — hand-maintained static HTML, the source of
+> truth — plus `website/_tools/`; **the old `_build/` generator is RETIRED/archived, do not run it**). Shared project docs stay at the repo root. Paths *within* each folder are unchanged —
 > only the parent folders are new. **Deploy:** `npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main`.
 
 ```
@@ -363,8 +364,8 @@ site/                   The public website (115 pages)
   site/sitemap.xml, site/robots.txt
   site/app/store.js     Copy of the data layer for the contact form
   site/es/              Spanish DRAFT site (noindex, unpublished); site/es/GLOSSARY.md = term list
-_build/                 Developer-only generator for the city pages
-  _build/es.mjs         Spanish source: glossary, UI strings, and per-city translations (edit here)
+(no _build/)            Generator RETIRED — archived to _archive/_build-generator-RETIRED/. Site is
+                        hand-maintained static HTML in website/site/. Do NOT run a generator.
 PROJECT_HANDOFF.md      This file
 DEPLOY_CLOUDFLARE.md    Step-by-step runbook to host on Cloudflare Pages + move DNS (deploy guide)
 site/_headers           Cloudflare Pages caching + security headers for the public site
@@ -400,6 +401,16 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-19 PM-3 (🗄️ Generator RETIRED — site is now hand-maintained static HTML)
+- **The page generator is retired and archived.** Moved `website/_build/` →
+  `_archive/_build-generator-RETIRED/` (with a `README.txt` explaining why) so it can never be run by accident.
+- **Confirmed safe first:** nothing in the deployed `website/site/` references `_build/` (0 hits) — the generator
+  was build-time-only and is never shipped, so moving it cannot affect the live site. Verified `website/site/`
+  (222 pages) and the live deploy are untouched after the move.
+- **Going forward: the public site is hand-maintained static HTML in `website/site/`** (the source of truth).
+  Edit those files directly. **No build step, no generator.** Deploy with
+  `npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main`.
 
 ### 2026-06-19 PM-2 (🗂️ Repo restructured — turbokeysmith-main + website/ + bittings-app/)
 - **Renamed** the project folder `_live-clone/` → **`turbokeysmith-main/`** (cosmetic — the Cloudflare deploy is a
