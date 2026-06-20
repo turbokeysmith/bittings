@@ -1,5 +1,14 @@
 # Assistant instructions — Turbo Keysmith repo
 
+## 🗂️ Repo structure & how the site is maintained (read this first)
+- Repo folder: **`turbokeysmith-main/`**. Two top-level folders: **`website/`** (the public site) and
+  **`bittings-app/`** (the staff app). Shared docs live at the repo root.
+- **The public site is hand-maintained static HTML in `website/site/`** — the single source of truth. Edit those
+  files directly. **There is NO build step and NO generator.** The old page generator is **RETIRED** (archived to
+  `_archive/_build-generator-RETIRED/`); it is out of sync with the live site — **do NOT run any generator.**
+- Deploy the public site with: `npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main`
+  (run from `turbokeysmith-main/`; always `--branch=main` for production).
+
 ## ⚠️ Keep the handoff docs current — do this automatically
 After **any major change** to this project, you MUST update **both** of these files in the
 **same commit as the work** so they always reflect the current state. The owner uploads them to
