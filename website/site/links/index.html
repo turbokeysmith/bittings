@@ -11,6 +11,10 @@
 <meta property="og:description" content="Call, text, pay, financing, and more. Licensed Oklahoma locksmith — OKC metro.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://turbokeysmith.com/links/">
+<link rel="canonical" href="https://turbokeysmith.com/links/">
+<link rel="alternate" hreflang="en" href="https://turbokeysmith.com/links/">
+<link rel="alternate" hreflang="es" href="https://turbokeysmith.com/es/links/">
+<link rel="alternate" hreflang="x-default" href="https://turbokeysmith.com/links/">
 <link rel="icon" href="/assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Saira:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -21,6 +25,13 @@
     background:radial-gradient(120% 70% at 50% -10%, #15181E 0%, var(--bg2) 38%, var(--bg) 100%);
     padding:38px 20px calc(40px + env(safe-area-inset-bottom));box-sizing:border-box}
   .links-wrap{width:100%;max-width:440px;margin:0 auto;text-align:center}
+  /* EN/ES language toggle */
+  .lang-toggle{display:inline-flex;gap:2px;margin:0 auto 22px;padding:3px;border:1px solid var(--line);
+    border-radius:999px;background:var(--panel)}
+  .lang-toggle a{font-family:'Saira',sans-serif;font-weight:700;font-size:13px;letter-spacing:.06em;
+    color:var(--mut);text-decoration:none;padding:6px 15px;border-radius:999px;transition:color .12s ease}
+  .lang-toggle a.active{background:var(--red-grad);color:#fff}
+  .lang-toggle a:hover:not(.active){color:var(--ink)}
   .links-logo{display:block;width:100%;max-width:260px;height:auto;margin:0 auto}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
     clip:rect(0,0,0,0);white-space:nowrap;border:0}
@@ -56,6 +67,10 @@
 </head>
 <body class="links">
   <main class="links-wrap">
+    <div class="lang-toggle" aria-label="Language / Idioma">
+      <a class="active" href="/links/" aria-current="page" hreflang="en">EN</a>
+      <a href="/es/links/" hreflang="es">ES</a>
+    </div>
     <h1 class="sr-only">Turbo Keysmith</h1>
     <a href="/" aria-label="Turbo Keysmith home"><img class="links-logo" src="/assets/logo-full.png" alt="Turbo Keysmith" width="260"></a>
     <p class="links-tag">Your trusted mobile locksmith — fast, licensed, and always there when you need us. OKC metro.</p>
