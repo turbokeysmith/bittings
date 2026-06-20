@@ -245,6 +245,27 @@ create policy shop_config_ins on public.shop_config for insert to authenticated 
 create policy shop_config_upd on public.shop_config for update to authenticated using (public.is_manager()) with check (public.is_manager());
 
 -- ----------------------------------------------------------------------------
+-- 7b. Lock down SECURITY DEFINER functions: remove the default PUBLIC execute
+--     grant (which exposed them to anon via /rest/v1/rpc), then grant only to
+--     authenticated where needed. fn_audit is trigger-only (no API role).
+-- ----------------------------------------------------------------------------
+revoke execute on function public.current_staff_role() from public;
+revoke execute on function public.is_staff() from public;
+revoke execute on function public.is_manager() from public;
+revoke execute on function public.is_owner() from public;
+revoke execute on function public.claim_first_owner(text) from public;
+revoke execute on function public.set_my_pin(text) from public;
+revoke execute on function public.verify_pin(text) from public;
+revoke execute on function public.fn_audit() from public;
+grant execute on function public.current_staff_role() to authenticated;
+grant execute on function public.is_staff() to authenticated;
+grant execute on function public.is_manager() to authenticated;
+grant execute on function public.is_owner() to authenticated;
+grant execute on function public.claim_first_owner(text) to authenticated;
+grant execute on function public.set_my_pin(text) to authenticated;
+grant execute on function public.verify_pin(text) to authenticated;
+
+-- ----------------------------------------------------------------------------
 -- 8. WEBSITE lead-intake role (anon INSERT-ONLY on customers) — DISABLED for now.
 --    Uncomment to activate once the public contact form actually writes leads
 --    AND spam protection (rate limit / Turnstile) is in place. Until then we
