@@ -7,7 +7,7 @@
 --
 -- What this does:
 --   1. `staff` table  = single source of truth for roles (replaces OWNER_EMAILS).
---   2. helpers: current_role() / is_staff() / is_manager() / is_owner().
+--   2. helpers: current_staff_role() / is_staff() / is_manager() / is_owner().
 --   3. claim_first_owner() = one-time bootstrap (first account => owner).
 --   4. Personal PINs, hashed (pgcrypto): set_my_pin() / verify_pin().
 --   5. Soft-delete columns on customers/inventory/bookings/receipts.
@@ -43,7 +43,7 @@ grant insert, update, delete on public.staff to authenticated;  -- rows still ga
 -- ----------------------------------------------------------------------------
 -- 2. role helpers (security definer so RLS can call them without recursion)
 -- ----------------------------------------------------------------------------
-create or replace function public.current_role()
+create or replace function public.current_staff_role()
   returns text language sql stable security definer set search_path = public as $$
   select role from public.staff where user_id = auth.uid() and active = true
 $$;
@@ -55,12 +55,12 @@ $$;
 
 create or replace function public.is_manager()
   returns boolean language sql stable security definer set search_path = public as $$
-  select public.current_role() in ('manager','owner')
+  select public.current_staff_role() in ('manager','owner')
 $$;
 
 create or replace function public.is_owner()
   returns boolean language sql stable security definer set search_path = public as $$
-  select public.current_role() = 'owner'
+  select public.current_staff_role() = 'owner'
 $$;
 
 -- ----------------------------------------------------------------------------
@@ -85,7 +85,7 @@ end $$;
 create or replace function public.set_my_pin(p_pin text)
   returns void language plpgsql security definer set search_path = public, extensions as $$
 begin
-  if public.current_role() not in ('manager','owner') then raise exception 'PINs are manager/owner only'; end if;
+  if public.current_staff_role() not in ('manager','owner') then raise exception 'PINs are manager/owner only'; end if;
   if p_pin !~ '^[0-9]{4,8}$' then raise exception 'PIN must be 4-8 digits'; end if;
   update public.staff set pin_hash = crypt(p_pin, gen_salt('bf')), updated_at = now()
    where user_id = auth.uid();
@@ -146,12 +146,12 @@ create or replace function public.fn_audit()
 begin
   if (tg_op = 'DELETE') then
     insert into public.audit_log(user_id, role, action, entity_type, entity_id, detail)
-      values (auth.uid(), public.current_role(), 'hard_delete', tg_table_name, (to_jsonb(old)->>'id'), to_jsonb(old));
+      values (auth.uid(), public.current_staff_role(), 'hard_delete', tg_table_name, (to_jsonb(old)->>'id'), to_jsonb(old));
     return old;
   elsif (tg_op = 'UPDATE') then
     if (to_jsonb(old)->>'deleted_at') is null and (to_jsonb(new)->>'deleted_at') is not null then
       insert into public.audit_log(user_id, role, action, entity_type, entity_id, detail)
-        values (auth.uid(), public.current_role(), 'soft_delete', tg_table_name, (to_jsonb(new)->>'id'),
+        values (auth.uid(), public.current_staff_role(), 'soft_delete', tg_table_name, (to_jsonb(new)->>'id'),
                 jsonb_build_object('deleted_by', (to_jsonb(new)->>'deleted_by')));
     end if;
     return new;
