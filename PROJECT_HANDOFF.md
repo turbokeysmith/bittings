@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-20 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-21 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,27 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-21 (🔐 Phase 1 / Stage 1a — real roles, RLS & audit foundation; LIVE)
+- **The staff app now has a real, server-enforced permission system.** New `staff` table is the single source of
+  truth for roles (owner / manager / front_desk / technician) — the hardcoded `OWNER_EMAILS` approach is replaced.
+  Helpers `current_staff_role()/is_staff()/is_manager()/is_owner()`; `claim_first_owner()` one-time bootstrap
+  (first account = owner; self-disabling). Owner seeded: **Samer** (`samer@turbokeysmith.com`).
+- **Every `using(true)` RLS policy rewritten** to the permission matrix across customers, inventory, bookings,
+  receipts, payment_transactions, payment_events, shop_config, staff, audit_log. A signed-in user with **no active
+  staff row gets nothing**. Soft-delete (`deleted_at`/`deleted_by`) added; only owner can hard-delete; soft-delete
+  is manager/owner only (guarded in the update policy). Append-only **`audit_log`** + triggers record soft/hard
+  deletes. Personal **PINs hashed** (pgcrypto) via `set_my_pin()/verify_pin()` — shared `QUICK_FORM_PIN` retired
+  from the security model. Website lead-intake (anon insert-only on customers) is **built but left OFF** until the
+  form is wired with spam protection.
+- **Refund/void gate upgraded to read role from `staff`** (Stage 0's interim email allow-list removed — no
+  backdoor). Required `grant select on staff to service_role` (newly-created tables aren't auto-granted).
+- **Proven live (Checkpoint 2 for 1a):** owner passes the refund gate via their staff role (v6, server logs);
+  unauthenticated = 401; a no-staff user sees 0 of everything; technician can view customers but is **blocked** from
+  inventory writes and soft-deletes (RLS 42501); manager **allowed** to write inventory. Test users created + torn
+  down; project left with only the owner.
+- Applied to the **live project** (additive; owner unaffected). Work on branch **`phase1-roles-security`** — still
+  **not merged to `main`**. Next: **Stage 1b** (fleet/vans + per-location inventory + move/receive).
 
 ### 2026-06-20 PM (🔐 Phase 1 / Stage 0 — refund & void endpoints secured)
 - **Closed an open-endpoint security hole.** `pay-refund` and `pay-void` ran as `service_role` with CORS `*` and
