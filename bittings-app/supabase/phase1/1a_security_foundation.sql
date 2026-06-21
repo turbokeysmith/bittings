@@ -39,6 +39,10 @@ alter table public.staff enable row level security;
 revoke all on public.staff from authenticated;
 grant select (user_id, name, role, active, home_van_id, shop_id, created_at, updated_at) on public.staff to authenticated;
 grant insert, update, delete on public.staff to authenticated;  -- rows still gated by RLS below
+-- REQUIRED: the refund/void edge functions read staff as service_role to resolve
+-- the caller's role. New tables are NOT auto-granted to service_role, so without
+-- this the lookup fails (permission denied) and the gate can't see the role.
+grant select on public.staff to service_role;
 
 -- ----------------------------------------------------------------------------
 -- 2. role helpers (security definer so RLS can call them without recursion)
