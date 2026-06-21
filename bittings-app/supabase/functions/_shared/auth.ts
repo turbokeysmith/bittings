@@ -1,17 +1,14 @@
 // ============================================================================
-// Shared auth + CORS for sensitive edge functions (Phase 1, Stage 0).
+// Shared auth + CORS for sensitive edge functions (Phase 1).
 // ----------------------------------------------------------------------------
-// Closes the open-endpoint hole on pay-refund / pay-void:
 //   1. Verify the caller's Supabase JWT (Authorization: Bearer <access_token>).
-//   2. Resolve their app ROLE and reject unless it is in the allowed set.
+//   2. Resolve their app ROLE from the `staff` table (single source of truth)
+//      and reject unless it is in the allowed set.
 //   3. Lock CORS to an EXPANDABLE allow-list of origins (not "*").
 //
-// Role source (self-upgrading): staff.role once that table exists (Stage 1a);
-// until then an interim owner-email allow-list. NOTE: supabase-js goes through
-// PostgREST, so a missing `staff` table surfaces as PGRST205 ("could not find
-// the table ... in the schema cache"), NOT the raw Postgres 42P01 — detect both.
-// The known owner email is always included so a missing/blank OWNER_EMAILS env
-// can't lock the owner out during Stage 0. (Stage 1a drops this allow-list.)
+// Role source: ONLY the `staff` table now (Stage 1a is live). The Stage 0
+// interim owner-email allow-list has been removed — there is no email backdoor.
+// (Requires `grant select on public.staff to service_role`, done in 1a.)
 // ============================================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -40,25 +37,13 @@ export function corsHeaders(req: Request): Record<string, string> {
   };
 }
 
-// Interim owner allow-list (Stage 0 only). Always includes the known owner so a
-// missing/blank OWNER_EMAILS env can't lock them out. Removed in Stage 1a.
-function ownerEmailAllowlist(): string[] {
-  const fromEnv = (Deno.env.get("OWNER_EMAILS") ?? "")
-    .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-  return Array.from(new Set(["samer@turbokeysmith.com", ...fromEnv]));
-}
-
-function staffTableMissing(err: { code?: string; message?: string } | null): boolean {
-  if (!err) return false;
-  if (err.code === "42P01" || err.code === "PGRST205") return true;
-  return /could not find the table|schema cache|does not exist/i.test(err.message ?? "");
-}
-
 export type AuthError = { status: number; error: string };
 export type AuthOk = { user: { id: string; email: string }; role: string };
 
-// Verify the JWT and resolve the caller's role. Throws AuthError on any failure
-// (401 = not a valid signed-in user, 403 = signed in but wrong role).
+// Verify the JWT and resolve the caller's role from `staff`. Throws AuthError:
+//   401 = not a valid signed-in user
+//   503 = staff lookup itself failed (e.g. missing grant) — distinguishable, not a silent deny
+//   403 = signed in, but no active staff row with an allowed role
 export async function requireRole(req: Request, allowed: string[]): Promise<AuthOk> {
   const m = (req.headers.get("Authorization") ?? "").match(/^Bearer\s+(.+)$/i);
   if (!m) throw { status: 401, error: "missing bearer token" } as AuthError;
@@ -68,19 +53,12 @@ export async function requireRole(req: Request, allowed: string[]): Promise<Auth
   if (error || !data?.user) throw { status: 401, error: "invalid or expired session" } as AuthError;
   const user = { id: data.user.id, email: (data.user.email ?? "").toLowerCase() };
 
-  // Resolve role: staff.role (active) when the table exists; otherwise fall back
-  // to the interim owner allow-list — but only when the table is genuinely
-  // missing, not merely when a real staff row is absent.
-  let role = "";
   const s = await admin.from("staff").select("role, active").eq("user_id", user.id).maybeSingle();
-  if (staffTableMissing(s.error as { code?: string; message?: string } | null)) {
-    role = ownerEmailAllowlist().includes(user.email) ? "owner" : "";
-  } else if (!s.error && s.data && s.data.active) {
-    role = String(s.data.role ?? "");
-  } else if (s.error) {
-    console.warn("staff lookup error", (s.error as { code?: string }).code, s.error.message);
+  if (s.error) {
+    console.error("staff role lookup failed", (s.error as { code?: string }).code, s.error.message);
+    throw { status: 503, error: "role service unavailable, try again" } as AuthError;
   }
-
+  const role = (s.data && s.data.active) ? String(s.data.role ?? "") : "";
   if (!role || !allowed.includes(role)) {
     throw { status: 403, error: `forbidden: requires role ${allowed.join(" or ")}` } as AuthError;
   }
