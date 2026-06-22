@@ -776,7 +776,8 @@ function isPhoneView(){ return window.matchMedia('(max-width:720px)').matches; }
 function openEmbed(url){
   if(isPhoneView()){ location.href = url; return; }
   var f=document.getElementById('btEmbed');
-  if(f && f.getAttribute('src')!==url) f.setAttribute('src', url);   // don't reload if already loaded
+  if(f){ var cur=(f.getAttribute('src')||'').split('?')[0];
+    if(cur!==url) f.setAttribute('src', url + '?v=' + Date.now()); }   // cache-bust so embedded tools always load FRESH (no stale gating)
   if(_btApp) _btApp.classList.add('is-embedding');
   document.querySelectorAll('.bt-nav__item,.bt-bottomnav__item').forEach(el=>el.classList.toggle('is-active', el.dataset.embed===url));
   // close the phone slide-in menu if it happens to be open
