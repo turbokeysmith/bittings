@@ -94,6 +94,19 @@ Per-page destructive controls (gate + route confirm through the shared modal):
 
 ---
 
+## 🔮 CAPTURED FOR PHASE 2 — POS / Cash-Register Payment Screen (DO NOT build in Phase 1)
+*Logged 2026-06-22 at the owner's request so it isn't lost. This REPLACES the current "type in an amount" New-Charge box with a real register.*
+- **Running ticket of line items** (parts + services), each with **qty × price**, that **auto-calculates subtotal / tax / total** — no one does math by hand.
+- **Parts pull from inventory** (real item, real **sell price**) and **decrement stock when sold**.
+- **Services** come from a **manager-editable price list**.
+- **SKU / barcode scan adds a part** to the ticket (ties to the **go-live barcode scanner** + **Phase 3 serialized inventory**).
+- **Respects the existing role rules:** technicians/front-desk see **sell price only — never cost/margin**; **pricing/discount edits are manager+**; **all staff can take payment**.
+- **Charges the calculated total** through the **existing Stripe / cash flow** (the engine we already built).
+- **Phase placement:** build the POS screen as the **centerpiece of Phase 2** — it **pairs with the commission engine** (the ticket feeds commission math). Complete the **SKU-scan / serialized-add** portion in **Phase 3** with the scanner hardware.
+- Pre-reqs already in place from Phase 1: per-location inventory + sell-vs-cost separation (`inventory_safe`/`receipts_safe`), role caps (`editPricing`, `takePayment`), and the customer-on-charge picker.
+
+---
+
 ## 🚩 "Looks wrong but expected until a later stage"
 - **Cost / margin is still visible to technician & front_desk** (UI and payload) until **1d** builds the role-aware views. Expected.
 - **Technicians can't touch inventory at all** right now (writes are manager+ in 1a's interim RLS). Per-location **move** for techs lands in **1b**. Expected.

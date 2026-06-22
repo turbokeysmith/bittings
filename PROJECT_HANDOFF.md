@@ -407,6 +407,21 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 🔮 CAPTURED FOR PHASE 2 (not built yet) — POS / Cash-Register Payment Screen
+Logged 2026-06-22 at the owner's request so it isn't lost. **Replaces the current "type in an amount" charge box with a real cash register:**
+- A **running ticket** of line items (parts + services), each **qty × price**, that **auto-adds up subtotal / tax / total** — nobody does math by hand.
+- **Parts come from inventory** (real item + real **sell price**) and **subtract from stock when sold**; **services** come from a **manager-editable price list**.
+- **Scan a SKU / barcode to drop a part on the ticket** (uses the go-live **barcode scanner** + **Phase 3 serialized inventory**).
+- Keeps today's rules: techs/front-desk see **sell price only, never cost/margin**; **price/discount changes are manager+**; **all staff can take payment**. Then it charges the total through the **Stripe/cash flow we already built**.
+- **Plan:** it's the **centerpiece of Phase 2** (it pairs with the **commission engine** — the ticket feeds commissions); the **scan / serialized** part finishes in **Phase 3** with the scanner. Full spec lives in `PHASE1_PROGRESS.md`.
+
+### 2026-06-22 (🎨 UX pass — centered pop-ups, dark-mode text, payment customer picker, inventory import/export, vendor-tool gating)
+- **All pop-up boxes now open CENTERED** (were anchored to the top/bottom): the customer picker, inventory stock panel, job-cancel box, van form, Receipts "Pay Now"/"Pick a part"/"Quick invoice", Lishi & Programmers sheets, and the inventory importer.
+- **Dark-mode text fixes + a standing rule:** light mode = black text, dark mode = white text, and **pop-ups match the current theme**. Fixed the main-page dark/light toggle (it was only theming the embedded tool, not the home page, and didn't stick on reload), made the shared confirm dialog/toast theme-aware, and themed the customer picker + inventory stock buttons so text flips with the theme.
+- **New Charge → customer is tied to the database:** "Select / add customer" (search existing or add new → saved to customers). **Cash can be anonymous; Card & Check require a customer.** The closeout/transaction-history link is manager+.
+- **Inventory:** added **Export to CSV**; **Import and Export are manager/owner only**; the VIN lookup is now a centered box (was a browser prompt pinned to the top).
+- **Vendor tools:** **Keycodes** = owner/manager/technician; **Vendors + NASTF** = manager/owner only; **front-desk sees no vendor section**.
+
 ### 2026-06-22 (✅ Phase 1 TAIL complete — operating screens + payment auth + receipt cost-strip; code-complete, pending your phone sign-off)
 - **Two decisions applied.** (1) **Taking payment is now open to ALL staff** (technician/front-desk/manager/owner) — the old "managers only" wall on *New Charge* is gone, and the **Payments** tile shows for everyone. (2) The **Year/Make/Model dropdown** work stays bundled with this Phase-1 branch (ships together).
 - **The operating screens are built** (they drive the database rules we proved earlier):
