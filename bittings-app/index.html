@@ -202,7 +202,8 @@
   .chg-custset{font-size:14px;color:var(--ink);padding:9px 11px;border:1px solid var(--edge);border-radius:10px;background:rgba(74,163,255,.06);}
   .chg-custset b{font-weight:800;} .chg-custsub{font-size:12px;color:var(--dim);margin-top:2px;}
   .chg-modal-ov{position:fixed;inset:0;z-index:9500;background:rgba(6,8,11,.5);display:flex;align-items:center;justify-content:center;padding:16px;}
-  .chg-modal{background:var(--card);width:100%;max-width:520px;border-radius:16px;padding:16px;max-height:88vh;overflow:auto;border:1px solid var(--edge);}
+  .chg-modal{background:var(--card);color:var(--ink);width:100%;max-width:520px;border-radius:16px;padding:16px;max-height:88vh;overflow:auto;border:1px solid var(--edge);}
+  .chg-modal button:not(.btn){color:var(--ink);}   /* native buttons don't inherit theme color by default */
   .chg-modal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:16px;color:var(--ink);}
   .chg-modal-x{background:none;border:none;font-size:24px;line-height:1;color:var(--dim);cursor:pointer;padding:0 4px;}
   .chg-modal input{width:100%;background:var(--bg);border:1px solid var(--edge);border-radius:10px;padding:10px 11px;color:var(--ink);font-size:16px;}
@@ -813,12 +814,18 @@ document.querySelectorAll('[data-embed]').forEach(b=>{
    (Scheduler). Runs alongside bittings-ui.js's own toggle handler. */
 document.querySelectorAll('.bt-themetoggle [data-bt-set]').forEach(function(b){
   b.addEventListener('click', function(){
+    var t=b.getAttribute('data-bt-set');
+    // 1) theme THIS (main) page + persist so it sticks on reload
+    var root=document.documentElement;
+    if(t==='dark') root.setAttribute('data-bt-theme','dark'); else root.removeAttribute('data-bt-theme');
+    root.setAttribute('data-theme', t);
+    try{ localStorage.setItem('bt_theme', t); }catch(e){}
+    // 2) sync the embedded tool iframe if one is open
     try{
       var f=document.getElementById('btEmbed');
-      if(!f || !f.contentDocument) return;
-      var t=b.getAttribute('data-bt-set'), de=f.contentDocument.documentElement;
-      if(t==='dark') de.setAttribute('data-bt-theme','dark'); else de.removeAttribute('data-bt-theme');
-      de.setAttribute('data-theme', t);
+      if(f && f.contentDocument){ var de=f.contentDocument.documentElement;
+        if(t==='dark') de.setAttribute('data-bt-theme','dark'); else de.removeAttribute('data-bt-theme');
+        de.setAttribute('data-theme', t); }
     }catch(e){}
   });
 });
@@ -1460,14 +1467,14 @@ function openStockPanel(p){
               '<div style="padding-bottom:9px;color:var(--dim)">→</div>'+
               '<div><label style="font-size:11px;color:var(--dim)">To</label><select id="mvTo">'+destOpts('')+'</select></div></div>'+
             '<div style="display:flex;gap:6px;margin-top:6px"><input id="mvQty" type="number" min="1" inputmode="numeric" placeholder="Qty" style="flex:1">'+
-              '<button type="button" class="mini" id="mvBtn" style="background:#e7e9ee;border:none;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer">Move</button></div>'
+              '<button type="button" class="mini" id="mvBtn" style="background:var(--edge);color:var(--ink);border:none;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer">Move</button></div>'
           : '<div style="font-size:12px;color:var(--dim)">Nothing to move yet.</div>')+
         '<div id="mvMsg" style="font-size:12px;min-height:15px;margin-top:5px"></div></div>'+
       // RECEIVE
       '<div data-cap="invReceive" style="border:1px solid var(--edge,#e3e6ea);border-radius:11px;padding:10px 12px;margin-bottom:9px">'+
         '<div style="font-weight:800;font-size:13px;margin-bottom:6px">📥 Receive new stock (into shop)</div>'+
         '<div style="display:flex;gap:6px"><input id="rcQty" type="number" min="1" inputmode="numeric" placeholder="Qty received" style="flex:1">'+
-          '<button type="button" class="mini" id="rcBtn" style="background:#e7e9ee;border:none;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer">Receive</button></div>'+
+          '<button type="button" class="mini" id="rcBtn" style="background:var(--edge);color:var(--ink);border:none;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer">Receive</button></div>'+
         '<div id="rcMsg" style="font-size:12px;min-height:15px;margin-top:5px"></div></div>'+
       // ADJUST
       '<div data-cap="inventoryWrite" style="border:1px solid var(--edge,#e3e6ea);border-radius:11px;padding:10px 12px">'+
@@ -1475,7 +1482,7 @@ function openStockPanel(p){
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div><label style="font-size:11px;color:var(--dim)">Location</label><select id="ajLoc">'+destOpts('shop')+'</select></div>'+
           '<div><label style="font-size:11px;color:var(--dim)">New count</label><input id="ajQty" type="number" min="0" inputmode="numeric" placeholder="0"></div></div>'+
         '<input id="ajReason" placeholder="Reason (e.g. recount, damaged, lost)" style="margin-top:6px">'+
-        '<button type="button" class="mini" id="ajBtn" style="background:#e7e9ee;border:none;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer;margin-top:6px;width:100%">Save adjustment</button>'+
+        '<button type="button" class="mini" id="ajBtn" style="background:var(--edge);color:var(--ink);border:none;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer;margin-top:6px;width:100%">Save adjustment</button>'+
         '<div id="ajMsg" style="font-size:12px;min-height:15px;margin-top:5px"></div></div>';
     document.getElementById('stkClose').onclick=close;
     const mvBtn=document.getElementById('mvBtn');
