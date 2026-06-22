@@ -957,7 +957,7 @@ function renderBooking(){
   const picker = TKS.Bookings.STATUSES.map(s=>{
     const m = STATUS_META[s]; const sel = (b.status||'Scheduled')===s;
     const style = sel ? `style="background:${m.bg};color:${m.fg};border-color:${m.fg}"` : '';
-    return `<button class="${sel?'sel':''}" ${style} onclick="setBookingStatus('${b.id}','${s}')">${esc(statusLabel(s))}</button>`;
+    return `<button class="${sel?'sel':''}" data-cap="jobStatus" ${style} onclick="setBookingStatus('${b.id}','${s}')">${esc(statusLabel(s))}</button>`;
   }).join('');
   // Job photos: built but DORMANT — only renders if real photos exist.
   const imgs = (b.images&&b.images.length)
@@ -976,7 +976,7 @@ function renderBooking(){
       <div class="bk-actions">
         <a class="gcal" href="${googleUrl()}" target="_blank" rel="noopener">📆 ${t('add_to_sched')}</a>
         <button class="edit" onclick="editBooking('${b.id}')">✏️ ${t('edit_booking')}</button>
-        ${(typeof TKS_ACCESS==='undefined'||TKS_ACCESS.can('hardDelete'))?`<button class="del" onclick="deleteBooking('${b.id}')">🗑</button>`:''}
+        <button class="del" data-cap="hardDelete" onclick="deleteBooking('${b.id}')">🗑</button>
       </div>
     </div>`;
 }
@@ -1022,8 +1022,8 @@ function requestOwnerAccess(onGranted){
   // 1) Signed in as the OWNER → unlock immediately, no PIN.
   try{
     if(window.TKS && TKS.auth && TKS.auth.isSignedIn()){
-      if(TKS.auth.isOwner()){ grant(); return; }
-      // Signed in as a regular employee → their login can't unlock owner-only things.
+      if(TKS.auth.can && TKS.auth.can('setup')){ grant(); return; }   // manager+ unlocks (real role)
+      // Signed in as a non-manager → their login can't unlock manager-only things.
       alert(t('owner_denied')); VIEW='home'; render(); return;
     }
   }catch(e){}

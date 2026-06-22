@@ -633,7 +633,7 @@
       <input class="search" id="invSearch" type="text" placeholder="Search part, SKU, fitment, VIN…">
       <button class="add" id="invImport" title="Import from a spreadsheet (.xlsx/.csv)" style="background:#e7e9ee">📥 Import</button>
       <button class="add" id="invVin" title="Find the key/fob for a VIN" style="background:#e7e9ee">🔎 VIN</button>
-      <button class="add" id="invAdd">+ Add</button>
+      <button class="add" id="invAdd" data-cap="inventoryWrite">+ Add</button>
     </div>
     <div class="invsummary" id="invSummary"></div>
     <div class="seg" id="invLocSeg" style="display:none;margin-bottom:12px"></div>
@@ -654,7 +654,7 @@
       <label for="pCategory">Category</label>
       <input id="pCategory" type="text" placeholder="Key blanks, fobs, tools…">
       <div class="row2">
-        <div><label for="pCost">Unit cost ($)</label><input id="pCost" type="number" inputmode="decimal" placeholder="0.00"></div>
+        <div data-cap="inventoryWrite"><label for="pCost">Unit cost ($)</label><input id="pCost" type="number" inputmode="decimal" placeholder="0.00"></div>
         <div><label for="pLocation">Bin / shelf</label><input id="pLocation" type="text" placeholder="e.g. bin 3"></div>
       </div>
       <div id="pLocWrap" style="display:none">
@@ -671,7 +671,7 @@
       <textarea id="pNotes" placeholder="Part link, cross-reference, etc…"></textarea>
       <div class="actions">
         <button class="btn del" id="pDelete" data-cap="hardDelete" style="display:none;">Delete</button>
-        <button class="btn save" id="pSave">Save part</button>
+        <button class="btn save" id="pSave" data-cap="inventoryWrite">Save part</button>
       </div>
       <p class="note" id="partNote"></p>
     </div>
@@ -1323,9 +1323,9 @@ function renderInventory(){
     const sub = [ showLoc?locLabel(loc):'', p.sku, p.category, p.location ].filter(Boolean).join('  ·  ') || '—';
     row.innerHTML =
       '<div class="pq">'+
-        '<button class="qbtn minus" aria-label="Decrease quantity of '+esc(p.name||'part')+'">−</button>'+
+        '<button class="qbtn minus" data-cap="inventoryWrite" aria-label="Decrease quantity of '+esc(p.name||'part')+'">−</button>'+
         '<span class="qn" aria-label="Quantity on hand">'+(parseInt(p.qty,10)||0)+'</span>'+
-        '<button class="qbtn plus" aria-label="Increase quantity of '+esc(p.name||'part')+'">+</button>'+
+        '<button class="qbtn plus" data-cap="inventoryWrite" aria-label="Increase quantity of '+esc(p.name||'part')+'">+</button>'+
       '</div>'+
       '<div class="pinfo"><div class="nm">'+esc(p.name||'(unnamed part)')+
         (isLow?' <span class="lowbadge">'+((parseInt(p.qty,10)||0)===0?'OUT':'LOW')+'</span>':'')+'</div>'+
@@ -1333,7 +1333,7 @@ function renderInventory(){
         (isLow && (parseInt(p.reorderQty,10)||0)>0
           ? '<div class="sub reorder">↻ Reorder '+(parseInt(p.reorderQty,10)||0)+(p.supplier?' · '+esc(p.supplier):'')+'</div>'
           : '')+'</div>'+
-      (showLoc?'<button class="moveloc" title="Move to '+(loc==='van'?'shop':'van')+'">→ '+(loc==='van'?'Shop':'Van')+'</button>':'')+
+      (showLoc?'<button class="moveloc" data-cap="inventoryWrite" title="Move to '+(loc==='van'?'shop':'van')+'">→ '+(loc==='van'?'Shop':'Van')+'</button>':'')+
       (p.cost?'<span class="tag">'+money(p.cost)+'</span>':'');
     row.querySelector('.minus').onclick = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id,-1); renderInventory(); };
     row.querySelector('.plus').onclick  = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id, 1); renderInventory(); };
@@ -1891,8 +1891,8 @@ async function renderReports(){
     const when=(v.period==='today') ? dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : dt.toLocaleDateString([], {month:'short',day:'numeric'})+' '+dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
     const ml=t.method==='cash'?'Cash':t.method==='check'?'Check':t.method==='reader'?'Card · reader':'Card · typed';
     const col=t.status==='completed'?'#7fd49b':t.status==='refunded'?'#f2b43a':t.status==='pending'?'#9aa3af':'#f0a0a6';
-    const refund = (t.status==='completed' && (typeof TKS_ACCESS==='undefined' || TKS_ACCESS.can('refundVoid'))) ?
-      '<button class="repRefund" data-id="'+esc2(t.id)+'" data-pi="'+esc2(t.stripe_payment_intent_id||'')+'" data-method="'+esc2(t.method)+'" data-inv="'+esc2(t.invoice_id||'')+'" style="'+refBtn+'">↩︎ Refund</button>' : '';
+    const refund = t.status==='completed' ?
+      '<button class="repRefund" data-cap="refundVoid" data-id="'+esc2(t.id)+'" data-pi="'+esc2(t.stripe_payment_intent_id||'')+'" data-method="'+esc2(t.method)+'" data-inv="'+esc2(t.invoice_id||'')+'" style="'+refBtn+'">↩︎ Refund</button>' : '';
     return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
       '<div class="sub">'+when+' · '+ml+(t.technician?(' · '+esc2(t.technician)):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
       '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'+
@@ -2107,8 +2107,10 @@ function esc2(s){ return (s||'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;',
      for a signed-in staff member. Used for payment-taking (Payments/New Charge).
    Matrix — owner online: both show · owner offline (remembered): both show ·
    staff: both hidden · signed-out/no-session: hard hidden, soft shown (PIN-gated). */
-function ownerHard(){ try{ return !!(window.TKS && TKS.auth && TKS.auth.isOwner()); }catch(_){} return false; }
-function ownerSoft(){ try{ const a=TKS.auth; if(a && a.isSignedIn()) return !!a.isOwner(); }catch(_){} return true; }
+// .owner-only = manager+ financial/dashboard tiles; .owner-soft = manager+ settings.
+// Signed in → gated by the real staff role; signed out → preserve old behavior.
+function ownerHard(){ try{ const a=TKS.auth; return a.isSignedIn() ? !!a.can('viewAudit') : !!a.isOwner(); }catch(_){} return false; }
+function ownerSoft(){ try{ const a=TKS.auth; if(a && a.isSignedIn()) return !!a.can('setup'); }catch(_){} return true; }
 function ownerVisible(){ return ownerHard(); }   // back-compat alias (hard)
 function syncOwnerTiles(){
   const hard=ownerHard(), soft=ownerSoft();
