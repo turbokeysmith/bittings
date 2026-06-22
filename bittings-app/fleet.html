@@ -185,8 +185,8 @@ function openVanForm(v){
   v = v || {};
   const isEdit = !!v.id;
   const ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:flex-end;justify-content:center;padding:0;';
-  ov.innerHTML='<div style="background:var(--card);width:100%;max-width:560px;border-radius:16px 16px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto;">'+
+  ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML='<div style="background:var(--card);width:100%;max-width:560px;border-radius:16px;padding:16px;max-height:88vh;overflow:auto;">'+
     '<h2 style="margin:0 0 10px;font-size:17px;">'+(isEdit?'Edit van':'Add a van')+'</h2>'+
     '<div class="row2"><div><label>Fleet #</label><input id="vf_fleet" value="'+esc(v.fleet_no||'')+'" placeholder="e.g. 12"></div>'+
       '<div><label>Nickname</label><input id="vf_nick" value="'+esc(v.nickname||'')+'" placeholder="e.g. Big White"></div></div>'+
