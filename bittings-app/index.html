@@ -197,6 +197,19 @@
   .pay-banner.live{background:rgba(200,50,60,.14);border-color:rgba(200,50,60,.5);color:#f0a0a6;}
   .pay-breakdown{font-size:13.5px;color:var(--dim);margin:6px 2px 2px;min-height:1px;}
   .pay-breakdown b{color:var(--ink,#f4f5f7);}
+  /* New-charge customer picker */
+  .chg-custnone{font-size:13.5px;color:var(--dim);padding:9px 11px;border:1px dashed var(--edge);border-radius:10px;}
+  .chg-custset{font-size:14px;color:var(--ink);padding:9px 11px;border:1px solid var(--edge);border-radius:10px;background:rgba(74,163,255,.06);}
+  .chg-custset b{font-weight:800;} .chg-custsub{font-size:12px;color:var(--dim);margin-top:2px;}
+  .chg-modal-ov{position:fixed;inset:0;z-index:9500;background:rgba(6,8,11,.5);display:flex;align-items:flex-end;justify-content:center;}
+  .chg-modal{background:var(--card);width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;border:1px solid var(--edge);}
+  .chg-modal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:16px;color:var(--ink);}
+  .chg-modal-x{background:none;border:none;font-size:24px;line-height:1;color:var(--dim);cursor:pointer;padding:0 4px;}
+  .chg-modal input{width:100%;background:var(--bg);border:1px solid var(--edge);border-radius:10px;padding:10px 11px;color:var(--ink);font-size:16px;}
+  .chg-cplist{margin-top:8px;max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:6px;}
+  .chg-cprow{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;width:100%;background:var(--bg);border:1px solid var(--edge);border-radius:10px;padding:9px 11px;cursor:pointer;min-height:44px;}
+  .chg-cprow:hover{border-color:#4aa3ff;} .chg-cprow b{font-size:14px;color:var(--ink);font-weight:700;} .chg-cprow span{font-size:12px;color:var(--dim);}
+  .chg-cpempty{font-size:13px;color:var(--dim);padding:10px 2px;}
   .pay-secret-note{background:rgba(242,180,58,.10);border:1px dashed rgba(242,180,58,.45);border-radius:11px;
     padding:12px 14px;font-size:12.5px;line-height:1.5;color:var(--dim);margin:6px 0 2px;}
   .pay-secret-note b{color:#f2d18a;}
@@ -435,7 +448,7 @@
       <button class="bt-nav__item owner-only" data-go="dashboard" style="display:none"><span class="bt-nav__ic">📊</span>Dashboard</button>
       <button class="bt-nav__item owner-only" data-go="history" style="display:none"><span class="bt-nav__ic">🧮</span>Closeout</button>
       <button class="bt-nav__item owner-only" data-go="reports" style="display:none"><span class="bt-nav__ic">📈</span>Reports</button>
-      <div class="bt-navhead">Vendor tools</div>
+      <div class="bt-navhead" data-cap="keycodes">Vendor tools</div>
       <div id="quickTiles"></div>
     </nav>
     <div class="bt-sidefoot">
@@ -573,11 +586,15 @@
       <div class="amountwrap"><span>$</span><input id="chgAmount" type="number" inputmode="decimal" placeholder="0.00" aria-label="Charge amount in dollars"></div>
       <label for="chgLabel">Service</label>
       <input id="chgLabel" type="text" placeholder="e.g. Car lockout">
-      <label for="chgCust">Customer name (optional)</label>
-      <input id="chgCust" type="text" list="chgCustList" placeholder="Leave blank to charge anonymously" autocomplete="off">
-      <datalist id="chgCustList"></datalist>
-      <label for="chgEmail">Customer email (optional)</label>
-      <input id="chgEmail" type="email" placeholder="files the charge to their history" autocomplete="off">
+      <label>Customer</label>
+      <div id="chgCustBox" class="chg-custbox">
+        <div id="chgCustDisplay" class="chg-custnone">No customer selected</div>
+        <div class="actions" style="gap:8px;margin-top:6px">
+          <button type="button" class="btn ghostbtn" id="chgCustPick" style="flex:1">👤 Select / add customer</button>
+          <button type="button" class="btn ghostbtn" id="chgCustClear" style="flex:0 0 auto;display:none">Clear</button>
+        </div>
+      </div>
+      <p class="note" id="chgCustHint" style="margin-top:6px">Cash can be anonymous. <b>Card &amp; check need the customer's info</b> — it files the charge to their history.</p>
       <div class="pay-breakdown" id="chgBreakdown"></div>
       <div class="actions" style="flex-wrap:wrap;gap:8px">
         <button class="btn save" id="chgCard" disabled style="flex:1 1 100%">💳 Card — Pay Now</button>
@@ -586,7 +603,7 @@
       </div>
       <p class="note" id="chgStatus" aria-live="polite"></p>
       <div id="chgSendRow" class="actions" style="display:none;flex-wrap:wrap;gap:8px"></div>
-      <p class="note"><a href="#" id="chgHistLink">📋 Day closeout / transaction history</a></p>
+      <p class="note" data-cap="viewAudit"><a href="#" id="chgHistLink">📋 Day closeout / transaction history</a></p>
     </div>
   </div>
 
@@ -862,16 +879,19 @@ function llRow(item){
 // category that has at least one link (empty categories => no tile).
 function renderQuickTiles(){
   const box=document.getElementById('quickTiles'); if(!box) return;
-  const tiles=[{cat:'keycodes', cls:'t-keycodes', ic:'🔑', label:'Keycodes', sub:'Dealer/OEM portals by make.'}];
+  // Keycodes = owner/manager/technician (front_desk can't); all other vendor
+  // tiles (vendors / NASTF / custom links) = manager/owner only.
+  const tiles=[{cat:'keycodes', cls:'t-keycodes', ic:'🔑', label:'Keycodes', sub:'Dealer/OEM portals by make.', cap:'keycodes'}];
   let cats=[]; try{ cats=TKS.Config.quickLinks()||[]; }catch(e){}
   cats.forEach(c=>{
     const links=(c.links||[]).filter(l=>l&&(l.url||'').trim());
     if(!links.length) return;
     const cls = c.key==='vendors'?'t-vendor':c.key==='nastf'?'t-nastf':'t-quick';
-    tiles.push({cat:'ql:'+c.key, cls, ic:c.icon||'🔗', label:c.label, sub:links.length+' link'+(links.length>1?'s':'')});
+    tiles.push({cat:'ql:'+c.key, cls, ic:c.icon||'🔗', label:c.label, sub:links.length+' link'+(links.length>1?'s':''), cap:'vendorTools'});
   });
-  box.innerHTML = tiles.map(t=>'<button class="bt-nav__item" data-links="'+esc2(t.cat)+'"><span class="bt-nav__ic">'+t.ic+'</span>'+esc2(t.label)+'</button>').join('');
+  box.innerHTML = tiles.map(t=>'<button class="bt-nav__item" data-cap="'+t.cap+'" data-links="'+esc2(t.cat)+'"><span class="bt-nav__ic">'+t.ic+'</span>'+esc2(t.label)+'</button>').join('');
   box.querySelectorAll('[data-links]').forEach(b=> b.onclick=()=> openLinks(b.dataset.links));
+  if(window.TKS_ACCESS) TKS_ACCESS.applyGates(box);   // hide tiles the role can't use
 }
 function openLinks(cat){
   let title='', note='', items=[];
@@ -1526,11 +1546,65 @@ document.getElementById('pDelete').onclick = ()=>{
    when a name/email is given; anonymous otherwise. */
 let _chgUnlocked=false;
 function chgEls(){ return { amt:document.getElementById('chgAmount'), label:document.getElementById('chgLabel'),
-  cust:document.getElementById('chgCust'), email:document.getElementById('chgEmail'),
   card:document.getElementById('chgCard'), cash:document.getElementById('chgCash'), check:document.getElementById('chgCheck'),
   status:document.getElementById('chgStatus'),
   breakdown:document.getElementById('chgBreakdown'), banner:document.getElementById('chgBanner'),
   gate:document.getElementById('chgGate'), form:document.getElementById('chgForm') }; }
+
+/* Customer for this charge — selected from (or added to) the customer database.
+   Cash can stay anonymous; CARD & CHECK require a customer (we need their info). */
+let chgCustomer=null;   // { id, customer, phone, email }
+function setChgCustomer(c){ chgCustomer = c ? { id:c.id||null, customer:(c.customer||'').trim(), phone:(c.phone||'').trim(), email:(c.email||'').trim() } : null; renderChgCustomer(); }
+function renderChgCustomer(){
+  const el=document.getElementById('chgCustDisplay'), clr=document.getElementById('chgCustClear');
+  if(!el) return;
+  if(chgCustomer && chgCustomer.customer){
+    const sub=[chgCustomer.phone, chgCustomer.email].filter(Boolean).join('  ·  ');
+    el.className='chg-custset'; el.innerHTML='<b>'+esc2(chgCustomer.customer)+'</b>'+(sub?('<div class="chg-custsub">'+esc2(sub)+'</div>'):'');
+    if(clr) clr.style.display='';
+  } else {
+    el.className='chg-custnone'; el.textContent='No customer selected';
+    if(clr) clr.style.display='none';
+  }
+}
+function openChgCustomerPicker(){
+  const ov=document.createElement('div'); ov.className='chg-modal-ov';
+  ov.innerHTML='<div class="chg-modal"><div class="chg-modal-h"><b>Select a customer</b>'+
+      '<button type="button" class="chg-modal-x" id="cpX" aria-label="Close">×</button></div>'+
+    '<input type="text" id="cpSearch" placeholder="Search name, phone, email…" autocomplete="off">'+
+    '<div id="cpList" class="chg-cplist"></div>'+
+    '<button type="button" class="btn ghostbtn" id="cpAddNew" style="width:100%;margin-top:8px">+ Add a new customer</button>'+
+    '<div id="cpAddForm" style="display:none;margin-top:10px">'+
+      '<input type="text" id="cpName" placeholder="Name *" autocomplete="off">'+
+      '<input type="tel" id="cpPhone" placeholder="Phone" autocomplete="off" style="margin-top:6px">'+
+      '<input type="email" id="cpEmail" placeholder="Email (optional)" autocomplete="off" style="margin-top:6px">'+
+      '<div class="actions" style="gap:8px;margin-top:8px"><button type="button" class="btn ghostbtn" id="cpAddCancel" style="flex:1">Cancel</button>'+
+        '<button type="button" class="btn save" id="cpAddSave" style="flex:2">Save customer</button></div>'+
+      '<p class="note" id="cpAddMsg" style="min-height:14px;margin:6px 0 0"></p></div></div>';
+  document.body.appendChild(ov);
+  function close(){ ov.remove(); }
+  ov.addEventListener('mousedown', e=>{ if(e.target===ov) close(); });
+  document.getElementById('cpX').onclick=close;
+  const searchEl=document.getElementById('cpSearch'), listEl=document.getElementById('cpList');
+  function renderList(){
+    let list=[]; try{ list=TKS.Customers.search(searchEl.value).slice(0,40); }catch(_){}
+    if(!list.length){ listEl.innerHTML='<div class="chg-cpempty">No matches — add a new customer below.</div>'; return; }
+    listEl.innerHTML=list.map(c=>{ const sub=[c.phone,c.email].filter(Boolean).join('  ·  ');
+      return '<button type="button" class="chg-cprow" data-id="'+esc2(c.id)+'"><b>'+esc2(c.customer||'(no name)')+'</b>'+(sub?('<span>'+esc2(sub)+'</span>'):'')+'</button>'; }).join('');
+    listEl.querySelectorAll('.chg-cprow').forEach(b=> b.onclick=()=>{ let c=null; try{ c=TKS.Customers.all().find(x=>x.id===b.dataset.id); }catch(_){}; if(c){ setChgCustomer(c); close(); } });
+  }
+  searchEl.oninput=renderList; renderList(); setTimeout(()=>searchEl.focus(),30);
+  const addForm=document.getElementById('cpAddForm');
+  document.getElementById('cpAddNew').onclick=()=>{ addForm.style.display='block'; const n=document.getElementById('cpName'); n.value=(searchEl.value||'').trim(); n.focus(); };
+  document.getElementById('cpAddCancel').onclick=()=>{ addForm.style.display='none'; };
+  document.getElementById('cpAddSave').onclick=()=>{
+    const name=document.getElementById('cpName').value.trim(), phone=document.getElementById('cpPhone').value.trim(), email=document.getElementById('cpEmail').value.trim();
+    const msg=document.getElementById('cpAddMsg');
+    if(!name){ msg.style.color='#f0a0a6'; msg.textContent='Enter a name.'; return; }
+    let rec=null; try{ rec=TKS.Customers.upsert({ customer:name, phone, email, source:'new-charge' }); }catch(e){ msg.style.color='#f0a0a6'; msg.textContent='Could not save the customer.'; return; }
+    setChgCustomer(rec||{customer:name,phone,email}); close();
+  };
+}
 function chgShowForm(){ const e=chgEls(); e.form.style.display='block'; e.gate.style.display='none'; _chgUnlocked=true; }
 function chgGate(){
   _chgUnlocked=false; const e=chgEls();
@@ -1554,15 +1628,16 @@ function renderChgBreakdown(){ const e=chgEls(), a=chgAmounts(); const off=(a.su
 }
 function chgBuildReceipt(){
   const e=chgEls(), a=chgAmounts();
-  const name=(e.cust.value||'').trim(), email=(e.email.value||'').trim();
+  const c=chgCustomer||{};
+  const name=(c.customer||'').trim(), email=(c.email||'').trim(), phone=(c.phone||'').trim();
   const label=(e.label.value||'').trim()||'Service';
   const id='chg_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-  if(name){ try{ TKS.Customers.upsert({ customer:name, email, source:'new-charge' }); }catch(_){} }
-  const receipt={ id, number:id, docType:'receipt', source:'new-charge', customer:name, email, status:'Unpaid',
+  if(name){ try{ TKS.Customers.upsert({ customer:name, phone, email, source:'new-charge' }); }catch(_){} }
+  const receipt={ id, number:id, docType:'receipt', source:'new-charge', customerId:(c.id||null), customer:name, email, phone, status:'Unpaid',
     items:[{desc:label, amount:a.sub, taxable:false}], totals:{ total:a.sub, surcharge:0, subtotal:a.sub, tax:0, discount:0 } };
   return { receipt, name, label, a };
 }
-function chgClear(){ const e=chgEls(); e.amt.value=''; e.label.value=''; e.cust.value=''; e.email.value=''; renderChgBreakdown();
+function chgClear(){ const e=chgEls(); e.amt.value=''; e.label.value=''; setChgCustomer(null); renderChgBreakdown();
   const sr=document.getElementById('chgSendRow'); if(sr){ sr.style.display='none'; sr.innerHTML=''; } }
 /* Send the customer their receipt using the DEVICE's own apps — no email service,
    no cost. Native Share sheet is primary (works on iPhone + Android); an Email
@@ -1592,17 +1667,20 @@ function showChgSend(r){
 function chgSay(msg,ok){ const e=chgEls(); e.status.textContent=msg; e.status.style.color=ok?'#7fd49b':(ok===false?'#f0a0a6':'var(--dim)'); }
 function renderPayments(){
   const e=chgEls();
-  try{ const dl=document.getElementById('chgCustList'); if(dl) dl.innerHTML=TKS.Customers.all().map(c=>'<option value="'+esc2(c.customer||'')+'">').join(''); }catch(_){}
   e.banner.className='pay-banner'; e.banner.textContent='New charge — same Stripe engine as invoices (TEST until live keys).';
   if(e.status) e.status.textContent='';
+  renderChgCustomer();
   renderChgBreakdown();
   chgGate();
 }
+document.getElementById('chgCustPick').onclick=openChgCustomerPicker;
+document.getElementById('chgCustClear').onclick=()=>setChgCustomer(null);
 document.getElementById('chgAmount').addEventListener('input', renderChgBreakdown);
 document.getElementById('chgCard').onclick=function(){
   if(!_chgUnlocked){ chgGate(); return; }
   const a=chgAmounts();
   if(a.cents<50){ chgSay('Amount must be at least $0.50 for card.',false); return; }
+  if(!chgCustomer || !chgCustomer.customer){ chgSay("Card needs the customer's info — tap “Select / add customer”.",false); return; }
   const b=chgBuildReceipt();
   if(!window.TKPay || !TKPay.openForReceipt){ chgSay('Payment engine not loaded.',false); return; }
   TKPay.openForReceipt(b.receipt, { title:b.label+(b.name?(' — '+b.name):' — walk-in'),
@@ -1612,6 +1690,7 @@ function chgRecord(method){
   if(!_chgUnlocked){ chgGate(); return; }
   const a=chgAmounts();
   if(a.cents<1){ chgSay('Enter an amount.',false); return; }
+  if(method==='check' && (!chgCustomer || !chgCustomer.customer)){ chgSay("Check needs the customer's info — tap “Select / add customer”.",false); return; }
   const b=chgBuildReceipt();
   if(!window.TKPay || !TKPay.recordCashCheck){ chgSay('Payment engine not loaded.',false); return; }
   chgSay('Recording…',null);

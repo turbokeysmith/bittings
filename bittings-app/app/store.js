@@ -599,7 +599,9 @@
     jobStatus:      ['owner','manager','technician'],  // change job status (front_desk cannot); own-job enforced server-side
     invMove:        ['owner','manager','technician'],  // move stock between locations (inv_move) — front_desk cannot
     invReceive:     ['owner','manager','front_desk'],  // receive new stock to shop (inv_receive) — technician cannot
-    takePayment:    ['owner','manager','front_desk','technician']  // take a payment / new charge — all staff
+    takePayment:    ['owner','manager','front_desk','technician'],  // take a payment / new charge — all staff
+    keycodes:       ['owner','manager','technician'],  // dealer/OEM keycode portals — front_desk cannot
+    vendorTools:    ['owner','manager']                // vendor list + NASTF tiles — manager/owner only
   };
   // Fetch + cache the signed-in user's role from the `staff` table.
   function fetchStaffRole(sb) {
