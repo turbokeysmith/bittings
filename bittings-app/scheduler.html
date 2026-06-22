@@ -38,6 +38,7 @@
 
 /* ---- LIGHT THEME (default) ---- */
 :root{
+  color-scheme:light;      /* native time/date pickers render light */
   --gold:#E8A317;          /* brand accent (key gold) */
   --gold-soft:#FFF6E2;     /* tint for selected choices */
   --gold-line:#F0C462;
@@ -65,6 +66,7 @@
 }
 /* ---- DARK THEME ---- */
 :root[data-theme="dark"]{
+  color-scheme:dark;       /* native time/date picker icons go light/white in dark mode */
   --gold:#F2B43A;
   --gold-soft:#3A2E12;
   --gold-line:#5C4A1E;
@@ -579,6 +581,33 @@ const SCRIPT = {
       "Ya tengo sus datos — déme un par de detalles y mandamos a alguien en camino.",
       "Listo, aguante — solo un par de detalles y vamos para allá.",
       "Casi listo — unos detalles más y lo sacamos de apuros rápido."
+    ]
+  },
+  /* DETAILS ASK — what to actually say to collect this step's info. Shown on the
+     details step, job-aware: a car needs the vehicle + address; a house/business
+     just needs the address. (Empathy for a lockout already fired a step earlier.) */
+  details_auto:{
+    en:[
+      "Perfect — what's the year, make, and model of the vehicle, and where is it parked?",
+      "Let me get the car's year, make, and model — and the address where it's at.",
+      "Okay — year, make, and model of the vehicle, and the full address for me?"
+    ],
+    es:[
+      "Perfecto — ¿qué año, marca y modelo es el vehículo, y dónde está estacionado?",
+      "Déjeme el año, la marca y el modelo del carro — y la dirección donde está.",
+      "Bien — ¿año, marca y modelo del vehículo, y la dirección completa?"
+    ]
+  },
+  details_addr:{
+    en:[
+      "Got it — what's the full address where you need us?",
+      "Okay — what's the address, including any gate code or unit number?",
+      "Let me get the address — where should we head?"
+    ],
+    es:[
+      "Entendido — ¿cuál es la dirección completa donde nos necesita?",
+      "Bien — ¿cuál es la dirección, con código de entrada o número de unidad?",
+      "Déjeme la dirección — ¿a dónde vamos?"
     ]
   },
   /* REASSURE — at the scheduling step. */
@@ -1428,10 +1457,11 @@ function stepSubType(){
 
 function stepDetails(){
   // Tone-matched: cheerful small talk for routine jobs, but keep-it-moving for emergencies.
-  const msg = isUrgent() ? line('details', SCRIPT.details_urgent) : line('details', SCRIPT.smalltalk);
+  // Say-this ASKS for exactly what this step collects (job-aware): a car needs the
+  // vehicle + address; a house/business just needs the address. The lockout empathy
+  // already fired on the previous step, so here we keep it practical, not chit-chat.
+  const msg = line('details', booking.jobType==='auto' ? SCRIPT.details_auto : SCRIPT.details_addr);
   let html = coachCard(msg);
-  // Coach what THIS step actually collects: a car job needs vehicle ID + ignition
-  // (the big part) plus the address; house/business just needs the address.
   html += tipCard((booking.jobType==='auto' ? TIPS.details_auto : TIPS.location)[LANG]);
   if(booking.jobType==='auto'){
     // A car job needs vehicle ID: a VIN (auto-fills year/make/model) OR

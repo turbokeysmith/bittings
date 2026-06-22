@@ -13,6 +13,7 @@
 <link rel="icon" type="image/svg+xml" href="app/ui/assets/favicon.svg">
 <style>
   :root{
+    color-scheme:light;
     --bg:#f6f7f9; --bg2:#eef0f3; --card:#ffffff; --edge:#e3e6ea; --ink:#14171b; --dim:#5a616c;
     --red:#c8323c; --red-deep:#8f1f27; --amber:#f2b43a; --green:#22994a; --off:#9aa1ac;
   }
@@ -332,6 +333,7 @@
      values — which left some text black-on-dark and some white-on-white. These overrides win by
      coming later in source (same/greater specificity). ===== */
   html[data-bt-theme="dark"]{
+    color-scheme:dark;
     --bg:#14171b; --bg2:#1b1f25; --card:#1f232a; --edge:#2c313a; --ink:#f4f5f7; --dim:#9aa1ac; --off:#7e8693;
   }
   [data-bt-theme="dark"] #view-dashboard .dash{
