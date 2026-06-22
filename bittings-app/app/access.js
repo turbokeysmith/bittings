@@ -14,7 +14,10 @@
    ========================================================================== */
 (function () {
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
-  function can(cap){ try{ return !!(window.TKS && TKS.auth && TKS.auth.can(cap)); }catch(e){ return true; } }
+  // FAIL CLOSED: if the role layer isn't available (e.g. a stale cached store.js
+  // with no can()), HIDE the control rather than show it. Local/offline "full
+  // access" is handled inside TKS.auth.can (returns true when not signed in).
+  function can(cap){ try{ if(window.TKS && TKS.auth && typeof TKS.auth.can==='function') return !!TKS.auth.can(cap); }catch(e){} return false; }
 
   // Hide + disable any element marked data-cap="<capability>" the role can't use.
   function applyGates(root){
