@@ -893,6 +893,7 @@ function assignTechToBooking(id, val){
 
 /* ---- technician self-scope: a tech only SEES + TOUCHES their own assigned jobs ---- */
 function isTechRole(){ try{ return !!(TKS.auth && TKS.auth.staffRole && TKS.auth.staffRole()==='technician'); }catch(e){ return false; } }
+function isOwnerRole(){ try{ return !!(TKS.auth && ((TKS.auth.staffRole&&TKS.auth.staffRole()==='owner') || (TKS.auth.isOwner&&TKS.auth.isOwner()))); }catch(e){ return false; } }
 function myStaffName(){
   let uid=''; try{ const u=TKS.auth.user&&TKS.auth.user(); uid=u?u.id:''; }catch(e){}
   if(uid && _schedStaff){ const s=_schedStaff.find(x=>x.user_id===uid); if(s) return String(s.name||'').trim(); }
@@ -1317,6 +1318,7 @@ function tagBookingNote(id, label, note){
 // the cloud status 'scheduled' but flags it locally as Rescheduled + needs sign-off.
 function openStatusNote(jobId, kind){
   const isCancel = kind==='cancel';
+  const noteReq = !isOwnerRole();   // owner can cancel/reschedule without a note; everyone else must
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
   ov.innerHTML='<div style="background:var(--card,#fff);color:var(--ink);width:100%;max-width:520px;border-radius:16px;padding:16px;max-height:88vh;overflow:auto">'+
@@ -1325,7 +1327,7 @@ function openStatusNote(jobId, kind){
       '⚠ Confirm every part, key, or piece of equipment taken for this job is <b>unused</b> and returned to stock. '+
       '<b>A manager must sign off</b> before any of it goes back into inventory.</div>'+
     (isCancel ? '<label style="font-size:12px;color:var(--dim)">Reason</label><select id="sn_reason" style="width:100%">'+CANCEL_REASONS.map(r=>'<option value="'+esc(r)+'">'+esc(r)+'</option>').join('')+'</select>' : '')+
-    '<label style="font-size:12px;color:var(--dim);margin-top:8px;display:block">'+(isCancel?'Note (required)':'Why reschedule, and new timing? (required)')+'</label>'+
+    '<label style="font-size:12px;color:var(--dim);margin-top:8px;display:block">'+(isCancel?'Note':'Why reschedule, and new timing?')+(noteReq?' (required)':' (optional)')+'</label>'+
     '<textarea id="sn_note" rows="3" style="width:100%" placeholder="'+(isCancel?'What happened — and the state of any equipment taken…':'Reason + new timing — and the state of any equipment taken…')+'"></textarea>'+
     '<div id="sn_msg" style="font-size:12px;min-height:15px;margin-top:6px"></div>'+
     '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn ghost" id="sn_back" style="flex:1">Keep job</button>'+
@@ -1338,7 +1340,7 @@ function openStatusNote(jobId, kind){
     const note=document.getElementById('sn_note').value.trim();
     const reason=isCancel ? document.getElementById('sn_reason').value : 'Rescheduled';
     const m=document.getElementById('sn_msg');
-    if(!note){ m.style.color='#c8323c'; m.textContent='A note is required.'; return; }
+    if(noteReq && !note){ m.style.color='#c8323c'; m.textContent='A note is required.'; return; }
     m.style.color='var(--dim)'; m.textContent=isCancel?'Canceling…':'Saving…';
     tagBookingNote(jobId, isCancel?('Canceled — '+reason):'Rescheduled', note);
     const signedIn=!!(window.TKS && TKS.auth && TKS.auth.isSignedIn());
