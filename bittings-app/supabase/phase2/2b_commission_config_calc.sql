@@ -36,9 +36,10 @@ create policy commcfg_upd on public.commission_config for update to authenticate
 insert into public.commission_config(id) values (1) on conflict (id) do nothing;
 
 -- Per-tech-per-day commission from PAID POS sales, tagged by line type, per config.
--- structure: flat_pct + daily_min_pct fully implemented; flat_per_job = a per-day
--- proxy here (true per-job lands with job_staff in 2c); tiered_pct = stubbed to
--- flat_pct for now (selectable + stored; owner's path is daily_min_pct).
+-- ALL FOUR structures implemented (migration phase2_2b_tiered_and_perjob_calc):
+-- flat_pct, daily_min_pct (max of % vs daily min), flat_per_job (× distinct paid
+-- sales that day), tiered_pct (the bracket the day's base lands in sets the % on
+-- the whole). The body below shows the final version.
 create or replace function public.commission_day_rows(p_from date, p_to date, p_tech uuid default null)
   returns table(tech_id uuid, tech_name text, day date, base_cents bigint, commission_cents bigint, held_cents bigint, met_min boolean)
   language plpgsql security definer set search_path = public as $$
@@ -51,7 +52,7 @@ begin
   return query
   with sales as (
     select nullif(r.data->>'technicianId','')::uuid as s_tech, coalesce(r.data->>'technician','') as s_name,
-      (pt.created_at at time zone 'America/Chicago')::date as s_day,
+      (pt.created_at at time zone 'America/Chicago')::date as s_day, r.id as s_rid,
       ( select coalesce(sum((it->>'amount')::numeric),0)*100
           from jsonb_array_elements(coalesce(r.data->'items','[]'::jsonb)) it
          where coalesce((it->>'isDiscount')::boolean,false) = false
@@ -70,14 +71,19 @@ begin
   perday as (
     select s_tech, max(s_name) as nm, s_day,
            sum(case when not s_held then s_base else 0 end) as p_base,
-           sum(case when s_held then s_base else 0 end) as p_held
+           sum(case when s_held then s_base else 0 end) as p_held,
+           count(distinct s_rid) filter (where not s_held) as p_jobs
     from sales where s_tech is not null group by s_tech, s_day
   )
   select pd.s_tech, coalesce(nullif(pd.nm,''), (select st.name from staff st where st.user_id=pd.s_tech), '—'),
          pd.s_day, pd.p_base::bigint,
          (case when cfg.structure='flat_pct' then round(pd.p_base * cfg.flat_pct/100.0)
                when cfg.structure='daily_min_pct' then greatest(cfg.daily_min_cents, round(pd.p_base * cfg.flat_pct/100.0))
-               when cfg.structure='flat_per_job' then cfg.flat_per_job_cents
+               when cfg.structure='flat_per_job' then pd.p_jobs * cfg.flat_per_job_cents
+               when cfg.structure='tiered_pct' then round(pd.p_base * coalesce((
+                      select (t->>'pct')::numeric from jsonb_array_elements(cfg.tiers) t
+                       where pd.p_base <= coalesce(nullif(t->>'up_to_cents','')::bigint, 999999999999)
+                       order by coalesce(nullif(t->>'up_to_cents','')::bigint, 999999999999) asc limit 1), 0)/100.0)
                else round(pd.p_base * cfg.flat_pct/100.0) end)::bigint,
          round(pd.p_held * cfg.flat_pct/100.0)::bigint,
          (cfg.structure='daily_min_pct' and round(pd.p_base*cfg.flat_pct/100.0) >= cfg.daily_min_cents)

@@ -43,7 +43,7 @@
 
 ## STAGE 2b — Configurable commission engine  🔨 DB DONE & PROVEN (UI next)
 - ✅ `commission_config` table (pays-on, structure, flat_pct, daily_min_cents, tiers, flat_per_job, exclude_parts, earned_when, hold_unreconciled) — RLS read=staff, write=manager+; owner's model seeded (values blank).
-- ✅ `commission_day_rows(from,to,tech)` — server-side per-tech-per-day commission off **paid, tagged** POS sales; **flat_pct + daily_min_pct fully implemented**; flat_per_job = per-day proxy; tiered = stubbed→flat_pct (selectable/stored). A **technician only sees their own** (server-forced). Held = linked booking `reconciliation_pending`.
+- ✅ `commission_day_rows(from,to,tech)` — server-side per-tech-per-day commission off **paid, tagged** POS sales; **all four structures implemented** (flat_pct · daily_min_pct=max(min,%) · flat_per_job=× distinct sales/day · tiered_pct=bracket-the-base-lands-in × whole). A **technician only sees their own** (server-forced). Held = linked booking `reconciliation_pending`.
 - ✅ **Server-verified**: base excludes parts, daily-min wins over %, tech-sees-own-only. Repo: `2b_commission_config_calc.sql`. Data layer `TKS.Commission`.
 - ✅ **UI:** **Commission rules editor** (⚙ Rules in the Commission view) — pays-on, structure, %, daily-min, exclude-parts, earned-when, hold-unreconciled (all selectable; owner fills the blank % + daily-min). Manager+ (`data-cap=setup`, server-enforced).
 
@@ -65,6 +65,7 @@
 - 2026-06-22 (2a): technician + owner test users — tech catalog checkout server-priced (part/service amounts correct) PASS · tech discount BLOCKED · tech part-price override BLOCKED · tech custom-priced line BLOCKED · manager discount PASS · per-location stock decrement (10→7) PASS · decrement idempotent PASS. Test data self-cleaned (services table left empty by design).
 - 2026-06-22 (2b): commission calc — base excludes parts (service-only 8000) PASS · daily-min wins over % (max($50, 10%·$80)=$50) PASS · technician sees only own rows PASS. Config reset, test data cleaned.
 - 2026-06-22 (2d): sign-off — technician can't list holds + can't release (BLOCKED) PASS · owner lists the flagged job + releases it · release clears `reconciliation_pending` PASS. Self-created test booking cleaned.
+- 2026-06-22 (2b tiered/per-job): tiered bracket (base $80 ≤ $500 → 5% → $4.00) PASS · flat-$-per-job ($25 × 1 sale → $25.00) PASS. Config reset, test data cleaned.
 
 ## 📌 WHERE PHASE 2 STANDS
 **All four stages are code-complete and server-proven** (POS checkout pricing/discount gating, per-location stock decrement, commission math, sign-off — all verified with the technician + owner test users). Security advisors: no ERRORs. **Remaining: the owner fills in the blanks + a real-device sweep.** Branch `phase2-pos-commission` (not merged to main); DB + the `pay.js` `skipUpsert` change are live.
@@ -76,7 +77,7 @@
 
 ## 🚩 Owner decisions to confirm (none blocked the build)
 1. **Daily-min interpretation:** implemented as **max(daily-minimum, %×commissionable)** for each day the tech had a sale. Confirm vs. "minimum + % on top" or "minimum every scheduled day regardless of sales."
-2. **Tiered % and flat-$-per-job** are selectable + stored but the calc currently **stubs** them (tiered→flat %, per-job→per-day). Build out fully when you choose one of those models.
+2. ✅ **Tiered % and flat-$-per-job are now fully built** (2026-06-22) — the Rules editor shows the right fields per structure (incl. a tier-bracket editor), and the calc implements them server-side (tiered: the bracket the day's total lands in sets the % on the whole; per-job: a flat $ per paid sale that day). Verified.
 3. **Commission earner** = the **technician tagged on the register ticket** (the seller). True **split-partner** splitting + **assist earns nothing** via `job_staff` is partially honored (only the tagged tech earns); full split math is a follow-up.
 4. **Walk-up POS sale "completion"** = the charge itself (collected); job-linked sales also respect the reconciliation hold. Confirm that's the intent.
 
