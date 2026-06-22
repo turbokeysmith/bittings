@@ -110,6 +110,7 @@
 <div class="wrap" id="wrap"><div class="block">Loading…</div></div>
 
 <script src="app/store.js"></script>
+<script src="app/access.js"></script>
 <!-- SheetJS for .xlsx parsing (CSV works without it); shared importer module -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="app/inventory-import.js"></script>
@@ -145,7 +146,7 @@ let cur = 0;            // current step index
 let cfg = null;         // working copy of config
 const wrap = document.getElementById('wrap');
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function isStaff(){ try{ return TKS.auth.isSignedIn() && !TKS.auth.isOwner(); }catch(e){ return false; } }
+function isStaff(){ try{ return TKS.auth.isSignedIn() && !(TKS.auth.can && TKS.auth.can('setup')); }catch(e){ return false; } }
 
 /* ---- boot: connect cloud (so config syncs), gate, then render ---- */
 (function boot(){

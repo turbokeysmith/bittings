@@ -83,11 +83,13 @@
         address: r.address, customerType: r.customer_type,
         status: r.is_contracting ? 'contracting' : 'customer',
         serviceNeeded: r.service_needed, notes: r.notes, lang: r.lang, source: r.source,
-        lastUsed: ts(r.last_used), createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
+        lastUsed: ts(r.last_used), createdAt: ts(r.created_at), updatedAt: ts(r.updated_at),
+        deletedAt: ts(r.deleted_at), deletedBy: r.deleted_by }; },
       toRow: function (o) { return {
         name: o.customer || '', contact: o.contact || '', phone: o.phone || '', email: o.email || '',
         address: o.address || '', customer_type: o.customerType || 'individual', is_contracting: false,
-        service_needed: o.serviceNeeded || '', notes: o.notes || '', lang: o.lang || '', source: o.source || '' }; }
+        service_needed: o.serviceNeeded || '', notes: o.notes || '', lang: o.lang || '', source: o.source || '',
+        deleted_at: o.deletedAt || null, deleted_by: o.deletedBy || null }; }
     },
     shops: {
       table: 'customers', idStrategy: 'uuid', filter: { is_contracting: true },
@@ -95,11 +97,13 @@
         id: r.id, customer: r.name, contact: r.contact, phone: r.phone, email: r.email,
         address: r.address, customerType: r.customer_type, status: 'contracting',
         serviceNeeded: r.service_needed, notes: r.notes, lang: r.lang, source: r.source,
-        lastUsed: ts(r.last_used), createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
+        lastUsed: ts(r.last_used), createdAt: ts(r.created_at), updatedAt: ts(r.updated_at),
+        deletedAt: ts(r.deleted_at), deletedBy: r.deleted_by }; },
       toRow: function (o) { return {
         name: o.customer || '', contact: o.contact || '', phone: o.phone || '', email: o.email || '',
         address: o.address || '', customer_type: o.customerType || 'business', is_contracting: true,
-        service_needed: o.serviceNeeded || '', notes: o.notes || '', lang: o.lang || '', source: o.source || '' }; }
+        service_needed: o.serviceNeeded || '', notes: o.notes || '', lang: o.lang || '', source: o.source || '',
+        deleted_at: o.deletedAt || null, deleted_by: o.deletedBy || null }; }
     },
     inventory: {
       table: 'inventory', idStrategy: 'text', filter: null,
@@ -183,8 +187,15 @@
       prev.forEach(function (o) { if (o.id && !curById[o.id]) deletes.push(o); });
 
       var ops = [];
-      // deletes
-      deletes.forEach(function (o) { ops.push(sb.from(cfg.table).delete().eq('id', o.id)); });
+      // deletes — verify the server actually removed the row. An RLS-blocked delete
+      // returns 0 rows (no error); we must NOT let it vanish locally (no phantom deletes).
+      var blockedDeletes = [];
+      deletes.forEach(function (o) {
+        ops.push(sb.from(cfg.table).delete().eq('id', o.id).select().then(function (res) {
+          if (!res.error && Array.isArray(res.data) && res.data.length === 0) blockedDeletes.push(o);
+          return res;
+        }));
+      });
       // updates
       updates.forEach(function (o) { ops.push(sb.from(cfg.table).update(cfg.toRow(o)).eq('id', o.id)); });
       // inserts
@@ -198,8 +209,16 @@
         }));
       });
 
-      return Promise.all(ops).then(function () { shadow[key] = snapshot(cache[key]); })
-        .catch(function (e) { if (global.console) console.warn('[TKS cloud flush]', key, e); });
+      return Promise.all(ops).then(function () {
+        if (blockedDeletes.length) {
+          // restore rows the server refused to delete → the UI stays honest (no phantom delete)
+          var have = {}; (cache[key] || []).forEach(function (r) { if (r.id) have[r.id] = 1; });
+          blockedDeletes.forEach(function (o) { if (o.id && !have[o.id]) cache[key].push(o); });
+          try { global.dispatchEvent(new CustomEvent('tks:access-blocked', { detail: { action: 'delete', key: key, count: blockedDeletes.length } })); } catch (e) {}
+          changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
+        }
+        shadow[key] = snapshot(cache[key]);
+      }).catch(function (e) { if (global.console) console.warn('[TKS cloud flush]', key, e); });
     }
 
     var pending = {};
@@ -234,7 +253,7 @@
 
     search: function (q) {
       q = (q || '').trim().toLowerCase();
-      var list = this.all();
+      var list = this.all().filter(function (c) { return !c.deletedAt; });   // hide soft-deleted from normal views
       if (!q) return list;
       return list.filter(function (c) {
         return ['customer', 'contact', 'phone', 'email', 'address', 'serviceNeeded']
@@ -286,6 +305,16 @@
     remove: function (id) {
       var list = this.all().filter(function (c) { return c.id !== id; });
       ADAPTER.saveRaw('customers', list);
+    },
+    // Manager soft-delete: hide the customer (recoverable) by stamping deleted_at.
+    // Syncs as an UPDATE (RLS lets manager/owner set deleted_at) — the row stays in
+    // the saved array so the adapter never treats it as a hard delete.
+    softRemove: function (id) {
+      var list = this.all(), changed = false;
+      var by = authState.user ? authState.user.id : null;
+      list.forEach(function (c) { if (c.id === id) { c.deletedAt = now(); c.deletedBy = by; c.updatedAt = now(); changed = true; } });
+      if (changed) ADAPTER.saveRaw('customers', list);
+      return changed;
     }
   };
 
@@ -555,7 +584,30 @@
   }
 
   var changeHandlers = [];
-  var authState = { user: null, sb: null };   // current signed-in user (cloud)
+  var authState = { user: null, sb: null, staffRole: null };   // current signed-in user + staff role (cloud)
+  // Capability → roles allowed (mirrors the server RLS matrix). Gates destructive UI.
+  var TKS_CAPS = {
+    hardDelete:     ['owner'],
+    softDelete:     ['owner','manager'],
+    refundVoid:     ['owner','manager'],
+    inventoryWrite: ['owner','manager'],
+    editPricing:    ['owner','manager'],
+    manageStaff:    ['owner'],
+    setup:          ['owner','manager'],
+    viewAudit:      ['owner','manager'],
+    editReference:  ['owner','manager']
+  };
+  // Fetch + cache the signed-in user's role from the `staff` table.
+  function fetchStaffRole(sb) {
+    try {
+      if (!sb || !authState.user) { authState.staffRole = null; return Promise.resolve(null); }
+      return sb.from('staff').select('role,active').eq('user_id', authState.user.id).maybeSingle()
+        .then(function (res) {
+          authState.staffRole = (res && res.data && res.data.active) ? String(res.data.role) : null;
+          return authState.staffRole;
+        }).catch(function () { authState.staffRole = null; return null; });
+    } catch (e) { authState.staffRole = null; return Promise.resolve(null); }
+  }
 
   // ---- cloud-synced owner config (shop_config table; localStorage fallback) ----
   // The single source of truth for the Setup wizard + Settings: business identity,
@@ -798,6 +850,19 @@
         if (!shared && global.TKS_OWNER && global.TKS_OWNER.QUICK_FORM_PIN) shared = String(global.TKS_OWNER.QUICK_FORM_PIN);
         return !!String(shared).trim();
       },
+      // --- Real role from the `staff` table (Phase 1). null = not an active staff
+      //     member, or not loaded yet. ---
+      staffRole: function () { return authState.staffRole; },
+      // Capability gate for destructive/privileged UI. Local/offline single-operator
+      // = full. Signed in with a known role = gated by the matrix. While the role is
+      // still loading (or offline), fall back to the email-owner check so the owner
+      // is never locked out of their own screen.
+      can: function (cap) {
+        if (!this.isSignedIn()) return true;
+        var r = authState.staffRole;
+        if (r) return (TKS_CAPS[cap] || []).indexOf(r) !== -1;
+        return this.isOwner();
+      },
       signOut: function () { return (authState.sb && authState.sb.auth) ? authState.sb.auth.signOut() : Promise.resolve(); }
     },
 
@@ -913,13 +978,15 @@
         try {
           sb.auth.onAuthStateChange(function (_evt, session) {
             authState.user = (session && session.user) ? { id: session.user.id, email: session.user.email } : null;
+            authState.staffRole = null;
+            fetchStaffRole(sb).then(function () { changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} }); });
             changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
           });
         } catch (e) {}
         return sb.auth.getUser().then(function (res) {
           var u = res && res.data && res.data.user;
           authState.user = u ? { id: u.id, email: u.email } : null;
-        }).catch(function () {}).then(function () {
+        }).catch(function () {}).then(function () { return fetchStaffRole(sb); }).then(function () {
           // pull the cloud-synced owner config (tax settings), then notify the UI
           var done = function () { changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} }); return true; };
           try { return global.TKS.Config.load().then(done, done); } catch (e) { return done(); }

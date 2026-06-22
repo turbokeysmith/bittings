@@ -163,6 +163,7 @@
 
 <script src="app/cloud-config.js"></script>
 <script src="app/store.js"></script>
+<script src="app/access.js"></script>
 <script>
 /* ============================================================================
    Key Programmer Coverage  (local-first; tks_ keys; readLS/writeLS)
@@ -547,12 +548,12 @@ function renderDevices(){
       <td><b>${esc(r.name)}</b></td><td>${esc(r.brand)}</td><td>${esc(r.tier)}</td>
       <td>${esc(r.modules)}</td>
       <td><input class="notein" data-id="${r.id}" value="${esc(r.notes)}" placeholder="field notes…"></td>
-      <td><button class="btn sm" data-edit="${r.id}">✎</button> <button class="btn sm" data-del="${r.id}">🗑</button></td>
+      <td><button class="btn sm" data-edit="${r.id}">✎</button> ${(typeof TKS_ACCESS==='undefined'||TKS_ACCESS.can('editReference'))?`<button class="btn sm" data-del="${r.id}">🗑</button>`:''}</td>
     </tr>`).join('');
   document.querySelectorAll('#dTbl .ownck').forEach(c=>c.onchange=()=>{ const a=devices(); const x=a.find(z=>z.id===c.dataset.id); if(x){ x.owned=c.checked; saveDev(a); renderDevices(); } });
   document.querySelectorAll('#dTbl .notein').forEach(i=>i.onchange=()=>{ const a=devices(); const x=a.find(z=>z.id===i.dataset.id); if(x){ x.notes=i.value; saveDev(a); } });
   document.querySelectorAll('#dTbl [data-edit]').forEach(b=>b.onclick=()=>openDevEditor(b.dataset.edit));
-  document.querySelectorAll('#dTbl [data-del]').forEach(b=>b.onclick=()=>{ if(confirm('Remove this tool from the catalog entirely? (To just stop showing it in the Lookup, uncheck Own? instead.)')){ saveDev(devices().filter(z=>z.id!==b.dataset.del)); renderDevices(); } });
+  document.querySelectorAll('#dTbl [data-del]').forEach(b=>b.onclick=()=>{ TKS_ACCESS.confirmDanger({title:'Remove this tool from the catalog?',message:'To just stop showing it in the Lookup, uncheck Own? instead.',confirmLabel:'Remove'}).then(function(ok){ if(ok){ saveDev(devices().filter(z=>z.id!==b.dataset.del)); renderDevices(); } }); });
 }
 document.getElementById('dSearch').addEventListener('input',renderDevices);
 
@@ -571,10 +572,10 @@ function renderCoverage(){
     rows.map(r=>`<tr>
       <td><b>${esc(r.make)}</b></td><td>${esc(r.system)}</td><td>${esc(r.year_start)}–${esc(r.year_end)}</td>
       <td class="muted" style="font-size:11.5px">${esc(capSummary(r))}</td>
-      <td><button class="btn sm" data-edit="${r.id}">✎</button> <button class="btn sm" data-del="${r.id}">🗑</button></td>
+      <td><button class="btn sm" data-edit="${r.id}">✎</button> ${(typeof TKS_ACCESS==='undefined'||TKS_ACCESS.can('editReference'))?`<button class="btn sm" data-del="${r.id}">🗑</button>`:''}</td>
     </tr>`).join('');
   document.querySelectorAll('#cTbl [data-edit]').forEach(b=>b.onclick=()=>openCovEditor(b.dataset.edit));
-  document.querySelectorAll('#cTbl [data-del]').forEach(b=>b.onclick=()=>{ if(confirm('Delete this coverage row?')){ saveCov(coverage().filter(z=>z.id!==b.dataset.del)); renderCoverage(); } });
+  document.querySelectorAll('#cTbl [data-del]').forEach(b=>b.onclick=()=>{ TKS_ACCESS.confirmDanger({title:'Delete this coverage row?',confirmLabel:'Delete'}).then(function(ok){ if(ok){ saveCov(coverage().filter(z=>z.id!==b.dataset.del)); renderCoverage(); } }); });
 }
 document.getElementById('cSearch').addEventListener('input',renderCoverage);
 

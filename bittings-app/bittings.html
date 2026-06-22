@@ -1041,6 +1041,9 @@ try{ if(window.self!==window.top){
 <script src="https://js.stripe.com/v3/"></script>
 <script src="app/cloud-config.js"></script>
 <script src="app/store.js"></script>
+<script src="app/access.js"></script>
+<script src="app/lishi-seed.js"></script>
+<script src="app/ymm.js"></script>
 <script>
 "use strict";
 
@@ -1489,7 +1492,7 @@ const HEAD_FLOW_AUTO_EXTRA = [
   {key:"vin", ask:"VIN?", optional:true, vinField:true},
   {key:"vehYear", ask:"Year?", optional:true, yearDropdown:true},
   {key:"vehMake", ask:"Make?", optional:true, makeDropdown:true},
-  {key:"vehModel", ask:"Model?", optional:true}
+  {key:"vehModel", ask:"Model?", optional:true, modelDropdown:true}
 ];
 
 // Common US/imported vehicle makes seen on locksmith jobs. Listed in roughly
@@ -1781,6 +1784,8 @@ function askHead(){
       askYearDropdown(q);
     }else if(q.makeDropdown){
       askMakeDropdown(q);
+    }else if(q.modelDropdown){
+      askModelDropdown(q);
     }else{
       botSay(q.ask, q.hint);
       input.focus();
@@ -1912,6 +1917,29 @@ function askMakeDropdown(q){
     step++; setTimeout(askHead, 200);
   };
   wrap.appendChild(sel); wrap.appendChild(btn); wrap.appendChild(skipBtn2);
+  row.appendChild(wrap); chat.appendChild(row); scrollDown();
+}
+
+/* Model dropdown: filtered by the chosen make (+year) — cascades off vehMake/vehYear.
+   Matches Start-a-Job/Scheduler. Has a type-it escape for models not in the catalog. */
+function askModelDropdown(q){
+  inputbar.classList.add("hidden");
+  botSay(q.ask, q.hint);
+  var models=[]; try{ models=(window.TKS_YMM?TKS_YMM.modelList(receipt.vehMake, receipt.vehYear):[]); }catch(e){}
+  const row=document.createElement("div"); row.className="row bot";
+  const wrap=document.createElement("div"); wrap.className="bubble"; wrap.style.background="transparent"; wrap.style.padding="0";
+  const sel=document.createElement("select"); sel.className="veh-dropdown";
+  sel.innerHTML='<option value="">'+(models.length?"— Pick a model —":"— No saved models for "+escapeHtml(receipt.vehMake||"this make")+" —")+'</option>'+
+    models.map(m=>'<option value="'+escapeHtml(m)+'">'+escapeHtml(m)+'</option>').join("");
+  const btn=document.createElement("button"); btn.className="opt"; btn.style.marginTop="6px"; btn.textContent="Use this model";
+  btn.onclick=()=>{ const v=sel.value; if(!v){ appAlert("Pick a model","Choose from the list, type it, or tap Skip."); return; }
+    applyAnswer("head:"+q.key); meSay(v); receipt[q.key]=v; step++; setTimeout(askHead,200); };
+  const typeBtn=document.createElement("button"); typeBtn.className="opt"; typeBtn.style.marginTop="6px"; typeBtn.textContent="Type a different model";
+  typeBtn.onclick=()=>{ const t=(prompt("Type the model:")||"").trim(); if(!t) return;
+    applyAnswer("head:"+q.key); meSay(t); receipt[q.key]=t; step++; setTimeout(askHead,200); };
+  const skipBtn3=document.createElement("button"); skipBtn3.className="opt"; skipBtn3.style.background="#444"; skipBtn3.style.marginTop="6px"; skipBtn3.textContent="Skip";
+  skipBtn3.onclick=()=>{ applyAnswer("head:"+q.key+":skip"); meSay("skip"); receipt[q.key]=""; step++; setTimeout(askHead,200); };
+  wrap.appendChild(sel); wrap.appendChild(btn); wrap.appendChild(typeBtn); wrap.appendChild(skipBtn3);
   row.appendChild(wrap); chat.appendChild(row); scrollDown();
 }
 
@@ -4089,7 +4117,7 @@ function reverseStockForReceipt(r){
         <div style="display:flex;gap:8px"><div style="flex:1"><label class="qiL">Phone</label><input id="qiPhone" class="qiI" type="tel"></div><div style="flex:1"><label class="qiL">Email</label><input id="qiEmail" class="qiI" type="email"></div></div>
         <label class="qiL">Address</label><input id="qiAddr" class="qiI">
         <details style="margin:8px 0"><summary style="cursor:pointer;color:#5a616c;font-size:13px">Vehicle (optional)</summary>
-          <div style="display:flex;gap:6px;margin-top:6px"><input id="qiVYear" class="qiI" placeholder="Year" style="width:74px"><input id="qiVMake" class="qiI" placeholder="Make"><input id="qiVModel" class="qiI" placeholder="Model"></div>
+          <div style="display:flex;gap:6px;margin-top:6px"><select id="qiVYear" class="qiI" style="width:90px"></select><select id="qiVMake" class="qiI"></select><select id="qiVModel" class="qiI"></select></div>
           <input id="qiVin" class="qiI" placeholder="VIN (auto-fills year / make / model)" style="margin-top:6px">
           <div id="qiVinMsg" style="font-size:11px;color:#5a616c;margin-top:3px"></div></details>
         <label class="qiL">Line items *</label><div id="qiItems"></div>
@@ -4190,6 +4218,17 @@ function reverseStockForReceipt(r){
       });
     }
     addItem(); modal.querySelector("#qiAdd").onclick=addItem;
+    // Year/Make/Model cascading dropdowns (shared TKS_YMM). Year resets Make+Model; Make resets Model.
+    (function(){
+      var yEl=modal.querySelector("#qiVYear"), mkEl=modal.querySelector("#qiVMake"), mdEl=modal.querySelector("#qiVModel");
+      if(yEl&&mkEl&&mdEl){
+        function fill(cy,cmk,cmd){ yEl.innerHTML=TKS_YMM.yearOptionsHTML(cy); mkEl.innerHTML=TKS_YMM.makeOptionsHTML(cmk); mdEl.innerHTML=TKS_YMM.modelOptionsHTML(cmk,cy,cmd); }
+        fill("","","");
+        yEl.addEventListener("change", function(){ fill(yEl.value,"",""); });          // Year resets Make+Model
+        mkEl.addEventListener("change", function(){ fill(yEl.value,mkEl.value,""); });   // Make resets Model
+        modal._qiApplyVeh=function(y,mk,md){ fill(y||"",mk||"",md||""); };              // VIN decode / edit prefill inject values
+      }
+    })();
     // VIN auto-decode → fills Year / Make / Model on the invoice (vPIC, same as Start-a-job).
     (function(){
       var vinEl=modal.querySelector("#qiVin"), vmsg=modal.querySelector("#qiVinMsg"); if(!vinEl) return;
@@ -4201,8 +4240,7 @@ function reverseStockForReceipt(r){
         lastVin=v; if(vmsg){ vmsg.style.color="#5a616c"; vmsg.textContent="Decoding VIN…"; }
         if(!(window.TKS&&TKS.decodeVin)){ if(vmsg) vmsg.textContent=""; return; }
         TKS.decodeVin(v).then(function(res){
-          var y=modal.querySelector("#qiVYear"), mk=modal.querySelector("#qiVMake"), md=modal.querySelector("#qiVModel");
-          if(res.year&&y) y.value=res.year; if(res.make&&mk) mk.value=res.make; if(res.model&&md) md.value=res.model;
+          if(modal._qiApplyVeh) modal._qiApplyVeh(res.year, res.make, res.model);
           if(vmsg) vmsg.textContent="✓ "+[res.year,res.make,res.model].filter(Boolean).join(" ");
         }).catch(function(e){ if(vmsg){ vmsg.style.color="#b3242f"; vmsg.textContent=(e&&e.message)||"Couldn't decode that VIN — enter the vehicle manually."; } });
       }
@@ -4223,8 +4261,8 @@ function reverseStockForReceipt(r){
     if(isEdit){
       const $q=s=>modal.querySelector(s);
       $q("#qiName").value=edit.customer||""; $q("#qiPhone").value=edit.phone||""; $q("#qiEmail").value=edit.email||"";
-      $q("#qiAddr").value=edit.address||""; $q("#qiVYear").value=edit.vehYear||""; $q("#qiVMake").value=edit.vehMake||"";
-      $q("#qiVModel").value=edit.vehModel||""; $q("#qiVin").value=edit.vin||""; $q("#qiTech").value=edit.technician||"";
+      $q("#qiAddr").value=edit.address||""; if(modal._qiApplyVeh) modal._qiApplyVeh(edit.vehYear, edit.vehMake, edit.vehModel);
+      $q("#qiVin").value=edit.vin||""; $q("#qiTech").value=edit.technician||"";
       $q("#qiTaxRate").value=(edit.taxRate!=null&&edit.taxRate!=="")?edit.taxRate:""; $q("#qiNotes").value=edit.notes||"";
       itemsBox.innerHTML="";
       (edit.items||[]).forEach(it=>{ addItem(); const row=itemsBox.lastElementChild;
