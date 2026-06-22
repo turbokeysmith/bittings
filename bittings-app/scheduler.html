@@ -791,7 +791,9 @@ function freshBooking(){
     customer:{ name:"", phone:"", email:"" },
     jobType:"", subType:"",
     serviceCategory:"", serviceLabel:"",
-    address:"", parked:"",
+    addr:{ street:"", city:"", state:"", zip:"" },   // structured address (each its own field)
+    address:"", parked:"",                            // address = composed string (calendar/display/back-compat)
+    technician:"",                                    // assigned tech (picked from the team, never typed)
     vehicle:{ year:"", make:"", model:"", vin:"", ignition:"" },
     date:"", time:"", duration:60,
     status:"Scheduled",
@@ -800,6 +802,61 @@ function freshBooking(){
     upsell:{ offered:null, accepted:null, item:"" },
     bookedBy:"trainee"
   };
+}
+
+/* ---- structured address (Street / City / State / ZIP) ----
+   We keep booking.address as the composed one-line string so everything that
+   already reads it (the calendar location, the day card, receipts) keeps working
+   and the tech can tap it to navigate. */
+function composeAddress(a){
+  if(!a) return '';
+  const l1 = (a.street||'').trim();
+  const cs = [ (a.city||'').trim(), [ (a.state||'').trim(), (a.zip||'').trim() ].filter(Boolean).join(' ') ].filter(Boolean).join(', ');
+  return [l1, cs].filter(Boolean).join(', ');
+}
+function setAddr(field, val){
+  if(!booking.addr) booking.addr = { street:"", city:"", state:"", zip:"" };
+  booking.addr[field] = (field==='state') ? (val||'').toUpperCase() : val;
+  booking.address = composeAddress(booking.addr);
+}
+// One reusable Street/City/State/ZIP block (each on its own line).
+function addrFieldsHTML(a){
+  a = a || { street:"", city:"", state:"", zip:"" };
+  const L = (en,es)=> LANG==='es'?es:en;
+  return `<label>${L('Street address','Calle y número')}</label>
+      <input id="f_street" value="${esc(a.street||'')}" oninput="setAddr('street',this.value)" placeholder="123 Main St" autocomplete="off">
+    <label>${L('City','Ciudad')}</label>
+      <input id="f_city" value="${esc(a.city||'')}" oninput="setAddr('city',this.value)" placeholder="${L('Oklahoma City','Ciudad de Oklahoma')}" autocomplete="off">
+    <div class="row2">
+      <div><label>${L('State','Estado')}</label><input id="f_state" value="${esc(a.state||'')}" oninput="setAddr('state',this.value)" placeholder="OK" maxlength="2" style="text-transform:uppercase" autocomplete="off"></div>
+      <div><label>${L('ZIP','Código postal')}</label><input id="f_zip" value="${esc(a.zip||'')}" oninput="setAddr('zip',this.value)" placeholder="73101" inputmode="numeric" autocomplete="off"></div>
+    </div>`;
+}
+// Make sure booking.addr exists (migrate an old one-line address into Street).
+function ensureAddr(){
+  if(!booking.addr) booking.addr = { street:"", city:"", state:"", zip:"" };
+  const a = booking.addr;
+  if(!(a.street||a.city||a.state||a.zip) && (booking.address||'').trim()){ a.street = booking.address.trim(); }
+  return a;
+}
+
+/* ---- technician (a DROPDOWN from the team — never typed) ---- */
+function teamNames(){ try{ return ((TKS.Config.access().employees)||[]).map(e=>((e&&e.name)||'').trim()).filter(Boolean); }catch(e){ return []; } }
+function techSelectHTML(selected, onchangeAttr){
+  const team = teamNames();
+  if(!team.length){ return `<div class="bk-caption" style="margin:2px 0 8px">${LANG==='es'?'Agrega tu equipo en Configuración → Acceso para asignar un técnico.':'Add your team in Settings → Access to assign a tech.'}</div>`; }
+  const none = LANG==='es'?'— Sin asignar —':'— Unassigned —';
+  return `<select ${onchangeAttr||''}><option value="">${none}</option>`+
+    team.map(n=>`<option value="${esc(n)}" ${selected===n?'selected':''}>${esc(n)}</option>`).join('')+`</select>`;
+}
+// Assign a tech to an existing booking straight from the detail view (saves now).
+function assignTechToBooking(id, name){
+  let bk=null; try{ bk = TKS.Bookings.get(id); }catch(e){}
+  if(!bk) bk = allBookings().find(x=>x.id===id);
+  if(!bk) return;
+  bk.technician = name;
+  try{ TKS.Bookings.save(bk); }
+  catch(e){ const arr=readLS(K_BOOKINGS,[]); const i=arr.findIndex(x=>x.id===id); if(i!==-1){ arr[i]=bk; writeLS(K_BOOKINGS,arr); } }
 }
 
 /* the ordered flow */
@@ -1003,6 +1060,8 @@ function renderBooking(){
       ${rows}
       <div class="section-h" style="margin-top:14px">${t('change_status')}</div>
       <div class="status-picker" id="statusPicker">${picker}</div>
+      <div class="section-h" style="margin-top:14px">${LANG==='es'?'Técnico asignado':'Assigned technician'}</div>
+      <div class="tech-assign">${techSelectHTML(b.technician, `onchange="assignTechToBooking('${b.id}', this.value)"`)}</div>
       <div id="jobAccount"></div>
       ${imgs}
       <div class="bk-actions">
@@ -1328,7 +1387,8 @@ function renderQuickForm(){
           <button type="button" class="${b.vehicle.ignition==='push'?'sel':''}" onclick="setIgnition('push')">🔘 ${t('ign_push')}</button>
           <button type="button" class="${b.vehicle.ignition==='keyed'?'sel':''}" onclick="setIgnition('keyed')">🔑 ${t('ign_keyed')}</button>
         </div>`:''}
-      <label>${t('addr')}</label><input data-bind="address" value="${esc(b.address)}">
+      ${addrFieldsHTML(ensureAddr())}
+      <label>${LANG==='es'?'Técnico asignado':'Assigned technician'}</label>${techSelectHTML(b.technician, `onchange="setPath('technician',this.value)"`)}
       <div class="row2">
         <div><label>${t('date')} *</label><input data-bind="date" type="date" value="${esc(b.date)}"></div>
         <div><label>${t('time')} *</label><input data-bind="time" type="time" value="${esc(b.time)}"></div>
@@ -1482,10 +1542,11 @@ function stepDetails(){
       <div class="ign-pick" id="ignPick">
         <button type="button" class="${booking.vehicle.ignition==='push'?'sel':''}" onclick="setIgnition('push')">🔘 ${t('ign_push')}</button>
         <button type="button" class="${booking.vehicle.ignition==='keyed'?'sel':''}" onclick="setIgnition('keyed')">🔑 ${t('ign_keyed')}</button>
-      </div>
-      <label>${t('where_parked')}</label><input data-bind="parked" value="${esc(booking.parked)}">`;
+      </div>`;
   }
-  html += `<label>${t('addr')}</label><input data-bind="address" id="f_addr" value="${esc(booking.address)}" placeholder="123 Main St, Oklahoma City">`;
+  // One address, split into Street / City / State / ZIP (each its own line); it
+  // composes booking.address, which the calendar uses so the tech can tap to drive.
+  html += addrFieldsHTML(ensureAddr());
   return html;
 }
 
@@ -1533,12 +1594,14 @@ function stepConfirm(){
     veh?[t('r_vehicle'), veh]:null,
     [t('r_address'), booking.address || booking.parked || '—'],
     [t('r_when'), when],
+    [LANG==='es'?'Técnico':'Technician', booking.technician || (LANG==='es'?'Sin asignar':'Unassigned')],
     [t('r_upsell'), booking.upsell.offered ? (booking.upsell.accepted?t('yes_short')+' ✓':t('yes_short')) : t('no_short')]
   ].filter(Boolean).map(([k,v])=>`<div class="r"><b>${k}</b><span>${esc(v||'—')}</span></div>`).join('');
 
   return tipCard(LANG==='es'?'Repite los detalles al cliente antes de colgar.':'Read the details back to the customer before hanging up.') +
     `<p class="step-title">${t('confirm')}</p>
      <div class="summary">${rows}</div>
+     <label>${LANG==='es'?'Asignar técnico':'Assign technician'}</label>${techSelectHTML(booking.technician, `onchange="setPath('technician',this.value)"`)}
      <div class="section-h">${t('add_cal')}</div>
      <div class="cal">
        <a href="${googleUrl()}" target="_blank" rel="noopener">📆 ${t('g_cal')}</a>
@@ -1653,7 +1716,7 @@ function validateStep(step){
     else if(booking.upsell.offered===true && booking.upsell.accepted===null){ ok=false; stepMsgSet(t('need_upsell_acc')); }
   }
   if(step==='details'){
-    if(!booking.address.trim() && !booking.parked.trim()) bad('f_addr');
+    if(!(booking.addr && (booking.addr.street||'').trim())) bad('f_street');   // street is the minimum for a usable address
     if(booking.jobType==='auto'){
       const v = booking.vehicle;
       const hasVin = /^[A-HJ-NPR-Z0-9]{17}$/.test((v.vin||'').toUpperCase());
