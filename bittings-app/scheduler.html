@@ -571,14 +571,14 @@ const SCRIPT = {
   /* DETAILS (URGENT) — replaces small talk when it's an emergency: keep it moving. */
   details_urgent:{
     en:[
-      "I've got your info — let me grab the address and we'll get someone rolling.",
-      "Okay, hang tight — I just need the location and we'll head your way.",
-      "Almost there — give me the address and we'll get you moving quick."
+      "I've got your info — let me grab a couple details and we'll get someone rolling.",
+      "Okay, hang tight — just a couple details and we'll head your way.",
+      "Almost there — a few quick details and we'll get you moving fast."
     ],
     es:[
-      "Ya tengo sus datos — déme la dirección y mandamos a alguien en camino.",
-      "Listo, aguante — solo necesito la ubicación y vamos para allá.",
-      "Casi listo — déme la dirección y lo sacamos de apuros rápido."
+      "Ya tengo sus datos — déme un par de detalles y mandamos a alguien en camino.",
+      "Listo, aguante — solo un par de detalles y vamos para allá.",
+      "Casi listo — unos detalles más y lo sacamos de apuros rápido."
     ]
   },
   /* REASSURE — at the scheduling step. */
@@ -621,8 +621,10 @@ const TIPS = {
              es:"Pregunta si está afuera, necesita cerraduras nuevas, o reconfigurar las que tiene." },
   com:{      en:"Ask who needs access and how many doors — bigger jobs need a quick site look.",
              es:"Pregunta quién necesita acceso y cuántas puertas — trabajos grandes requieren visita." },
-  location:{ en:"Get the full address. For a car, ask exactly where it's parked.",
-             es:"Pide la dirección completa. Para un carro, pregunta dónde está estacionado." },
+  details_auto:{ en:"Get the vehicle: year, make & model (or scan the VIN to auto-fill), plus push-to-start vs. keyed. Then the address and exactly where it's parked.",
+                 es:"Identifica el vehículo: año, marca y modelo (o escanea el VIN para autocompletar), y si es botón de encendido o llave. Luego la dirección y dónde está estacionado." },
+  location:{ en:"Get the full service address — include any gate code, unit, or suite number.",
+             es:"Pide la dirección completa — incluye cualquier código de entrada, número de unidad o suite." },
   schedule:{ en:"Check the calendar first so you don't double-book. Then offer the soonest open time, with a backup.",
              es:"Revisa el calendario primero para no agendar dos cosas a la vez. Luego ofrece la hora más pronta, con una de respaldo." }
 };
@@ -1428,7 +1430,9 @@ function stepDetails(){
   // Tone-matched: cheerful small talk for routine jobs, but keep-it-moving for emergencies.
   const msg = isUrgent() ? line('details', SCRIPT.details_urgent) : line('details', SCRIPT.smalltalk);
   let html = coachCard(msg);
-  html += tipCard(TIPS.location[LANG]);
+  // Coach what THIS step actually collects: a car job needs vehicle ID + ignition
+  // (the big part) plus the address; house/business just needs the address.
+  html += tipCard((booking.jobType==='auto' ? TIPS.details_auto : TIPS.location)[LANG]);
   if(booking.jobType==='auto'){
     // A car job needs vehicle ID: a VIN (auto-fills year/make/model) OR
     // year+make+model typed in. Ignition type is also required.
