@@ -27,11 +27,12 @@
 - ✅ `pos_decrement_stock(receipt)` RPC — on completion, decrement each part line from the ticket's location via the 1b inventory ledger (idempotent).
 - 📄 Repo: `bittings-app/supabase/phase2/2a_pos_catalog_checkout.sql`
 
-### 2a UI
-- ⬜ POS register replaces the type-in-an-amount New Charge: running ticket of line items (part/service/programming), qty, unit price, line total; auto subtotal → tax → total.
-- ⬜ Parts pull from inventory (sell price); services from the price list; line tagged part/service/programming.
-- ⬜ Role-aware: techs/front-desk build + take payment but **can't edit a price or discount** (manager+); ties to the customer record.
-- ⬜ Setup → Services price-list editor (manager+).
+### 2a UI ✅ (code-complete; pending owner device sign-off)
+- ✅ POS **register replaces** the type-in-an-amount New Charge (`index.html` Payments tile): running ticket of line items (part/service/programming), qty ± , line total; auto **subtotal → tax → total**; charge buttons show the live total.
+- ✅ **Parts** pull from inventory at **sell price** (new `sellPriceCents`, added to the part editor); **Services** from the price list; each line tagged part/service/programming.
+- ✅ **Role-aware:** any signed-in staff builds the ticket + takes payment; **+ Custom line, price override, and Discount are manager-only** (UI gated `editPricing` **and** server-enforced in `pos_checkout`). Ties to the customer (required for card/check). Location (shop/van) + technician (commission) selectors.
+- ✅ Charge flow: `pos_checkout` (server-priced) → `TKPay.openForReceipt`/`recordCashCheck` with **`skipUpsert`** (so the server receipt can't be overwritten) → `pos_decrement_stock`. `pay.js` got the `skipUpsert` option.
+- ✅ **Manager services editor** (the `services` price list) — add/delete with category + price, opened from the register.
 
 ### 2a verification (server-side, test users)
 - ⬜ Tech checkout at catalog prices → OK; tech checkout with a discount/price-override → REJECTED; manager → OK.

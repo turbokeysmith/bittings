@@ -37,8 +37,12 @@
     if(!receipt || !receipt.id){ alert("Missing invoice/charge id."); return; }
     const c=client(); const tok=await token();
     if(!c || !tok){ alert("Sign in (Staff Login) to take a payment."); return; }
-    try{ await c.from("receipts").upsert({ id:receipt.id, data:receipt }); }
-    catch(e){ alert("Couldn't sync the charge to the cloud: "+(e.message||e)); return; }
+    // POS receipts are already built + priced SERVER-SIDE (pos_checkout) — skip the
+    // re-upsert so client data can't overwrite the authoritative total.
+    if(!opts.skipUpsert){
+      try{ await c.from("receipts").upsert({ id:receipt.id, data:receipt }); }
+      catch(e){ alert("Couldn't sync the charge to the cloud: "+(e.message||e)); return; }
+    }
     const t=receipt.totals||{}; const baseCents=Math.round((Number(t.total||0)-Number(t.surcharge||0))*100);
     onDoneCb = opts.onDone || null;
     S={ receipt, baseCents, method:"reader", attempt:1, reader:localStorage.getItem("tks_pay_reader")||"", title: opts.title || ("Invoice "+(receipt.number||receipt.id)) };
@@ -52,7 +56,7 @@
     if(!receipt || !receipt.id){ if(opts.onError) opts.onError("missing id"); return; }
     const c=client(); const tok=await token();
     if(!c || !tok){ alert("Sign in (Staff Login) to record a payment."); return; }
-    try{ await c.from("receipts").upsert({ id:receipt.id, data:receipt }); }catch(e){ if(opts.onError) opts.onError(e.message||e); return; }
+    if(!opts.skipUpsert){ try{ await c.from("receipts").upsert({ id:receipt.id, data:receipt }); }catch(e){ if(opts.onError) opts.onError(e.message||e); return; } }
     const j=await call("pay-record",{ invoiceId:receipt.id, method });
     if(j.error){ if(opts.onError) opts.onError(j.error); return; }
     if(opts.onDone) opts.onDone(j);

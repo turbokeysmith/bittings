@@ -212,6 +212,22 @@
   .chg-cprow{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;width:100%;background:var(--bg);border:1px solid var(--edge);border-radius:10px;padding:9px 11px;cursor:pointer;min-height:44px;}
   .chg-cprow:hover{border-color:#4aa3ff;} .chg-cprow b{font-size:14px;color:var(--ink);font-weight:700;} .chg-cprow span{font-size:12px;color:var(--dim);}
   .chg-cpempty{font-size:13px;color:var(--dim);padding:10px 2px;}
+  /* POS register ticket */
+  .pos-ticket{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
+  .pos-empty{font-size:13px;color:var(--dim);padding:12px 2px;text-align:center;border:1px dashed var(--edge);border-radius:10px;}
+  .pos-line{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--edge);border-radius:10px;padding:8px 10px;}
+  .pos-line .pl-info{flex:1;min-width:0;}
+  .pos-line .pl-name{font-size:14px;color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pos-line .pl-sub{font-size:11.5px;color:var(--dim);}
+  .pos-line .pl-qty{display:flex;align-items:center;gap:4px;flex:0 0 auto;}
+  .pos-line .pl-qty button{width:28px;height:28px;border:1px solid var(--edge);background:var(--card);color:var(--ink);border-radius:7px;font-size:16px;cursor:pointer;line-height:1;}
+  .pos-line .pl-qn{min-width:16px;text-align:center;font-weight:700;color:var(--ink);}
+  .pos-line .pl-amt{font-weight:800;color:var(--ink);min-width:58px;text-align:right;}
+  .pos-line .pl-x{background:none;border:none;color:#c8323c;font-size:18px;cursor:pointer;padding:0 2px;flex:0 0 auto;}
+  .pos-line.discount .pl-amt{color:#1c7d3e;}
+  .pos-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  .pos-meta label{font-size:11px;color:var(--dim);display:block;margin-bottom:2px;}
+  .pos-meta select{width:100%;}
   .pay-secret-note{background:rgba(242,180,58,.10);border:1px dashed rgba(242,180,58,.45);border-radius:11px;
     padding:12px 14px;font-size:12.5px;line-height:1.5;color:var(--dim);margin:6px 0 2px;}
   .pay-secret-note b{color:#f2d18a;}
@@ -584,12 +600,20 @@
     <div class="pay-banner" id="chgBanner"></div>
     <div class="note" id="chgGate" style="display:none"></div>
     <div class="form" id="chgForm">
-      <p class="note" style="margin-top:0">New charge — for walk-ups / no-invoice jobs (lockouts, etc.). For an itemized bill, use <b>Receipts</b>.</p>
-      <label>Amount</label>
-      <div class="amountwrap"><span>$</span><input id="chgAmount" type="number" inputmode="decimal" placeholder="0.00" aria-label="Charge amount in dollars"></div>
-      <label for="chgLabel">Service</label>
-      <input id="chgLabel" type="text" placeholder="e.g. Car lockout">
-      <label>Customer</label>
+      <p class="note" style="margin-top:0"><b>Register</b> — add parts &amp; services to the ticket, then take payment. It adds up subtotal, tax &amp; total for you.</p>
+      <div class="pos-ticket" id="posTicket"></div>
+      <div class="actions" style="gap:6px;flex-wrap:wrap;margin-top:6px">
+        <button type="button" class="btn ghostbtn" id="posAddPart" style="flex:1">📦 + Part</button>
+        <button type="button" class="btn ghostbtn" id="posAddService" style="flex:1">🔧 + Service</button>
+        <button type="button" class="btn ghostbtn" id="posAddCustom" data-cap="editPricing" style="flex:1">✎ + Custom</button>
+      </div>
+      <div class="pos-meta">
+        <div><label>Sell stock from</label><select id="posLocation"></select></div>
+        <div><label>Technician (commission)</label><select id="posTech"></select></div>
+      </div>
+      <button type="button" class="btn ghostbtn" id="posDiscountBtn" data-cap="editPricing" style="width:100%;margin-top:6px">％ Apply / clear discount (manager)</button>
+      <button type="button" class="btn ghostbtn" id="posManageSvc" data-cap="editPricing" style="width:100%;margin-top:6px">🧾 Manage register services &amp; prices (manager)</button>
+      <label style="margin-top:10px">Customer</label>
       <div id="chgCustBox" class="chg-custbox">
         <div id="chgCustDisplay" class="chg-custnone">No customer selected</div>
         <div class="actions" style="gap:8px;margin-top:6px">
@@ -676,9 +700,10 @@
       <label for="pCategory">Category</label>
       <input id="pCategory" type="text" placeholder="Key blanks, fobs, tools…">
       <div class="row2">
-        <div data-cap="inventoryWrite"><label for="pCost">Unit cost ($)</label><input id="pCost" type="number" inputmode="decimal" placeholder="0.00"></div>
-        <div><label for="pLocation">Bin / shelf</label><input id="pLocation" type="text" placeholder="e.g. bin 3"></div>
+        <div data-cap="inventoryWrite"><label for="pCost">Unit cost ($) <span style="font-weight:400;color:var(--dim)">— your cost</span></label><input id="pCost" type="number" inputmode="decimal" placeholder="0.00"></div>
+        <div><label for="pSell">Sell price ($) <span style="font-weight:400;color:var(--dim)">— register</span></label><input id="pSell" type="number" inputmode="decimal" placeholder="0.00"></div>
       </div>
+      <label for="pLocation">Bin / shelf</label><input id="pLocation" type="text" placeholder="e.g. bin 3">
       <div id="pLocWrap" style="display:none">
         <label>Where is it kept?</label>
         <div class="typeseg"><button type="button" id="pLocVan" class="on">🚐 Van</button><button type="button" id="pLocShop">🏪 Shop</button></div>
@@ -1532,6 +1557,7 @@ function openPart(id){
   document.getElementById('pLowAt').value = (p.lowAt!=null? p.lowAt : '');
   document.getElementById('pCategory').value = p.category || '';
   document.getElementById('pCost').value = (p.cost!=null? p.cost : '');
+  document.getElementById('pSell').value = (p.sellPriceCents!=null ? (p.sellPriceCents/100) : '');
   document.getElementById('pLocation').value = p.location || '';
   var lw=document.getElementById('pLocWrap'); if(lw) lw.style.display = bothLoc()?'block':'none';
   setPartLoc(partLoc(p));
@@ -1555,6 +1581,7 @@ document.getElementById('pSave').onclick = ()=>{
     lowAt: parseInt(document.getElementById('pLowAt').value,10) || 0,
     category: document.getElementById('pCategory').value.trim(),
     cost: document.getElementById('pCost').value.trim() ? parseFloat(document.getElementById('pCost').value) : '',
+    sellPriceCents: document.getElementById('pSell').value.trim() ? Math.round(parseFloat(document.getElementById('pSell').value)*100) : null,
     location: document.getElementById('pLocation').value.trim(),
     loc: bothLoc() ? partLocSel : defaultLoc(),
     supplier: document.getElementById('pSupplier').value.trim(),
@@ -1585,7 +1612,7 @@ document.getElementById('pDelete').onclick = ()=>{
    with the 2% credit-only surcharge. Owner-gated. Files into a customer's history
    when a name/email is given; anonymous otherwise. */
 let _chgUnlocked=false;
-function chgEls(){ return { amt:document.getElementById('chgAmount'), label:document.getElementById('chgLabel'),
+function chgEls(){ return {
   card:document.getElementById('chgCard'), cash:document.getElementById('chgCash'), check:document.getElementById('chgCheck'),
   status:document.getElementById('chgStatus'),
   breakdown:document.getElementById('chgBreakdown'), banner:document.getElementById('chgBanner'),
@@ -1659,26 +1686,75 @@ function chgGate(){
   e.gate.innerHTML='Manager-only. <button class="btn ghostbtn" id="chgPinBtn">Unlock with PIN</button>';
   document.getElementById('chgPinBtn').onclick=pinPrompt;
 }
-function chgAmounts(){ const e=chgEls(); const sub=parseFloat(e.amt.value)||0; const sur=Math.round(sub*2)/100; return { sub, sur, total:Math.round((sub+sur)*100)/100, cents:Math.round(sub*100) }; }
-function renderChgBreakdown(){ const e=chgEls(), a=chgAmounts(); const off=(a.sub<=0);
-  [e.card,e.cash,e.check].forEach(b=>{ if(b) b.disabled=off; });
-  if(off){ e.breakdown.innerHTML=''; if(e.card) e.card.textContent='💳 Card — enter an amount'; return; }
-  e.breakdown.innerHTML='Base $'+a.sub.toFixed(2)+' &nbsp;·&nbsp; card +2% on credit only ($'+a.sur.toFixed(2)+', up to <b>$'+a.total.toFixed(2)+'</b>) · cash/check $'+a.sub.toFixed(2)+' (no surcharge).';
-  e.card.textContent='💳 Card — Pay Now · $'+a.sub.toFixed(2);
+/* ===================== POS REGISTER (Phase 2) =====================
+   A running ticket of line items (parts + services), auto-totaled. On charge it
+   calls pos_checkout (server prices catalog lines + gates discount/override to
+   manager+) → gets a server-built receipt → charges it through the existing pay
+   flow (skipUpsert so the client can't overwrite the authoritative total) →
+   decrements stock from the chosen location. */
+let posTicket = [];        // [{ key, type:'part'|'service'|'custom', refId, desc, qty, unitCents, taxable, lineType }]
+let posDiscountCents = 0, posDiscountReason = '';
+function posTaxRate(){ try{ return Number(TKS.Config.get().taxRate)||0; }catch(e){ return 0; } }
+function posLineAmtCents(l){ return (l.unitCents||0)*(l.qty||1); }
+function money2(c){ return '$'+(Math.round(c||0)/100).toFixed(2); }
+function posTotals(){
+  const rate = posTaxRate()/100; let taxable=0, nontax=0;
+  posTicket.forEach(l=>{ const a=posLineAmtCents(l); if(l.taxable) taxable+=a; else nontax+=a; });
+  const disc = Math.min(posDiscountCents, taxable+nontax), gross=taxable+nontax;
+  let dT=0; if(gross>0 && disc>0) dT=Math.round(disc*(taxable/gross));
+  const taxableAfter=Math.max(0,taxable-dT), subtotalCents=Math.max(0,gross-disc);
+  const taxCents=Math.round(taxableAfter*rate);
+  return { subtotalCents, taxCents, totalCents: subtotalCents+taxCents, discCents: disc };
 }
-function chgBuildReceipt(){
-  const e=chgEls(), a=chgAmounts();
-  const c=chgCustomer||{};
-  const name=(c.customer||'').trim(), email=(c.email||'').trim(), phone=(c.phone||'').trim();
-  const label=(e.label.value||'').trim()||'Service';
-  const id='chg_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-  if(name){ try{ TKS.Customers.upsert({ customer:name, phone, email, source:'new-charge' }); }catch(_){} }
-  const receipt={ id, number:id, docType:'receipt', source:'new-charge', customerId:(c.id||null), customer:name, email, phone, status:'Unpaid',
-    items:[{desc:label, amount:a.sub, taxable:false}], totals:{ total:a.sub, surcharge:0, subtotal:a.sub, tax:0, discount:0 } };
-  return { receipt, name, label, a };
-}
-function chgClear(){ const e=chgEls(); e.amt.value=''; e.label.value=''; setChgCustomer(null); renderChgBreakdown();
+function posAddLine(line){ line.key='l'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); line.qty=line.qty||1; posTicket.push(line); posRender(); }
+function posSetQty(key,delta){ const l=posTicket.find(x=>x.key===key); if(l){ l.qty=Math.max(1,(l.qty||1)+delta); posRender(); } }
+function posRemove(key){ posTicket=posTicket.filter(x=>x.key!==key); posRender(); }
+function posClear(){ posTicket=[]; posDiscountCents=0; posDiscountReason=''; setChgCustomer(null); posRender();
   const sr=document.getElementById('chgSendRow'); if(sr){ sr.style.display='none'; sr.innerHTML=''; } }
+function posRender(){
+  const host=document.getElementById('posTicket'); if(!host) return;
+  if(!posTicket.length && posDiscountCents<=0){
+    host.innerHTML='<div class="pos-empty">Empty ticket — add a part or service.</div>';
+  } else {
+    host.innerHTML = posTicket.map(l=>{
+      const sub=[l.lineType, l.taxable?'tax':''].filter(Boolean).join(' · ');
+      return '<div class="pos-line"><div class="pl-info"><div class="pl-name">'+esc2(l.desc)+'</div>'+
+        '<div class="pl-sub">'+money2(l.unitCents)+' ea'+(sub?(' · '+esc2(sub)):'')+'</div></div>'+
+        '<div class="pl-qty"><button data-dec="'+l.key+'">−</button><span class="pl-qn">'+(l.qty||1)+'</span><button data-inc="'+l.key+'">+</button></div>'+
+        '<div class="pl-amt">'+money2(posLineAmtCents(l))+'</div>'+
+        '<button class="pl-x" data-rm="'+l.key+'" aria-label="Remove">×</button></div>';
+    }).join('');
+    if(posDiscountCents>0){ host.innerHTML += '<div class="pos-line discount"><div class="pl-info"><div class="pl-name">Discount'+(posDiscountReason?(' — '+esc2(posDiscountReason)):'')+'</div></div>'+
+      '<div class="pl-amt">−'+money2(posDiscountCents)+'</div><button class="pl-x" data-rmdisc="1" aria-label="Remove discount">×</button></div>'; }
+    host.querySelectorAll('[data-inc]').forEach(b=> b.onclick=()=> posSetQty(b.dataset.inc, +1));
+    host.querySelectorAll('[data-dec]').forEach(b=> b.onclick=()=> posSetQty(b.dataset.dec, -1));
+    host.querySelectorAll('[data-rm]').forEach(b=> b.onclick=()=> posRemove(b.dataset.rm));
+    const rd=host.querySelector('[data-rmdisc]'); if(rd) rd.onclick=()=>{ posDiscountCents=0; posDiscountReason=''; posRender(); };
+  }
+  const t=posTotals(), e=chgEls(), empty=(posTicket.length===0);
+  const bd=document.getElementById('chgBreakdown');
+  if(bd) bd.innerHTML = empty ? '' : ('Subtotal '+money2(t.subtotalCents)+' &nbsp;·&nbsp; Tax '+money2(t.taxCents)+' &nbsp;·&nbsp; <b>Total '+money2(t.totalCents)+'</b> · card +2% credit only.');
+  [e.card,e.cash,e.check].forEach(b=>{ if(b) b.disabled=empty; });
+  if(e.card) e.card.textContent = empty ? '💳 Card — add a line' : ('💳 Card — Pay '+money2(t.totalCents));
+  if(window.TKS_ACCESS) TKS_ACCESS.applyGates(document.getElementById('chgForm'));
+}
+// Build the pos_checkout payload from the ticket + customer + location/tech.
+function posBuildPayload(){
+  const c=chgCustomer||{};
+  if((c.customer||'').trim()){ try{ TKS.Customers.upsert({ customer:c.customer.trim(), phone:c.phone||'', email:c.email||'', source:'pos' }); }catch(_){} }
+  const loc=(document.getElementById('posLocation')||{}).value||'shop';
+  const techSel=document.getElementById('posTech');
+  const techVal=techSel?techSel.value:'';
+  const tech=posResolveTech(techVal);
+  return {
+    customer:(c.customer||''), customerId:(c.id||null), phone:(c.phone||''), email:(c.email||''),
+    location:loc, technician:tech.name, technicianId:tech.id, taxRate:posTaxRate(),
+    discountCents:posDiscountCents, discountReason:posDiscountReason,
+    lines: posTicket.map(l=> l.type==='part' ? { type:'part', itemId:l.refId, qty:l.qty }
+                          : l.type==='service' ? { type:'service', serviceId:l.refId, qty:l.qty }
+                          : { type:l.lineType||'service', desc:l.desc, priceCents:l.unitCents, qty:l.qty, taxable:!!l.taxable } )
+  };
+}
 /* Send the customer their receipt using the DEVICE's own apps — no email service,
    no cost. Native Share sheet is primary (works on iPhone + Android); an Email
    button (mailto:) shows when an email is on file. New Charge carries a TEXT
@@ -1705,41 +1781,138 @@ function showChgSend(r){
   const em=document.getElementById('chgSendEmail'); if(em) em.onclick=()=>{ window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Your '+bizName()+' receipt')+'&body='+encodeURIComponent(chgSummaryText(r)); };
 }
 function chgSay(msg,ok){ const e=chgEls(); e.status.textContent=msg; e.status.style.color=ok?'#7fd49b':(ok===false?'#f0a0a6':'var(--dim)'); }
+function posResolveTech(val){ if(!val) return {id:'',name:''}; const m=(window._posStaff||[]).find(s=>s.user_id===val); return m?{id:m.user_id,name:(m.name||'')}:{id:'',name:''}; }
+function posPopulateMeta(){
+  const locSel=document.getElementById('posLocation');
+  if(locSel){ locSel.innerHTML='<option value="shop">🏪 Shop</option>';
+    try{ TKS.Fleet.list().then(r=>{ ((r&&r.data)||[]).filter(v=>v.status!=='retired').forEach(v=>{
+      const o=document.createElement('option'); o.value='van:'+v.id; o.textContent='🚐 '+(v.nickname||('Van '+(v.fleet_no||''))); locSel.appendChild(o); }); }).catch(()=>{}); }catch(e){} }
+  const techSel=document.getElementById('posTech');
+  if(techSel){ try{ TKS.Fleet.staff().then(r=>{ const staff=((r&&r.data)||[]).filter(s=>s.active!==false); window._posStaff=staff;
+      let myId=''; try{ const u=TKS.auth.user&&TKS.auth.user(); myId=u?u.id:''; }catch(e){}
+      techSel.innerHTML='<option value="">— none —</option>'+staff.map(s=>'<option value="'+esc2(s.user_id)+'"'+(s.user_id===myId?' selected':'')+'>'+esc2((s.name||s.role)+' — '+s.role)+'</option>').join('');
+    }).catch(()=>{ techSel.innerHTML='<option value="">— none —</option>'; }); }catch(e){} }
+}
 function renderPayments(){
   const e=chgEls();
-  e.banner.className='pay-banner'; e.banner.textContent='New charge — same Stripe engine as invoices (TEST until live keys).';
+  e.banner.className='pay-banner'; e.banner.textContent='Register — same Stripe engine as invoices (TEST until live keys).';
   if(e.status) e.status.textContent='';
+  posPopulateMeta();
   renderChgCustomer();
-  renderChgBreakdown();
+  posRender();
   chgGate();
 }
 document.getElementById('chgCustPick').onclick=openChgCustomerPicker;
 document.getElementById('chgCustClear').onclick=()=>setChgCustomer(null);
-document.getElementById('chgAmount').addEventListener('input', renderChgBreakdown);
-document.getElementById('chgCard').onclick=function(){
-  if(!_chgUnlocked){ chgGate(); return; }
-  const a=chgAmounts();
-  if(a.cents<50){ chgSay('Amount must be at least $0.50 for card.',false); return; }
-  if(!chgCustomer || !chgCustomer.customer){ chgSay("Card needs the customer's info — tap “Select / add customer”.",false); return; }
-  const b=chgBuildReceipt();
-  if(!window.TKPay || !TKPay.openForReceipt){ chgSay('Payment engine not loaded.',false); return; }
-  TKPay.openForReceipt(b.receipt, { title:b.label+(b.name?(' — '+b.name):' — walk-in'),
-    onDone:()=>{ chgClear(); chgSay('✓ Card charge complete.',true); showChgSend(b.receipt); } });
-};
-function chgRecord(method){
-  if(!_chgUnlocked){ chgGate(); return; }
-  const a=chgAmounts();
-  if(a.cents<1){ chgSay('Enter an amount.',false); return; }
-  if(method==='check' && (!chgCustomer || !chgCustomer.customer)){ chgSay("Check needs the customer's info — tap “Select / add customer”.",false); return; }
-  const b=chgBuildReceipt();
-  if(!window.TKPay || !TKPay.recordCashCheck){ chgSay('Payment engine not loaded.',false); return; }
-  chgSay('Recording…',null);
-  TKPay.recordCashCheck(b.receipt, method, {
-    onDone:()=>{ chgClear(); chgSay('✓ '+(method==='cash'?'Cash':'Check')+' recorded ($'+b.a.sub.toFixed(2)+').',true); showChgSend(b.receipt); },
-    onError:(msg)=>{ chgSay('Could not record: '+msg,false); } });
+document.getElementById('posAddPart').onclick=()=> posPickItem('part');
+document.getElementById('posAddService').onclick=()=> posPickItem('service');
+document.getElementById('posAddCustom').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Custom-priced lines are manager-only.',false); return; } posCustomLine(); };
+document.getElementById('posDiscountBtn').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Discounts are manager-only.',false); return; } posDiscountPrompt(); };
+document.getElementById('posManageSvc').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Managers only.',false); return; } posManageServices(); };
+
+// Picker: a part (inventory, sell price) or a service (the price list).
+function posPickItem(kind){
+  const ov=document.createElement('div'); ov.className='chg-modal-ov';
+  ov.innerHTML='<div class="chg-modal"><div class="chg-modal-h"><b>'+(kind==='part'?'Add a part':'Add a service')+'</b><button type="button" class="chg-modal-x" id="piX">×</button></div>'+
+    '<input type="text" id="piSearch" placeholder="Search '+(kind==='part'?'parts':'services')+'…" autocomplete="off"><div id="piList" class="chg-cplist"></div></div>';
+  document.body.appendChild(ov);
+  function close(){ ov.remove(); }
+  ov.addEventListener('mousedown',ev=>{ if(ev.target===ov) close(); });
+  document.getElementById('piX').onclick=close;
+  const searchEl=document.getElementById('piSearch'), listEl=document.getElementById('piList'); let SERVICES=[];
+  function renderParts(){
+    let list=[]; try{ list=TKS.Inventory.search(searchEl.value).filter(p=>!p.deletedAt).slice(0,40); }catch(_){}
+    listEl.innerHTML = list.length ? list.map(p=>{ const c=p.sellPriceCents, ok=(c!=null && c>0);
+      return '<button type="button" class="chg-cprow" data-id="'+esc2(p.id)+'"'+(ok?'':' disabled style="opacity:.5"')+'><b>'+esc2(p.name||'(part)')+'</b><span>'+(ok?money2(c):'no sell price')+(p.sku?(' · '+esc2(p.sku)):'')+'</span></button>';
+    }).join('') : '<div class="chg-cpempty">No matching parts.</div>';
+    listEl.querySelectorAll('.chg-cprow:not([disabled])').forEach(b=> b.onclick=()=>{ const p=TKS.Inventory.get(b.dataset.id); if(p){ posAddLine({type:'part',refId:p.id,desc:p.name,unitCents:p.sellPriceCents,taxable:true,lineType:'part'}); close(); } });
+  }
+  function renderServices(){
+    const q=(searchEl.value||'').toLowerCase();
+    const list=SERVICES.filter(s=>!q||(s.name||'').toLowerCase().indexOf(q)>=0).slice(0,60);
+    listEl.innerHTML = list.length ? list.map(s=>'<button type="button" class="chg-cprow" data-id="'+esc2(s.id)+'"><b>'+esc2(s.name)+'</b><span>'+money2(s.price_cents)+' · '+esc2(s.category)+'</span></button>').join('')
+      : '<div class="chg-cpempty">No services yet — a manager adds them in Setup → Services.</div>';
+    listEl.querySelectorAll('.chg-cprow').forEach(b=> b.onclick=()=>{ const s=SERVICES.find(x=>x.id===b.dataset.id); if(s){ posAddLine({type:'service',refId:s.id,desc:s.name,unitCents:s.price_cents,taxable:false,lineType:s.category}); close(); } });
+  }
+  if(kind==='part'){ searchEl.oninput=renderParts; renderParts(); }
+  else { listEl.innerHTML='<div class="chg-cpempty">Loading…</div>';
+    try{ TKS.POS.services(true).then(r=>{ SERVICES=(r&&r.data)||[]; renderServices(); }).catch(()=>{ listEl.innerHTML='<div class="chg-cpempty">Couldn’t load services.</div>'; }); }catch(e){ listEl.innerHTML='<div class="chg-cpempty">Sign in to load services.</div>'; }
+    searchEl.oninput=renderServices; }
+  setTimeout(()=>searchEl.focus(),30);
 }
-document.getElementById('chgCash').onclick=()=>chgRecord('cash');
-document.getElementById('chgCheck').onclick=()=>chgRecord('check');
+function posCustomLine(){
+  const desc=prompt('Custom line — description:'); if(!desc) return;
+  const price=prompt('Price (e.g. 45.00):'); if(price===null) return;
+  const cents=Math.round((parseFloat(price)||0)*100); if(cents<=0){ chgSay('Enter a price.',false); return; }
+  const taxable=confirm('Taxable line?  OK = yes,  Cancel = no');
+  posAddLine({type:'custom',refId:null,desc:desc.trim(),unitCents:cents,taxable:taxable,lineType:'service'});
+}
+function posDiscountPrompt(){
+  const v=prompt('Discount amount in $ (0 to clear):', posDiscountCents>0?(posDiscountCents/100).toFixed(2):'0'); if(v===null) return;
+  const cents=Math.round((parseFloat(v)||0)*100);
+  if(cents<=0){ posDiscountCents=0; posDiscountReason=''; posRender(); return; }
+  const reason=prompt('Discount reason (optional):')||''; posDiscountCents=cents; posDiscountReason=reason.trim(); posRender();
+}
+// Manager editor for the register's services price list (the `services` table).
+function posManageServices(){
+  const ov=document.createElement('div'); ov.className='chg-modal-ov';
+  ov.innerHTML='<div class="chg-modal"><div class="chg-modal-h"><b>Register services &amp; prices</b><button type="button" class="chg-modal-x" id="msX">×</button></div>'+
+    '<div id="msList" class="chg-cplist" style="max-height:42vh">Loading…</div>'+
+    '<div style="border-top:1px solid var(--edge);margin-top:8px;padding-top:8px">'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap"><input id="msName" placeholder="Service name" style="flex:1 1 100%">'+
+      '<select id="msCat" style="flex:1"><option value="service">Service call</option><option value="programming">Programming</option><option value="labor">Labor</option></select>'+
+      '<input id="msPrice" type="number" inputmode="decimal" placeholder="$ price" style="flex:1"></div>'+
+      '<button type="button" class="btn save" id="msAdd" style="width:100%;margin-top:6px">+ Add service</button>'+
+      '<div id="msMsg" style="font-size:12px;min-height:14px;margin-top:4px"></div></div></div>';
+  document.body.appendChild(ov);
+  function close(){ ov.remove(); }
+  ov.addEventListener('mousedown',ev=>{ if(ev.target===ov) close(); });
+  document.getElementById('msX').onclick=close;
+  const listEl=document.getElementById('msList'), msg=document.getElementById('msMsg');
+  function load(){ try{ TKS.POS.services(false).then(r=>{ const list=(r&&r.data)||[];
+      listEl.innerHTML = list.length ? list.map(s=>'<div class="chg-cprow" style="cursor:default;position:relative;padding-right:34px"><b>'+esc2(s.name)+'</b><span>'+money2(s.price_cents)+' · '+esc2(s.category)+(s.active?'':' · inactive')+'</span>'+
+        '<button class="pl-x" data-del="'+esc2(s.id)+'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%)" aria-label="Delete">×</button></div>').join('')
+        : '<div class="chg-cpempty">No services yet — add your first below.</div>';
+      listEl.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>{ if(!confirm('Delete this service?')) return; TKS.POS.removeService(b.dataset.del).then(()=>load()); });
+    }).catch(()=>{ listEl.innerHTML='<div class="chg-cpempty">Couldn’t load.</div>'; }); }catch(e){ listEl.innerHTML='<div class="chg-cpempty">Sign in first.</div>'; } }
+  document.getElementById('msAdd').onclick=function(){
+    const name=document.getElementById('msName').value.trim(), cat=document.getElementById('msCat').value;
+    const price=Math.round((parseFloat(document.getElementById('msPrice').value)||0)*100);
+    if(!name){ msg.style.color='#c8323c'; msg.textContent='Enter a name.'; return; }
+    msg.style.color='var(--dim)'; msg.textContent='Saving…';
+    TKS.POS.saveService({ name, category:cat, price_cents:price }).then(r=>{ if(r&&r.error){ msg.style.color='#c8323c'; msg.textContent=r.error.message; }
+      else { document.getElementById('msName').value=''; document.getElementById('msPrice').value=''; msg.textContent=''; load(); } }).catch(e=>{ msg.style.color='#c8323c'; msg.textContent=e.message||'Failed.'; });
+  };
+  load();
+}
+
+/* charge: server checkout (re-prices + gates) → existing pay flow (skipUpsert) → decrement stock */
+function posCheckoutThen(method){
+  if(!_chgUnlocked){ chgGate(); return; }
+  if(!posTicket.length){ chgSay('Add a line first.',false); return; }
+  const t=posTotals();
+  if(method==='card' && t.totalCents<50){ chgSay('Card needs at least $0.50.',false); return; }
+  if(method!=='cash' && (!chgCustomer || !chgCustomer.customer)){ chgSay((method==='card'?'Card':'Check')+" needs the customer's info — tap “Select / add customer”.",false); return; }
+  if(!(window.TKS && TKS.POS && TKS.auth.isSignedIn())){ chgSay('Sign in to the cloud to take a register payment.',false); return; }
+  chgSay('Building ticket…',null);
+  TKS.POS.checkout(posBuildPayload()).then(res=>{
+    if(res && res.error){ chgSay(res.error.message,false); return; }
+    const rid = res && res.data; if(!rid){ chgSay('Checkout failed.',false); return; }
+    const cust=chgCustomer||{};
+    const stub={ id:rid, number:rid, customer:cust.customer||'', email:cust.email||'', totals:{ total:t.totalCents/100, surcharge:0 } };
+    const done=()=>{ TKS.POS.decrementStock(rid).catch(()=>{}); posClear();
+      chgSay('✓ '+(method==='card'?'Card charge complete.':((method==='cash'?'Cash':'Check')+' recorded.')),true);
+      showChgSend({ id:rid, email:cust.email, items:[{desc:'Register sale'}], totals:{ total:t.totalCents/100 } }); };
+    if(method==='card'){ if(!TKPay.openForReceipt){ chgSay('Payment engine not loaded.',false); return; }
+      TKPay.openForReceipt(stub, { skipUpsert:true, title:'Register — '+(cust.customer||'walk-in'), onDone:done }); }
+    else { if(!TKPay.recordCashCheck){ chgSay('Payment engine not loaded.',false); return; }
+      chgSay('Recording…',null);
+      TKPay.recordCashCheck(stub, method, { skipUpsert:true, onDone:done, onError:(m)=>chgSay('Could not record: '+m,false) }); }
+  }).catch(e=> chgSay(e.message||'Checkout failed.',false));
+}
+document.getElementById('chgCard').onclick=()=>posCheckoutThen('card');
+document.getElementById('chgCash').onclick=()=>posCheckoutThen('cash');
+document.getElementById('chgCheck').onclick=()=>posCheckoutThen('check');
 document.getElementById('chgHistLink').onclick=(ev)=>{ ev.preventDefault(); openHistory(); };
 
 /* ---- Day closeout / transaction history ---- */
