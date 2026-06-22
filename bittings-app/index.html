@@ -1335,12 +1335,19 @@ function renderInventory(){
         (isLow && (parseInt(p.reorderQty,10)||0)>0
           ? '<div class="sub reorder">↻ Reorder '+(parseInt(p.reorderQty,10)||0)+(p.supplier?' · '+esc(p.supplier):'')+'</div>'
           : '')+'</div>'+
-      (showLoc?'<button class="moveloc" data-cap="inventoryWrite" title="Move to '+(loc==='van'?'shop':'van')+'">→ '+(loc==='van'?'Shop':'Van')+'</button>':'')+
+      // Cloud session → the real multi-location stock tool (shop + each van);
+      // offline → the legacy binary van/shop flip.
+      ((TKS.auth && TKS.auth.isSignedIn())
+        ? '<button class="moveloc" data-stock="'+esc(p.id)+'" title="Stock by location (shop / vans)">📍</button>'
+        : (showLoc?'<button class="moveloc" data-cap="inventoryWrite" title="Move to '+(loc==='van'?'shop':'van')+'">→ '+(loc==='van'?'Shop':'Van')+'</button>':''))+
       (p.cost?'<span class="tag">'+money(p.cost)+'</span>':'');
     row.querySelector('.minus').onclick = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id,-1); renderInventory(); };
     row.querySelector('.plus').onclick  = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id, 1); renderInventory(); };
     const mv=row.querySelector('.moveloc');
-    if(mv) mv.onclick=(e)=>{ e.stopPropagation(); const np=TKS.Inventory.get(p.id)||p; np.loc=(loc==='van'?'shop':'van'); TKS.Inventory.save(np); renderInventory(); };
+    if(mv){
+      if(mv.dataset.stock){ mv.onclick=(e)=>{ e.stopPropagation(); openStockPanel(p); }; }
+      else mv.onclick=(e)=>{ e.stopPropagation(); const np=TKS.Inventory.get(p.id)||p; np.loc=(loc==='van'?'shop':'van'); TKS.Inventory.save(np); renderInventory(); };
+    }
     const info = row.querySelector('.pinfo');
     info.onclick = ()=> openPart(p.id);
     info.setAttribute('tabindex','0');
@@ -1350,6 +1357,103 @@ function renderInventory(){
     wrap.appendChild(row);
   });
 }
+/* ===================== STOCK BY LOCATION (cloud) =====================
+   The real 1b multi-location stock tool: shows a part's qty at the shop and
+   on each van, with role-checked Move / Receive / Adjust actions that call the
+   server RPCs (which re-enforce the role). Buttons are gated by data-cap so a
+   role never sees an action it can't run:
+     • Move    invMove    (owner/manager/technician)  — stock follows the van
+     • Receive invReceive (owner/manager/front_desk)  — new stock into the shop
+     • Adjust  inventoryWrite (owner/manager)         — count / write-off + reason
+   inventory.qty stays the synced total (a DB trigger), so the main list updates. */
+function locName(loc, vans){
+  if(loc==='shop') return 'Shop';
+  if(String(loc).indexOf('van:')===0){ const id=String(loc).slice(4); const v=(vans||[]).find(x=>x.id===id);
+    return v ? (v.nickname || ('Van '+(v.fleet_no||'')) || 'Van') : 'Van (removed)'; }
+  return loc;
+}
+function openStockPanel(p){
+  if(!(TKS.auth && TKS.auth.isSignedIn())){ alert('Sign in to the cloud to manage stock by location.'); return; }
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:flex-end;justify-content:center;';
+  ov.innerHTML='<div id="stkCard" style="background:var(--card,#fff);width:100%;max-width:560px;border-radius:16px 16px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto;"><div class="empty" style="padding:20px;text-align:center;color:var(--dim)">Loading stock…</div></div>';
+  document.body.appendChild(ov);
+  function close(){ ov.remove(); }
+  ov.addEventListener('mousedown', e=>{ if(e.target===ov) close(); });
+  let locs=[], vans=[];
+  function reload(){
+    return Promise.all([TKS.InvOps.locations(p.id), TKS.Fleet.list()]).then(([L,V])=>{
+      locs=(L && L.data)||[]; vans=((V && V.data)||[]).filter(v=>v.status!=='retired'); draw();
+    }).catch(e=>{ document.getElementById('stkCard').innerHTML='<div class="empty" style="padding:20px;color:var(--dim)">'+esc(e.message||'Couldn’t load stock.')+'</div>'; });
+  }
+  function msg(id,t,ok){ const m=document.getElementById(id); if(m){ m.style.color=ok?'#1c7d3e':'#a3252e'; m.textContent=t; if(ok) setTimeout(()=>{ if(m) m.textContent=''; },2200); } }
+  function destOpts(sel){ return ['shop'].concat(vans.map(v=>'van:'+v.id)).map(l=>'<option value="'+esc(l)+'"'+(sel===l?' selected':'')+'>'+esc(locName(l,vans))+'</option>').join(''); }
+  function draw(){
+    const total=locs.reduce((s,r)=>s+(parseInt(r.qty,10)||0),0);
+    const withStock=locs.filter(r=>(parseInt(r.qty,10)||0)>0);
+    const locRows = locs.length
+      ? locs.map(r=>'<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--edge,#e3e6ea)"><span>'+esc(locName(r.location,vans))+'</span><b>'+(parseInt(r.qty,10)||0)+'</b></div>').join('')
+      : '<div class="empty" style="color:var(--dim);padding:6px 0">No stock recorded yet — Receive some into the shop to begin.</div>';
+    const fromOpts = withStock.map(r=>'<option value="'+esc(r.location)+'">'+esc(locName(r.location,vans))+' ('+(parseInt(r.qty,10)||0)+')</option>').join('');
+    document.getElementById('stkCard').innerHTML=
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h2 style="margin:0;font-size:17px;flex:1">'+esc(p.name||'Part')+'</h2>'+
+        '<button type="button" id="stkClose" style="background:none;border:none;font-size:22px;color:var(--dim);cursor:pointer;line-height:1">×</button></div>'+
+      '<div style="color:var(--dim);font-size:12.5px;margin-bottom:8px">Total on hand: <b>'+total+'</b></div>'+
+      '<div style="margin-bottom:14px">'+locRows+'</div>'+
+      // MOVE
+      '<div data-cap="invMove" style="border:1px solid var(--edge,#e3e6ea);border-radius:11px;padding:10px 12px;margin-bottom:9px">'+
+        '<div style="font-weight:800;font-size:13px;margin-bottom:6px">↔ Move between locations</div>'+
+        (withStock.length
+          ? '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:end">'+
+              '<div><label style="font-size:11px;color:var(--dim)">From</label><select id="mvFrom">'+fromOpts+'</select></div>'+
+              '<div style="padding-bottom:9px;color:var(--dim)">→</div>'+
+              '<div><label style="font-size:11px;color:var(--dim)">To</label><select id="mvTo">'+destOpts('')+'</select></div></div>'+
+            '<div style="display:flex;gap:6px;margin-top:6px"><input id="mvQty" type="number" min="1" inputmode="numeric" placeholder="Qty" style="flex:1">'+
+              '<button type="button" class="mini" id="mvBtn" style="background:#e7e9ee;border:none;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer">Move</button></div>'
+          : '<div style="font-size:12px;color:var(--dim)">Nothing to move yet.</div>')+
+        '<div id="mvMsg" style="font-size:12px;min-height:15px;margin-top:5px"></div></div>'+
+      // RECEIVE
+      '<div data-cap="invReceive" style="border:1px solid var(--edge,#e3e6ea);border-radius:11px;padding:10px 12px;margin-bottom:9px">'+
+        '<div style="font-weight:800;font-size:13px;margin-bottom:6px">📥 Receive new stock (into shop)</div>'+
+        '<div style="display:flex;gap:6px"><input id="rcQty" type="number" min="1" inputmode="numeric" placeholder="Qty received" style="flex:1">'+
+          '<button type="button" class="mini" id="rcBtn" style="background:#e7e9ee;border:none;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer">Receive</button></div>'+
+        '<div id="rcMsg" style="font-size:12px;min-height:15px;margin-top:5px"></div></div>'+
+      // ADJUST
+      '<div data-cap="inventoryWrite" style="border:1px solid var(--edge,#e3e6ea);border-radius:11px;padding:10px 12px">'+
+        '<div style="font-weight:800;font-size:13px;margin-bottom:6px">✎ Adjust count / write-off</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div><label style="font-size:11px;color:var(--dim)">Location</label><select id="ajLoc">'+destOpts('shop')+'</select></div>'+
+          '<div><label style="font-size:11px;color:var(--dim)">New count</label><input id="ajQty" type="number" min="0" inputmode="numeric" placeholder="0"></div></div>'+
+        '<input id="ajReason" placeholder="Reason (e.g. recount, damaged, lost)" style="margin-top:6px">'+
+        '<button type="button" class="mini" id="ajBtn" style="background:#e7e9ee;border:none;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer;margin-top:6px;width:100%">Save adjustment</button>'+
+        '<div id="ajMsg" style="font-size:12px;min-height:15px;margin-top:5px"></div></div>';
+    document.getElementById('stkClose').onclick=close;
+    const mvBtn=document.getElementById('mvBtn');
+    if(mvBtn) mvBtn.onclick=function(){
+      const from=document.getElementById('mvFrom').value, to=document.getElementById('mvTo').value, qty=parseInt(document.getElementById('mvQty').value,10)||0;
+      if(from===to){ msg('mvMsg','Pick two different locations.',false); return; }
+      if(qty<1){ msg('mvMsg','Enter a quantity.',false); return; }
+      msg('mvMsg','Moving…',true);
+      TKS.InvOps.move(p.id,from,to,qty).then(res=>{ if(res && res.error){ msg('mvMsg',res.error.message,false); } else { msg('mvMsg','Moved.',true); reload(); renderInventory(); } }).catch(e=> msg('mvMsg',e.message||'Move failed.',false));
+    };
+    const rcBtn=document.getElementById('rcBtn');
+    if(rcBtn) rcBtn.onclick=function(){
+      const qty=parseInt(document.getElementById('rcQty').value,10)||0;
+      if(qty<1){ msg('rcMsg','Enter a quantity.',false); return; }
+      msg('rcMsg','Receiving…',true);
+      TKS.InvOps.receive(p.id,qty).then(res=>{ if(res && res.error){ msg('rcMsg',res.error.message,false); } else { msg('rcMsg','Received into shop.',true); reload(); renderInventory(); } }).catch(e=> msg('rcMsg',e.message||'Receive failed.',false));
+    };
+    const ajBtn=document.getElementById('ajBtn');
+    if(ajBtn) ajBtn.onclick=function(){
+      const loc=document.getElementById('ajLoc').value, q=document.getElementById('ajQty').value, reason=document.getElementById('ajReason').value.trim();
+      if(q===''||parseInt(q,10)<0){ msg('ajMsg','Enter the new count (0 or more).',false); return; }
+      msg('ajMsg','Saving…',true);
+      TKS.InvOps.adjust(p.id,loc,parseInt(q,10),reason).then(res=>{ if(res && res.error){ msg('ajMsg',res.error.message,false); } else { msg('ajMsg','Adjusted.',true); reload(); renderInventory(); } }).catch(e=> msg('ajMsg',e.message||'Adjust failed.',false));
+    };
+    if(window.TKS_ACCESS) TKS_ACCESS.applyGates(document.getElementById('stkCard'));
+  }
+  reload();
+}
+
 // part-form van/shop selector
 let partLocSel='van';
 function setPartLoc(loc){ partLocSel=(loc==='shop')?'shop':'van';
