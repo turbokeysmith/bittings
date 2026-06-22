@@ -128,7 +128,7 @@
         customer_name: (o.customer && o.customer.name) || null }; }
     },
     receipts: {
-      table: 'receipts', idStrategy: 'text', filter: null,
+      table: 'receipts', readTable: 'receipts_safe', idStrategy: 'text', filter: null,   // read via cost-masking view (per-line cost null for non-managers); writes still target receipts
       fromRow: function (r) { return Object.assign({}, r.data, { id: r.id }); },
       toRow: function (o) { return { id: o.id, data: o }; }
     }
