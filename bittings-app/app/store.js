@@ -1045,10 +1045,13 @@
   global.TKS.Jobs = {
     setStatus: function(job, status){ return _sb().rpc('job_set_status', { p_job: job, p_status: status }); },
     cancel:    function(job, reason, detail){ return _sb().rpc('job_cancel', { p_job: job, p_reason: reason, p_detail: detail || '' }); },
+    // authoritative top-level job fields (the RPC-only status + accountability flags)
+    meta:      function(job){ return _sb().from('bookings').select('status,reconciliation_pending,responsible_tech,cancel_reason,cancel_detail,completed_at').eq('id', job).maybeSingle(); },
     parts:     function(job){ return _sb().from('job_parts').select('*').eq('job_id', job).order('created_at'); },
     addPart:   function(job, desc, isCut){ return _sb().from('job_parts').insert({ job_id: job, description: desc || '', is_cut_key: !!isCut }).select(); },
     reconcilePart: function(part, state, proof){ return _sb().rpc('job_reconcile_part', { p_part: part, p_state: state, p_proof: proof || '' }); },
     assign:    function(job, userId, role){ return _sb().from('job_staff').upsert({ job_id: job, user_id: userId, job_role: role || 'lead' }); },
+    unassignRole: function(job, role){ return _sb().from('job_staff').delete().eq('job_id', job).eq('job_role', role || 'lead'); },
     staffOnJob: function(job){ return _sb().from('job_staff').select('user_id,job_role').eq('job_id', job); },
     // Upload a reconciliation proof photo to the private 'job-proof' bucket; returns the stored path.
     uploadProof: function(job, file){

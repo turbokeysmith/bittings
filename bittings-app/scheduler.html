@@ -971,7 +971,8 @@ function renderBooking(){
       <div class="when">${esc(subLabel(b.jobType,b.subType))} · ${esc(when)}</div>
       ${rows}
       <div class="section-h" style="margin-top:14px">${t('change_status')}</div>
-      <div class="status-picker">${picker}</div>
+      <div class="status-picker" id="statusPicker">${picker}</div>
+      <div id="jobAccount"></div>
       ${imgs}
       <div class="bk-actions">
         <a class="gcal" href="${googleUrl()}" target="_blank" rel="noopener">📆 ${t('add_to_sched')}</a>
@@ -979,8 +980,28 @@ function renderBooking(){
         <button class="del" data-cap="hardDelete" onclick="deleteBooking('${b.id}')">🗑</button>
       </div>
     </div>`;
+  if(window.TKS_ACCESS) TKS_ACCESS.applyGates(app);
+  loadJobAccount(b.id);
 }
-function setBookingStatus(id,status){ try{ TKS.Bookings.setStatus(id,status); }catch(e){} render(); }
+
+// Local→cloud status map (the cloud state machine is richer; we keep the owner's
+// familiar 5-button picker and translate). 'Canceled' is special — it must carry a
+// reason, so it routes to the cancel flow (job_cancel), never job_set_status.
+const L2C_STATUS = { 'Scheduled':'scheduled','In Progress':'in_progress','Completed':'completed','Rescheduled':'scheduled','Canceled':'canceled' };
+const CLOUD_STATUS_LABEL = { scheduled:'Scheduled', en_route:'En route', on_site:'On site', in_progress:'In progress', completed:'Completed', on_hold:'On hold', canceled:'Canceled' };
+
+function setBookingStatus(id,status){
+  // Offline / local: unchanged.
+  if(!(window.TKS && TKS.auth && TKS.auth.isSignedIn())){ try{ TKS.Bookings.setStatus(id,status); }catch(e){} render(); return; }
+  // Cloud: the authoritative status is RPC-only (own-job + reconciliation gates).
+  if(status==='Canceled'){ openCancelJob(id); return; }
+  const cloud = L2C_STATUS[status] || 'scheduled';
+  TKS.Jobs.setStatus(id, cloud).then(res=>{
+    if(res && res.error){ if(window.TKS_ACCESS) TKS_ACCESS.toast(res.error.message); else alert(res.error.message); }
+    else { try{ TKS.Bookings.setStatus(id,status); }catch(e){} }   // mirror to the local day-board view
+    render();
+  }).catch(e=>{ if(window.TKS_ACCESS) TKS_ACCESS.toast(e.message||'Status change failed.'); render(); });
+}
 function deleteBooking(id){
   TKS_ACCESS.confirmDanger({ title:'Delete this booking?', message:t('del_confirm'), confirmLabel:'Delete' }).then(function(ok){
     if(!ok) return;
@@ -988,6 +1009,176 @@ function deleteBooking(id){
     VIEW='jobs'; render();
   });
 }
+/* ===================== JOB ACCOUNTABILITY (cloud, 1c) =====================
+   Appended to the booking detail when signed into the cloud. Shows the
+   authoritative (RPC-only) status + reconciliation flag, the assigned lead
+   tech, the parts checklist (reconcile used/returned; a returned cut key needs
+   a photo), the "part not on the tech's van" flag with a guided move, and
+   Cancel-with-reason. Every action calls a server RPC that re-enforces the role
+   + own-job rule, so the UI can't grant more than the database allows. */
+const CANCEL_REASONS = ['Customer no-show','Customer canceled','Rescheduled','Duplicate booking','Unable to complete (vehicle/parts)','Priced too high','Other'];
+function jobRole(){ try{ return TKS.auth.staffRole && TKS.auth.staffRole(); }catch(e){ return null; } }
+function myUid(){ try{ const u=TKS.auth.user&&TKS.auth.user(); return u?u.id:null; }catch(e){ return null; } }
+function vanName(loc, vans){ if(loc==='shop') return 'Shop'; if(String(loc).indexOf('van:')===0){ const id=String(loc).slice(4); const v=(vans||[]).find(x=>x.id===id); return v?(v.nickname||('Van '+(v.fleet_no||''))||'Van'):'Van'; } return loc; }
+function jaMsg(t,ok){ const m=document.getElementById('ja_msg'); if(m){ m.style.color=ok?'#22994a':'#c8323c'; m.textContent=t; if(ok) setTimeout(()=>{ if(m) m.textContent=''; },2400); } }
+
+function loadJobAccount(jobId){
+  const host=document.getElementById('jobAccount'); if(!host) return;
+  if(!(window.TKS && TKS.auth && TKS.auth.isSignedIn())){ host.innerHTML=''; return; }   // cloud-only feature
+  host.innerHTML='<div style="color:var(--dim);font-size:12px;padding:8px 0">Loading job accountability…</div>';
+  Promise.all([ TKS.Jobs.meta(jobId), TKS.Jobs.parts(jobId), TKS.Jobs.staffOnJob(jobId), TKS.Fleet.staff(), TKS.Fleet.list() ])
+    .then(([meta,parts,js,staff,vans])=>{
+      const M=(meta&&meta.data)||{}, P=(parts&&parts.data)||[], JS=(js&&js.data)||[], STAFF=(staff&&staff.data)||[], VANS=(vans&&vans.data)||[];
+      drawJobAccount(host, jobId, M, P, JS, STAFF, VANS);
+    }).catch(e=>{ host.innerHTML='<div style="color:#c8323c;font-size:12px;padding:8px 0">'+esc(e.message||'Couldn’t load job data.')+'</div>'; });
+}
+
+function partRowHTML(p, canReconcile){
+  const stateBadge = { pending:'<span style="color:#9a6b08">● pending</span>', used:'<span style="color:#1c7d3e">✓ used</span>', returned:'<span style="color:#1c7d3e">↩ returned</span>' }[p.state||'pending'];
+  let acts='';
+  if((p.state||'pending')==='pending' && canReconcile){
+    acts='<div style="display:flex;gap:6px;margin-top:5px">'+
+      '<button class="btn ghost" data-used="'+esc(p.id)+'" style="padding:6px 12px;font-size:12px">Used</button>'+
+      '<button class="btn ghost" data-ret="'+esc(p.id)+'" data-cut="'+(p.is_cut_key?'1':'')+'" style="padding:6px 12px;font-size:12px">Returned'+(p.is_cut_key?' 📷':'')+'</button></div>';
+  }
+  return '<div class="ja-part" data-pid="'+esc(p.id)+'" style="border-top:1px solid var(--line);padding:7px 0">'+
+    '<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span>'+esc(p.description||p.item_id||'Part')+
+      (p.qty>1?(' ×'+p.qty):'')+(p.is_cut_key?' <span style="font-size:10px;background:rgba(74,163,255,.14);color:#2b6cb0;padding:1px 6px;border-radius:999px">cut key</span>':'')+'</span>'+
+      '<span style="font-size:12px;white-space:nowrap">'+stateBadge+'</span></div>'+
+      '<div class="ja-vanflag" style="font-size:11.5px;margin-top:2px"></div>'+acts+'</div>';
+}
+
+function drawJobAccount(host, jobId, M, parts, jobStaff, staff, vans){
+  const role=jobRole(), uid=myUid();
+  const lead=jobStaff.find(x=>x.job_role==='lead');
+  const ownJob = !!(uid && jobStaff.some(x=>x.user_id===uid));
+  const canStatus = role!=='front_desk' && !(role==='technician' && !ownJob);
+  const canReconcile = role==='owner'||role==='manager' || (role==='technician' && ownJob);
+  const leadStaff = lead ? staff.find(s=>s.user_id===lead.user_id) : null;
+  const leadName = leadStaff ? (leadStaff.name||'Tech') : (lead?'Tech':'Unassigned');
+  const leadVan = leadStaff ? leadStaff.home_van_id : null;
+
+  // Read-only the simple picker when this user can't change THIS job's status.
+  const sp=document.getElementById('statusPicker');
+  if(sp){ if(!canStatus){ sp.style.opacity='.45'; sp.style.pointerEvents='none'; } else { sp.style.opacity=''; sp.style.pointerEvents=''; } }
+
+  let html='<div class="section-h" style="margin-top:18px">Job accountability</div>'+
+    '<div style="font-size:12.5px;color:var(--dim);margin-bottom:8px">Accountable status: <b style="color:var(--ink)">'+esc(CLOUD_STATUS_LABEL[M.status]||M.status||'—')+'</b>'+
+      (M.reconciliation_pending?' · <b style="color:#c8323c">⚠ Reconciliation pending</b>':'')+'</div>';
+  if(M.status==='canceled' && M.cancel_reason){ html+='<div style="font-size:12px;color:var(--dim);margin:-4px 0 8px">Reason: '+esc(M.cancel_reason)+(M.cancel_detail?(' — '+esc(M.cancel_detail)):'')+'</div>'; }
+  if(role==='technician' && !ownJob){ html+='<div style="background:rgba(242,180,58,.12);border:1px solid rgba(242,180,58,.4);border-radius:9px;padding:8px 10px;font-size:12px;margin-bottom:8px">This isn’t your assigned job — status &amp; parts are read-only for you.</div>'; }
+
+  // Lead assignment (manager+ sets it).
+  html+='<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--dim);display:block;margin-bottom:3px">Lead tech</label>';
+  if(role==='owner'||role==='manager'){
+    const opts='<option value="">— unassigned —</option>'+staff.filter(s=>s.active!==false).map(s=>'<option value="'+esc(s.user_id)+'"'+(lead&&lead.user_id===s.user_id?' selected':'')+'>'+esc(s.name||s.role)+'</option>').join('');
+    html+='<select id="ja_lead" style="width:100%">'+opts+'</select>';
+  } else { html+='<div style="font-size:13px">'+esc(leadName)+'</div>'; }
+  html+='</div>';
+
+  // Parts checklist.
+  html+='<div class="section-h" style="margin-top:8px">Parts &amp; reconciliation</div>';
+  html+= parts.length ? '<div id="ja_parts">'+parts.map(p=>partRowHTML(p,canReconcile)).join('')+'</div>'
+                      : '<div style="font-size:12px;color:var(--dim)">No parts logged for this job.</div>';
+  html+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center"><input id="ja_pdesc" placeholder="Add a part used on this job" style="flex:1;min-width:150px">'+
+    '<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--dim)"><input type="checkbox" id="ja_pcut" style="width:auto">cut key</label>'+
+    '<button class="btn ghost" id="ja_padd" style="padding:8px 12px">+ Add</button></div>';
+
+  // Cancel-with-reason.
+  const canCancel = role==='owner'||role==='manager' || (role==='technician'&&ownJob) || (role==='front_desk' && M.status==='scheduled');
+  if(canCancel && M.status!=='canceled'){
+    html+='<button class="btn ghost" id="ja_cancel" style="margin-top:12px;color:#c8323c;border-color:rgba(200,50,60,.4);width:100%">⊘ Cancel this job…</button>';
+  }
+  html+='<div id="ja_msg" style="font-size:12px;min-height:15px;margin-top:8px"></div>';
+  host.innerHTML=html;
+
+  // ---- wire ----
+  const leadSel=document.getElementById('ja_lead');
+  if(leadSel) leadSel.onchange=function(){
+    const newUid=leadSel.value;
+    const step = TKS.Jobs.unassignRole(jobId,'lead');     // clear any existing lead first
+    step.then(()=> newUid ? TKS.Jobs.assign(jobId,newUid,'lead') : {error:null})
+      .then(res=>{ jaMsg(res&&res.error?res.error.message:(newUid?'Lead assigned.':'Lead cleared.'), !(res&&res.error)); loadJobAccount(jobId); })
+      .catch(e=> jaMsg(e.message||'Couldn’t assign.',false));
+  };
+  host.querySelectorAll('[data-used]').forEach(b=> b.onclick=()=> jaReconcile(jobId, b.getAttribute('data-used'),'used',false));
+  host.querySelectorAll('[data-ret]').forEach(b=> b.onclick=()=> jaReconcile(jobId, b.getAttribute('data-ret'),'returned', b.getAttribute('data-cut')==='1'));
+  const padd=document.getElementById('ja_padd');
+  if(padd) padd.onclick=function(){
+    const d=document.getElementById('ja_pdesc').value.trim(), cut=document.getElementById('ja_pcut').checked;
+    if(!d){ jaMsg('Type what the part was.',false); return; }
+    jaMsg('Adding…',true);
+    TKS.Jobs.addPart(jobId,d,cut).then(res=>{ if(res&&res.error){ jaMsg(res.error.message,false);} else { jaMsg('Part added.',true); loadJobAccount(jobId);} }).catch(e=> jaMsg(e.message||'Add failed.',false));
+  };
+  const cb=document.getElementById('ja_cancel');
+  if(cb) cb.onclick=()=> openCancelJob(jobId);
+
+  // "Part not on the tech's van" flag + guided move (async enrichment).
+  if(leadVan){ jaCheckVanStock(jobId, parts, leadVan, leadName, role, ownJob); }
+}
+
+function jaReconcile(jobId, partId, state, isCut){
+  if(state==='returned' && isCut){
+    const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.capture='environment';
+    inp.onchange=function(){ const f=inp.files&&inp.files[0]; if(!f) return; jaMsg('Uploading photo…',true);
+      TKS.Jobs.uploadProof(jobId,f).then(path=> TKS.Jobs.reconcilePart(partId,'returned',path))
+        .then(res=>{ if(res&&res.error){ jaMsg(res.error.message,false);} else { jaMsg('Returned — photo saved.',true); loadJobAccount(jobId);} })
+        .catch(e=> jaMsg(e.message||'Upload failed.',false)); };
+    inp.click(); return;
+  }
+  jaMsg('Saving…',true);
+  TKS.Jobs.reconcilePart(partId,state,'').then(res=>{ if(res&&res.error){ jaMsg(res.error.message,false);} else { jaMsg('Marked '+state+'.',true); loadJobAccount(jobId);} }).catch(e=> jaMsg(e.message||'Failed.',false));
+}
+
+// For each part tied to an inventory item, check the lead tech's home van. If the
+// item isn't on that van, flag it and (for someone who can move stock) offer a
+// one-tap guided move from the shop to the van — the reassignment helper.
+function jaCheckVanStock(jobId, parts, leadVan, leadName, role, ownJob){
+  const canMove = role==='owner'||role==='manager' || (role==='technician' && ownJob);
+  parts.forEach(p=>{
+    if(!p.item_id) return;
+    const row=document.querySelector('.ja-part[data-pid="'+p.id+'"] .ja-vanflag'); if(!row) return;
+    TKS.InvOps.locations(p.item_id).then(res=>{
+      const locs=(res&&res.data)||[]; const onVan=locs.find(l=>l.location==='van:'+leadVan);
+      if(onVan && (parseInt(onVan.qty,10)||0)>0) return;     // it's on the van — nothing to flag
+      const atShop=locs.find(l=>l.location==='shop'); const shopQty=atShop?(parseInt(atShop.qty,10)||0):0;
+      row.innerHTML='<span style="color:#c8323c">⚠ Not on '+esc(leadName)+'’s van.</span>'+
+        (canMove && shopQty>0 ? ' <button class="btn ghost" data-mv="'+esc(p.item_id)+'" style="padding:3px 9px;font-size:11px">Move 1 → van</button>'
+          : (shopQty<=0?' <span style="color:var(--dim)">(none at shop)</span>':''));
+      const mv=row.querySelector('[data-mv]');
+      if(mv) mv.onclick=function(){ jaMsg('Moving to van…',true);
+        TKS.InvOps.move(p.item_id,'shop','van:'+leadVan,1).then(r=>{ if(r&&r.error){ jaMsg(r.error.message,false);} else { jaMsg('Moved 1 to the van.',true); loadJobAccount(jobId);} }).catch(e=> jaMsg(e.message||'Move failed.',false)); };
+    }).catch(()=>{});
+  });
+}
+
+// Cancel-with-reason modal → job_cancel (reason required; server re-checks role/own-job).
+function openCancelJob(jobId){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:flex-end;justify-content:center;';
+  ov.innerHTML='<div style="background:var(--card,#fff);width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto">'+
+    '<h2 style="margin:0 0 10px;font-size:17px">Cancel this job</h2>'+
+    '<label style="font-size:12px;color:var(--dim)">Reason (required)</label>'+
+    '<select id="cj_reason" style="width:100%">'+CANCEL_REASONS.map(r=>'<option value="'+esc(r)+'">'+esc(r)+'</option>').join('')+'</select>'+
+    '<label style="font-size:12px;color:var(--dim);margin-top:8px;display:block">Details (optional)</label>'+
+    '<textarea id="cj_detail" rows="2" style="width:100%" placeholder="Anything worth noting…"></textarea>'+
+    '<div id="cj_msg" style="font-size:12px;min-height:15px;margin-top:6px"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn ghost" id="cj_back" style="flex:1">Keep job</button>'+
+      '<button class="btn" id="cj_go" style="flex:2;background:#c8323c;color:#fff">Cancel job</button></div></div>';
+  document.body.appendChild(ov);
+  function close(){ ov.remove(); }
+  ov.addEventListener('mousedown', e=>{ if(e.target===ov) close(); });
+  document.getElementById('cj_back').onclick=close;
+  document.getElementById('cj_go').onclick=function(){
+    const reason=document.getElementById('cj_reason').value, detail=document.getElementById('cj_detail').value.trim();
+    const m=document.getElementById('cj_msg'); m.style.color='#5a616c'; m.textContent='Canceling…';
+    TKS.Jobs.cancel(jobId,reason,detail).then(res=>{
+      if(res&&res.error){ m.style.color='#c8323c'; m.textContent=res.error.message; }
+      else { try{ TKS.Bookings.setStatus(jobId,'Canceled'); }catch(e){} close(); render(); }
+    }).catch(e=>{ m.style.color='#c8323c'; m.textContent=e.message||'Cancel failed.'; });
+  };
+}
+
 function editBooking(id){
   const b = (function(){ try{ return TKS.Bookings.get(id); }catch(e){ return null; } })()
             || allBookings().find(x=>x.id===id);
