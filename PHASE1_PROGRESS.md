@@ -92,6 +92,10 @@ Per-page destructive controls (gate + route confirm through the shared modal):
 - 1a matrix sweep (manager/front_desk/technician, all cells): PASS
 - Hard-delete (customers/bookings/receipts/inventory) for all 3 non-owner roles: DENIED
 - Refund/void live JWTs: technician 403, front_desk 403, manager 404(passed), owner passed
+- 1b RPCs (move/receive/adjust/fleet) + total trigger: all roles PASS
+- 1c jobs (status own-job, front-desk scheduled-only, recon gate, cut-key proof, guard): all roles PASS
+- 1d cost view: technician cost=NULL, manager cost=real
+- 2026-06-22: **receipt hard-delete by technician = 0 rows** (RLS owner-only holds; the bittings invoice "Delete" was a LOCAL history delete, never touched the DB — receipts count unchanged, no hard_delete audit). Roles confirmed: gmail=technician, samer=owner.
 - *(each later stage appends its own server-verified results here)*
 
 ## 👁️ Human-only visual checks — BATCHED for final sweep (don't action one at a time)

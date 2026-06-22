@@ -3228,7 +3228,7 @@ function renderHistList(){
                 '<button data-act="edit" data-num="'+dn+'">Edit</button>';
     if(type==="invoice") actions += '<button data-act="paid" data-num="'+dn+'">Mark Paid</button>';
     if(type==="estimate") actions += '<button data-act="toinv" data-num="'+dn+'">→ Invoice</button>';
-    actions += '<button data-act="del" data-num="'+dn+'">Delete</button>';
+    if(typeof TKS_ACCESS==='undefined' || TKS_ACCESS.can('hardDelete')) actions += '<button data-act="del" data-num="'+dn+'">Delete</button>';   // invoice hard-delete = owner only
     div.innerHTML=
       '<div class="hi-top"><span class="hi-num">'+escapeHtml(r.number)+'</span>'+
       '<span class="hi-amt">'+money(total)+'</span></div>'+
