@@ -3225,7 +3225,7 @@ function renderHistList(){
     let actions='<button data-act="share" data-num="'+dn+'">📤 Send</button>'+
                 '<button data-act="pdf" data-num="'+dn+'">PDF</button>'+
                 '<button data-act="pdfes" data-num="'+dn+'">PDF (ES)</button>'+
-                '<button data-act="edit" data-num="'+dn+'">Edit</button>';
+                '<button data-cap="editPricing" data-act="edit" data-num="'+dn+'">Edit</button>';   // edit invoice = manager/owner
     if(type==="invoice") actions += '<button data-act="paid" data-num="'+dn+'">Mark Paid</button>';
     if(type==="estimate") actions += '<button data-act="toinv" data-num="'+dn+'">→ Invoice</button>';
     actions += '<button data-cap="hardDelete" data-act="del" data-num="'+dn+'">Delete</button>';   // invoice hard-delete = owner only (hidden for others by access.js)
