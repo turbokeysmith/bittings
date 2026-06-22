@@ -106,7 +106,7 @@
         deleted_at: o.deletedAt || null, deleted_by: o.deletedBy || null }; }
     },
     inventory: {
-      table: 'inventory', idStrategy: 'text', filter: null,
+      table: 'inventory', readTable: 'inventory_safe', idStrategy: 'text', filter: null,   // read via cost-masking view (cost null for non-managers)
       fromRow: function (r) { return {
         id: r.id, name: r.name, sku: r.sku, category: r.category, qty: r.qty, lowAt: r.low_at,
         unit: r.unit, cost: r.cost, location: r.location, notes: r.notes,
@@ -144,7 +144,7 @@
     // load one logical key into the cache
     function hydrateKey(key) {
       var cfg = CLOUD_MAP[key];
-      var q = sb.from(cfg.table).select('*');
+      var q = sb.from(cfg.readTable || cfg.table).select('*');   // reads may use a role-safe view; writes still target cfg.table
       if (cfg.filter) Object.keys(cfg.filter).forEach(function (k) { q = q.eq(k, cfg.filter[k]); });
       return q.then(function (res) {
         if (res.error) throw res.error;

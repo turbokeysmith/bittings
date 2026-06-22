@@ -65,12 +65,19 @@ Per-page destructive controls (gate + route confirm through the shared modal):
 - ✅ **Server-verified** (manager/front_desk/technician): every cell incl. own-job, front-desk-scheduled-only, recon gate, cut-key proof, guard — all PASS
 - ⬜ **UI** (in 1d): status controls on jobs (own-job), cancel/reschedule with reason pick-list, reconciliation flow + photo capture, on-hold/reopen
 
-## Stage 1d — Finish: field-level money + remaining gating  ⬜ NOT STARTED
-- ⬜ Role-aware views/RPCs so cost/margin is physically absent from technician/front_desk payloads
+## Stage 1d — Finish: field-level money + remaining gating  🔨 PARTIAL
+- ✅ **Cost physically absent** for technician/front_desk — `inventory_safe` view (cost NULL unless manager) + app reads inventory through it (`readTable`). Server-verified: tech cost=NULL, manager cost=real.
+- ⬜ Receipt-level margin/profit payload-stripping for non-managers (jsonb has nested per-line costs — needs a jsonb transform or split columns). App already hides cost on screen via `_isOwnerForCosts()`; payload-strip is the remaining bit.
 - ⬜ Technician sees own commission only (placeholder until Phase 2)
-- ⬜ Remaining UI gating (status controls, pricing, setup, etc.)
-- ⬜ Auth checks on pay-record/pay-create-intent/pay-terminal/pay-status (authenticated)
-- ⬜ Final docs: PROJECT_HANDOFF / turbo_master_task_list / CLAUDE.md / Supabase docs
+- ⬜ Auth checks on pay-record/pay-create-intent/pay-terminal/pay-status (authenticated) — 4 LIVE payment fns; warrants its own careful pass (lower-risk: they don't move money out; gateway verify_jwt already on)
+- ⬜ **New UI screens** (the big remaining build; needs human visual verification): fleet/van management · inventory move/receive/adjust + guided reassignment move + "part not on van" flag · job status controls (own-job) · cancel/reschedule reason pick-list · reconciliation flow + photo capture
+- ⬜ Final docs: PROJECT_HANDOFF / turbo_master_task_list / CLAUDE.md / Supabase setup docs
+
+---
+
+## 📌 WHERE THE BUILD STANDS (for the owner's final review)
+**Complete & server-proven (DB / security layer):** Stage 0, 1a, 1b, 1c — every role rule verified with live test users. Cost-hiding view done. Destructive-action **UI gating + honest deletes + shared confirm modal + manager soft-delete** done across all 6 pages. YMM dropdowns done.
+**Remaining (mostly UI + one small server item):** the new fleet/inventory-move/job-status/reconciliation **screens**, pay-* fn auth, receipt-margin payload strip, final docs. These are built on top of the proven server foundation — the rules are already enforced by the database; the remaining work surfaces them in the interface.
 
 ---
 
