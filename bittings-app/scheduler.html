@@ -793,7 +793,7 @@ function freshBooking(){
     serviceCategory:"", serviceLabel:"",
     addr:{ street:"", city:"", state:"", zip:"" },   // structured address (each its own field)
     address:"", parked:"",                            // address = composed string (calendar/display/back-compat)
-    technician:"",                                    // assigned tech (picked from the team, never typed)
+    technician:"", technicianId:"",                   // assigned tech (picked from the team, never typed)
     vehicle:{ year:"", make:"", model:"", vin:"", ignition:"" },
     date:"", time:"", duration:60,
     status:"Scheduled",
@@ -840,39 +840,73 @@ function ensureAddr(){
   return a;
 }
 
-/* ---- technician (a DROPDOWN from the team — never typed) ---- */
-function teamNames(){ try{ return ((TKS.Config.access().employees)||[]).map(e=>((e&&e.name)||'').trim()).filter(Boolean); }catch(e){ return []; } }
-function techSelectHTML(selected, onchangeAttr){
-  const team = teamNames();
+/* ---- technician roster (a DROPDOWN, never typed) ----
+   Sourced from the CLOUD STAFF table when signed in (the authoritative team, with
+   roles + stable ids), falling back to Settings → Access employees when offline. */
+let _schedStaff = null;   // cache of [{user_id,name,role,active}]; null = not loaded yet
+function loadSchedStaff(cb){
+  if(_schedStaff!==null){ if(cb) cb(); return; }
+  _schedStaff = [];
+  try{
+    if(window.TKS && TKS.auth && TKS.auth.isSignedIn() && TKS.Fleet && TKS.Fleet.staff){
+      TKS.Fleet.staff().then(res=>{ _schedStaff = (res && res.data) || []; if(cb) cb(); }).catch(()=>{ if(cb) cb(); });
+      return;
+    }
+  }catch(e){}
+  if(cb) cb();
+}
+function roleShort(r){ return ({owner:'Owner',manager:'Manager',front_desk:'Front Desk',technician:'Tech'})[r] || ''; }
+// Unified roster [{id,name,role}] — cloud staff first, else Settings employees.
+function teamMembers(){
+  if(_schedStaff && _schedStaff.length){
+    return _schedStaff.filter(s=>s.active!==false).map(s=>({ id:s.user_id, name:(s.name||'').trim()||roleShort(s.role), role:s.role }));
+  }
+  try{ return ((TKS.Config.access().employees)||[]).filter(e=>e&&(e.name||'').trim()).map(e=>({ id:'', name:e.name.trim(), role:e.owner?'manager':'' })); }catch(e){ return []; }
+}
+// <select> value = the staff user_id (reliable) or "name:<n>" offline. We store
+// BOTH booking.technicianId (for matching) and booking.technician (name, for display/reports).
+function techSelectHTML(selId, selName, onchangeAttr){
+  const team = teamMembers();
   if(!team.length){ return `<div class="bk-caption" style="margin:2px 0 8px">${LANG==='es'?'Agrega tu equipo en Configuración → Acceso para asignar un técnico.':'Add your team in Settings → Access to assign a tech.'}</div>`; }
   const none = LANG==='es'?'— Sin asignar —':'— Unassigned —';
   return `<select ${onchangeAttr||''}><option value="">${none}</option>`+
-    team.map(n=>`<option value="${esc(n)}" ${selected===n?'selected':''}>${esc(n)}</option>`).join('')+`</select>`;
+    team.map(m=>{ const val = m.id || ('name:'+m.name);
+      const sel = (m.id && selId && selId===m.id) || ((!m.id || !selId) && selName && selName===m.name);
+      return `<option value="${esc(val)}" ${sel?'selected':''}>${esc(m.name + (m.role?(' — '+roleShort(m.role)):''))}</option>`; }).join('')+`</select>`;
 }
-// Assign a tech to an existing booking straight from the detail view (saves now).
-function assignTechToBooking(id, name){
+function resolveTech(val){
+  if(!val) return { id:'', name:'' };
+  if(String(val).indexOf('name:')===0) return { id:'', name:String(val).slice(5) };
+  const m = teamMembers().find(x=>x.id===val);
+  return { id:val, name:(m&&m.name)||'' };
+}
+function pickTech(val){ const r=resolveTech(val); booking.technicianId=r.id; booking.technician=r.name; }   // flow confirm + quick form
+// Assign a tech to an EXISTING booking straight from the detail view (saves now).
+function assignTechToBooking(id, val){
   let bk=null; try{ bk = TKS.Bookings.get(id); }catch(e){}
   if(!bk) bk = allBookings().find(x=>x.id===id);
   if(!bk) return;
-  bk.technician = name;
+  const r=resolveTech(val); bk.technicianId=r.id; bk.technician=r.name;
   try{ TKS.Bookings.save(bk); }
   catch(e){ const arr=readLS(K_BOOKINGS,[]); const i=arr.findIndex(x=>x.id===id); if(i!==-1){ arr[i]=bk; writeLS(K_BOOKINGS,arr); } }
 }
 
 /* ---- technician self-scope: a tech only SEES + TOUCHES their own assigned jobs ---- */
 function isTechRole(){ try{ return !!(TKS.auth && TKS.auth.staffRole && TKS.auth.staffRole()==='technician'); }catch(e){ return false; } }
-function myTechName(){
-  try{ const email=((TKS.auth&&TKS.auth.email&&TKS.auth.email())||'').toLowerCase(); if(!email) return '';
-    const emps=(TKS.Config.access().employees)||[]; const me=emps.find(e=>String(e.email||'').toLowerCase()===email);
-    return me?String(me.name||'').trim():''; }catch(e){ return ''; }
+function myStaffName(){
+  let uid=''; try{ const u=TKS.auth.user&&TKS.auth.user(); uid=u?u.id:''; }catch(e){}
+  if(uid && _schedStaff){ const s=_schedStaff.find(x=>x.user_id===uid); if(s) return String(s.name||'').trim(); }
+  try{ const email=((TKS.auth&&TKS.auth.email&&TKS.auth.email())||'').toLowerCase(); const emps=(TKS.Config.access().employees)||[]; const me=emps.find(e=>String(e.email||'').toLowerCase()===email); return me?String(me.name||'').trim():''; }catch(e){ return ''; }
 }
-function ownJobsOnly(list){
-  if(!isTechRole()) return list||[];
-  const me=myTechName().toLowerCase();
-  return (list||[]).filter(b=> me && String(b.technician||'').trim().toLowerCase()===me);
+function isOwnBooking(b){
+  if(!isTechRole()) return true;
+  let uid=''; try{ const u=TKS.auth.user&&TKS.auth.user(); uid=u?u.id:''; }catch(e){}
+  if(uid && b && b.technicianId) return b.technicianId===uid;        // reliable id match
+  const me=(myStaffName()||'').toLowerCase();
+  return !!(me && String((b&&b.technician)||'').trim().toLowerCase()===me);
 }
+function ownJobsOnly(list){ if(!isTechRole()) return list||[]; return (list||[]).filter(isOwnBooking); }
 function canEditBooking(){ return !isTechRole(); }    // techs can't edit appointments (own or others)
-function isOwnBooking(b){ if(!isTechRole()) return true; const me=myTechName().toLowerCase(); return !!(me && String((b&&b.technician)||'').trim().toLowerCase()===me); }
 
 /* the ordered flow */
 const STEPS = ["greeting","customer","jobtype","subtype","details","schedule","upsell","confirm"];
@@ -888,6 +922,9 @@ const nextBtn = document.getElementById('nextBtn');
 let VIEW = 'home'; // 'home' | 'flow' | 'jobs' | 'done'
 
 function render(){
+  // Load the cloud staff roster once (for the tech dropdown + own-job matching),
+  // then re-render so names/roles + filtering use the real team.
+  if(_schedStaff===null){ loadSchedStaff(function(){ render(); }); }
   document.querySelectorAll('#langToggle button').forEach(b=>{
     b.classList.toggle('active', b.dataset.lang===LANG);
   });
@@ -1079,7 +1116,7 @@ function renderBooking(){
       <div class="status-picker" id="statusPicker">${picker}</div>
       <div class="section-h" style="margin-top:14px">${LANG==='es'?'Técnico asignado':'Assigned technician'}</div>
       <div class="tech-assign">${ canEditBooking()
-          ? techSelectHTML(b.technician, `onchange="assignTechToBooking('${b.id}', this.value)"`)
+          ? techSelectHTML(b.technicianId, b.technician, `onchange="assignTechToBooking('${b.id}', this.value)"`)
           : `<div style="font-size:14px;padding:2px 0">${esc(b.technician || (LANG==='es'?'Sin asignar':'Unassigned'))}</div>` }</div>
       <div id="jobAccount"></div>
       ${imgs}
@@ -1435,7 +1472,7 @@ function renderQuickForm(){
           <button type="button" class="${b.vehicle.ignition==='keyed'?'sel':''}" onclick="setIgnition('keyed')">🔑 ${t('ign_keyed')}</button>
         </div>`:''}
       ${addrFieldsHTML(ensureAddr())}
-      <label>${LANG==='es'?'Técnico asignado':'Assigned technician'}</label>${techSelectHTML(b.technician, `onchange="setPath('technician',this.value)"`)}
+      <label>${LANG==='es'?'Técnico asignado':'Assigned technician'}</label>${techSelectHTML(b.technicianId, b.technician, `onchange="pickTech(this.value)"`)}
       <div class="row2">
         <div><label>${t('date')} *</label><input data-bind="date" type="date" value="${esc(b.date)}"></div>
         <div><label>${t('time')} *</label><input data-bind="time" type="time" value="${esc(b.time)}"></div>
@@ -1648,7 +1685,7 @@ function stepConfirm(){
   return tipCard(LANG==='es'?'Repite los detalles al cliente antes de colgar.':'Read the details back to the customer before hanging up.') +
     `<p class="step-title">${t('confirm')}</p>
      <div class="summary">${rows}</div>
-     <label>${LANG==='es'?'Asignar técnico':'Assign technician'}</label>${techSelectHTML(booking.technician, `onchange="setPath('technician',this.value)"`)}
+     <label>${LANG==='es'?'Asignar técnico':'Assign technician'}</label>${techSelectHTML(booking.technicianId, booking.technician, `onchange="pickTech(this.value)"`)}
      <div class="section-h">${t('add_cal')}</div>
      <div class="cal">
        <a href="${googleUrl()}" target="_blank" rel="noopener">📆 ${t('g_cal')}</a>
