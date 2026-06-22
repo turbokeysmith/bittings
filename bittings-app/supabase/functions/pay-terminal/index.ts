@@ -1,4 +1,5 @@
 import Stripe from "npm:stripe@16";
+import { requireStaff } from "../_shared/auth.ts";
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20", httpClient: Stripe.createFetchHttpClient() });
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const isTest = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").startsWith("sk_test");
@@ -6,6 +7,9 @@ const isTest = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").startsWith("sk_test");
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const json = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "content-type": "application/json" } });
+  // Auth: any ACTIVE staff may use the terminal (list/simulate/cancel); reject anon/expired.
+  try { await requireStaff(req); }
+  catch (e) { const er = e as { status?: number; error?: string }; return json(er.status ?? 401, { error: er.error ?? "unauthorized" }); }
   try {
     const body = await req.json().catch(() => ({}));
     const action = body.action || "list";

@@ -64,3 +64,11 @@ export async function requireRole(req: Request, allowed: string[]): Promise<Auth
   }
   return { user, role };
 }
+
+// Convenience: any ACTIVE staff member (all four roles). "Take payment" is an
+// all-staff action (owner decision), so the payment endpoints require staff but
+// not a specific role — while still rejecting anon/expired/unknown callers.
+export const ALL_STAFF = ["owner", "manager", "front_desk", "technician"];
+export function requireStaff(req: Request): Promise<AuthOk> {
+  return requireRole(req, ALL_STAFF);
+}
