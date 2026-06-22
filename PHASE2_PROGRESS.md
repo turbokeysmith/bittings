@@ -45,13 +45,14 @@
 - ✅ `commission_config` table (pays-on, structure, flat_pct, daily_min_cents, tiers, flat_per_job, exclude_parts, earned_when, hold_unreconciled) — RLS read=staff, write=manager+; owner's model seeded (values blank).
 - ✅ `commission_day_rows(from,to,tech)` — server-side per-tech-per-day commission off **paid, tagged** POS sales; **flat_pct + daily_min_pct fully implemented**; flat_per_job = per-day proxy; tiered = stubbed→flat_pct (selectable/stored). A **technician only sees their own** (server-forced). Held = linked booking `reconciliation_pending`.
 - ✅ **Server-verified**: base excludes parts, daily-min wins over %, tech-sees-own-only. Repo: `2b_commission_config_calc.sql`. Data layer `TKS.Commission`.
-- ⬜ **UI:** Setup → Commission config editor (all models selectable; owner fills % + daily-min).
+- ✅ **UI:** **Commission rules editor** (⚙ Rules in the Commission view) — pays-on, structure, %, daily-min, exclude-parts, earned-when, hold-unreconciled (all selectable; owner fills the blank % + daily-min). Manager+ (`data-cap=setup`, server-enforced).
 
-## STAGE 2c — Per-tech commission ledger  ⬜ NOT STARTED
-Per-tech ledger (jobs, earned, collected, daily-min met/shortfall, holds), tied to `job_staff` (assist earns nothing). Each tech sees only their own; manager/owner see all (server-enforced). Full-quote hold shows as frozen/pending.
+## STAGE 2c — Per-tech commission ledger  ✅ (code-complete; pending owner device sign-off)
+- ✅ New **Commission** view (`index.html`, nav for all staff): period selector → per-tech-per-day ledger (commission, commissionable base, "daily min" tag, held amount) + totals. **A technician sees only their own**; manager/owner see all + a **tech filter**. Reads `commission_day_rows` (server-forced own-scope). Holds show as "on hold".
 
-## STAGE 2d — Manager sign-off / reconciliation-approval screen  ⬜ NOT STARTED
-Lists jobs flagged from cancel/reschedule/unreconciled; manager confirms equipment unused / cut key returned (1c photo shown) and **releases the hold** (which releases the commission hold) or upholds it; every action audit-logged; manager/owner only.
+## STAGE 2d — Manager sign-off / reconciliation-approval screen  ✅ (server-proven + UI)
+- ✅ `jobs_awaiting_signoff()` + `job_release_hold(job, action, note)` RPCs (manager+ only). The Commission view's **"⚠ Awaiting manager sign-off"** section lists flagged jobs (cancel/reschedule/unreconciled) with the **parts + photo-proof state**; **Confirm unused & release** clears the hold (→ releases the commission hold) or **Keep hold** upholds it; both audit-logged.
+- ✅ **Server-verified**: tech can't list or release; owner lists + releases; release clears the reconciliation flag. Repo: `2d_signoff.sql`.
 
 ---
 
@@ -62,6 +63,8 @@ Lists jobs flagged from cancel/reschedule/unreconciled; manager confirms equipme
 
 ## Server-side verification log
 - 2026-06-22 (2a): technician + owner test users — tech catalog checkout server-priced (part/service amounts correct) PASS · tech discount BLOCKED · tech part-price override BLOCKED · tech custom-priced line BLOCKED · manager discount PASS · per-location stock decrement (10→7) PASS · decrement idempotent PASS. Test data self-cleaned (services table left empty by design).
+- 2026-06-22 (2b): commission calc — base excludes parts (service-only 8000) PASS · daily-min wins over % (max($50, 10%·$80)=$50) PASS · technician sees only own rows PASS. Config reset, test data cleaned.
+- 2026-06-22 (2d): sign-off — technician can't list holds + can't release (BLOCKED) PASS · owner lists the flagged job + releases it · release clears `reconciliation_pending` PASS. Self-created test booking cleaned.
 
 ## 👁️ Human-only visual checks — BATCHED for the final sweep
 - *(appends as UI lands)*
