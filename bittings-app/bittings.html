@@ -3278,6 +3278,7 @@ function renderHistList(){
       }
     };
   });
+  try{ if(window.TKS_ACCESS) TKS_ACCESS.applyGates(list); }catch(e){}   // gate the freshly-rendered action buttons (e.g. owner-only Delete)
 }
 
 /* ---------- Edit existing receipt (simple field editor) ---------- */
