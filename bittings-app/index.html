@@ -484,12 +484,10 @@
           <div class="eyebrow" style="margin-bottom:10px">No VIN — pick year / make / model</div>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <select id="sjYear" class="bt-input bt-select" style="flex:0 0 auto;width:auto"></select>
-            <input id="sjMake" class="bt-input" list="sjMakeList" placeholder="Make" autocomplete="off" style="flex:1;min-width:130px">
-            <input id="sjModel" class="bt-input" list="sjModelList" placeholder="Model" autocomplete="off" style="flex:1;min-width:130px">
+            <select id="sjMake" class="bt-input bt-select" style="flex:1;min-width:130px"><option value="">Make…</option></select>
+            <select id="sjModel" class="bt-input bt-select" style="flex:1;min-width:130px"><option value="">Model — pick a make</option></select>
             <button class="bt-btn bt-btn--primary bt-btn--lg" id="sjLookupYmm">Look up</button>
           </div>
-          <datalist id="sjMakeList"></datalist>
-          <datalist id="sjModelList"></datalist>
         </div>
       </div>
       <div id="sjResult"></div>
@@ -554,7 +552,7 @@
       <label>Address</label>
       <input id="fAddress" type="text" placeholder="Street, city">
       <div class="actions">
-        <button class="btn del" id="fDelete" style="display:none;">Delete</button>
+        <button class="btn del" id="fDelete" data-cap="softDelete" style="display:none;">Remove</button>
         <button class="btn save" id="fSave">Save customer</button>
       </div>
       <p class="note" id="formNote"></p>
@@ -672,7 +670,7 @@
       <label for="pNotes">Notes</label>
       <textarea id="pNotes" placeholder="Part link, cross-reference, etc…"></textarea>
       <div class="actions">
-        <button class="btn del" id="pDelete" style="display:none;">Delete</button>
+        <button class="btn del" id="pDelete" data-cap="hardDelete" style="display:none;">Delete</button>
         <button class="btn save" id="pSave">Save part</button>
       </div>
       <p class="note" id="partNote"></p>
@@ -729,6 +727,7 @@
 <script src="app/cloud-config.js"></script>
 <!-- Shared data layer (localStorage today; flips to cloud via TKS.connectCloud) -->
 <script src="app/store.js"></script>
+<script src="app/access.js"></script>
 <!-- Lishi tool + vehicle seed (so Start a Job populates even if the Lishi page was never opened) -->
 <script src="app/lishi-seed.js"></script>
 <!-- Shared Pay Now engine (Payments tile "New Charge"; invoice flow has its own) -->
@@ -909,6 +908,7 @@ function renderCustomers(){
   const list = store.slice().sort((a,b)=>(b.lastUsed||0)-(a.lastUsed||0));
   const wrap = document.getElementById('custList');
   const filtered = list.filter(c=>{
+    if(c.deletedAt) return false;                 // hide soft-deleted (manager "Remove")
     if(!q) return true;
     return [c.customer,c.contact,c.phone,c.email,c.address].some(v=>(v||'').toLowerCase().includes(q));
   });
@@ -1231,12 +1231,20 @@ document.getElementById('fSave').onclick = ()=>{
 
 document.getElementById('fDelete').onclick = ()=>{
   if(editIndex<0) return;
-  if(!confirm('Delete this '+(mode==='shops'?'account':'customer')+'? This can’t be undone.')) return;
-  const list = currentList();
-  list.splice(editIndex,1);
-  saveCurrent(list);
-  renderCustomers();
-  show('customers');
+  const what = mode==='shops'?'account':'customer';
+  TKS_ACCESS.confirmDanger({ title:'Remove this '+what+'?', message:'It will be hidden from your lists (recoverable). Permanent deletion is owner-only.', confirmLabel:'Remove' }).then(ok=>{
+    if(!ok) return;
+    const list = currentList();
+    const rec = list[editIndex];
+    if(rec){
+      rec.deletedAt = new Date().toISOString();
+      try{ rec.deletedBy = (TKS.auth.user()||{}).id || null; }catch(_){}
+      rec.updatedAt = Date.now();
+      saveCurrent(list);   // full list w/ the record marked → syncs as an UPDATE (soft), never a hard delete
+    }
+    renderCustomers();
+    show('customers');
+  });
 };
 
 /* ============================ INVENTORY ============================
@@ -1396,10 +1404,12 @@ document.getElementById('pSave').onclick = ()=>{
 
 document.getElementById('pDelete').onclick = ()=>{
   if(!editPartId) return;
-  if(!confirm('Delete this part? This can’t be undone.')) return;
-  TKS.Inventory.remove(editPartId);
-  renderInventory();
-  show('inventory');
+  TKS_ACCESS.confirmDanger({ title:'Delete this part?', message:'This can’t be undone.', confirmLabel:'Delete' }).then(ok=>{
+    if(!ok) return;
+    TKS.Inventory.remove(editPartId);
+    renderInventory();
+    show('inventory');
+  });
 };
 
 /* ============================ PAYMENTS — NEW CHARGE ============================
@@ -1881,7 +1891,7 @@ async function renderReports(){
     const when=(v.period==='today') ? dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : dt.toLocaleDateString([], {month:'short',day:'numeric'})+' '+dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
     const ml=t.method==='cash'?'Cash':t.method==='check'?'Check':t.method==='reader'?'Card · reader':'Card · typed';
     const col=t.status==='completed'?'#7fd49b':t.status==='refunded'?'#f2b43a':t.status==='pending'?'#9aa3af':'#f0a0a6';
-    const refund = t.status==='completed' ?
+    const refund = (t.status==='completed' && (typeof TKS_ACCESS==='undefined' || TKS_ACCESS.can('refundVoid'))) ?
       '<button class="repRefund" data-id="'+esc2(t.id)+'" data-pi="'+esc2(t.stripe_payment_intent_id||'')+'" data-method="'+esc2(t.method)+'" data-inv="'+esc2(t.invoice_id||'')+'" style="'+refBtn+'">↩︎ Refund</button>' : '';
     return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
       '<div class="sub">'+when+' · '+ml+(t.technician?(' · '+esc2(t.technician)):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
@@ -1891,7 +1901,7 @@ async function renderReports(){
   list.querySelectorAll('.repRefund').forEach(b=> b.onclick=async()=>{
     const id=b.dataset.id, pi=b.dataset.pi, method=b.dataset.method, inv=b.dataset.inv;
     const isCard=(method==='reader'||method==='keyed');
-    if(!confirm('Refund/void this '+(isCard?'card charge':method+' payment')+'? Any parts used will be returned to stock.')) return;
+    if(!(await TKS_ACCESS.confirmDanger({ title:'Refund / void this '+(isCard?'card charge':method+' payment')+'?', message:'Any parts used will be returned to stock. This can’t be undone.', confirmLabel:'Refund / Void' }))) return;
     b.disabled=true; const old=b.textContent; b.textContent='…';
     let r2; try{ r2 = isCard ? await TKPay.refundCard(pi) : await TKPay.voidCashCheck(id); }catch(e){ r2={error:String(e)}; }
     if(r2 && r2.error){ alert('Could not refund/void: '+r2.error); b.disabled=false; b.textContent=old; return; }
@@ -2198,15 +2208,18 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
   if(_sb) _sb.addEventListener('click', function(e){ if(e.target.closest('.bt-nav__item')) closeDrawer(); });
 
   var MAKES=['Acura','Audi','BMW','Buick','Cadillac','Chevrolet','Chrysler','Dodge','Ford','GMC','Genesis','Honda','Hyundai','Infiniti','Jaguar','Jeep','Kia','Land Rover','Lexus','Lincoln','Mazda','Mercedes-Benz','MINI','Mitsubishi','Nissan','Pontiac','Ram','Saturn','Scion','Subaru','Suzuki','Toyota','Volkswagen','Volvo'];
-  (function(){ var y=$('sjYear'); if(y){ var o=''; for(var yr=2026;yr>=1998;yr--) o+='<option>'+yr+'</option>'; y.innerHTML=o; }
-    var ml=$('sjMakeList'); if(ml) ml.innerHTML=MAKES.map(function(m){ return '<option value="'+m+'">'; }).join(''); })();
-  // Model dropdown — cascades off the chosen Make (+Year), from the full per-make model
+  // Year / Make / Model are all real <select> dropdowns (ported from the working
+  // dropdown cascade in lishi.html). Full cascade: Year resets Make+Model; Make resets Model.
+  function fillMakes(){ var sel=$('sjMake'); if(sel) sel.innerHTML='<option value="">Make…</option>'+MAKES.map(function(m){ return '<option>'+safe(m)+'</option>'; }).join(''); }
+  (function(){ var y=$('sjYear'); if(y){ var o='<option value="">Year…</option>'; for(var yr=2026;yr>=1998;yr--) o+='<option>'+yr+'</option>'; y.innerHTML=o; }
+    fillMakes(); })();
+  // Model options cascade off the chosen Make (+Year), from the full per-make model
   // catalog (TKS_LISHI_SEED.models) and any vehicles in the Lishi data.
   function fillModels(){
-    var sel=$('sjModelList'); if(!sel) return;
+    var sel=$('sjModel'); if(!sel) return;
     var mk=(($('sjMake')&&$('sjMake').value)||'').trim();
     var yr=Number(($('sjYear')&&$('sjYear').value)||0);
-    if(!mk){ sel.innerHTML=''; return; }
+    if(!mk){ sel.innerHTML='<option value="">Model — pick a make</option>'; return; }
     var seen={}, out=[];
     function add(name){ name=(name||'').trim(); if(!name) return; var k=name.toLowerCase(); if(seen[k]) return; seen[k]=1; out.push(name); }
     // 1) full catalog (array of [model, yearStart, yearEnd]) — year-filtered when a year is set
@@ -2217,11 +2230,15 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
     // 2) any models present in the Lishi vehicle data for this make
     try{ _ls('tks_vehicle_keyways').forEach(function(r){ if(r.make&&r.make.toLowerCase()===mk.toLowerCase() && (!yr||yMatch(r,yr))) add(r.model); }); }catch(e){}
     out.sort(function(a,b){ return a.localeCompare(b); });
-    sel.innerHTML=out.map(function(m){ return '<option value="'+safe(m)+'">'; }).join('');
+    sel.innerHTML='<option value="">Model…</option>'+out.map(function(m){ return '<option>'+safe(m)+'</option>'; }).join('');
   }
+  // Cascading reset: rebuilding a downstream <select> snaps it back to its placeholder,
+  // so the live selections never go stale. Look-up reads .value at click time (live).
+  function onMakeChange(){ fillModels(); }               // Make changed -> reset + repopulate Model
+  function onYearChange(){ fillMakes(); fillModels(); }  // Year changed -> reset + repopulate Make AND Model
   (function(){ var mk=$('sjMake'), yy=$('sjYear');
-    if(mk){ mk.addEventListener('input',fillModels); mk.addEventListener('change',fillModels); }
-    if(yy){ yy.addEventListener('change',fillModels); } })();
+    if(mk){ mk.addEventListener('change',onMakeChange); }
+    if(yy){ yy.addEventListener('change',onYearChange); } })();
   function setMode(mode){
     var vin=mode!=='ymm';
     if($('sjVinBox')) $('sjVinBox').style.display=vin?'':'none';
