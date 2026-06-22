@@ -2336,19 +2336,51 @@ function openCommissionRules(){
   document.getElementById('crX').onclick=close;
   TKS.Commission.config().then(res=>{
     const c=(res&&res.data)||{}, body=document.getElementById('crBody');
+    let tiers=(Array.isArray(c.tiers)&&c.tiers.length)?JSON.parse(JSON.stringify(c.tiers)):[{up_to_cents:50000,pct:''},{pct:''}];
+    const LT=['part','service','programming','labor'];
+    const payTypes=Array.isArray(c.pays_on_types)?c.pays_on_types.slice():['service','programming'];
     body.innerHTML=
-      '<label>Pay commission on</label><select id="cr_payson">'+[['service_programming','Service-call + programming only'],['whole_job','Whole-job total'],['labor','Labor only'],['custom','Custom']].map(o=>'<option value="'+o[0]+'"'+(c.pays_on===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+
-      '<label style="margin-top:8px">Structure</label><select id="cr_struct">'+[['daily_min_pct','Daily minimum + %'],['flat_pct','Flat %'],['tiered_pct','Tiered % (stub)'],['flat_per_job','Flat $ per job (stub)']].map(o=>'<option value="'+o[0]+'"'+(c.structure===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+
-      '<div class="row2" style="margin-top:8px"><div><label>Commission %</label><input id="cr_pct" type="number" inputmode="decimal" value="'+(c.flat_pct!=null?c.flat_pct:'')+'" placeholder="e.g. 10"></div>'+
-        '<div><label>Daily minimum ($)</label><input id="cr_min" type="number" inputmode="decimal" value="'+(c.daily_min_cents?(c.daily_min_cents/100):'')+'" placeholder="e.g. 100"></div></div>'+
+      '<label>Pay commission on</label><select id="cr_payson">'+[['service_programming','Service-call + programming only'],['whole_job','Whole-job total'],['labor','Labor only'],['custom','Custom — pick line types']].map(o=>'<option value="'+o[0]+'"'+(c.pays_on===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+
+      '<div id="cr_custom" style="display:none;margin-top:6px;font-size:13px"></div>'+
+      '<label style="margin-top:8px">Structure</label><select id="cr_struct">'+[['daily_min_pct','Daily minimum + %'],['flat_pct','Flat %'],['tiered_pct','Tiered %'],['flat_per_job','Flat $ per job']].map(o=>'<option value="'+o[0]+'"'+(c.structure===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+
+      '<div id="cr_dyn" style="margin-top:8px"></div>'+
       '<label class="toggle" style="display:flex;align-items:center;gap:8px;margin-top:10px"><input type="checkbox" id="cr_exparts" '+(c.exclude_parts!==false?'checked':'')+' style="width:auto"> Exclude inventory parts from commission</label>'+
       '<label>Earned when</label><select id="cr_earned">'+[['completion_collection','Completed AND paid (collected)'],['completion','Completed only']].map(o=>'<option value="'+o[0]+'"'+(c.earned_when===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+
       '<label class="toggle" style="display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="cr_hold" '+(c.hold_unreconciled!==false?'checked':'')+' style="width:auto"> Hold the full quote against the tech on an unreconciled job</label>'+
       '<div id="cr_msg" style="font-size:12px;min-height:14px;margin-top:6px"></div><button type="button" class="btn save" id="cr_save" style="width:100%;margin-top:8px">Save rules</button>';
+    function renderCustom(){ const el=document.getElementById('cr_custom'), on=document.getElementById('cr_payson').value==='custom'; el.style.display=on?'block':'none';
+      if(on) el.innerHTML='<div style="color:var(--dim);margin-bottom:3px">Pay commission on these line types:</div>'+LT.map(t=>'<label class="toggle" style="display:inline-flex;gap:5px;margin-right:10px"><input type="checkbox" class="cr_lt" value="'+t+'" '+(payTypes.indexOf(t)>=0?'checked':'')+' style="width:auto">'+t+'</label>').join(''); }
+    function renderTiers(){ const host=document.getElementById('cr_tiers'); if(!host) return;
+      host.innerHTML=tiers.map((t,i)=>{ const last=(i===tiers.length-1);
+        return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:5px">'+
+          (last?'<span style="flex:1;font-size:13px;color:var(--dim)">everything above</span>':'<span style="font-size:12px;color:var(--dim)">up to $</span><input type="number" inputmode="decimal" data-up="'+i+'" value="'+(t.up_to_cents!=null?(t.up_to_cents/100):'')+'" style="flex:1" placeholder="500">')+
+          '<span style="font-size:12px;color:var(--dim)">→</span><input type="number" inputmode="decimal" data-pct="'+i+'" value="'+(t.pct!=null&&t.pct!==''?t.pct:'')+'" style="width:60px" placeholder="%">'+
+          (last?'':'<button type="button" class="pl-x" data-rmtier="'+i+'">×</button>')+'</div>'; }).join('')+
+        '<button type="button" class="btn ghostbtn" id="cr_addtier" style="width:100%;margin-top:2px">+ Add bracket</button>';
+      host.querySelectorAll('[data-up]').forEach(inp=> inp.oninput=()=>{ tiers[+inp.dataset.up].up_to_cents=inp.value.trim()?Math.round(parseFloat(inp.value)*100):null; });
+      host.querySelectorAll('[data-pct]').forEach(inp=> inp.oninput=()=>{ tiers[+inp.dataset.pct].pct=parseFloat(inp.value)||0; });
+      host.querySelectorAll('[data-rmtier]').forEach(b=> b.onclick=()=>{ tiers.splice(+b.dataset.rmtier,1); renderTiers(); });
+      document.getElementById('cr_addtier').onclick=()=>{ tiers.splice(Math.max(0,tiers.length-1),0,{up_to_cents:null,pct:''}); renderTiers(); };
+    }
+    function renderDyn(){ const s=document.getElementById('cr_struct').value, dyn=document.getElementById('cr_dyn');
+      const pct='<div><label>Commission %</label><input id="cr_pct" type="number" inputmode="decimal" value="'+(c.flat_pct?c.flat_pct:'')+'" placeholder="e.g. 10"></div>';
+      const min='<div><label>Daily minimum ($)</label><input id="cr_min" type="number" inputmode="decimal" value="'+(c.daily_min_cents?(c.daily_min_cents/100):'')+'" placeholder="e.g. 100"></div>';
+      if(s==='flat_pct') dyn.innerHTML='<div class="row2">'+pct+'<div></div></div>';
+      else if(s==='daily_min_pct') dyn.innerHTML='<div class="row2">'+pct+min+'</div><div style="font-size:11.5px;color:var(--dim);margin-top:3px">Each day with a sale, the tech earns the GREATER of the % or the daily minimum.</div>';
+      else if(s==='flat_per_job') dyn.innerHTML='<label>Flat $ per job</label><input id="cr_perjob" type="number" inputmode="decimal" value="'+(c.flat_per_job_cents?(c.flat_per_job_cents/100):'')+'" placeholder="e.g. 25"><div style="font-size:11.5px;color:var(--dim);margin-top:3px">A flat amount per paid sale that day.</div>';
+      else { dyn.innerHTML='<label>Tiers — the bracket the day’s total lands in sets the % (on the whole amount)</label><div id="cr_tiers"></div>'; renderTiers(); }
+    }
+    document.getElementById('cr_payson').onchange=renderCustom;
+    document.getElementById('cr_struct').onchange=renderDyn;
+    renderCustom(); renderDyn();
     document.getElementById('cr_save').onclick=function(){
-      const cfg={ pays_on:document.getElementById('cr_payson').value, structure:document.getElementById('cr_struct').value,
-        flat_pct:parseFloat(document.getElementById('cr_pct').value)||0, daily_min_cents:Math.round((parseFloat(document.getElementById('cr_min').value)||0)*100),
-        exclude_parts:document.getElementById('cr_exparts').checked, earned_when:document.getElementById('cr_earned').value, hold_unreconciled:document.getElementById('cr_hold').checked };
+      const s=document.getElementById('cr_struct').value, payson=document.getElementById('cr_payson').value;
+      const cfg={ pays_on:payson, structure:s, exclude_parts:document.getElementById('cr_exparts').checked, earned_when:document.getElementById('cr_earned').value, hold_unreconciled:document.getElementById('cr_hold').checked };
+      if(payson==='custom') cfg.pays_on_types=Array.from(document.querySelectorAll('.cr_lt:checked')).map(x=>x.value);
+      const pe=document.getElementById('cr_pct'); if(pe) cfg.flat_pct=parseFloat(pe.value)||0;
+      const me=document.getElementById('cr_min'); if(me) cfg.daily_min_cents=Math.round((parseFloat(me.value)||0)*100);
+      const je=document.getElementById('cr_perjob'); if(je) cfg.flat_per_job_cents=Math.round((parseFloat(je.value)||0)*100);
+      if(s==='tiered_pct') cfg.tiers=tiers.filter((t,i)=> i===tiers.length-1 || t.up_to_cents!=null).map(t=>({ up_to_cents:(t.up_to_cents!=null?t.up_to_cents:null), pct:parseFloat(t.pct)||0 }));
       const m=document.getElementById('cr_msg'); m.style.color='var(--dim)'; m.textContent='Saving…';
       TKS.Commission.saveConfig(cfg).then(r=>{ if(r&&r.error){ m.style.color='#c8323c'; m.textContent=r.error.message; } else { close(); renderCommission(); } }).catch(e=>{ m.style.color='#c8323c'; m.textContent=e.message||'Failed.'; });
     };
