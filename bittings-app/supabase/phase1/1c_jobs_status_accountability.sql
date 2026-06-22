@@ -81,6 +81,8 @@ end $$;
 drop trigger if exists trg_guard_booking_status on public.bookings;
 create trigger trg_guard_booking_status before update on public.bookings
   for each row execute function public.fn_guard_booking_status();
+-- it's a trigger function only — never call it directly via /rest/v1/rpc
+revoke execute on function public.fn_guard_booking_status() from public, anon, authenticated;
 
 -- 5. RPCs ----------------------------------------------------------------------
 -- Update job status. Manager/owner: any job. Technician: own jobs only.
