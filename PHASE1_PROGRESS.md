@@ -44,13 +44,14 @@ Per-page destructive controls (gate + route confirm through the shared modal):
 - ✅ setup.html — page gate widened from owner-only → **manager+** (`can('setup')`)
 - ⬜ **Minor remaining local confirms** (low-stakes, local data, inside already-gated screens): lishi "Clear corrections log" + dup-save warn; setup employee/service/quick-link row deletes (currently no confirm). Convert to the shared modal in a quick pass.
 
-## Stage 1b — Fleet + per-location inventory  ⬜ NOT STARTED
-- ⬜ `vans` table (fleet_no/vin/nickname/plate/status; ≥1 of fleet#/VIN)
-- ⬜ `staff.home_van_id` (remembered tech↔van) + reassignment (logged)
-- ⬜ `inventory_locations` (per-location qty; stock stays with the van)
-- ⬜ move (tech+) / receive (front_desk+) / adjust (manager+) + RLS
-- ⬜ guided reassignment move; auto-flag part-not-on-van
-- ⬜ refine inventory RLS to per-location move/receive
+## Stage 1b — Fleet + per-location inventory  🔨 DB DONE & PROVEN (UI pending in 1d)
+- ✅ `vans` table (fleet_no/vin/nickname/plate/status; ≥1 of fleet#/VIN via check constraint); RLS: select=staff, insert/update=manager+, delete=owner
+- ✅ `staff.home_van_id` FK → vans (remembered tech↔van; reassignment is a manager update, logged via audit on the move)
+- ✅ `inventory_locations` (per-location qty; 'shop' | 'van:<id>'); writes locked to RPCs only; backfilled existing stock to 'shop'
+- ✅ RPCs (role-checked, logged): `inv_move` (tech+), `inv_receive` (front_desk+→shop), `inv_adjust` (manager+ write-off)
+- ✅ legacy `inventory.qty` kept as synced TOTAL via `fn_sync_inv_total` trigger (verified: total = sum of locations)
+- ✅ **Server-verified** (manager/front_desk/technician): move=tech+, receive=fd+, adjust=mgr+, create-van=mgr+ — all PASS
+- ⬜ **UI** (in 1d): van picker, home-van auto-select, move/receive/adjust screens, guided reassignment move, auto-flag "part not on van"
 
 ## Stage 1c — Jobs + status + assignment + accountability  ⬜ NOT STARTED
 - ⬜ Promote `bookings` jsonb → columns (status, assignment, reconciliation_pending, cancel reason)
