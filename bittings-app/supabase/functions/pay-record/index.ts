@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireStaff } from "../_shared/auth.ts";
 const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 
@@ -58,6 +59,10 @@ function authoritativeTotals(data: any): { base_cents: number; tax_cents: number
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const json = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "content-type": "application/json" } });
+  // Auth: any ACTIVE staff may take a payment (owner decision); reject anon/expired.
+  let auth;
+  try { auth = await requireStaff(req); }
+  catch (e) { const er = e as { status?: number; error?: string }; return json(er.status ?? 401, { error: er.error ?? "unauthorized" }); }
   try {
     const body = await req.json();
     const invoiceId = String(body.invoiceId || "").trim();
@@ -83,7 +88,7 @@ Deno.serve(async (req) => {
       method, currency: "usd", base_cents, surcharge_cents: 0, authorized_cents: base_cents,
       captured_cents: base_cents, surcharge_applied: false, status: "completed",
       description: descOf((rec as any).data), cost_cents: costCentsOf((rec as any).data),
-      technician: techOf((rec as any).data), tax_cents, idempotency_key, created_by: uidFromJwt(req),
+      technician: techOf((rec as any).data), tax_cents, idempotency_key, created_by: auth.user.id,
     }).select().limit(1);
     if (ins.error) return json(500, { error: "record failed: " + ins.error.message });
     return json(200, { ok: true, method, captured_cents: base_cents });

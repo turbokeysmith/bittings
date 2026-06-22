@@ -1,5 +1,6 @@
 import Stripe from "npm:stripe@16";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireStaff } from "../_shared/auth.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20", httpClient: Stripe.createFetchHttpClient() });
 const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -66,6 +67,10 @@ function authoritativeTotals(data: any): { base_cents: number; tax_cents: number
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const json = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "content-type": "application/json" } });
+  // Auth: any ACTIVE staff may start a card charge (owner decision); reject anon/expired.
+  let auth;
+  try { auth = await requireStaff(req); }
+  catch (e) { const er = e as { status?: number; error?: string }; return json(er.status ?? 401, { error: er.error ?? "unauthorized" }); }
   try {
     const body = await req.json();
     const invoiceId = String(body.invoiceId || "").trim();
@@ -100,7 +105,7 @@ Deno.serve(async (req) => {
     const piParams: Stripe.PaymentIntentCreateParams = {
       amount: authorized_cents, currency: "usd", capture_method: "manual",
       description: `Invoice ${invoiceId}`,
-      metadata: { invoice_id: invoiceId, base_cents: String(base_cents), surcharge_cents: String(surcharge_cents), surcharge_policy: "credit_only_2pct", method, created_by: uidFromJwt(req) ?? "" },
+      metadata: { invoice_id: invoiceId, base_cents: String(base_cents), surcharge_cents: String(surcharge_cents), surcharge_policy: "credit_only_2pct", method, created_by: auth.user.id },
     };
     if (method === "reader") piParams.payment_method_types = ["card_present"];
     else piParams.automatic_payment_methods = { enabled: true };
@@ -113,7 +118,7 @@ Deno.serve(async (req) => {
       reader_id: readerId, stripe_payment_intent_id: pi.id, status: "pending",
       description: descOf((rec as any).data), cost_cents: costCentsOf((rec as any).data),
       technician: techOf((rec as any).data), tax_cents,
-      idempotency_key, created_by: uidFromJwt(req),
+      idempotency_key, created_by: auth.user.id,
     });
 
     if (method === "reader") {
