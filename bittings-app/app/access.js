@@ -86,21 +86,21 @@
   var css =
     '.tks-cfm-ov{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;'+
       'background:rgba(6,8,11,.66);backdrop-filter:blur(2px);padding:20px}'+
-    '.tks-cfm{width:100%;max-width:400px;background:#16191f;color:#f4f5f6;border:1px solid #2a2f37;'+
+    '.tks-cfm{width:100%;max-width:400px;background:var(--card,#16191f);color:var(--ink,#f4f5f6);border:1px solid var(--edge,#2a2f37);'+
       'border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.6);padding:22px 22px 18px;'+
       'font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;animation:tkscfm .14s ease-out}'+
     '@keyframes tkscfm{from{transform:translateY(8px) scale(.98);opacity:0}to{transform:none;opacity:1}}'+
     '.tks-cfm-title{font-size:18px;font-weight:800;letter-spacing:.01em;margin:0 0 8px}'+
-    '.tks-cfm-body{font-size:14.5px;line-height:1.5;color:#aeb4bd;margin:0 0 20px}'+
+    '.tks-cfm-body{font-size:14.5px;line-height:1.5;color:var(--dim,#aeb4bd);margin:0 0 20px}'+
     '.tks-cfm-actions{display:flex;gap:10px;justify-content:flex-end}'+
     '.tks-cfm-btn{font-size:14.5px;font-weight:700;padding:11px 18px;border-radius:10px;cursor:pointer;border:1px solid transparent}'+
-    '.tks-cfm-cancel{background:#21262e;color:#f4f5f6;border-color:#333a44}'+
+    '.tks-cfm-cancel{background:var(--bg2,#21262e);color:var(--ink,#f4f5f6);border-color:var(--edge,#333a44)}'+
     '.tks-cfm-cancel:hover{background:#2a313b}'+
     '.tks-cfm-cancel:focus-visible{outline:2px solid #8a93a0;outline-offset:2px}'+
     '.tks-cfm-danger{background:linear-gradient(180deg,#e4434f,#b21f29);color:#fff;box-shadow:0 6px 18px rgba(214,42,61,.34)}'+
     '.tks-cfm-danger:hover{filter:brightness(1.07)}'+
     '.tks-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:99999;'+
-      'background:#16191f;color:#f4f5f6;border:1px solid #2a2f37;border-left:3px solid #e4434f;'+
+      'background:var(--card,#16191f);color:var(--ink,#f4f5f6);border:1px solid var(--edge,#2a2f37);border-left:3px solid #e4434f;'+
       'padding:12px 16px;border-radius:10px;font:600 14px system-ui;box-shadow:0 12px 34px rgba(0,0,0,.5);max-width:90vw;transition:opacity .4s}'+
     '.tks-toast.out{opacity:0}'+
     '.tks-cap-hidden{display:none !important}'+
