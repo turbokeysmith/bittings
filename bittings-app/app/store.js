@@ -863,6 +863,14 @@
         if (r) return (TKS_CAPS[cap] || []).indexOf(r) !== -1;
         return this.isOwner();
       },
+      // Human-readable role label for the UI badge — the REAL staff-table role.
+      roleLabel: function () {
+        var map = { owner:'Owner', manager:'Manager', front_desk:'Front Desk', technician:'Technician' };
+        var r = authState.staffRole;
+        if (r && map[r]) return map[r];
+        if (this.isOwner()) return 'Owner';            // email-owner fallback while the role loads / offline
+        return this.isSignedIn() ? 'Staff' : '';
+      },
       signOut: function () { return (authState.sb && authState.sb.auth) ? authState.sb.auth.signOut() : Promise.resolve(); }
     },
 
