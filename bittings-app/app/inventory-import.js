@@ -68,8 +68,8 @@
   function sheet(html) {
     if (ov) ov.remove();
     ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100001;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px;font-family:-apple-system,Segoe UI,Roboto,sans-serif;';
-    ov.innerHTML = '<div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:620px;border-radius:16px;padding:16px;">' + html + '</div>';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100001;display:flex;align-items:center;justify-content:center;overflow:auto;padding:14px;font-family:-apple-system,Segoe UI,Roboto,sans-serif;';
+    ov.innerHTML = '<div style="background:#1b1f27;color:#f4f5f7;width:100%;max-width:620px;border-radius:16px;padding:16px;margin:auto;max-height:92vh;overflow:auto;">' + html + '</div>';
     document.body.appendChild(ov);
     ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
     var x = ov.querySelector('[data-x]'); if (x) x.onclick = close;

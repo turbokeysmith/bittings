@@ -3843,8 +3843,8 @@ function _receiptsRefresh(){
     const taxRows = taxC>0 ? (
         '<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5a616c"><span>Subtotal (goods + labor)</span><span>'+m(S.baseCents-taxC)+'</span></div>'+
         '<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5a616c"><span>Sales Tax'+rateLbl+'</span><span>'+m(taxC)+'</span></div>') : "";
-    modal=node(`<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center">
-      <div style="background:#ffffff;color:#14171b;width:100%;max-width:440px;border-radius:18px 18px 0 0;padding:18px;max-height:92vh;overflow:auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+    modal=node(`<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">
+      <div style="background:#ffffff;color:#14171b;width:100%;max-width:440px;border-radius:18px;padding:18px;max-height:92vh;overflow:auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:18px">Pay Now</b><button id="pnX" style="background:none;border:none;color:#5a616c;font-size:26px;cursor:pointer;line-height:1;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
         <div style="font-size:13px;color:#5a616c;margin-bottom:10px">Invoice ${esc(S.receipt.number||S.receipt.id)}</div>
         <div style="background:#f3f4f6;border:1px solid #e3e6ea;border-radius:12px;padding:12px;margin-bottom:12px">
@@ -3988,8 +3988,8 @@ function pickInventoryPart(onPick){
   if(!_isOwnerForCosts()){ alert("Picking parts (and seeing cost) is manager-only."); return; }
   if(!window.TKS || !TKS.Inventory){ alert("Inventory isn't available here yet."); return; }
   const ov=document.createElement("div");
-  ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px";
-  ov.innerHTML=`<div style="background:#ffffff;color:#14171b;width:100%;max-width:460px;border-radius:16px;padding:16px;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+  ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:center;justify-content:center;overflow:auto;padding:14px";
+  ov.innerHTML=`<div style="background:#ffffff;color:#14171b;width:100%;max-width:460px;border-radius:16px;padding:16px;margin:auto;max-height:92vh;overflow:auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:17px">📦 Pick a part</b><button id="ipX" style="background:none;border:none;color:#5a616c;font-size:26px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
     <input id="ipQ" placeholder="Search name, SKU, fitment, VIN…" style="width:100%;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:10px;color:#14171b;padding:11px;font-size:15px;box-sizing:border-box">
     <div id="ipList" style="margin-top:10px;max-height:60vh;overflow:auto"></div>
@@ -4103,8 +4103,8 @@ function reverseStockForReceipt(r){
   window.openQuickInvoice = function(onCancel, edit){
     const isEdit = !!(edit && edit.id);
     if(modal) modal.remove();
-    modal=node(`<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:14px">
-      <div style="background:#ffffff;color:#14171b;width:100%;max-width:460px;border-radius:16px;padding:18px;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+    modal=node(`<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;display:flex;align-items:center;justify-content:center;overflow:auto;padding:14px">
+      <div style="background:#ffffff;color:#14171b;width:100%;max-width:460px;border-radius:16px;padding:18px;margin:auto;max-height:92vh;overflow:auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:18px">⚡ Quick invoice</b><button type="button" id="qiX" style="background:none;border:none;color:#5a616c;font-size:26px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
         <label class="qiL">Type</label>
         <div id="qiType" style="display:flex;gap:6px;margin-bottom:4px"><button type="button" class="qiTB" data-t="receipt">Receipt (paid)</button><button type="button" class="qiTB" data-t="invoice">Invoice (unpaid)</button><button type="button" class="qiTB" data-t="estimate">Estimate</button></div>

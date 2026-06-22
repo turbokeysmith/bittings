@@ -1155,8 +1155,8 @@ function jaCheckVanStock(jobId, parts, leadVan, leadName, role, ownJob){
 // Cancel-with-reason modal → job_cancel (reason required; server re-checks role/own-job).
 function openCancelJob(jobId){
   const ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:flex-end;justify-content:center;';
-  ov.innerHTML='<div style="background:var(--card,#fff);width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto">'+
+  ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML='<div style="background:var(--card,#fff);width:100%;max-width:520px;border-radius:16px;padding:16px;max-height:88vh;overflow:auto">'+
     '<h2 style="margin:0 0 10px;font-size:17px">Cancel this job</h2>'+
     '<label style="font-size:12px;color:var(--dim)">Reason (required)</label>'+
     '<select id="cj_reason" style="width:100%">'+CANCEL_REASONS.map(r=>'<option value="'+esc(r)+'">'+esc(r)+'</option>').join('')+'</select>'+
