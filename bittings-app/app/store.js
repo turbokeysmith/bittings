@@ -1084,6 +1084,9 @@
   global.TKS.Commission = {
     config:     function(){ return _sb().from('commission_config').select('*').eq('id',1).maybeSingle(); },     // read = any staff (the rules)
     saveConfig: function(c){ return _sb().from('commission_config').update(Object.assign({ updated_at:new Date().toISOString() }, c)).eq('id',1); },  // write = manager+ (RLS)
-    dayRows:    function(from,to,tech){ return _sb().rpc('commission_day_rows', { p_from:from, p_to:to, p_tech:tech||null }); }  // tech = own only (server-forced)
+    dayRows:    function(from,to,tech){ return _sb().rpc('commission_day_rows', { p_from:from, p_to:to, p_tech:tech||null }); },  // tech = own only (server-forced)
+    // 2d — manager sign-off / reconciliation approval (releasing a hold releases the commission hold)
+    awaitingSignoff: function(){ return _sb().rpc('jobs_awaiting_signoff'); },                                   // manager+ only
+    releaseHold:     function(job, action, note){ return _sb().rpc('job_release_hold', { p_job:job, p_action:action, p_note:note||'' }); }
   };
 })(window);

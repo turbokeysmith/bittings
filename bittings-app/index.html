@@ -460,6 +460,7 @@
       <button class="bt-nav__item" data-embed="bittings.html"><span class="bt-nav__ic">🧾</span>Receipts &amp; NASTF</button>
       <button class="bt-nav__item" data-embed="scheduler.html"><span class="bt-nav__ic">📅</span>Scheduler</button>
       <button class="bt-nav__item" data-go="payments"><span class="bt-nav__ic">💳</span>Payments</button>
+      <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Commission</button>
       <button class="bt-nav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Inventory</button>
       <button class="bt-nav__item owner-soft" data-embed="fleet.html" style="display:none"><span class="bt-nav__ic">🚐</span>Fleet</button>
       <button class="bt-nav__item" data-embed="lishi.html"><span class="bt-nav__ic">📇</span>Lishi &amp; Keys</button>
@@ -673,6 +674,22 @@
     <p class="note" id="repNote">Opens on today — pick a wider period to see more. Nothing is ever deleted; every charge stays filed under its customer. Cost &amp; Profit fill in once parts/cost are linked to a sale.</p>
   </div>
 
+  <div class="view" id="view-commission">
+    <div class="rep-controls">
+      <select id="comPeriod" class="rep-select" aria-label="Period">
+        <option value="week">This week</option><option value="month" selected>This month</option>
+        <option value="quarter">This quarter</option><option value="year">This year</option>
+      </select>
+      <select id="comTech" class="rep-select" data-cap="viewAudit" aria-label="Technician"><option value="">All technicians</option></select>
+      <button class="add" id="comReload" title="Refresh" style="background:#e7e9ee;color:#14171b">↻</button>
+      <button class="add" id="comRules" data-cap="setup" title="Commission rules" style="background:#e7e9ee;color:#14171b">⚙ Rules</button>
+    </div>
+    <div class="rep-cards" id="comCards"></div>
+    <div id="comHolds"></div>
+    <div class="clist" id="comList"></div>
+    <p class="note" id="comNote"></p>
+  </div>
+
   <div class="view" id="view-inventory">
     <div class="bar">
       <input class="search" id="invSearch" type="text" placeholder="Search part, SKU, fitment, VIN…">
@@ -792,7 +809,7 @@ function saveCustomers(a){ TKS.saveList("customers", a); }
 function getShops(){ return TKS.list("shops"); }
 function saveShops(a){ TKS.saveList("shops", a); }
 
-const views = ['startjob','matsvc','customers','form','payments','history','reports','dashboard','inventory','part'];
+const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','dashboard','inventory','part'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
@@ -810,7 +827,7 @@ document.querySelectorAll('[data-go]').forEach(b=>{
     if(t==='reports'){ openReports(); return; }
     if(t==='dashboard'){ openDashboard(); return; }
     if(t==='startjob'){ openStartJob(); return; }
-    if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } if(t==='payments'){ renderPayments(); } show(t); };
+    if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } if(t==='payments'){ renderPayments(); } if(t==='commission'){ renderCommission(); } show(t); };
 });
 document.querySelectorAll('[data-open]').forEach(b=>{
   b.onclick = ()=>{ location.href = b.dataset.open; };
@@ -2245,6 +2262,98 @@ document.getElementById('repPeriod').addEventListener('change', e=>{ const v=rep
 document.getElementById('repChart').addEventListener('change', e=>{ const v=repView(); v.chart=e.target.value; repSetView(v); renderReports(); });
 document.getElementById('repTech').addEventListener('change', e=>{ const v=repView(); v.tech=e.target.value; repSetView(v); renderReports(); });
 document.getElementById('repReload').onclick=renderReports;
+
+/* ===================== COMMISSION (Phase 2 b/c/d) =====================
+   Ledger: a technician sees ONLY their own (server-forced); manager/owner see all
+   + a tech filter + the Rules editor + the Holds sign-off (2d). */
+function comFmtDay(iso){ try{ return new Date(iso+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return iso; } }
+function comPeriodRange(p){
+  const d=new Date(); let start=new Date(d);
+  if(p==='week'){ start.setDate(d.getDate()-d.getDay()); }
+  else if(p==='month'){ start=new Date(d.getFullYear(), d.getMonth(), 1); }
+  else if(p==='quarter'){ start=new Date(d.getFullYear(), Math.floor(d.getMonth()/3)*3, 1); }
+  else if(p==='year'){ start=new Date(d.getFullYear(),0,1); }
+  const iso=x=>{ const z=new Date(x); z.setMinutes(z.getMinutes()-z.getTimezoneOffset()); return z.toISOString().slice(0,10); };
+  return { from:iso(start), to:iso(d) };
+}
+function comIsManager(){ try{ return !!(TKS.auth.can && TKS.auth.can('viewAudit')); }catch(e){ return false; } }
+async function renderCommission(){
+  const cards=document.getElementById('comCards'), list=document.getElementById('comList'), note=document.getElementById('comNote'), holds=document.getElementById('comHolds');
+  cards.innerHTML=''; list.innerHTML='<div class="empty">Loading…</div>'; holds.innerHTML=''; note.textContent='';
+  if(!(window.TKS && TKS.auth && TKS.auth.isSignedIn())){ list.innerHTML='<div class="empty">Sign in to see commission.</div>'; return; }
+  const mgr=comIsManager(), techSel=document.getElementById('comTech');
+  if(mgr && techSel && techSel.options.length<=1){ try{ const r=await TKS.Fleet.staff(); ((r&&r.data)||[]).forEach(s=>{ const o=document.createElement('option'); o.value=s.user_id; o.textContent=(s.name||s.role); techSel.appendChild(o); }); }catch(e){} }
+  const rng=comPeriodRange(document.getElementById('comPeriod').value);
+  const techFilter = mgr ? (techSel?techSel.value:'') : '';
+  let rows=[];
+  try{ const res=await TKS.Commission.dayRows(rng.from, rng.to, techFilter||null); if(res.error) throw res.error; rows=res.data||[]; }
+  catch(e){ list.innerHTML='<div class="empty">'+esc2(e.message||'Couldn’t load commission.')+'</div>'; return; }
+  let base=0, comm=0, held=0; rows.forEach(r=>{ base+=+r.base_cents||0; comm+=+r.commission_cents||0; held+=+r.held_cents||0; });
+  cards.innerHTML='<div class="chip"><b>'+money2(comm)+'</b>commission</div><div class="chip"><b>'+money2(base)+'</b>commissionable</div>'+(held>0?'<div class="chip low"><b>'+money2(held)+'</b>on hold</div>':'');
+  if(!rows.length){ list.innerHTML='<div class="empty">No commission in this period yet.</div>'; }
+  else {
+    const byTech={}; rows.forEach(r=>{ const g=(byTech[r.tech_id]=byTech[r.tech_id]||{name:r.tech_name,days:[],comm:0,base:0,held:0}); g.days.push(r); g.comm+=+r.commission_cents||0; g.base+=+r.base_cents||0; g.held+=+r.held_cents||0; });
+    list.innerHTML=Object.keys(byTech).map(tid=>{ const g=byTech[tid];
+      return '<div class="crow" style="flex-direction:column;align-items:stretch;cursor:default"><div style="display:flex;justify-content:space-between"><b>'+esc2(g.name)+'</b><b>'+money2(g.comm)+'</b></div>'+
+        '<div class="sub" style="margin-top:4px">'+g.days.sort((a,b)=>String(b.day).localeCompare(a.day)).map(d=> comFmtDay(d.day)+': '+money2(d.commission_cents)+' on '+money2(d.base_cents)+(d.met_min?'':' (daily min)')+(+d.held_cents>0?(' · '+money2(d.held_cents)+' held'):'')).join('<br>')+'</div></div>';
+    }).join('');
+  }
+  note.textContent = mgr ? 'Computed server-side from paid sales per your rules (⚙ Rules). On-hold releases when a manager signs off the job.' : 'Your commission from paid sales. On-hold items release once a manager signs off the job.';
+  if(window.TKS_ACCESS) TKS_ACCESS.applyGates(document.getElementById('view-commission'));
+  if(mgr) renderCommHolds();
+}
+document.getElementById('comReload').onclick=renderCommission;
+document.getElementById('comPeriod').addEventListener('change', renderCommission);
+document.getElementById('comTech').addEventListener('change', renderCommission);
+document.getElementById('comRules').onclick=()=>{ if(comIsManager()) openCommissionRules(); };
+async function renderCommHolds(){
+  const holds=document.getElementById('comHolds'); if(!holds) return;
+  let list=[]; try{ const r=await TKS.Commission.awaitingSignoff(); if(r.error) throw r.error; list=r.data||[]; }catch(e){ holds.innerHTML=''; return; }
+  if(!list.length){ holds.innerHTML=''; return; }
+  holds.innerHTML='<div class="section-h" style="margin:14px 0 6px">⚠ Awaiting manager sign-off ('+list.length+')</div>'+
+    list.map(j=>'<div class="crow" data-job="'+esc2(j.job_id)+'" style="flex-direction:column;align-items:stretch;cursor:default">'+
+      '<div style="display:flex;justify-content:space-between"><b>'+esc2(j.customer||'—')+'</b><span class="lowbadge">'+esc2(j.status||'')+'</span></div>'+
+      '<div class="sub">'+(j.tech_name?('Tech: '+esc2(j.tech_name)+' · '):'')+(j.cancel_reason?esc2(j.cancel_reason):'')+(j.cancel_detail?(' — '+esc2(j.cancel_detail)):'')+'</div>'+
+      '<div class="jp-parts sub" style="margin-top:2px">…</div>'+
+      '<div class="actions" style="gap:8px;margin-top:6px"><button class="btn ghostbtn" data-uphold="'+esc2(j.job_id)+'" style="flex:1">Keep hold</button>'+
+        '<button class="btn save" data-release="'+esc2(j.job_id)+'" style="flex:2">✓ Confirm unused &amp; release</button></div></div>').join('');
+  holds.querySelectorAll('.crow[data-job]').forEach(row=>{ const jid=row.getAttribute('data-job');
+    TKS.Jobs.parts(jid).then(r=>{ const parts=(r&&r.data)||[]; const el=row.querySelector('.jp-parts'); if(el) el.innerHTML = parts.length ? ('Parts: '+parts.map(p=>esc2(p.description||p.item_id||'part')+' ['+(p.state||'pending')+(p.proof_path?' 📷':'')+']').join(', ')) : 'No parts logged.'; }).catch(()=>{});
+  });
+  holds.querySelectorAll('[data-release]').forEach(b=> b.onclick=()=> commSignoff(b.getAttribute('data-release'),'release'));
+  holds.querySelectorAll('[data-uphold]').forEach(b=> b.onclick=()=> commSignoff(b.getAttribute('data-uphold'),'uphold'));
+}
+function commSignoff(job, action){
+  const note = prompt(action==='release' ? 'Confirm equipment is unused/returned. Note (optional):' : 'Reason for keeping the hold:'); if(note===null) return;
+  TKS.Commission.releaseHold(job, action, note||'').then(r=>{ if(r&&r.error){ alert(r.error.message); } else { renderCommission(); } }).catch(e=> alert(e.message||'Failed.'));
+}
+function openCommissionRules(){
+  const ov=document.createElement('div'); ov.className='chg-modal-ov';
+  ov.innerHTML='<div class="chg-modal"><div class="chg-modal-h"><b>Commission rules</b><button type="button" class="chg-modal-x" id="crX">×</button></div><div id="crBody">Loading…</div></div>';
+  document.body.appendChild(ov);
+  function close(){ ov.remove(); }
+  ov.addEventListener('mousedown',ev=>{ if(ev.target===ov) close(); });
+  document.getElementById('crX').onclick=close;
+  TKS.Commission.config().then(res=>{
+    const c=(res&&res.data)||{}, body=document.getElementById('crBody');
+    body.innerHTML=
+      '<label>Pay commission on</label><select id="cr_payson">'+[['service_programming','Service-call + programming only'],['whole_job','Whole-job total'],['labor','Labor only'],['custom','Custom']].map(o=>'<option value="'+o[0]+'"'+(c.pays_on===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+
+      '<label style="margin-top:8px">Structure</label><select id="cr_struct">'+[['daily_min_pct','Daily minimum + %'],['flat_pct','Flat %'],['tiered_pct','Tiered % (stub)'],['flat_per_job','Flat $ per job (stub)']].map(o=>'<option value="'+o[0]+'"'+(c.structure===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+
+      '<div class="row2" style="margin-top:8px"><div><label>Commission %</label><input id="cr_pct" type="number" inputmode="decimal" value="'+(c.flat_pct!=null?c.flat_pct:'')+'" placeholder="e.g. 10"></div>'+
+        '<div><label>Daily minimum ($)</label><input id="cr_min" type="number" inputmode="decimal" value="'+(c.daily_min_cents?(c.daily_min_cents/100):'')+'" placeholder="e.g. 100"></div></div>'+
+      '<label class="toggle" style="display:flex;align-items:center;gap:8px;margin-top:10px"><input type="checkbox" id="cr_exparts" '+(c.exclude_parts!==false?'checked':'')+' style="width:auto"> Exclude inventory parts from commission</label>'+
+      '<label>Earned when</label><select id="cr_earned">'+[['completion_collection','Completed AND paid (collected)'],['completion','Completed only']].map(o=>'<option value="'+o[0]+'"'+(c.earned_when===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+
+      '<label class="toggle" style="display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="cr_hold" '+(c.hold_unreconciled!==false?'checked':'')+' style="width:auto"> Hold the full quote against the tech on an unreconciled job</label>'+
+      '<div id="cr_msg" style="font-size:12px;min-height:14px;margin-top:6px"></div><button type="button" class="btn save" id="cr_save" style="width:100%;margin-top:8px">Save rules</button>';
+    document.getElementById('cr_save').onclick=function(){
+      const cfg={ pays_on:document.getElementById('cr_payson').value, structure:document.getElementById('cr_struct').value,
+        flat_pct:parseFloat(document.getElementById('cr_pct').value)||0, daily_min_cents:Math.round((parseFloat(document.getElementById('cr_min').value)||0)*100),
+        exclude_parts:document.getElementById('cr_exparts').checked, earned_when:document.getElementById('cr_earned').value, hold_unreconciled:document.getElementById('cr_hold').checked };
+      const m=document.getElementById('cr_msg'); m.style.color='var(--dim)'; m.textContent='Saving…';
+      TKS.Commission.saveConfig(cfg).then(r=>{ if(r&&r.error){ m.style.color='#c8323c'; m.textContent=r.error.message; } else { close(); renderCommission(); } }).catch(e=>{ m.style.color='#c8323c'; m.textContent=e.message||'Failed.'; });
+    };
+  }).catch(e=>{ const b=document.getElementById('crBody'); if(b) b.innerHTML='<div class="chg-cpempty">Couldn’t load rules.</div>'; });
+}
 async function renderReports(){
   const v=repView(), m=repMetrics();
   const cards=document.getElementById('repCards'), list=document.getElementById('repList'), wrap=document.getElementById('repChartWrap');
