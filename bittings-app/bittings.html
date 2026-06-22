@@ -3431,7 +3431,7 @@ function hydrateIdentityFromConfig(){
   }catch(e){}
 }
 function openSettings(){
-  try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn() && !TKS.auth.isOwner()){ appAlert("Managers only","Settings are manager-only."); return; } }catch(e){}
+  try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn() && !(TKS.auth.can && TKS.auth.can('setup'))){ appAlert("Managers only","Settings are manager-only."); return; } }catch(e){}
   loadSettingsForm(); document.getElementById("settingsPanel").classList.add("open");
 }
 function closeSettings(){ document.getElementById("settingsPanel").classList.remove("open"); }

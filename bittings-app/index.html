@@ -1429,10 +1429,8 @@ function chgEls(){ return { amt:document.getElementById('chgAmount'), label:docu
 function chgShowForm(){ const e=chgEls(); e.form.style.display='block'; e.gate.style.display='none'; _chgUnlocked=true; }
 function chgGate(){
   _chgUnlocked=false; const e=chgEls();
-  try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn()){
-    if(TKS.auth.isOwner()){ chgShowForm(); return; }
-    e.form.style.display='none'; e.gate.style.display='block'; e.gate.textContent="Taking payments is manager-only — you're signed in as staff."; return;
-  } }catch(_){}
+  // Take payment = ALL staff (technician/front_desk/manager/owner), per the matrix.
+  try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn()){ chgShowForm(); return; } }catch(_){}
   const hasPin=(window.TKS && TKS.auth) ? TKS.auth.hasManagerPin() : !!(window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN);
   e.form.style.display='none'; e.gate.style.display='block';
   if(!hasPin){ e.gate.textContent='Manager sign-in required to take a payment.'; return; }
