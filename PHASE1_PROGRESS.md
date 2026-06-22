@@ -53,12 +53,17 @@ Per-page destructive controls (gate + route confirm through the shared modal):
 - ✅ **Server-verified** (manager/front_desk/technician): move=tech+, receive=fd+, adjust=mgr+, create-van=mgr+ — all PASS
 - ⬜ **UI** (in 1d): van picker, home-van auto-select, move/receive/adjust screens, guided reassignment move, auto-flag "part not on van"
 
-## Stage 1c — Jobs + status + assignment + accountability  ⬜ NOT STARTED
-- ⬜ Promote `bookings` jsonb → columns (status, assignment, reconciliation_pending, cancel reason)
-- ⬜ Status state machine (scheduled→…→completed + on_hold/canceled); own-job rules; front-desk scheduled-only
-- ⬜ `job_staff` join (lead/split_partner/assist)
-- ⬜ Reconciliation gates (photo proof in private Storage bucket attached to the job; reason notes; post-cut key return)
-- ⬜ `reconciliation_pending` + responsible tech + amount hooks for Phase 2
+## Stage 1c — Jobs + status + assignment + accountability  🔨 DB DONE & PROVEN (UI pending in 1d)
+- ✅ `bookings` promoted: `status` column (+check), `reconciliation_pending`, `responsible_tech`, `quote_cents`, `cancel_reason`, `cancel_detail`, `completed_at`
+- ✅ `job_staff` join (lead/split_partner/assist) + `is_own_job()` helper
+- ✅ `job_parts` (used/returned/pending; `is_cut_key`; `proof_path`) — reconciliation tracking
+- ✅ Status state machine via `job_set_status` RPC: **manager any · technician own-jobs only · front-desk never**; completing requires all parts reconciled (gate)
+- ✅ `job_cancel` RPC: **reason required**; front-desk **scheduled-only**; technician own-jobs; unreconciled → sets `reconciliation_pending` + responsible tech (Phase-2 hold hook)
+- ✅ `job_reconcile_part` RPC: returning a **cut key requires photo proof** (no honor-system tap)
+- ✅ **Guard trigger** blocks direct status/reconciliation edits — must go through the RPCs (proven: direct UPDATE DENIED)
+- ✅ Private `job-proof` Storage bucket + RLS (1d UI uploads the photo)
+- ✅ **Server-verified** (manager/front_desk/technician): every cell incl. own-job, front-desk-scheduled-only, recon gate, cut-key proof, guard — all PASS
+- ⬜ **UI** (in 1d): status controls on jobs (own-job), cancel/reschedule with reason pick-list, reconciliation flow + photo capture, on-hold/reopen
 
 ## Stage 1d — Finish: field-level money + remaining gating  ⬜ NOT STARTED
 - ⬜ Role-aware views/RPCs so cost/margin is physically absent from technician/front_desk payloads
