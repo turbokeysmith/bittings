@@ -859,6 +859,21 @@ function assignTechToBooking(id, name){
   catch(e){ const arr=readLS(K_BOOKINGS,[]); const i=arr.findIndex(x=>x.id===id); if(i!==-1){ arr[i]=bk; writeLS(K_BOOKINGS,arr); } }
 }
 
+/* ---- technician self-scope: a tech only SEES + TOUCHES their own assigned jobs ---- */
+function isTechRole(){ try{ return !!(TKS.auth && TKS.auth.staffRole && TKS.auth.staffRole()==='technician'); }catch(e){ return false; } }
+function myTechName(){
+  try{ const email=((TKS.auth&&TKS.auth.email&&TKS.auth.email())||'').toLowerCase(); if(!email) return '';
+    const emps=(TKS.Config.access().employees)||[]; const me=emps.find(e=>String(e.email||'').toLowerCase()===email);
+    return me?String(me.name||'').trim():''; }catch(e){ return ''; }
+}
+function ownJobsOnly(list){
+  if(!isTechRole()) return list||[];
+  const me=myTechName().toLowerCase();
+  return (list||[]).filter(b=> me && String(b.technician||'').trim().toLowerCase()===me);
+}
+function canEditBooking(){ return !isTechRole(); }    // techs can't edit appointments (own or others)
+function isOwnBooking(b){ if(!isTechRole()) return true; const me=myTechName().toLowerCase(); return !!(me && String((b&&b.technician)||'').trim().toLowerCase()===me); }
+
 /* the ordered flow */
 const STEPS = ["greeting","customer","jobtype","subtype","details","schedule","upsell","confirm"];
 
@@ -949,7 +964,7 @@ function setDay(v){ if(v){ DAY=v; render(); } }
 
 function renderDay(){
   if(nav) nav.style.display='none';
-  const all = allBookings().filter(b=>(b.date||'')===DAY)
+  const all = ownJobsOnly(allBookings().filter(b=>(b.date||'')===DAY))
                 .sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   let rows='';
   for(let h=DAY_START; h<=DAY_END; h++){
@@ -1005,8 +1020,8 @@ function jobRow(b){
 function renderJobs(){
   nav.style.display='none';
   let active=[], archived=[];
-  try{ active = TKS.Bookings.active(); archived = TKS.Bookings.archived(); }
-  catch(e){ active = allBookings(); }
+  try{ active = ownJobsOnly(TKS.Bookings.active()); archived = ownJobsOnly(TKS.Bookings.archived()); }
+  catch(e){ active = ownJobsOnly(allBookings()); }
   // newest-first
   const sortNew = (a,b)=>String((b.date||'')+(b.time||'')).localeCompare(String((a.date||'')+(a.time||'')));
   active.sort(sortNew); archived.sort(sortNew);
@@ -1028,6 +1043,8 @@ function renderBooking(){
   const b = (function(){ try{ return TKS.Bookings.get(currentBookingId); }catch(e){ return null; } })()
             || allBookings().find(x=>x.id===currentBookingId);
   if(!b){ VIEW='jobs'; return render(); }
+  // A technician can only open their OWN assigned jobs.
+  if(!isOwnBooking(b)){ try{ TKS_ACCESS.toast("That isn't one of your assigned jobs."); }catch(e){} VIEW='jobs'; return render(); }
   const veh = b.vehicle && (b.vehicle.make||b.vehicle.vin)
     ? `${b.vehicle.year||''} ${b.vehicle.make||''} ${b.vehicle.model||''}`.trim() + (b.vehicle.vin?` · VIN ${esc(b.vehicle.vin)}`:'') : '';
   const ign = b.vehicle && b.vehicle.ignition ? (b.vehicle.ignition==='push'?t('ign_push'):t('ign_keyed')) : '';
@@ -1061,12 +1078,14 @@ function renderBooking(){
       <div class="section-h" style="margin-top:14px">${t('change_status')}</div>
       <div class="status-picker" id="statusPicker">${picker}</div>
       <div class="section-h" style="margin-top:14px">${LANG==='es'?'Técnico asignado':'Assigned technician'}</div>
-      <div class="tech-assign">${techSelectHTML(b.technician, `onchange="assignTechToBooking('${b.id}', this.value)"`)}</div>
+      <div class="tech-assign">${ canEditBooking()
+          ? techSelectHTML(b.technician, `onchange="assignTechToBooking('${b.id}', this.value)"`)
+          : `<div style="font-size:14px;padding:2px 0">${esc(b.technician || (LANG==='es'?'Sin asignar':'Unassigned'))}</div>` }</div>
       <div id="jobAccount"></div>
       ${imgs}
       <div class="bk-actions">
         <a class="gcal" href="${googleUrl()}" target="_blank" rel="noopener">📆 ${t('add_to_sched')}</a>
-        <button class="edit" onclick="editBooking('${b.id}')">✏️ ${t('edit_booking')}</button>
+        ${canEditBooking() ? `<button class="edit" onclick="editBooking('${b.id}')">✏️ ${t('edit_booking')}</button>` : ''}
         <button class="del" data-cap="hardDelete" onclick="deleteBooking('${b.id}')">🗑</button>
       </div>
     </div>`;
@@ -1081,10 +1100,13 @@ const L2C_STATUS = { 'Scheduled':'scheduled','In Progress':'in_progress','Comple
 const CLOUD_STATUS_LABEL = { scheduled:'Scheduled', en_route:'En route', on_site:'On site', in_progress:'In progress', completed:'Completed', on_hold:'On hold', canceled:'Canceled' };
 
 function setBookingStatus(id,status){
-  // Offline / local: unchanged.
+  // Cancel + Reschedule ALWAYS require a note + the equipment/sign-off warning
+  // (online or offline). Everything else is just moving the progress bar.
+  if(status==='Canceled'){ openStatusNote(id,'cancel'); return; }
+  if(status==='Rescheduled'){ openStatusNote(id,'reschedule'); return; }
+  // Offline / local: just set the status.
   if(!(window.TKS && TKS.auth && TKS.auth.isSignedIn())){ try{ TKS.Bookings.setStatus(id,status); }catch(e){} render(); return; }
   // Cloud: the authoritative status is RPC-only (own-job + reconciliation gates).
-  if(status==='Canceled'){ openCancelJob(id); return; }
   const cloud = L2C_STATUS[status] || 'scheduled';
   TKS.Jobs.setStatus(id, cloud).then(res=>{
     if(res && res.error){ if(window.TKS_ACCESS) TKS_ACCESS.toast(res.error.message); else alert(res.error.message); }
@@ -1242,34 +1264,59 @@ function jaCheckVanStock(jobId, parts, leadVan, leadName, role, ownJob){
   });
 }
 
-// Cancel-with-reason modal → job_cancel (reason required; server re-checks role/own-job).
-function openCancelJob(jobId){
+// Append a timestamped note to a booking + flag that a manager must sign off
+// (confirm any equipment is unused/returned before stock is restored).
+function tagBookingNote(id, label, note){
+  let bk=null; try{ bk=TKS.Bookings.get(id); }catch(e){} if(!bk) bk=allBookings().find(x=>x.id===id); if(!bk) return;
+  let stamp=''; try{ stamp=' '+new Date().toLocaleString(); }catch(e){}
+  bk.notes = ((bk.notes||'').trim() ? (bk.notes.trim()+'\n') : '') + '['+label+stamp+'] '+(note||'');
+  bk.needsManagerSignoff = true; bk.signoffReason = label;   // manager confirms equipment unused/returned
+  try{ TKS.Bookings.save(bk); }catch(e){ const arr=readLS(K_BOOKINGS,[]); const i=arr.findIndex(x=>x.id===id); if(i!==-1){ arr[i]=bk; writeLS(K_BOOKINGS,arr);} }
+}
+
+// Cancel / Reschedule modal — a NOTE is required, and it warns that equipment
+// must be confirmed UNUSED and a MANAGER must sign off. Centered + theme-matched.
+// Cancel routes to job_cancel (server re-checks role/own-job); reschedule keeps
+// the cloud status 'scheduled' but flags it locally as Rescheduled + needs sign-off.
+function openStatusNote(jobId, kind){
+  const isCancel = kind==='cancel';
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
-  ov.innerHTML='<div style="background:var(--card,#fff);width:100%;max-width:520px;border-radius:16px;padding:16px;max-height:88vh;overflow:auto">'+
-    '<h2 style="margin:0 0 10px;font-size:17px">Cancel this job</h2>'+
-    '<label style="font-size:12px;color:var(--dim)">Reason (required)</label>'+
-    '<select id="cj_reason" style="width:100%">'+CANCEL_REASONS.map(r=>'<option value="'+esc(r)+'">'+esc(r)+'</option>').join('')+'</select>'+
-    '<label style="font-size:12px;color:var(--dim);margin-top:8px;display:block">Details (optional)</label>'+
-    '<textarea id="cj_detail" rows="2" style="width:100%" placeholder="Anything worth noting…"></textarea>'+
-    '<div id="cj_msg" style="font-size:12px;min-height:15px;margin-top:6px"></div>'+
-    '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn ghost" id="cj_back" style="flex:1">Keep job</button>'+
-      '<button class="btn" id="cj_go" style="flex:2;background:#c8323c;color:#fff">Cancel job</button></div></div>';
+  ov.innerHTML='<div style="background:var(--card,#fff);color:var(--ink);width:100%;max-width:520px;border-radius:16px;padding:16px;max-height:88vh;overflow:auto">'+
+    '<h2 style="margin:0 0 8px;font-size:17px">'+(isCancel?'Cancel this job':'Reschedule this job')+'</h2>'+
+    '<div style="background:rgba(200,50,60,.10);border:1px solid rgba(200,50,60,.4);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45;margin-bottom:10px">'+
+      '⚠ Confirm every part, key, or piece of equipment taken for this job is <b>unused</b> and returned to stock. '+
+      '<b>A manager must sign off</b> before any of it goes back into inventory.</div>'+
+    (isCancel ? '<label style="font-size:12px;color:var(--dim)">Reason</label><select id="sn_reason" style="width:100%">'+CANCEL_REASONS.map(r=>'<option value="'+esc(r)+'">'+esc(r)+'</option>').join('')+'</select>' : '')+
+    '<label style="font-size:12px;color:var(--dim);margin-top:8px;display:block">'+(isCancel?'Note (required)':'Why reschedule, and new timing? (required)')+'</label>'+
+    '<textarea id="sn_note" rows="3" style="width:100%" placeholder="'+(isCancel?'What happened — and the state of any equipment taken…':'Reason + new timing — and the state of any equipment taken…')+'"></textarea>'+
+    '<div id="sn_msg" style="font-size:12px;min-height:15px;margin-top:6px"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn ghost" id="sn_back" style="flex:1">Keep job</button>'+
+      '<button class="btn" id="sn_go" style="flex:2;background:#c8323c;color:#fff">'+(isCancel?'Cancel job':'Mark rescheduled')+'</button></div></div>';
   document.body.appendChild(ov);
   function close(){ ov.remove(); }
   ov.addEventListener('mousedown', e=>{ if(e.target===ov) close(); });
-  document.getElementById('cj_back').onclick=close;
-  document.getElementById('cj_go').onclick=function(){
-    const reason=document.getElementById('cj_reason').value, detail=document.getElementById('cj_detail').value.trim();
-    const m=document.getElementById('cj_msg'); m.style.color='#5a616c'; m.textContent='Canceling…';
-    TKS.Jobs.cancel(jobId,reason,detail).then(res=>{
-      if(res&&res.error){ m.style.color='#c8323c'; m.textContent=res.error.message; }
-      else { try{ TKS.Bookings.setStatus(jobId,'Canceled'); }catch(e){} close(); render(); }
-    }).catch(e=>{ m.style.color='#c8323c'; m.textContent=e.message||'Cancel failed.'; });
+  document.getElementById('sn_back').onclick=close;
+  document.getElementById('sn_go').onclick=function(){
+    const note=document.getElementById('sn_note').value.trim();
+    const reason=isCancel ? document.getElementById('sn_reason').value : 'Rescheduled';
+    const m=document.getElementById('sn_msg');
+    if(!note){ m.style.color='#c8323c'; m.textContent='A note is required.'; return; }
+    m.style.color='var(--dim)'; m.textContent=isCancel?'Canceling…':'Saving…';
+    tagBookingNote(jobId, isCancel?('Canceled — '+reason):'Rescheduled', note);
+    const signedIn=!!(window.TKS && TKS.auth && TKS.auth.isSignedIn());
+    if(signedIn){
+      const p = isCancel ? TKS.Jobs.cancel(jobId, reason, note) : TKS.Jobs.setStatus(jobId,'scheduled');
+      p.then(res=>{ if(res&&res.error){ m.style.color='#c8323c'; m.textContent=res.error.message; }
+        else { try{ TKS.Bookings.setStatus(jobId, isCancel?'Canceled':'Rescheduled'); }catch(e){} close(); render(); } })
+       .catch(e=>{ m.style.color='#c8323c'; m.textContent=e.message||'Failed.'; });
+    } else { try{ TKS.Bookings.setStatus(jobId, isCancel?'Canceled':'Rescheduled'); }catch(e){} close(); render(); }
   };
 }
+function openCancelJob(jobId){ openStatusNote(jobId,'cancel'); }   // alias (used by the job accountability panel)
 
 function editBooking(id){
+  if(!canEditBooking()){ try{ TKS_ACCESS.toast("Technicians can't edit appointments — move the status, or reschedule/cancel with a note."); }catch(e){} return; }
   const b = (function(){ try{ return TKS.Bookings.get(id); }catch(e){ return null; } })()
             || allBookings().find(x=>x.id===id);
   if(!b) return;
