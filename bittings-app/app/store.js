@@ -595,7 +595,8 @@
     manageStaff:    ['owner'],
     setup:          ['owner','manager'],
     viewAudit:      ['owner','manager'],
-    editReference:  ['owner','manager']
+    editReference:  ['owner','manager'],
+    jobStatus:      ['owner','manager','technician']   // change job status (front_desk cannot); own-job enforced server-side
   };
   // Fetch + cache the signed-in user's role from the `staff` table.
   function fetchStaffRole(sb) {

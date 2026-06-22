@@ -3228,7 +3228,7 @@ function renderHistList(){
                 '<button data-act="edit" data-num="'+dn+'">Edit</button>';
     if(type==="invoice") actions += '<button data-act="paid" data-num="'+dn+'">Mark Paid</button>';
     if(type==="estimate") actions += '<button data-act="toinv" data-num="'+dn+'">→ Invoice</button>';
-    if(typeof TKS_ACCESS==='undefined' || TKS_ACCESS.can('hardDelete')) actions += '<button data-act="del" data-num="'+dn+'">Delete</button>';   // invoice hard-delete = owner only
+    actions += '<button data-cap="hardDelete" data-act="del" data-num="'+dn+'">Delete</button>';   // invoice hard-delete = owner only (hidden for others by access.js)
     div.innerHTML=
       '<div class="hi-top"><span class="hi-num">'+escapeHtml(r.number)+'</span>'+
       '<span class="hi-amt">'+money(total)+'</span></div>'+
@@ -3967,8 +3967,10 @@ function _receiptsRefresh(){
      and added back if a paid sale is later voided/deleted/refunded. Guarded by a
      `stockApplied` flag on the receipt so it can never double-apply. */
 function _isOwnerForCosts(){
-  try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn()) return !!TKS.auth.isOwner(); }catch(e){}
-  return true; // nobody signed in -> owner's own device (same model as Quick invoice)
+  // Cost/margin = manager+ (per the matrix). Signed-in manager/owner see it;
+  // technician/front_desk do not. Nobody signed in -> own device (full).
+  try{ const a=window.TKS&&TKS.auth; if(a && a.isSignedIn()) return !!(a.can && a.can('editPricing')); }catch(e){}
+  return true;
 }
 function currentTechnician(){
   try{ if(window.TKS && TKS.auth && TKS.auth.isSignedIn()) return TKS.auth.email()||""; }catch(e){}

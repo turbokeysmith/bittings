@@ -100,16 +100,41 @@
       'background:#16191f;color:#f4f5f6;border:1px solid #2a2f37;border-left:3px solid #e4434f;'+
       'padding:12px 16px;border-radius:10px;font:600 14px system-ui;box-shadow:0 12px 34px rgba(0,0,0,.5);max-width:90vw;transition:opacity .4s}'+
     '.tks-toast.out{opacity:0}'+
-    '.tks-cap-hidden{display:none !important}';
+    '.tks-cap-hidden{display:none !important}'+
+    '#tks-role-chip{position:fixed;top:8px;right:10px;z-index:9998;background:#16191f;color:#cdd3da;border:1px solid #2a2f37;border-radius:999px;padding:3px 10px;font:700 11px system-ui,sans-serif;letter-spacing:.04em;opacity:.9;pointer-events:none}'+
+    '#tks-role-chip.mgr{color:#f2b43a;border-color:#5a4a1e}';
   try{ var st = document.createElement('style'); st.textContent = css; (document.head||document.documentElement).appendChild(st); }catch(e){}
 
-  // Re-apply gates whenever the role becomes known / changes, and at load.
-  try{ if(window.TKS && TKS.onChange) TKS.onChange(function(){ applyGates(); }); }catch(e){}
-  if(document.readyState !== 'loading') applyGates();
-  document.addEventListener('DOMContentLoaded', function(){ applyGates(); });
+  // A small role chip on every page (the home page index.html shows its own badge).
+  function renderRoleChip(){
+    if(document.getElementById('authBar')) return;                 // index has its own role badge
+    var a = window.TKS && TKS.auth, label = '', sr = null;
+    try{ label = (a && a.roleLabel) ? a.roleLabel() : ''; sr = (a && a.staffRole) ? a.staffRole() : null; }catch(e){}
+    var el = document.getElementById('tks-role-chip');
+    if(!label){ if(el) el.remove(); return; }
+    if(!el){ el = document.createElement('div'); el.id = 'tks-role-chip'; if(document.body) document.body.appendChild(el); }
+    el.textContent = label;
+    el.className = (sr==='owner' || sr==='manager' || (a && a.isOwner && a.isOwner())) ? 'mgr' : '';
+  }
+
+  // Re-apply gates + role chip whenever the role becomes known / changes, and at load.
+  try{ if(window.TKS && TKS.onChange) TKS.onChange(function(){ applyGates(); renderRoleChip(); }); }catch(e){}
+  if(document.readyState !== 'loading'){ applyGates(); renderRoleChip(); }
+  document.addEventListener('DOMContentLoaded', function(){ applyGates(); renderRoleChip(); });
   window.addEventListener('tks:access-blocked', function(){
     toast("That wasn’t allowed — your role can’t do that. The item was kept.");
   });
+
+  // Re-apply gates whenever the DOM changes — covers EVERY dynamically-rendered
+  // control (lists, modals, panels) so a gated button can never linger visible.
+  // Watches childList only (not attributes), so toggling our own class can't loop.
+  var _gateTimer = null;
+  function scheduleGate(){ if(_gateTimer) return; _gateTimer = setTimeout(function(){ _gateTimer = null; applyGates(); }, 50); }
+  try {
+    var mo = new MutationObserver(scheduleGate);
+    function startObs(){ if(document.body){ mo.observe(document.body, { childList:true, subtree:true }); applyGates(); } }
+    if(document.body) startObs(); else document.addEventListener('DOMContentLoaded', startObs);
+  } catch(e){}
 
   window.TKS_ACCESS = { can: can, applyGates: applyGates, confirmDanger: confirmDanger, toast: toast };
 })();

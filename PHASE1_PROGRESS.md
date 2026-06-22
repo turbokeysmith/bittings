@@ -42,7 +42,17 @@ Per-page destructive controls (gate + route confirm through the shared modal):
 - ✅ lishi.html — vehicle/tool reference-row deletes gated (`editReference` = manager+) + modal
 - ✅ programmers.html — device/coverage reference-row deletes gated (`editReference`) + modal
 - ✅ setup.html — page gate widened from owner-only → **manager+** (`can('setup')`)
-- ⬜ **Minor remaining local confirms** (low-stakes, local data, inside already-gated screens): lishi "Clear corrections log" + dup-save warn; setup employee/service/quick-link row deletes (currently no confirm). Convert to the shared modal in a quick pass.
+
+### Full control-by-control gating pass (every role only sees its matrix) ✅
+- ✅ **Robust re-gating**: access.js now runs a **MutationObserver** (re-applies gates 50ms after any DOM change) + re-applies on `TKS.onChange` (role-load) + DOMContentLoaded. Gated controls use `data-cap` → hidden via class; nothing slips through on a late/dynamic render.
+- ✅ **Legacy `.owner-only`/`.owner-soft` rewired to the real role** (`ownerHard`=manager+ when signed in, `ownerSoft`=manager+) — so a **manager** now correctly sees Dashboard/Closeout/Reports/Setup/Payments, while technician/front_desk don't (signed-out behavior preserved).
+- ✅ **Cost-gate rewired to manager+** (`_isOwnerForCosts` → `can('editPricing')`): part cost, margin, part-picker, tax-rate hidden from technician/front_desk; visible to manager/owner. (Plus the `inventory_safe` view already nulls cost in the payload.)
+- ✅ **Scheduler manager-elevation** (`requestOwnerAccess`) → `can('setup')` (manager+).
+- ✅ Controls gated by `data-cap` (hidden, not just disabled): customer Remove (softDelete) · part Delete (hardDelete) · part **cost field / Save / +-/ move / Add** (inventoryWrite) · Refund/Void (refundVoid) · booking 🗑 (hardDelete) · job **status picker** (jobStatus = owner/mgr/tech, not front_desk) · lishi/programmers reference 🗑 (editReference) · invoice Delete (hardDelete) · Setup page (setup).
+- ✅ **Role chip on every page** (access.js injects it; index uses its own badge) — prints the real role.
+- 🚩 **Owner decision flagged:** "Take payment / New Charge" is currently **manager-only** in the app, but the matrix says **all staff** take payment. Left as-is (more restrictive); your call whether technicians should take card payments.
+- ⬜ Job-status **own-job** UI restriction (a tech sees status only on *their* jobs) + the fleet/move/receive/reconciliation screens are part of the **1b/1c UI** (not built yet → nothing rendering to gate); the DB already enforces own-job/front-desk-scheduled-only.
+- ⬜ Tiny local confirms still on native `confirm`: lishi "Clear corrections log", setup employee/service deletes (low-stakes, inside manager-gated screens).
 
 ## Stage 1b — Fleet + per-location inventory  🔨 DB DONE & PROVEN (UI pending in 1d)
 - ✅ `vans` table (fleet_no/vin/nickname/plate/status; ≥1 of fleet#/VIN via check constraint); RLS: select=staff, insert/update=manager+, delete=owner
@@ -98,14 +108,19 @@ Per-page destructive controls (gate + route confirm through the shared modal):
 - 2026-06-22: **receipt hard-delete by technician = 0 rows** (RLS owner-only holds; the bittings invoice "Delete" was a LOCAL history delete, never touched the DB — receipts count unchanged, no hard_delete audit). Roles confirmed: gmail=technician, samer=owner.
 - *(each later stage appends its own server-verified results here)*
 
-## 👁️ Human-only visual checks — BATCHED for final sweep (don't action one at a time)
-1. **Technician** (`turbokeysmith@gmail.com` / `TurboTech1!`): on every page, confirm these are **not visible** — customer Remove, part Delete, Refund/Void, scheduler booking 🗑, lishi/programmers reference 🗑; and Setup says "Managers only".
-2. **Manager** (temporarily set the gmail to manager, or use a manager test login): confirm customer **Remove** IS visible (soft-delete) but part Delete / booking 🗑 (hard) are **not**; Setup IS accessible; Refund/Void IS visible.
-3. **Owner** (`samer@…`): confirm a delete shows the **centered modal** (Cancel highlighted/default, red action), not a top banner — on customer, part, booking, refund/void, reference rows.
-4. **Phantom-delete**: as a non-permitted role, trigger any delete that slips through → row should **reappear with a toast**, not vanish.
-5. **Soft-delete round-trip**: as manager, Remove a customer → it disappears from the list; reload → still gone (synced); (owner restore UI is a later follow-up).
-6. YMM dropdowns + VIN autofill behave on Start-a-Job, Scheduler, Receipts (quick + guided).
-7. *(more added per stage)*
+## 👁️ Human-only visual checks — BATCHED for final sweep (I can't drive a real login)
+Flip the gmail's role in the DB between checks (`update staff set role='…' where user_id='db339cc7-…'`), hard-refresh, and confirm the **role chip** (top-right) reads the role.
+
+**As TECHNICIAN** — should see ONLY: view customers (+Add/edit), view inventory **with no cost** and **no +/− / move / Add / Save / cost field**, references, jobs with a status picker, take-the-quoted-price. Should NOT see: Remove customer, Refund/Void, Delete (part/booking/invoice/reference), Dashboard/Reports/Closeout, Setup, cost/margin anywhere, part-picker in Receipts.
+**As FRONT_DESK** — like technician, PLUS no **status picker** on jobs (front desk can't change status). Still no inventory write, no cost, no refund/void, no delete, no dashboard/setup.
+**As MANAGER** — should now SEE: Dashboard/Reports/Closeout, Setup, Refund/Void, inventory Add/edit/+−/move/cost, cost/margin, customer **Remove** (soft-delete). Should NOT see: part/booking/**invoice** hard-Delete (owner-only).
+**As OWNER** — everything, including hard-Delete; a delete shows the **centered modal** (Cancel default, red action).
+
+Cross-cutting:
+- **Phantom-delete**: as any blocked role, if a delete slips through → row reappears + toast (server kept it).
+- **Soft-delete round-trip**: manager Remove a customer → gone from list; reload → still gone.
+- **YMM** dropdowns + VIN autofill on Start-a-Job, Scheduler, Receipts (quick + guided).
+- **Role chip** shows the real role on every page; gold for manager/owner.
 
 ## 🧰 Git / packaging notes
 - All Phase-1 app work (UI-gating + YMM dropdowns) is intermingled in the same files on `phase1-roles-security` (uncommitted client work being committed as WIP to preserve it).

@@ -1155,7 +1155,7 @@ function renderVeh(){
       <td>${esc(r.transponder_system)}</td><td>${esc(r.programming_path)}</td>
       <td>${String(r.oem_only).toLowerCase()==='yes'?'OEM ':''}${String(r.nastf_required).toLowerCase()==='yes'?'NASTF':''}${(String(r.oem_only).toLowerCase()!=='yes'&&String(r.nastf_required).toLowerCase()!=='yes')?'—':''}</td>
       <td><input class="notein" data-id="${r.id}" value="${esc(r.notes)}" placeholder="field notes…"></td>
-      <td><button class="btn sm" data-edit="${r.id}">✎</button> ${(typeof TKS_ACCESS==='undefined'||TKS_ACCESS.can('editReference'))?`<button class="btn sm" data-del="${r.id}">🗑</button>`:''}</td>
+      <td><button class="btn sm" data-edit="${r.id}">✎</button> <button class="btn sm" data-cap="editReference" data-del="${r.id}">🗑</button></td>
     </tr>`).join('');
   document.querySelectorAll('#vTbl .notein').forEach(i=>i.onchange=()=>{ const a=veh(); const x=a.find(z=>z.id===i.dataset.id); if(x){ x.notes=i.value; saveVeh(a); } });
   document.querySelectorAll('#vTbl [data-edit]').forEach(b=>b.onclick=()=>openEditor('veh',b.dataset.edit));
@@ -1171,7 +1171,7 @@ function renderTools(){
       <td><b>${esc(r.tool_designation)}</b></td><td>${esc(r.keyway)}</td><td>${esc(r.tool_type)}</td>
       <td>${esc(r.wafer_positions)}</td><td>${esc(r.usage)}</td><td>${esc(r.key_blank)}</td>
       <td><input class="notein" data-id="${r.id}" value="${esc(r.notes)}" placeholder="field notes…"></td>
-      <td><button class="btn sm" data-edit="${r.id}">✎</button> ${(typeof TKS_ACCESS==='undefined'||TKS_ACCESS.can('editReference'))?`<button class="btn sm" data-del="${r.id}">🗑</button>`:''}</td>
+      <td><button class="btn sm" data-edit="${r.id}">✎</button> <button class="btn sm" data-cap="editReference" data-del="${r.id}">🗑</button></td>
     </tr>`).join('');
   document.querySelectorAll('#tTbl .notein').forEach(i=>i.onchange=()=>{ const a=tools(); const x=a.find(z=>z.id===i.dataset.id); if(x){ x.notes=i.value; saveTools(a); } });
   document.querySelectorAll('#tTbl [data-edit]').forEach(b=>b.onclick=()=>openEditor('tool',b.dataset.edit));
