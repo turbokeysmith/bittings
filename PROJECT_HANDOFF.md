@@ -407,7 +407,15 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
-### 🔮 CAPTURED FOR PHASE 2 (not built yet) — POS / Cash-Register Payment Screen
+### 2026-06-22 (💰 PHASE 2 BUILT — POS / Cash-Register + configurable commission engine; code-complete + server-proven, pending your numbers + phone sign-off)
+The whole Phase 2 money engine is built on branch `phase2-pos-commission` (DB live on Supabase). Detail in `PHASE2_PROGRESS.md`.
+- **2a — POS register replaces the "type-in-an-amount" charge box.** A real ticket: add **parts** (from inventory at a new **sell price**) and **services** (from a manager-editable price list), each with qty; it **adds up subtotal → tax → total** for you. Selling a part **decrements stock from the chosen van/shop**. **Anyone can build a ticket + take payment; only managers can change a price, add a custom-priced line, or give a discount** — and that's enforced on the **server** (a tech literally can't tamper with prices), not just hidden. Charges through the **same Stripe/cash flow** and files to the customer.
+- **2b — Commission engine is fill-in-the-blank (not hardcoded — this is what makes it a product).** Setup the rules in **Commission → ⚙ Rules**: pay on (service-call+programming / whole-job / labor / pick), structure (**daily-minimum + %** / flat % / tiered / per-job), exclude parts, earned-when, and the unreconciled hold. Your model is pre-selected; you just enter the **% and the daily-minimum**. Commission is calculated **server-side** from paid, tagged sales.
+- **2c — Per-tech commission ledger** (new **Commission** tile). A **technician sees only their own** earnings; **managers see everyone** + a tech filter. Shows commission, the commissionable base, the daily-minimum, and anything **on hold**.
+- **2d — Manager sign-off screen** closes the loop: jobs flagged from a cancel/reschedule/unreconciled show under **"Awaiting manager sign-off"** with their parts + photo proof; **"Confirm unused & release"** releases the equipment hold **and** the commission hold (or "Keep hold"). Manager/owner only; every action is logged.
+- **What's left for you:** enter your **part sell prices, services + prices, commission % + daily-minimum, and tax rate** (all seeded blank on purpose), then a **real-phone sweep** (checklist in `PHASE2_PROGRESS.md`). A few modeling choices are flagged there for you to confirm. Phase 3 (serialized inventory + barcode scan) stays deferred.
+
+### 🔮 CAPTURED FOR PHASE 2 (now BUILT — see the entry above) — POS / Cash-Register Payment Screen
 Logged 2026-06-22 at the owner's request so it isn't lost. **Replaces the current "type in an amount" charge box with a real cash register:**
 - A **running ticket** of line items (parts + services), each **qty × price**, that **auto-adds up subtotal / tax / total** — nobody does math by hand.
 - **Parts come from inventory** (real item + real **sell price**) and **subtract from stock when sold**; **services** come from a **manager-editable price list**.

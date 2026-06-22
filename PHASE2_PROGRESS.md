@@ -66,5 +66,24 @@
 - 2026-06-22 (2b): commission calc — base excludes parts (service-only 8000) PASS · daily-min wins over % (max($50, 10%·$80)=$50) PASS · technician sees only own rows PASS. Config reset, test data cleaned.
 - 2026-06-22 (2d): sign-off — technician can't list holds + can't release (BLOCKED) PASS · owner lists the flagged job + releases it · release clears `reconciliation_pending` PASS. Self-created test booking cleaned.
 
+## 📌 WHERE PHASE 2 STANDS
+**All four stages are code-complete and server-proven** (POS checkout pricing/discount gating, per-location stock decrement, commission math, sign-off — all verified with the technician + owner test users). Security advisors: no ERRORs. **Remaining: the owner fills in the blanks + a real-device sweep.** Branch `phase2-pos-commission` (not merged to main); DB + the `pay.js` `skipUpsert` change are live.
+
+## ✋ Owner: fill in the blanks (seeded empty by design)
+- **Part sell prices** (Inventory → edit a part → "Sell price") and **services + prices** (register → 🧾 Manage services). Without a sell price a part can't be added to a ticket.
+- **Commission rules** (Commission → ⚙ Rules): enter the **%** and the **daily minimum $** (the model is pre-selected: service-call + programming, daily-min + %, parts excluded, earned on completion + collection, hold unreconciled).
+- **Tax rate** lives in Setup → Sales tax (the register uses it).
+
+## 🚩 Owner decisions to confirm (none blocked the build)
+1. **Daily-min interpretation:** implemented as **max(daily-minimum, %×commissionable)** for each day the tech had a sale. Confirm vs. "minimum + % on top" or "minimum every scheduled day regardless of sales."
+2. **Tiered % and flat-$-per-job** are selectable + stored but the calc currently **stubs** them (tiered→flat %, per-job→per-day). Build out fully when you choose one of those models.
+3. **Commission earner** = the **technician tagged on the register ticket** (the seller). True **split-partner** splitting + **assist earns nothing** via `job_staff` is partially honored (only the tagged tech earns); full split math is a follow-up.
+4. **Walk-up POS sale "completion"** = the charge itself (collected); job-linked sales also respect the reconciliation hold. Confirm that's the intent.
+
 ## 👁️ Human-only visual checks — BATCHED for the final sweep
-- *(appends as UI lands)*
+Sign in, then per role (flip the gmail's staff role + hard-refresh; the role chip confirms):
+- **Register (Payments tile):** add a **part** (shows sell price) + a **service**; qty ±; subtotal/tax/total auto-update; pick **location** + **technician**; take **Cash** (anonymous OK) and **Card/Check** (customer required). As **technician**: **+ Custom, Discount, and Manage services are hidden/blocked**; as **manager**: all show and work.
+- **Inventory:** edit a part → set **Sell price**; confirm it appears in the register part picker.
+- **Commission view:** as **technician** see **only your own** ledger; as **manager** see all + the **tech filter** + **⚙ Rules** + the **Awaiting sign-off** section. Set rules (% + daily-min), take a register sale tagged to a tech, mark it paid, and confirm commission appears.
+- **Sign-off:** cancel/reschedule a job (Scheduler) → it appears under **Awaiting manager sign-off** in Commission → **Confirm unused & release** clears it (and any commission hold).
+- **Stock:** a register sale of a part **decrements** that part at the chosen location.
