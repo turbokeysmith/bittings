@@ -1003,4 +1003,56 @@
       });
     }
   };
+
+  /* ===================================================================
+     Phase 1b / 1c cloud operations — thin wrappers over the server-side
+     RPCs/tables that already enforce the role matrix (RLS + SECURITY
+     DEFINER functions). Every call returns the supabase-js promise, so a
+     denied action surfaces as { error } and the UI shows the real reason.
+     These need a live cloud session (authState.sb); offline they throw.
+     =================================================================== */
+  function _sb(){ if(!authState.sb) throw new Error('Connect to the cloud (sign in) to use this.'); return authState.sb; }
+
+  // Fleet / vans (manage = manager+, read = any staff; enforced by RLS).
+  global.TKS.Fleet = {
+    list:    function(){ return _sb().from('vans').select('*').order('fleet_no', { ascending: true }); },
+    save:    function(v){
+      var row = { fleet_no: v.fleet_no || null, vin: (v.vin||'').toUpperCase() || null,
+                  nickname: v.nickname || null, plate: v.plate || null, status: v.status || 'active' };
+      return v.id ? _sb().from('vans').update(row).eq('id', v.id).select()
+                  : _sb().from('vans').insert(row).select();
+    },
+    setStatus: function(id, status){ return _sb().from('vans').update({ status: status }).eq('id', id); },
+    remove:  function(id){ return _sb().from('vans').delete().eq('id', id); },
+    staff:   function(){ return _sb().from('staff').select('user_id,name,role,active,home_van_id').order('role'); },
+    assignHomeVan: function(userId, vanId){ return _sb().from('staff').update({ home_van_id: vanId || null }).eq('user_id', userId); }
+  };
+
+  // Inventory location ops — all role-checked server-side.
+  // location strings: 'shop' or 'van:<vanId>'.
+  global.TKS.InvOps = {
+    locations: function(itemId){ return _sb().from('inventory_locations').select('*').eq('item_id', itemId).order('location'); },
+    move:    function(item, from, to, qty){ return _sb().rpc('inv_move',    { p_item: item, p_from: from, p_to: to, p_qty: qty }); },   // tech+
+    receive: function(item, qty){           return _sb().rpc('inv_receive', { p_item: item, p_qty: qty }); },                            // front_desk+
+    adjust:  function(item, loc, newQty, reason){ return _sb().rpc('inv_adjust', { p_item: item, p_loc: loc, p_new_qty: newQty, p_reason: reason || '' }); } // manager+
+  };
+
+  // Job status + accountability — guarded RPCs (front_desk can't set status;
+  // a tech only on own jobs; completion/cancel gated on parts reconciliation).
+  global.TKS.Jobs = {
+    setStatus: function(job, status){ return _sb().rpc('job_set_status', { p_job: job, p_status: status }); },
+    cancel:    function(job, reason, detail){ return _sb().rpc('job_cancel', { p_job: job, p_reason: reason, p_detail: detail || '' }); },
+    parts:     function(job){ return _sb().from('job_parts').select('*').eq('job_id', job).order('created_at'); },
+    addPart:   function(job, desc, isCut){ return _sb().from('job_parts').insert({ job_id: job, description: desc || '', is_cut_key: !!isCut }).select(); },
+    reconcilePart: function(part, state, proof){ return _sb().rpc('job_reconcile_part', { p_part: part, p_state: state, p_proof: proof || '' }); },
+    assign:    function(job, userId, role){ return _sb().from('job_staff').upsert({ job_id: job, user_id: userId, job_role: role || 'lead' }); },
+    staffOnJob: function(job){ return _sb().from('job_staff').select('user_id,job_role').eq('job_id', job); },
+    // Upload a reconciliation proof photo to the private 'job-proof' bucket; returns the stored path.
+    uploadProof: function(job, file){
+      var sb = _sb(); var path = job + '/' + (file && file.name ? file.name.replace(/[^a-zA-Z0-9._-]/g,'_') : 'proof.jpg');
+      return sb.storage.from('job-proof').upload(path, file, { upsert: true }).then(function(res){
+        if(res && res.error) throw res.error; return path;
+      });
+    }
+  };
 })(window);
