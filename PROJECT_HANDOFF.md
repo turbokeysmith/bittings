@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-21 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-22 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,16 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-22 (🔐 Phase 1 continued — 1b fleet/inventory · 1c jobs/accountability · 1d cost-hiding · full UI role-gating; all server-proven)
+- **Stage 1b (fleet + per-location inventory) — LIVE & proven.** New `vans` table (company-owned; identified by fleet # and/or VIN; status active/maintenance/down/retired). Stock now lives at a **location** ('shop' or 'van:<id>') and **stays with the van, not the tech**. Three role-checked, logged actions: **move** (technician+), **receive** new stock to shop (front-desk+), **adjust/write-off** (manager+). The old single qty is kept as the synced total.
+- **Stage 1c (jobs + accountability) — LIVE & proven.** Job **status** is a real field with a state machine (scheduled→en route→on site→in progress→completed, plus on-hold/canceled). Status changes go through guarded functions: **front desk can't change status; a technician only on their OWN jobs; managers any.** **Reconciliation gates:** a job can't be completed until every part is marked used or returned; a cancel **requires a reason**; **returning a cut key requires a photo**. Unreconciled cancels set a `reconciliation_pending` flag + responsible tech (the hook Phase 2's commission hold will use). Job assignment table (lead/split/assist) added. Private storage bucket for the proof photos created.
+- **Stage 1d (started) — money privacy.** Part **cost is physically hidden** from technician/front-desk (the app reads inventory through a masking view that nulls cost unless manager/owner). Verified: tech sees cost = empty, manager sees the real cost.
+- **Full role-based UI gating.** Controls a role can't use are now **hidden** (not just disabled): delete/refund/void, inventory edit + cost field, +/− and move, dashboard/closeout/reports, Setup, **edit/delete invoice**, reference-table deletes, job status picker. The gating is **robust** — re-applies on every screen redraw and once the role loads, and **fails safe (hides on doubt)**. Legacy owner-only tiles + the cost gate were rewired to the real staff role (so **managers** now correctly see their tools). **Manager soft-delete** for customers (hide, recoverable); hard-delete stays owner-only. **No more phantom deletes** — if the server blocks a delete, the row reappears (it was never really gone). One **centered confirm dialog** (Cancel default, red action) replaces browser pop-ups across all destructive actions. A **role chip** on every page shows the real role.
+- **Verification:** every role rule above was proven at the database level by cycling the real test account through manager → front_desk → technician (live impersonation/JWTs) — not assumed. Living detail in **`PHASE1_PROGRESS.md`**.
+- **Fixed an iframe cache bug** (the app loads each tool — Receipts/Scheduler/Lishi/Programmers/Setup — in an iframe; a stale cached copy was showing ungated buttons). Embeds now cache-bust. **Decision: keep the iframe architecture for now; a single-page rebuild is parked for a later phase.**
+- **Still pending (Phase 1 tail, mostly UI):** the new SCREENS to drive 1b/1c (van management, inventory move/receive/adjust, job status controls, reconciliation photo capture) — the database already enforces these; auth checks on the other 4 payment functions; stripping cost/margin from receipt payloads; final docs. **Open owner decisions:** (1) should technicians take card payments? (app says manager-only; matrix says all staff) (2) git branch split for the YMM work.
+- Work is on branch **`phase1-roles-security`** (SQL in `bittings-app/supabase/phase1/`); **not merged to `main`**.
 
 ### 2026-06-21 (🔐 Phase 1 / Stage 1a — real roles, RLS & audit foundation; LIVE)
 - **The staff app now has a real, server-enforced permission system.** New `staff` table is the single source of
