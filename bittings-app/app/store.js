@@ -109,13 +109,15 @@
       table: 'inventory', readTable: 'inventory_safe', idStrategy: 'text', filter: null,   // read via cost-masking view (cost null for non-managers)
       fromRow: function (r) { return {
         id: r.id, name: r.name, sku: r.sku, category: r.category, qty: r.qty, lowAt: r.low_at,
-        unit: r.unit, cost: r.cost, location: r.location, notes: r.notes,
+        unit: r.unit, cost: r.cost, sellPriceCents: r.sell_price_cents, location: r.location, notes: r.notes,
         supplier: r.supplier, reorderQty: r.reorder_qty, fitment: r.fitment,
         createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
       toRow: function (o) { return {
         id: o.id, name: o.name || '', sku: o.sku || '', category: o.category || '',
         qty: parseInt(o.qty, 10) || 0, low_at: parseInt(o.lowAt, 10) || 0, unit: o.unit || '',
-        cost: o.cost === '' || o.cost == null ? null : Number(o.cost), location: o.location || '',
+        cost: o.cost === '' || o.cost == null ? null : Number(o.cost),
+        sell_price_cents: (o.sellPriceCents === '' || o.sellPriceCents == null) ? null : parseInt(o.sellPriceCents, 10),
+        location: o.location || '',
         notes: o.notes || '', supplier: o.supplier || '', reorder_qty: parseInt(o.reorderQty, 10) || 0,
         fitment: o.fitment || '' }; }
     },
@@ -1062,5 +1064,19 @@
         if(res && res.error) throw res.error; return path;
       });
     }
+  };
+
+  // ---- Phase 2: POS / register (services price list + server-priced checkout) ----
+  global.TKS.POS = {
+    // services price list (read = any staff; write = manager+, enforced by RLS)
+    services:    function(activeOnly){ var q=_sb().from('services').select('*').order('category').order('name'); return (activeOnly!==false)? q.eq('active',true) : q; },
+    saveService: function(s){ var row={ name:(s.name||'').trim(), category:s.category||'service', price_cents:parseInt(s.price_cents,10)||0, active:s.active!==false, updated_at:new Date().toISOString() };
+                              return s.id ? _sb().from('services').update(row).eq('id',s.id).select() : _sb().from('services').insert(row).select(); },
+    removeService: function(id){ return _sb().from('services').delete().eq('id',id); },
+    // checkout: server re-prices catalog lines, gates discount/override to manager+,
+    // builds a receipts row, returns its id (then charge it via the existing pay flow).
+    checkout:    function(payload){ return _sb().rpc('pos_checkout', { p_payload: payload }); },
+    // decrement sold parts from the ticket's location (call after the charge succeeds).
+    decrementStock: function(receiptId){ return _sb().rpc('pos_decrement_stock', { p_receipt: receiptId }); }
   };
 })(window);
