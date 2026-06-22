@@ -4,7 +4,7 @@
 -- readTable='inventory_safe'); writes still target the inventory table. cost is
 -- physically NULL in a technician/front_desk payload — not just hidden on screen.
 -- ============================================================================
-create or replace view public.inventory_safe as
+create or replace view public.inventory_safe with (security_invoker = true) as
   select id, name, sku, category, qty, low_at, unit,
          case when public.is_manager() then cost else null end as cost,
          location, notes, supplier, reorder_qty, fitment, created_at, updated_at, deleted_at, deleted_by
@@ -32,7 +32,7 @@ create or replace function public.strip_receipt_costs(d jsonb)
   end
 $$;
 
-create or replace view public.receipts_safe as
+create or replace view public.receipts_safe with (security_invoker = true) as
   select id,
          case when public.is_manager() then data else public.strip_receipt_costs(data) end as data,
          created_at, updated_at, deleted_at, deleted_by
