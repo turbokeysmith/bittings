@@ -1079,4 +1079,11 @@
     // decrement sold parts from the ticket's location (call after the charge succeeds).
     decrementStock: function(receiptId){ return _sb().rpc('pos_decrement_stock', { p_receipt: receiptId }); }
   };
+
+  // ---- Phase 2b: configurable commission engine ----
+  global.TKS.Commission = {
+    config:     function(){ return _sb().from('commission_config').select('*').eq('id',1).maybeSingle(); },     // read = any staff (the rules)
+    saveConfig: function(c){ return _sb().from('commission_config').update(Object.assign({ updated_at:new Date().toISOString() }, c)).eq('id',1); },  // write = manager+ (RLS)
+    dayRows:    function(from,to,tech){ return _sb().rpc('commission_day_rows', { p_from:from, p_to:to, p_tech:tech||null }); }  // tech = own only (server-forced)
+  };
 })(window);

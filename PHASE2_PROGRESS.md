@@ -41,8 +41,11 @@
 
 ---
 
-## STAGE 2b — Configurable commission engine  ⬜ NOT STARTED
-Setup → Commission (fill-in-the-blank): pays-on (whole-job / labor / service-call+programming / pick line-types), structure (flat % / daily-min+% / tiered / flat-per-job), exclude-parts, earned-when (completion+collection vs completion), unreconciled→full-quote hold. Owner's config wired end-to-end; other models selectable-but-stubbed. Commission computes **server-side** off the tagged, collected, completed ticket.
+## STAGE 2b — Configurable commission engine  🔨 DB DONE & PROVEN (UI next)
+- ✅ `commission_config` table (pays-on, structure, flat_pct, daily_min_cents, tiers, flat_per_job, exclude_parts, earned_when, hold_unreconciled) — RLS read=staff, write=manager+; owner's model seeded (values blank).
+- ✅ `commission_day_rows(from,to,tech)` — server-side per-tech-per-day commission off **paid, tagged** POS sales; **flat_pct + daily_min_pct fully implemented**; flat_per_job = per-day proxy; tiered = stubbed→flat_pct (selectable/stored). A **technician only sees their own** (server-forced). Held = linked booking `reconciliation_pending`.
+- ✅ **Server-verified**: base excludes parts, daily-min wins over %, tech-sees-own-only. Repo: `2b_commission_config_calc.sql`. Data layer `TKS.Commission`.
+- ⬜ **UI:** Setup → Commission config editor (all models selectable; owner fills % + daily-min).
 
 ## STAGE 2c — Per-tech commission ledger  ⬜ NOT STARTED
 Per-tech ledger (jobs, earned, collected, daily-min met/shortfall, holds), tied to `job_staff` (assist earns nothing). Each tech sees only their own; manager/owner see all (server-enforced). Full-quote hold shows as frozen/pending.
