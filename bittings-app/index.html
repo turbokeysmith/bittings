@@ -228,6 +228,32 @@
   .pos-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
   .pos-meta label{font-size:11px;color:var(--dim);display:block;margin-bottom:2px;}
   .pos-meta select{width:100%;}
+  /* register grid (cash-register look) */
+  .pos-grid{width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid var(--edge);border-radius:10px;overflow:hidden;}
+  .pos-grid thead th{background:var(--bg2);color:var(--dim);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;text-align:left;padding:7px 8px;}
+  .pos-grid th:nth-child(4),.pos-grid th:nth-child(5),.pos-grid th:nth-child(6){text-align:right;}
+  .pos-grid td{padding:8px;border-top:1px solid var(--edge);color:var(--ink);vertical-align:middle;}
+  .pos-grid .pl-ln{color:var(--dim);width:22px;}
+  .pos-grid .pl-sku{color:var(--dim);font-size:11.5px;white-space:nowrap;}
+  .pos-grid .pl-desc{font-weight:600;}
+  .pos-grid .pl-price,.pos-grid .pl-tot{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .pos-grid .pl-tot{font-weight:800;}
+  .pos-grid .pl-qty{display:flex;align-items:center;gap:3px;justify-content:flex-end;}
+  .pos-grid .pl-qty button{width:24px;height:24px;border:1px solid var(--edge);background:var(--card);color:var(--ink);border-radius:6px;font-size:15px;line-height:1;cursor:pointer;}
+  .pos-grid .pl-qty span{min-width:16px;text-align:center;font-weight:700;}
+  .pos-grid .pl-x{background:none;border:none;color:#c8323c;font-size:17px;cursor:pointer;padding:0 2px;}
+  .pos-grid tr.discount .pl-tot{color:#1c7d3e;}
+  @media (max-width:560px){ .pos-grid .pl-sku,.pos-grid th:nth-child(2){display:none;} }
+  .pos-profit{display:flex;gap:14px;justify-content:flex-end;font-size:12px;color:var(--dim);margin:6px 2px 0;}
+  .pos-profit b{color:var(--ink);}
+  .pos-totline{display:flex;justify-content:space-between;font-size:13.5px;color:var(--dim);padding:2px 2px;}
+  .pos-totline span{color:var(--ink);font-variant-numeric:tabular-nums;}
+  .pos-totline.pos-grand{font-size:20px;font-weight:900;color:var(--ink);border-top:1px solid var(--edge);margin-top:3px;padding-top:5px;}
+  .pos-totline.pos-grand span{color:var(--ink);}
+  .pos-totnote{font-size:11px;color:var(--dim);text-align:right;margin-top:1px;}
+  .pos-typeseg{display:flex;gap:6px;margin:4px 0 8px;}
+  .pos-typeseg button{flex:1;border:1px solid var(--edge);background:var(--bg);color:var(--ink);border-radius:9px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;}
+  .pos-typeseg button.on{background:#4aa3ff;color:#fff;border-color:#4aa3ff;}
   .pay-secret-note{background:rgba(242,180,58,.10);border:1px dashed rgba(242,180,58,.45);border-radius:11px;
     padding:12px 14px;font-size:12.5px;line-height:1.5;color:var(--dim);margin:6px 0 2px;}
   .pay-secret-note b{color:#f2d18a;}
@@ -603,17 +629,17 @@
     <div class="form" id="chgForm">
       <p class="note" style="margin-top:0"><b>Register</b> — add parts &amp; services to the ticket, then take payment. It adds up subtotal, tax &amp; total for you.</p>
       <div class="pos-ticket" id="posTicket"></div>
+      <div class="pos-profit" id="posProfit" data-cap="editPricing" style="display:none"></div>
       <div class="actions" style="gap:6px;flex-wrap:wrap;margin-top:6px">
         <button type="button" class="btn ghostbtn" id="posAddPart" style="flex:1">📦 + Part</button>
         <button type="button" class="btn ghostbtn" id="posAddService" style="flex:1">🔧 + Service</button>
         <button type="button" class="btn ghostbtn" id="posAddCustom" data-cap="editPricing" style="flex:1">✎ + Custom</button>
+        <button type="button" class="btn ghostbtn" id="posDiscountBtn" data-cap="editPricing" style="flex:1">％ Discount</button>
       </div>
       <div class="pos-meta">
         <div><label>Sell stock from</label><select id="posLocation"></select></div>
         <div><label>Technician (commission)</label><select id="posTech"></select></div>
       </div>
-      <button type="button" class="btn ghostbtn" id="posDiscountBtn" data-cap="editPricing" style="width:100%;margin-top:6px">％ Apply / clear discount (manager)</button>
-      <button type="button" class="btn ghostbtn" id="posManageSvc" data-cap="editPricing" style="width:100%;margin-top:6px">🧾 Manage register services &amp; prices (manager)</button>
       <label style="margin-top:10px">Customer</label>
       <div id="chgCustBox" class="chg-custbox">
         <div id="chgCustDisplay" class="chg-custnone">No customer selected</div>
@@ -1730,30 +1756,40 @@ function posClear(){ posTicket=[]; posDiscountCents=0; posDiscountReason=''; set
   const sr=document.getElementById('chgSendRow'); if(sr){ sr.style.display='none'; sr.innerHTML=''; } }
 function posRender(){
   const host=document.getElementById('posTicket'); if(!host) return;
-  if(!posTicket.length && posDiscountCents<=0){
-    host.innerHTML='<div class="pos-empty">Empty ticket — add a part or service.</div>';
+  const t=posTotals(), e=chgEls(), empty=(posTicket.length===0);
+  if(empty && posDiscountCents<=0){
+    host.innerHTML='<div class="pos-empty">Empty ticket — tap <b>+ Part</b> or <b>+ Service</b> below.</div>';
   } else {
-    host.innerHTML = posTicket.map(l=>{
-      const sub=[l.lineType, l.taxable?'tax':''].filter(Boolean).join(' · ');
-      return '<div class="pos-line"><div class="pl-info"><div class="pl-name">'+esc2(l.desc)+'</div>'+
-        '<div class="pl-sub">'+money2(l.unitCents)+' ea'+(sub?(' · '+esc2(sub)):'')+'</div></div>'+
-        '<div class="pl-qty"><button data-dec="'+l.key+'">−</button><span class="pl-qn">'+(l.qty||1)+'</span><button data-inc="'+l.key+'">+</button></div>'+
-        '<div class="pl-amt">'+money2(posLineAmtCents(l))+'</div>'+
-        '<button class="pl-x" data-rm="'+l.key+'" aria-label="Remove">×</button></div>';
+    let rows = posTicket.map((l,idx)=>{
+      let sku=''; if(l.type==='part'){ try{ const p=TKS.Inventory.get(l.refId); sku=(p&&p.sku)||''; }catch(_){} } else { sku=(l.lineType||''); }
+      return '<tr><td class="pl-ln">'+(idx+1)+'</td><td class="pl-sku">'+esc2(sku)+'</td>'+
+        '<td class="pl-desc">'+esc2(l.desc)+'</td>'+
+        '<td class="pl-qty"><button data-dec="'+l.key+'">−</button><span>'+(l.qty||1)+'</span><button data-inc="'+l.key+'">+</button></td>'+
+        '<td class="pl-price">'+money2(l.unitCents)+'</td><td class="pl-tot">'+money2(posLineAmtCents(l))+'</td>'+
+        '<td><button class="pl-x" data-rm="'+l.key+'" aria-label="Remove">×</button></td></tr>';
     }).join('');
-    if(posDiscountCents>0){ host.innerHTML += '<div class="pos-line discount"><div class="pl-info"><div class="pl-name">Discount'+(posDiscountReason?(' — '+esc2(posDiscountReason)):'')+'</div></div>'+
-      '<div class="pl-amt">−'+money2(posDiscountCents)+'</div><button class="pl-x" data-rmdisc="1" aria-label="Remove discount">×</button></div>'; }
+    if(posDiscountCents>0){ rows += '<tr class="discount"><td></td><td></td><td class="pl-desc">Discount'+(posDiscountReason?(' — '+esc2(posDiscountReason)):'')+'</td><td></td><td></td><td class="pl-tot">−'+money2(posDiscountCents)+'</td><td><button class="pl-x" data-rmdisc="1" aria-label="Remove discount">×</button></td></tr>'; }
+    host.innerHTML='<table class="pos-grid"><thead><tr><th>#</th><th>SKU</th><th>Description</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
     host.querySelectorAll('[data-inc]').forEach(b=> b.onclick=()=> posSetQty(b.dataset.inc, +1));
     host.querySelectorAll('[data-dec]').forEach(b=> b.onclick=()=> posSetQty(b.dataset.dec, -1));
     host.querySelectorAll('[data-rm]').forEach(b=> b.onclick=()=> posRemove(b.dataset.rm));
     const rd=host.querySelector('[data-rmdisc]'); if(rd) rd.onclick=()=>{ posDiscountCents=0; posDiscountReason=''; posRender(); };
   }
-  const t=posTotals(), e=chgEls(), empty=(posTicket.length===0);
   const bd=document.getElementById('chgBreakdown');
-  if(bd) bd.innerHTML = empty ? '' : ('Subtotal '+money2(t.subtotalCents)+' &nbsp;·&nbsp; Tax '+money2(t.taxCents)+' &nbsp;·&nbsp; <b>Total '+money2(t.totalCents)+'</b> · card +2% credit only.');
+  if(bd) bd.innerHTML = empty ? '' : ('<div class="pos-totline">Subtotal<span>'+money2(t.subtotalCents)+'</span></div><div class="pos-totline">Tax<span>'+money2(t.taxCents)+'</span></div><div class="pos-totline pos-grand">Total<span>'+money2(t.totalCents)+'</span></div><div class="pos-totnote">card +2% on credit only</div>');
+  posRenderProfit();
   [e.card,e.cash,e.check].forEach(b=>{ if(b) b.disabled=empty; });
   if(e.card) e.card.textContent = empty ? '💳 Card — add a line' : ('💳 Card — Pay '+money2(t.totalCents));
   if(window.TKS_ACCESS) TKS_ACCESS.applyGates(document.getElementById('chgForm'));
+}
+// Manager-only Profit / Cost / Margin (cost is visible to managers).
+function posRenderProfit(){
+  const el=document.getElementById('posProfit'); if(!el) return;
+  let mgr=false; try{ mgr=!!(TKS.auth.can && TKS.auth.can('editPricing')); }catch(e){}
+  if(!mgr || !posTicket.length){ el.style.display='none'; el.innerHTML=''; return; }
+  let cost=0; posTicket.forEach(l=>{ if(l.type==='part'){ try{ const p=TKS.Inventory.get(l.refId); if(p && p.cost!=null) cost+=Math.round(Number(p.cost)*100)*(l.qty||1); }catch(e){} } });
+  const t=posTotals(), profit=t.subtotalCents-cost, margin=t.subtotalCents>0?Math.round(profit/t.subtotalCents*100):0;
+  el.style.display='flex'; el.innerHTML='<span>Cost <b>'+money2(cost)+'</b></span><span>Profit <b>'+money2(profit)+'</b></span><span>Margin <b>'+margin+'%</b></span>';
 }
 // Build the pos_checkout payload from the ticket + customer + location/tech.
 function posBuildPayload(){
@@ -1768,7 +1804,7 @@ function posBuildPayload(){
     location:loc, technician:tech.name, technicianId:tech.id, taxRate:posTaxRate(),
     discountCents:posDiscountCents, discountReason:posDiscountReason,
     lines: posTicket.map(l=> l.type==='part' ? { type:'part', itemId:l.refId, qty:l.qty }
-                          : l.type==='service' ? { type:'service', serviceId:l.refId, qty:l.qty }
+                          : l.type==='service' ? { type:'service', svc:l.svc, cat:l.cat, qty:l.qty }   // Setup service (priced server-side)
                           : { type:l.lineType||'service', desc:l.desc, priceCents:l.unitCents, qty:l.qty, taxable:!!l.taxable } )
   };
 }
@@ -1825,36 +1861,42 @@ document.getElementById('posAddPart').onclick=()=> posPickItem('part');
 document.getElementById('posAddService').onclick=()=> posPickItem('service');
 document.getElementById('posAddCustom').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Custom-priced lines are manager-only.',false); return; } posCustomLine(); };
 document.getElementById('posDiscountBtn').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Discounts are manager-only.',false); return; } posDiscountPrompt(); };
-document.getElementById('posManageSvc').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Managers only.',false); return; } posManageServices(); };
 
 // Picker: a part (inventory, sell price) or a service (the price list).
+function posSvcCents(s){ const v=parseFloat(s&&s.price); return (isNaN(v)||v<=0)?null:Math.round(v*100); }
 function posPickItem(kind){
+  const isSvc=(kind==='service');
   const ov=document.createElement('div'); ov.className='chg-modal-ov';
-  ov.innerHTML='<div class="chg-modal"><div class="chg-modal-h"><b>'+(kind==='part'?'Add a part':'Add a service')+'</b><button type="button" class="chg-modal-x" id="piX">×</button></div>'+
-    '<input type="text" id="piSearch" placeholder="Search '+(kind==='part'?'parts':'services')+'…" autocomplete="off"><div id="piList" class="chg-cplist"></div></div>';
+  ov.innerHTML='<div class="chg-modal"><div class="chg-modal-h"><b>'+(isSvc?'Add a service':'Add a part')+'</b><button type="button" class="chg-modal-x" id="piX">×</button></div>'+
+    (isSvc?'<div class="pos-typeseg" id="piType"><button type="button" data-t="automotive" class="on">🚗 Automotive</button><button type="button" data-t="other">🏠 Residential / Commercial</button></div>':'')+
+    '<input type="text" id="piSearch" placeholder="Search '+(isSvc?'services':'parts')+'…" autocomplete="off"><div id="piList" class="chg-cplist"></div></div>';
   document.body.appendChild(ov);
   function close(){ ov.remove(); }
   ov.addEventListener('mousedown',ev=>{ if(ev.target===ov) close(); });
   document.getElementById('piX').onclick=close;
-  const searchEl=document.getElementById('piSearch'), listEl=document.getElementById('piList'); let SERVICES=[];
+  const searchEl=document.getElementById('piSearch'), listEl=document.getElementById('piList'); let svcType='automotive';
   function renderParts(){
     let list=[]; try{ list=TKS.Inventory.search(searchEl.value).filter(p=>!p.deletedAt).slice(0,40); }catch(_){}
     listEl.innerHTML = list.length ? list.map(p=>{ const c=p.sellPriceCents, ok=(c!=null && c>0);
-      return '<button type="button" class="chg-cprow" data-id="'+esc2(p.id)+'"'+(ok?'':' disabled style="opacity:.5"')+'><b>'+esc2(p.name||'(part)')+'</b><span>'+(ok?money2(c):'no sell price')+(p.sku?(' · '+esc2(p.sku)):'')+'</span></button>';
+      return '<button type="button" class="chg-cprow" data-id="'+esc2(p.id)+'"'+(ok?'':' disabled style="opacity:.5"')+'><b>'+esc2(p.name||'(part)')+'</b><span>'+(ok?money2(c):'no sell price — set in Inventory')+(p.sku?(' · '+esc2(p.sku)):'')+'</span></button>';
     }).join('') : '<div class="chg-cpempty">No matching parts.</div>';
     listEl.querySelectorAll('.chg-cprow:not([disabled])').forEach(b=> b.onclick=()=>{ const p=TKS.Inventory.get(b.dataset.id); if(p){ posAddLine({type:'part',refId:p.id,desc:p.name,unitCents:p.sellPriceCents,taxable:true,lineType:'part'}); close(); } });
   }
   function renderServices(){
+    let all=[]; try{ all=(TKS.Config.get().services)||[]; }catch(_){}
     const q=(searchEl.value||'').toLowerCase();
-    const list=SERVICES.filter(s=>!q||(s.name||'').toLowerCase().indexOf(q)>=0).slice(0,60);
-    listEl.innerHTML = list.length ? list.map(s=>'<button type="button" class="chg-cprow" data-id="'+esc2(s.id)+'"><b>'+esc2(s.name)+'</b><span>'+money2(s.price_cents)+' · '+esc2(s.category)+'</span></button>').join('')
-      : '<div class="chg-cpempty">No services yet — a manager adds them in Setup → Services.</div>';
-    listEl.querySelectorAll('.chg-cprow').forEach(b=> b.onclick=()=>{ const s=SERVICES.find(x=>x.id===b.dataset.id); if(s){ posAddLine({type:'service',refId:s.id,desc:s.name,unitCents:s.price_cents,taxable:false,lineType:s.category}); close(); } });
+    const list=all.filter(s=>{ const cat=(s.cat||'other'); const inType = svcType==='automotive' ? cat==='automotive' : cat!=='automotive';
+      return inType && (!q || String(s.value||s.en||'').toLowerCase().indexOf(q)>=0); });
+    listEl.innerHTML = list.length ? list.map((s,i)=>{ const cents=posSvcCents(s), ok=(cents!=null);
+      return '<button type="button" class="chg-cprow" data-i="'+i+'"'+(ok?'':' disabled style="opacity:.55"')+'><b>'+esc2(s.value||s.en)+'</b><span>'+(ok?money2(cents):'no price — set in Setup → Services')+'</span></button>';
+    }).join('') : '<div class="chg-cpempty">No '+(svcType==='automotive'?'automotive':'residential/commercial')+' services. Add + price them in Setup → Services.</div>';
+    const flist=list;
+    listEl.querySelectorAll('.chg-cprow:not([disabled])').forEach(b=> b.onclick=()=>{ const s=flist[+b.dataset.i], cents=posSvcCents(s); if(s&&cents!=null){ posAddLine({type:'service',svc:(s.value||s.en),cat:(s.cat||'other'),desc:(s.value||s.en),unitCents:cents,taxable:false,lineType:'service'}); close(); } });
   }
-  if(kind==='part'){ searchEl.oninput=renderParts; renderParts(); }
-  else { listEl.innerHTML='<div class="chg-cpempty">Loading…</div>';
-    try{ TKS.POS.services(true).then(r=>{ SERVICES=(r&&r.data)||[]; renderServices(); }).catch(()=>{ listEl.innerHTML='<div class="chg-cpempty">Couldn’t load services.</div>'; }); }catch(e){ listEl.innerHTML='<div class="chg-cpempty">Sign in to load services.</div>'; }
-    searchEl.oninput=renderServices; }
+  if(isSvc){
+    ov.querySelectorAll('#piType button').forEach(b=> b.onclick=()=>{ svcType=b.dataset.t; ov.querySelectorAll('#piType button').forEach(x=>x.classList.toggle('on',x===b)); renderServices(); });
+    searchEl.oninput=renderServices; renderServices();
+  } else { searchEl.oninput=renderParts; renderParts(); }
   setTimeout(()=>searchEl.focus(),30);
 }
 function posCustomLine(){
