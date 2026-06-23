@@ -254,6 +254,25 @@
   .pos-typeseg{display:flex;gap:6px;margin:4px 0 8px;}
   .pos-typeseg button{flex:1;border:1px solid var(--edge);background:var(--bg);color:var(--ink);border-radius:9px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;}
   .pos-typeseg button.on{background:#4aa3ff;color:#fff;border-color:#4aa3ff;}
+  /* register two-pane layout + function-button bar (desktop wide, mobile stacks) */
+  .pos-form{max-width:none;}
+  .pos-layout{display:block;}
+  .pos-rail-card{background:var(--bg2);border:1px solid var(--edge);border-radius:12px;padding:12px;margin-bottom:10px;}
+  .pos-rail-totals{background:var(--card);border:1px solid var(--edge);border-radius:12px;padding:12px;}
+  .pos-funcs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;}
+  .posfn{border:none;border-radius:11px;padding:15px 8px;font-size:14px;font-weight:800;color:#fff;cursor:pointer;min-height:56px;}
+  .posfn:disabled{opacity:.4;cursor:default;}
+  .posfn.fn-items{background:#2a7de1;} .posfn.fn-edit{background:#e08a2a;} .posfn.fn-clear{background:#c8323c;}
+  .posfn.fn-cash{background:#3a7d56;} .posfn.fn-card{background:#1f8f43;}
+  @media (min-width:860px){
+    #view-payments.active{max-width:none;}
+    .pos-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start;}
+    .pos-rail{position:sticky;top:8px;}
+    .pos-totline.pos-grand{font-size:24px;}
+  }
+  @media (max-width:560px){ .pos-funcs{grid-template-columns:repeat(2,1fr);} }
+  /* Register is a DESKTOP cash-register only — on phones, payments go through Start-a-job / Receipts */
+  @media (max-width:720px){ .pos-desktop-only{display:none !important;} }
   .pay-secret-note{background:rgba(242,180,58,.10);border:1px dashed rgba(242,180,58,.45);border-radius:11px;
     padding:12px 14px;font-size:12.5px;line-height:1.5;color:var(--dim);margin:6px 0 2px;}
   .pay-secret-note b{color:#f2d18a;}
@@ -481,11 +500,11 @@
       <div class="bt-workspace__name" id="btWorkspaceName">Your shop</div>
     </div>
     <nav class="bt-nav">
+      <button class="bt-nav__item pos-desktop-only" data-go="payments"><span class="bt-nav__ic">💳</span>Register</button>
       <button class="bt-nav__item" data-go="startjob"><span class="bt-nav__ic">🔑</span>Start a job</button>
       <button class="bt-nav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
       <button class="bt-nav__item" data-embed="bittings.html"><span class="bt-nav__ic">🧾</span>Receipts &amp; NASTF</button>
       <button class="bt-nav__item" data-embed="scheduler.html"><span class="bt-nav__ic">📅</span>Scheduler</button>
-      <button class="bt-nav__item" data-go="payments"><span class="bt-nav__ic">💳</span>Register</button>
       <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Commission</button>
       <button class="bt-nav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Inventory</button>
       <button class="bt-nav__item owner-soft" data-embed="fleet.html" style="display:none"><span class="bt-nav__ic">🚐</span>Fleet</button>
@@ -626,34 +645,40 @@
   <div class="view" id="view-payments">
     <div class="pay-banner" id="chgBanner"></div>
     <div class="note" id="chgGate" style="display:none"></div>
-    <div class="form" id="chgForm">
-      <p class="note" style="margin-top:0"><b>Register</b> — add parts &amp; services to the ticket, then take payment. It adds up subtotal, tax &amp; total for you.</p>
-      <div class="pos-ticket" id="posTicket"></div>
-      <div class="pos-profit" id="posProfit" data-cap="editPricing" style="display:none"></div>
-      <div class="actions" style="gap:6px;flex-wrap:wrap;margin-top:6px">
-        <button type="button" class="btn ghostbtn" id="posAddPart" style="flex:1">📦 + Part</button>
-        <button type="button" class="btn ghostbtn" id="posAddService" style="flex:1">🔧 + Service</button>
-        <button type="button" class="btn ghostbtn" id="posAddCustom" data-cap="editPricing" style="flex:1">✎ + Custom</button>
-        <button type="button" class="btn ghostbtn" id="posDiscountBtn" data-cap="editPricing" style="flex:1">％ Discount</button>
-      </div>
-      <div class="pos-meta">
-        <div><label>Sell stock from</label><select id="posLocation"></select></div>
-        <div><label>Technician (commission)</label><select id="posTech"></select></div>
-      </div>
-      <label style="margin-top:10px">Customer</label>
-      <div id="chgCustBox" class="chg-custbox">
-        <div id="chgCustDisplay" class="chg-custnone">No customer selected</div>
-        <div class="actions" style="gap:8px;margin-top:6px">
-          <button type="button" class="btn ghostbtn" id="chgCustPick" style="flex:1">👤 Select / add customer</button>
-          <button type="button" class="btn ghostbtn" id="chgCustClear" style="flex:0 0 auto;display:none">Clear</button>
+    <div class="form pos-form" id="chgForm">
+      <div class="pos-layout">
+        <div class="pos-main">
+          <div class="pos-ticket" id="posTicket"></div>
+          <div class="pos-profit" id="posProfit" data-cap="editPricing" style="display:none"></div>
         </div>
+        <aside class="pos-rail">
+          <div class="pos-rail-card">
+            <label>Customer</label>
+            <div id="chgCustBox" class="chg-custbox">
+              <div id="chgCustDisplay" class="chg-custnone">No customer selected</div>
+              <div class="actions" style="gap:8px;margin-top:6px">
+                <button type="button" class="btn ghostbtn" id="chgCustPick" style="flex:1">👤 Select / add customer</button>
+                <button type="button" class="btn ghostbtn" id="chgCustClear" style="flex:0 0 auto;display:none">Clear</button>
+              </div>
+            </div>
+            <div class="pos-meta" style="margin-top:10px">
+              <div><label>Sell stock from</label><select id="posLocation"></select></div>
+              <div><label>Technician</label><select id="posTech"></select></div>
+            </div>
+            <p class="note" id="chgCustHint" style="margin-top:8px;font-size:11px">Cash can be anonymous. <b>Card &amp; check need the customer.</b></p>
+          </div>
+          <div class="pos-rail-totals"><div class="pay-breakdown" id="chgBreakdown"></div></div>
+        </aside>
       </div>
-      <p class="note" id="chgCustHint" style="margin-top:6px">Cash can be anonymous. <b>Card &amp; check need the customer's info</b> — it files the charge to their history.</p>
-      <div class="pay-breakdown" id="chgBreakdown"></div>
-      <div class="actions" style="flex-wrap:wrap;gap:8px">
-        <button class="btn save" id="chgCard" disabled style="flex:1 1 100%">💳 Card — Pay Now</button>
-        <button class="btn ghostbtn" id="chgCash" disabled style="flex:1">💵 Cash</button>
-        <button class="btn ghostbtn" id="chgCheck" disabled style="flex:1">🧾 Check</button>
+      <div class="pos-funcs">
+        <button type="button" class="posfn fn-items" id="posAddPart">📦 Part</button>
+        <button type="button" class="posfn fn-items" id="posAddService">🔧 Service</button>
+        <button type="button" class="posfn fn-edit" id="posAddCustom" data-cap="editPricing">✎ Custom</button>
+        <button type="button" class="posfn fn-edit" id="posDiscountBtn" data-cap="editPricing">％ Discount</button>
+        <button type="button" class="posfn fn-clear" id="posClearBtn">🚫 Clear</button>
+        <button type="button" class="posfn fn-cash" id="chgCash" disabled>💵 Cash</button>
+        <button type="button" class="posfn fn-cash" id="chgCheck" disabled>🧾 Check</button>
+        <button type="button" class="posfn fn-card" id="chgCard" disabled>💳 Card</button>
       </div>
       <p class="note" id="chgStatus" aria-live="polite"></p>
       <div id="chgSendRow" class="actions" style="display:none;flex-wrap:wrap;gap:8px"></div>
@@ -909,6 +934,10 @@ try{
       var _b = document.querySelector('[data-go="'+_goView+'"]');
       if(_b) _b.click();
     }, 0);
+  } else if(!isPhoneView()){
+    // Desktop hero: open straight to the Register. (Phone defaults to Start-a-job,
+    // which is the active view in the HTML — the Register is desktop-only.)
+    setTimeout(function(){ var _b = document.querySelector('[data-go="payments"]'); if(_b) _b.click(); }, 0);
   }
 }catch(e){}
 /* ====================== FIELD QUICK LINKS (Home "Vendor tools") ======================
@@ -1863,6 +1892,7 @@ document.getElementById('posAddPart').onclick=()=> posPickItem('part');
 document.getElementById('posAddService').onclick=()=> posPickItem('service');
 document.getElementById('posAddCustom').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Custom-priced lines are manager-only.',false); return; } posCustomLine(); };
 document.getElementById('posDiscountBtn').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Discounts are manager-only.',false); return; } posDiscountPrompt(); };
+document.getElementById('posClearBtn').onclick=function(){ if(posTicket.length||posDiscountCents>0){ if(confirm('Clear the whole ticket?')) posClear(); } };
 
 // Picker: a part (inventory, sell price) or a service (the price list).
 function posSvcCents(s){ const v=parseFloat(s&&s.price); return (isNaN(v)||v<=0)?null:Math.round(v*100); }
