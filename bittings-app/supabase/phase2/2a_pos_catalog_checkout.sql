@@ -9,6 +9,16 @@
 -- row so the EXISTING Stripe/cash flow charges it. Verified server-side with the
 -- technician + owner test users (catalog-priced PASS; tech discount/override/
 -- custom-price BLOCKED; manager discount PASS; per-location decrement + idempotent).
+--
+-- pos_checkout evolved via two later migrations (live DB is authoritative):
+--   • phase2_2a_pos_checkout_setup_services  — a service line can be a SETUP
+--       service ({svc,cat}), priced server-side from shop_config.data.services;
+--       commission line-type inferred (programming/labor/else service).
+--   • phase2_2a_pos_checkout_unpriced_anyone — a SET catalog price can only be
+--       changed by a manager; an item with NO catalog price can be priced by ANY
+--       staff at the register (setting the missing price, not changing one).
+--       Verified: tech prices unpriced PASS · tech changes set price BLOCKED ·
+--       manager changes set price PASS.
 -- ============================================================================
 
 alter table public.inventory add column if not exists sell_price_cents integer;
