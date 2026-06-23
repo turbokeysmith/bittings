@@ -1765,7 +1765,7 @@ function posRender(){
       return '<tr><td class="pl-ln">'+(idx+1)+'</td><td class="pl-sku">'+esc2(sku)+'</td>'+
         '<td class="pl-desc">'+esc2(l.desc)+'</td>'+
         '<td class="pl-qty"><button data-dec="'+l.key+'">−</button><span>'+(l.qty||1)+'</span><button data-inc="'+l.key+'">+</button></td>'+
-        '<td class="pl-price">'+money2(l.unitCents)+'</td><td class="pl-tot">'+money2(posLineAmtCents(l))+'</td>'+
+        '<td class="pl-price" data-edit="'+l.key+'">'+money2(l.unitCents)+'</td><td class="pl-tot">'+money2(posLineAmtCents(l))+'</td>'+
         '<td><button class="pl-x" data-rm="'+l.key+'" aria-label="Remove">×</button></td></tr>';
     }).join('');
     if(posDiscountCents>0){ rows += '<tr class="discount"><td></td><td></td><td class="pl-desc">Discount'+(posDiscountReason?(' — '+esc2(posDiscountReason)):'')+'</td><td></td><td></td><td class="pl-tot">−'+money2(posDiscountCents)+'</td><td><button class="pl-x" data-rmdisc="1" aria-label="Remove discount">×</button></td></tr>'; }
@@ -1774,6 +1774,8 @@ function posRender(){
     host.querySelectorAll('[data-dec]').forEach(b=> b.onclick=()=> posSetQty(b.dataset.dec, -1));
     host.querySelectorAll('[data-rm]').forEach(b=> b.onclick=()=> posRemove(b.dataset.rm));
     const rd=host.querySelector('[data-rmdisc]'); if(rd) rd.onclick=()=>{ posDiscountCents=0; posDiscountReason=''; posRender(); };
+    let canEdit=false; try{ canEdit=!!(TKS.auth.can && TKS.auth.can('editPricing')); }catch(e){}
+    host.querySelectorAll('[data-edit]').forEach(td=>{ if(canEdit){ td.style.cursor='pointer'; td.style.textDecoration='underline dotted'; td.title='Tap to edit price'; td.onclick=()=> posEditLinePrice(td.dataset.edit); } });
   }
   const bd=document.getElementById('chgBreakdown');
   if(bd) bd.innerHTML = empty ? '' : ('<div class="pos-totline">Subtotal<span>'+money2(t.subtotalCents)+'</span></div><div class="pos-totline">Tax<span>'+money2(t.taxCents)+'</span></div><div class="pos-totline pos-grand">Total<span>'+money2(t.totalCents)+'</span></div><div class="pos-totnote">card +2% on credit only</div>');
@@ -1803,8 +1805,8 @@ function posBuildPayload(){
     customer:(c.customer||''), customerId:(c.id||null), phone:(c.phone||''), email:(c.email||''),
     location:loc, technician:tech.name, technicianId:tech.id, taxRate:posTaxRate(),
     discountCents:posDiscountCents, discountReason:posDiscountReason,
-    lines: posTicket.map(l=> l.type==='part' ? { type:'part', itemId:l.refId, qty:l.qty }
-                          : l.type==='service' ? { type:'service', svc:l.svc, cat:l.cat, qty:l.qty }   // Setup service (priced server-side)
+    lines: posTicket.map(l=> l.type==='part' ? Object.assign({ type:'part', itemId:l.refId, qty:l.qty }, l.priceOverride?{priceCents:l.unitCents}:{})
+                          : l.type==='service' ? Object.assign({ type:'service', svc:l.svc, cat:l.cat, qty:l.qty }, l.priceOverride?{priceCents:l.unitCents}:{})  // Setup service priced server-side unless overridden
                           : { type:l.lineType||'service', desc:l.desc, priceCents:l.unitCents, qty:l.qty, taxable:!!l.taxable } )
   };
 }
@@ -1864,6 +1866,16 @@ document.getElementById('posDiscountBtn').onclick=function(){ if(!(TKS.auth.can 
 
 // Picker: a part (inventory, sell price) or a service (the price list).
 function posSvcCents(s){ const v=parseFloat(s&&s.price); return (isNaN(v)||v<=0)?null:Math.round(v*100); }
+// Ask for a price (used when a catalog item has none — any staff may set it). Returns cents or null.
+function posAskPrice(name){ const v=prompt('Price for '+(name||'item')+' ($):'); if(v===null) return null; const c=Math.round((parseFloat(v)||0)*100); if(c<=0){ chgSay('Enter a price greater than 0.',false); return null; } return c; }
+// Manager: edit an existing line's price inline.
+function posEditLinePrice(key){
+  if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Only a manager can change a set price.',false); return; }
+  const l=posTicket.find(x=>x.key===key); if(!l) return;
+  const v=prompt('New price for '+(l.desc||'line')+' ($):', (l.unitCents/100).toFixed(2)); if(v===null) return;
+  const c=Math.round((parseFloat(v)||0)*100); if(c<=0){ chgSay('Enter a price greater than 0.',false); return; }
+  l.unitCents=c; l.priceOverride=true; posRender();
+}
 function posPickItem(kind){
   const isSvc=(kind==='service');
   const ov=document.createElement('div'); ov.className='chg-modal-ov';
@@ -1878,9 +1890,11 @@ function posPickItem(kind){
   function renderParts(){
     let list=[]; try{ list=TKS.Inventory.search(searchEl.value).filter(p=>!p.deletedAt).slice(0,40); }catch(_){}
     listEl.innerHTML = list.length ? list.map(p=>{ const c=p.sellPriceCents, ok=(c!=null && c>0);
-      return '<button type="button" class="chg-cprow" data-id="'+esc2(p.id)+'"'+(ok?'':' disabled style="opacity:.5"')+'><b>'+esc2(p.name||'(part)')+'</b><span>'+(ok?money2(c):'no sell price — set in Inventory')+(p.sku?(' · '+esc2(p.sku)):'')+'</span></button>';
+      return '<button type="button" class="chg-cprow" data-id="'+esc2(p.id)+'"><b>'+esc2(p.name||'(part)')+'</b><span>'+(ok?money2(c):'no price — tap to enter')+(p.sku?(' · '+esc2(p.sku)):'')+'</span></button>';
     }).join('') : '<div class="chg-cpempty">No matching parts.</div>';
-    listEl.querySelectorAll('.chg-cprow:not([disabled])').forEach(b=> b.onclick=()=>{ const p=TKS.Inventory.get(b.dataset.id); if(p){ posAddLine({type:'part',refId:p.id,desc:p.name,unitCents:p.sellPriceCents,taxable:true,lineType:'part'}); close(); } });
+    listEl.querySelectorAll('.chg-cprow').forEach(b=> b.onclick=()=>{ const p=TKS.Inventory.get(b.dataset.id); if(!p) return; const c=p.sellPriceCents;
+      if(c!=null && c>0){ posAddLine({type:'part',refId:p.id,desc:p.name,unitCents:c,taxable:true,lineType:'part'}); close(); }
+      else { const ent=posAskPrice(p.name); if(ent==null) return; posAddLine({type:'part',refId:p.id,desc:p.name,unitCents:ent,taxable:true,lineType:'part',priceOverride:true}); close(); } });
   }
   function renderServices(){
     let all=[]; try{ all=(TKS.Config.get().services)||[]; }catch(_){}
@@ -1888,10 +1902,13 @@ function posPickItem(kind){
     const list=all.filter(s=>{ const cat=(s.cat||'other'); const inType = svcType==='automotive' ? cat==='automotive' : cat!=='automotive';
       return inType && (!q || String(s.value||s.en||'').toLowerCase().indexOf(q)>=0); });
     listEl.innerHTML = list.length ? list.map((s,i)=>{ const cents=posSvcCents(s), ok=(cents!=null);
-      return '<button type="button" class="chg-cprow" data-i="'+i+'"'+(ok?'':' disabled style="opacity:.55"')+'><b>'+esc2(s.value||s.en)+'</b><span>'+(ok?money2(cents):'no price — set in Setup → Services')+'</span></button>';
-    }).join('') : '<div class="chg-cpempty">No '+(svcType==='automotive'?'automotive':'residential/commercial')+' services. Add + price them in Setup → Services.</div>';
+      return '<button type="button" class="chg-cprow" data-i="'+i+'"><b>'+esc2(s.value||s.en)+'</b><span>'+(ok?money2(cents):'no price — tap to enter')+'</span></button>';
+    }).join('') : '<div class="chg-cpempty">No '+(svcType==='automotive'?'automotive':'residential/commercial')+' services. Add them in Setup → Services.</div>';
     const flist=list;
-    listEl.querySelectorAll('.chg-cprow:not([disabled])').forEach(b=> b.onclick=()=>{ const s=flist[+b.dataset.i], cents=posSvcCents(s); if(s&&cents!=null){ posAddLine({type:'service',svc:(s.value||s.en),cat:(s.cat||'other'),desc:(s.value||s.en),unitCents:cents,taxable:false,lineType:'service'}); close(); } });
+    listEl.querySelectorAll('.chg-cprow').forEach(b=> b.onclick=()=>{ const s=flist[+b.dataset.i]; if(!s) return; const cents=posSvcCents(s);
+      const base={type:'service',svc:(s.value||s.en),cat:(s.cat||'other'),desc:(s.value||s.en),taxable:false,lineType:'service'};
+      if(cents!=null){ posAddLine(Object.assign(base,{unitCents:cents})); close(); }
+      else { const ent=posAskPrice(s.value||s.en); if(ent==null) return; posAddLine(Object.assign(base,{unitCents:ent,priceOverride:true})); close(); } });
   }
   if(isSvc){
     ov.querySelectorAll('#piType button').forEach(b=> b.onclick=()=>{ svcType=b.dataset.t; ov.querySelectorAll('#piType button').forEach(x=>x.classList.toggle('on',x===b)); renderServices(); });
