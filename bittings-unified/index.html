@@ -96,7 +96,7 @@
      card content so the card vars (--card/--ink/--dim/--edge) are always a white-card/dark-text
      pair, in BOTH themes. We pin the VARS (not a blanket `color`) so the page-title text on the
      dark content background (.bt-pagehead) keeps the shell's light color. ===== */
-  #view-fleet, #view-settings, #view-programmers{
+  #view-fleet, #view-settings, #view-programmers, #view-schedule{
     --card:#ffffff; --ink:#14171b; --dim:#5a616c; --off:#9aa1ac; --edge:#e3e6ea; --bg2:#eef0f3;
   }
   /* Card containers: set an explicit dark text color so headings/labels that inherit (h2, <b>, etc.)
@@ -305,6 +305,62 @@
   html[data-bt-theme="dark"] #view-programmers .devblk h4{color:#f2b43a;}
   #view-programmers .devgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
   @media(max-width:560px){ #view-programmers .kv{grid-template-columns:108px 1fr;} #view-programmers .ov{align-items:stretch;} #view-programmers .sheet{border-radius:0;max-height:100vh;} #view-programmers .devgrid{grid-template-columns:1fr;} }
+
+  /* ===== Native Scheduler (3.3) — calendar over the existing bookings, no Google dependency ===== */
+  #view-schedule .sch-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  #view-schedule .sch-seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden;}
+  #view-schedule .sch-seg button{background:var(--card);border:none;color:var(--dim);padding:8px 12px;font-weight:800;font-size:13px;cursor:pointer;min-height:38px;}
+  #view-schedule .sch-seg button.on{background:var(--red);color:#fff;}
+  #view-schedule .sch-nav{display:inline-flex;align-items:center;gap:6px;}
+  #view-schedule .sch-nav button{background:var(--card);border:1px solid var(--edge);color:var(--ink);border-radius:9px;min-width:38px;min-height:38px;font-size:16px;font-weight:800;cursor:pointer;}
+  #view-schedule .sch-label{font-size:17px;font-weight:800;color:var(--ink);min-width:170px;text-align:center;}
+  #view-schedule .sch-today{background:var(--card);border:1px solid var(--edge);color:var(--ink);border-radius:9px;padding:8px 12px;font-weight:700;font-size:13px;cursor:pointer;min-height:38px;}
+  #view-schedule .sch-new{margin-left:auto;background:linear-gradient(180deg,var(--red),var(--red-deep));color:#fff;border:none;border-radius:10px;padding:10px 14px;font-weight:800;font-size:14px;cursor:pointer;min-height:40px;}
+  #view-schedule .sch-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px;}
+  #view-schedule .sch-dow span{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--dim);text-align:center;}
+  #view-schedule .sch-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  #view-schedule .sch-cell{background:var(--card);border:1px solid var(--edge);border-radius:10px;min-height:104px;padding:6px;cursor:pointer;display:flex;flex-direction:column;gap:3px;overflow:hidden;}
+  #view-schedule .sch-cell.oth{opacity:.45;}
+  #view-schedule .sch-cell.today{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red);}
+  #view-schedule .sch-cell .dn{font-size:12px;font-weight:800;color:var(--ink);}
+  #view-schedule .sch-chip{font-size:10.5px;font-weight:700;line-height:1.25;padding:2px 5px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid #888;background:var(--bg2);color:var(--ink);}
+  #view-schedule .sch-more{font-size:10px;color:var(--dim);font-weight:700;}
+  /* status colors (left border) */
+  #view-schedule .st-scheduled{border-left-color:#4aa3ff;}
+  #view-schedule .st-inprogress{border-left-color:#f2b43a;}
+  #view-schedule .st-completed{border-left-color:#22994a;}
+  #view-schedule .st-rescheduled{border-left-color:#a06bff;}
+  #view-schedule .st-canceled{border-left-color:#c8323c;text-decoration:line-through;opacity:.7;}
+  /* week + day lists */
+  #view-schedule .sch-week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  #view-schedule .sch-wcol{background:var(--card);border:1px solid var(--edge);border-radius:10px;min-height:160px;padding:6px;display:flex;flex-direction:column;gap:4px;}
+  #view-schedule .sch-wcol h4{margin:0 0 2px;font-size:11px;color:var(--dim);text-align:center;font-weight:800;}
+  #view-schedule .sch-wcol h4.today{color:var(--red);}
+  #view-schedule .sch-day{display:flex;flex-direction:column;gap:8px;}
+  #view-schedule .sch-item{background:var(--card);border:1px solid var(--edge);border-radius:12px;padding:11px 13px;cursor:pointer;border-left:4px solid #888;display:flex;gap:10px;align-items:flex-start;}
+  #view-schedule .sch-item .tm{font-weight:800;font-size:14px;color:var(--ink);flex:0 0 64px;}
+  #view-schedule .sch-item .bd{flex:1;min-width:0;}
+  #view-schedule .sch-item .nm{font-weight:800;font-size:14px;color:var(--ink);}
+  #view-schedule .sch-item .mt{font-size:12px;color:var(--dim);margin-top:2px;overflow-wrap:anywhere;}
+  #view-schedule .sch-badge{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:999px;background:var(--bg2);color:var(--ink);flex:0 0 auto;}
+  #view-schedule .sch-empty{color:var(--dim);font-size:13px;padding:18px 4px;text-align:center;}
+  /* modal */
+  .sch-modal{position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:center;justify-content:center;padding:16px;}
+  .sch-modal .sheet{background:#ffffff;color:#14171b;width:100%;max-width:520px;border-radius:16px;padding:18px;max-height:90vh;overflow:auto;}
+  .sch-modal h3{margin:0 0 4px;font-size:18px;}
+  .sch-modal .meta{color:#5a616c;font-size:13px;margin-bottom:12px;overflow-wrap:anywhere;}
+  .sch-modal label{display:block;font-size:12px;color:#5a616c;font-weight:700;margin:8px 0 4px;}
+  .sch-modal input,.sch-modal select{width:100%;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:10px;padding:9px 11px;color:#14171b;font-size:16px;font-family:inherit;outline:none;}
+  .sch-modal .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .sch-modal .stbtns{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px;}
+  .sch-modal .stbtns button{border:1px solid #e3e6ea;background:#f3f4f6;color:#14171b;border-radius:999px;padding:7px 11px;font-weight:700;font-size:12.5px;cursor:pointer;}
+  .sch-modal .stbtns button.on{background:var(--red);color:#fff;border-color:var(--red);}
+  .sch-modal .acts{display:flex;gap:8px;margin-top:14px;}
+  .sch-modal .btn{border:none;border-radius:11px;padding:12px;font-size:15px;font-weight:800;cursor:pointer;min-height:46px;}
+  .sch-modal .btn.save{flex:2;background:linear-gradient(180deg,var(--red),var(--red-deep));color:#fff;}
+  .sch-modal .btn.ghost{flex:1;background:#eef0f3;color:#5a616c;}
+  .sch-modal .msg{font-size:12.5px;min-height:15px;margin-top:6px;color:#c8323c;}
+  @media(max-width:680px){ #view-schedule .sch-grid .sch-cell{min-height:78px;} #view-schedule .sch-week{grid-template-columns:1fr;} }
 
   .bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
   .search{flex:1;background:var(--card);border:1px solid var(--edge);border-radius:12px;padding:12px 14px;
@@ -772,7 +828,7 @@
       <button class="bt-nav__item pos-mobile-only" data-go="startjob"><span class="bt-nav__ic">🔑</span>Start a job</button>
       <button class="bt-nav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
       <button class="bt-nav__item" data-embed="bittings.html?receipts=1"><span class="bt-nav__ic">🧾</span>Receipts</button>
-      <button class="bt-nav__item" data-embed="scheduler.html"><span class="bt-nav__ic">📅</span>Scheduler</button>
+      <button class="bt-nav__item" data-go="schedule"><span class="bt-nav__ic">📅</span>Scheduler</button>
       <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Commission</button>
       <button class="bt-nav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Inventory</button>
       <button class="bt-nav__item owner-soft" data-go="fleet" style="display:none"><span class="bt-nav__ic">🚐</span>Fleet</button>
@@ -813,6 +869,11 @@
   </div>
 
   <div class="view" id="view-settings"><div class="block">Loading…</div></div>
+
+  <div class="view" id="view-schedule">
+    <div class="bt-pagehead"><div><div class="eyebrow">Scheduler</div><h1>Calendar</h1></div></div>
+    <div id="schBody"><div class="sch-empty">Loading…</div></div>
+  </div>
 
   <div class="view" id="view-programmers">
     <div class="bt-pagehead"><div><div class="eyebrow">Reference</div><h1>🖥️ Key Programmer Coverage</h1></div></div>
@@ -1220,7 +1281,7 @@ function saveCustomers(a){ TKS.saveList("customers", a); }
 function getShops(){ return TKS.list("shops"); }
 function saveShops(a){ TKS.saveList("shops", a); }
 
-const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','dashboard','inventory','part','fleet','settings','programmers'];
+const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','dashboard','inventory','part','fleet','settings','programmers','schedule'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
@@ -1238,7 +1299,11 @@ document.querySelectorAll('[data-go]').forEach(b=>{
     if(t==='reports'){ openReports(); return; }
     if(t==='dashboard'){ openDashboard(); return; }
     if(t==='startjob'){ openStartJob(); return; }
-    if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } if(t==='payments'){ renderPayments(); } if(t==='commission'){ renderCommission(); } if(t==='fleet'){ renderFleet(); } if(t==='settings'){ renderSettings(); } if(t==='programmers'){ renderProgrammers(); } show(t); };
+    if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } if(t==='payments'){ renderPayments(); } if(t==='commission'){ renderCommission(); }
+    // de-iframed views are defined in later <script> blocks; guard with window. so an early
+    // auto-trigger (e.g. maybeRedirectToSetup) can't throw "renderX is not defined".
+    if(t==='fleet'){ window.renderFleet && window.renderFleet(); } if(t==='settings'){ window.renderSettings && window.renderSettings(); } if(t==='programmers'){ window.renderProgrammers && window.renderProgrammers(); } if(t==='schedule'){ window.renderSchedule && window.renderSchedule(); }
+    show(t); };
 });
 document.querySelectorAll('[data-open]').forEach(b=>{
   b.onclick = ()=>{ location.href = b.dataset.open; };
@@ -4826,6 +4891,136 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
   });
 
   window.renderProgrammers = function(){ try{ runLookup(); }catch(e){} };
+})();
+</script>
+<script>
+/* ===================== NATIVE SCHEDULER (Phase 3.3) =====================
+   An in-app Month/Week/Day calendar over the EXISTING bookings (TKS.Bookings) — no Google
+   Calendar dependency; this calendar is the system of record. View + reschedule (date/time) +
+   edit core fields + simple status + delete, all writing back through TKS.Bookings (same store
+   path the old day-view used → syncs to Supabase when signed in). Creating a job still goes
+   through the proven GUIDED INTAKE (scheduler.html) — only the calendar view layer is new.
+   Server-side job accountability (the Phase-1 state machine via TKS.Jobs) is unchanged. */
+(function(){
+  var mode='month';
+  var cursor=new Date(); cursor.setHours(0,0,0,0);
+  var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
+  function pad(n){ return n<10?'0'+n:''+n; }
+  function iso(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function fromISO(s){ var p=String(s||'').split('-'); return new Date(+p[0],(+p[1]||1)-1,+p[2]||1); }
+  function addDays(d,n){ var x=new Date(d); x.setDate(x.getDate()+n); return x; }
+  function addMonths(d,n){ var x=new Date(d); x.setMonth(x.getMonth()+n); return x; }
+  function startOfWeek(d){ var x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-x.getDay()); return x; }
+  function todayISO(){ return iso(new Date()); }
+  function fmtTime(t){ if(!t) return ''; var p=String(t).split(':'); var h=+p[0]||0, m=p[1]||'00'; var ap=h<12?'AM':'PM'; var hh=h%12||12; return hh+':'+m+' '+ap; }
+  function stCls(s){ return 'st-'+String(s||'Scheduled').toLowerCase().replace(/[^a-z]/g,''); }
+  function bookings(){ try{ return (TKS.Bookings.all()||[]); }catch(e){ return []; } }
+  function byDate(d){ return bookings().filter(function(b){return (b.date||'')===d;}).sort(function(a,b){return (a.time||'').localeCompare(b.time||'');}); }
+  function custName(b){ return (b.customer && (b.customer.name||b.customer.customer)) || b.customerName || '—'; }
+  function jobIcon(b){ return b.jobType==='auto'?'🚗':b.jobType==='res'?'🏠':b.jobType==='com'?'🏢':'🔑'; }
+  function jobText(b){ var t=[]; if(b.subType)t.push(b.subType); var v=b.vehicle; if(v&&(v.make||v.model))t.push(((v.year||'')+' '+(v.make||'')+' '+(v.model||'')).replace(/\s+/g,' ').trim()); if(b.address)t.push(b.address); return t.filter(Boolean).join(' · '); }
+
+  window.renderSchedule=function(){ render(); };
+  function render(){
+    var body=document.getElementById('schBody'); if(!body) return;
+    body.innerHTML=toolbar()+(mode==='month'?monthView():mode==='week'?weekView():dayView());
+    wire(body);
+  }
+  function toolbar(){
+    var lbl = mode==='day' ? (DOW[cursor.getDay()]+', '+MON[cursor.getMonth()]+' '+cursor.getDate()+', '+cursor.getFullYear())
+            : mode==='week' ? (function(){var s=startOfWeek(cursor),e=addDays(s,6); return MON[s.getMonth()].slice(0,3)+' '+s.getDate()+' – '+MON[e.getMonth()].slice(0,3)+' '+e.getDate();})()
+            : (MON[cursor.getMonth()]+' '+cursor.getFullYear());
+    return '<div class="sch-toolbar">'+
+      '<div class="sch-seg">'+['month','week','day'].map(function(m){return '<button data-mode="'+m+'"'+(mode===m?' class="on"':'')+'>'+m.charAt(0).toUpperCase()+m.slice(1)+'</button>';}).join('')+'</div>'+
+      '<div class="sch-nav"><button data-nav="-1" title="Previous">‹</button><button class="sch-today" data-today>Today</button><button data-nav="1" title="Next">›</button></div>'+
+      '<div class="sch-label">'+esc(lbl)+'</div>'+
+      '<button class="sch-new" data-new>+ New job</button>'+
+    '</div>';
+  }
+  function monthView(){
+    var first=new Date(cursor.getFullYear(),cursor.getMonth(),1);
+    var g=startOfWeek(first), html='<div class="sch-dow">'+DOW.map(function(d){return '<span>'+d+'</span>';}).join('')+'</div><div class="sch-grid">';
+    for(var i=0;i<42;i++){
+      var d=addDays(g,i), id=iso(d), oth=d.getMonth()!==cursor.getMonth(), today=id===todayISO(), bs=byDate(id);
+      var chips=bs.slice(0,3).map(function(b){return '<div class="sch-chip '+stCls(b.status)+'" data-open="'+esc(b.id)+'">'+esc(fmtTime(b.time))+' '+esc(custName(b))+'</div>';}).join('');
+      var more=bs.length>3?'<div class="sch-more">+'+(bs.length-3)+' more</div>':'';
+      html+='<div class="sch-cell'+(oth?' oth':'')+(today?' today':'')+'" data-day="'+id+'"><div class="dn">'+d.getDate()+'</div>'+chips+more+'</div>';
+    }
+    return html+'</div>';
+  }
+  function weekView(){
+    var s=startOfWeek(cursor), html='<div class="sch-week">';
+    for(var i=0;i<7;i++){
+      var d=addDays(s,i), id=iso(d), today=id===todayISO(), bs=byDate(id);
+      var items=bs.length?bs.map(function(b){return '<div class="sch-chip '+stCls(b.status)+'" data-open="'+esc(b.id)+'">'+esc(fmtTime(b.time))+' '+esc(custName(b))+'</div>';}).join(''):'<div class="sch-more">—</div>';
+      html+='<div class="sch-wcol"><h4'+(today?' class="today"':'')+'>'+DOW[d.getDay()]+' '+d.getDate()+'</h4><div data-day="'+id+'" style="cursor:pointer;display:flex;flex-direction:column;gap:4px;flex:1">'+items+'</div></div>';
+    }
+    return html+'</div>';
+  }
+  function dayView(){
+    var id=iso(cursor), bs=byDate(id);
+    if(!bs.length) return '<div class="sch-empty">No jobs scheduled for this day.<br><br><button class="sch-new" data-new style="margin:0">+ New job</button></div>';
+    return '<div class="sch-day">'+bs.map(function(b){
+      return '<div class="sch-item '+stCls(b.status)+'" data-open="'+esc(b.id)+'"><div class="tm">'+esc(fmtTime(b.time)||'—')+'</div>'+
+        '<div class="bd"><div class="nm">'+jobIcon(b)+' '+esc(custName(b))+'</div><div class="mt">'+esc(jobText(b)||'—')+'</div></div>'+
+        '<span class="sch-badge">'+esc(b.status||'Scheduled')+'</span></div>';
+    }).join('')+'</div>';
+  }
+  function wire(body){
+    body.querySelectorAll('[data-mode]').forEach(function(b){b.onclick=function(){mode=b.dataset.mode;render();};});
+    body.querySelectorAll('[data-nav]').forEach(function(b){b.onclick=function(){var n=+b.dataset.nav; cursor=mode==='month'?addMonths(cursor,n):addDays(cursor,mode==='week'?7*n:n); render();};});
+    var t=body.querySelector('[data-today]'); if(t)t.onclick=function(){cursor=new Date();cursor.setHours(0,0,0,0);render();};
+    body.querySelectorAll('[data-new]').forEach(function(b){b.onclick=newJob;});
+    body.querySelectorAll('[data-open]').forEach(function(b){b.onclick=function(e){e.stopPropagation();openDetail(b.dataset.open);};});
+    body.querySelectorAll('[data-day]').forEach(function(c){c.onclick=function(){cursor=fromISO(c.dataset.day);mode='day';render();};});
+  }
+  function newJob(){
+    try{ if(window.openEmbed && !(window.isPhoneView&&window.isPhoneView())){ openEmbed('scheduler.html'); return; } }catch(e){}
+    location.href='scheduler.html';
+  }
+  function openDetail(id){
+    var b=TKS.Bookings.get(id); if(!b) return;
+    var STAT=(TKS.Bookings.STATUSES||['Scheduled','In Progress','Completed','Rescheduled','Canceled']);
+    var sel=b.status||'Scheduled', veh=b.vehicle||{};
+    var ov=document.createElement('div'); ov.className='sch-modal';
+    ov.innerHTML='<div class="sheet">'+
+      '<h3>'+esc(custName(b))+'</h3>'+
+      '<div class="meta">'+jobIcon(b)+' '+esc(jobText(b)||'—')+((b.customer&&b.customer.phone)?(' · '+esc(b.customer.phone)):'')+'</div>'+
+      '<label>Status</label><div class="stbtns" id="schSt">'+STAT.map(function(s){return '<button data-s="'+esc(s)+'"'+(s===sel?' class="on"':'')+'>'+esc(s)+'</button>';}).join('')+'</div>'+
+      '<div class="row2"><div><label>Date</label><input type="date" id="schDate" value="'+esc(b.date||'')+'"></div>'+
+        '<div><label>Time</label><input type="time" id="schTime" value="'+esc(b.time||'')+'"></div></div>'+
+      '<label>Customer name</label><input id="schName" value="'+esc(custName(b)==='—'?'':custName(b))+'">'+
+      '<label>Phone</label><input id="schPhone" value="'+esc((b.customer&&b.customer.phone)||'')+'">'+
+      '<label>Address</label><input id="schAddr" value="'+esc(b.address||'')+'">'+
+      '<div class="row2"><div><label>Make</label><input id="schMake" value="'+esc(veh.make||'')+'"></div><div><label>Model</label><input id="schModel" value="'+esc(veh.model||'')+'"></div></div>'+
+      '<div class="msg" id="schMsg"></div>'+
+      '<div class="acts"><button class="btn ghost" id="schDel">Delete</button><button class="btn save" id="schSave">Save</button></div>'+
+    '</div>';
+    document.body.appendChild(ov);
+    function close(){ ov.remove(); }
+    ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
+    ov.querySelectorAll('#schSt button').forEach(function(btn){ btn.onclick=function(){ sel=btn.dataset.s; ov.querySelectorAll('#schSt button').forEach(function(x){x.classList.toggle('on',x===btn);}); }; });
+    ov.querySelector('#schDel').onclick=function(){
+      function go(){ try{ TKS.Bookings.remove(id); }catch(e){} close(); render(); }
+      if(window.TKS_ACCESS && TKS_ACCESS.confirmDanger){ TKS_ACCESS.confirmDanger({title:'Delete this job?',message:'Remove it from the schedule. This can’t be undone.',confirmLabel:'Delete'}).then(function(ok){ if(ok) go(); }); }
+      else go();
+    };
+    ov.querySelector('#schSave').onclick=function(){
+      var nb=TKS.Bookings.get(id)||b;
+      nb.date=ov.querySelector('#schDate').value||nb.date;
+      nb.time=ov.querySelector('#schTime').value||nb.time;
+      nb.customer=nb.customer||{};
+      var nm=ov.querySelector('#schName').value.trim(); if(nm) nb.customer.name=nm;
+      nb.customer.phone=ov.querySelector('#schPhone').value.trim();
+      nb.address=ov.querySelector('#schAddr').value.trim();
+      nb.vehicle=nb.vehicle||{}; nb.vehicle.make=ov.querySelector('#schMake').value.trim(); nb.vehicle.model=ov.querySelector('#schModel').value.trim();
+      nb.status=sel||nb.status;
+      try{ TKS.Bookings.save(nb); close(); render(); }
+      catch(e){ ov.querySelector('#schMsg').textContent=e.message||'Save failed.'; }
+    };
+  }
 })();
 </script>
 <script src="app/ui/bittings-ui.js"></script>

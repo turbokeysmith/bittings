@@ -423,8 +423,14 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   page-within-a-page header/back hidden, theme-synced — chosen for the big ones so we don't risk
   rewriting a proven 638 KB invoice screen). The proven backend was **not touched**. **Code-complete,
   pending the one device sweep.** *(Node.js was also installed — needed for the next website deploy.)*
-- **Still to build:** the **native scheduler** (an in-app calendar to replace the Google-Calendar link)
-  — the one genuinely new piece — then the device sweep and cutover.
+- **Native scheduler — built.** The clone now has a real **in-app calendar** (Month / Week / Day) that
+  reads and writes the same appointments, replacing the Google-Calendar link — the calendar itself is now
+  the source of truth. Color-coded by job status, today highlighted; tap a job to change its status,
+  **reschedule** (date/time), edit details, or delete. "+ New job" still opens the proven guided
+  intake. The booking data and the server-side job rules are unchanged. Verified rendering with a real
+  (headless) browser; **pending the owner's one device sweep**.
+- **Still to do:** the single device sweep (iPhone + Android, owner + staff), then the cutover (point the
+  app at the unified version, keep the old one as the fallback until confirmed).
 
 ### 2026-06-26 22:00 CST (💾 New PC: Git installed · all work committed + backed up to GitHub)
 - **New PC had no Git installed at all** — so weeks of recent work (the NASTF/D1 stage, the Ilco 2025
