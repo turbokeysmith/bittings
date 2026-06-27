@@ -90,6 +90,25 @@
   .view.active{display:block;animation:fade .25s ease;}
   @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
+  /* ===== De-iframed views: bind the legacy inline var names (--card/--ink/--dim/--edge/--bg2/--off)
+     to the shell's CANONICAL themed vars (bittings-ui.css --surface-*/--text-*). The inline :root
+     --card etc. were desyncing from the chrome's theme in dark mode (white panel + light, invisible
+     text). Remapping at #id scope (specificity beats :root and html[data-bt-theme]) makes background
+     and text always come from the SAME correctly-themed pair, in both light and dark. ===== */
+  #view-fleet, #view-settings, #view-programmers{
+    --card: var(--surface-card);
+    --ink: var(--text-primary);
+    --dim: var(--text-secondary);
+    --off: var(--text-tertiary);
+    --edge: var(--border-subtle);
+    --bg2: var(--surface-sunken);
+  }
+  /* Inputs/selects in these views: theme via the shell vars instead of hardcoded light + a dark
+     override (which was the other half of the desync). */
+  #view-fleet input, #view-fleet select, #view-settings input, #view-settings select, #view-settings textarea,
+  #view-programmers .in{ background:var(--surface-sunken)!important; color:var(--text-primary)!important; }
+  .fl-modal input, .fl-modal select{ background:var(--surface-sunken)!important; color:var(--text-primary)!important; }
+
   /* ===== Fleet (de-iframed from fleet.html — scoped under #view-fleet so it shares the
      shell's themed --card/--edge/--ink/--dim/--red vars; #id specificity outranks globals) ===== */
   #view-fleet .intro{color:var(--dim);font-size:12px;line-height:1.45;margin:0 0 10px;}
