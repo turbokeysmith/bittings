@@ -321,7 +321,7 @@
   #view-schedule .sch-nav{display:inline-flex;align-items:center;gap:6px;}
   #view-schedule .sch-nav button{background:var(--card);border:1px solid var(--edge);color:var(--ink);border-radius:9px;min-width:38px;min-height:38px;font-size:16px;font-weight:800;cursor:pointer;}
   #view-schedule .sch-label{font-size:17px;font-weight:800;color:var(--ink);min-width:170px;text-align:center;}
-  #view-schedule .sch-today{background:var(--card);border:1px solid var(--edge);color:var(--ink);border-radius:9px;padding:8px 12px;font-weight:700;font-size:13px;cursor:pointer;min-height:38px;}
+  #view-schedule .sch-today{background:var(--card);border:1px solid var(--edge);color:var(--ink);border-radius:9px;padding:8px 14px;font-weight:800;font-size:13.5px;cursor:pointer;min-height:38px;min-width:128px;text-align:center;}
   #view-schedule .sch-new{margin-left:auto;background:linear-gradient(180deg,var(--red),var(--red-deep));color:#fff;border:none;border-radius:10px;padding:10px 14px;font-weight:800;font-size:14px;cursor:pointer;min-height:40px;}
   #view-schedule .sch-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px;}
   #view-schedule .sch-dow span{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--dim);text-align:center;}
@@ -5087,14 +5087,21 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanne
     body.innerHTML=toolbar()+(view==='board'?boardView():view==='month'?monthView():view==='week'?weekView():dayView());
     wire(body); checkVanFlags();
   }
+  // Contextual nav label (lives IN the nav, where "Today" was). Per view:
+  //  board/day → "Today" on today, else the date ("Fri · Jun 26")
+  //  week      → "This week" on the current week, else "Week of Jun 22"
+  //  month     → the month ("June 2026")
+  function navLabel(){
+    if(view==='board'||view==='day'){ return iso(cursor)===todayISO() ? 'Today' : (DOW[cursor.getDay()]+' · '+MON[cursor.getMonth()].slice(0,3)+' '+cursor.getDate()); }
+    if(view==='week'){ var s=startOfWeek(cursor); return iso(s)===iso(startOfWeek(new Date())) ? 'This week' : ('Week of '+MON[s.getMonth()].slice(0,3)+' '+s.getDate()); }
+    return MON[cursor.getMonth()]+' '+cursor.getFullYear();
+  }
   function toolbar(){
-    var lbl=(view==='board'||view==='day')?( iso(cursor)===todayISO() ? 'Today' : (DOW[cursor.getDay()]+' · '+MON[cursor.getMonth()].slice(0,3)+' '+cursor.getDate()) )
-      :view==='week'?(function(){var s=startOfWeek(cursor),e=addDays(s,6);return MON[s.getMonth()].slice(0,3)+' '+s.getDate()+' – '+MON[e.getMonth()].slice(0,3)+' '+e.getDate();})()
-      :(MON[cursor.getMonth()]+' '+cursor.getFullYear());
     return '<div class="sch-toolbar">'+
       '<div class="sch-seg">'+[['board','Board'],['day','Day'],['week','Week'],['month','Month']].map(function(m){return '<button data-view="'+m[0]+'"'+(view===m[0]?' class="on"':'')+'>'+m[1]+'</button>';}).join('')+'</div>'+
-      '<div class="sch-nav"><button data-nav="-1" title="Previous">‹</button><button class="sch-today" data-today>Today</button><button data-nav="1" title="Next">›</button></div>'+
-      '<div class="sch-label">'+esc(lbl)+'</div>'+
+      '<div class="sch-nav"><button data-nav="-1" title="Previous">‹</button>'+
+        '<button class="sch-today" data-today title="Jump to today">'+esc(navLabel())+'</button>'+
+        '<button data-nav="1" title="Next">›</button></div>'+
       '<button class="sch-new" data-new>+ New job</button>'+
     '</div>';
   }
