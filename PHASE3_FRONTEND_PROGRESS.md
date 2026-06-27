@@ -257,6 +257,25 @@ Three issues found driving the rebuilt scheduler; all fixed + render-verified vi
   headless — only simulated events were). Note: drag-**reschedule** is in Month/Week views (drop on a day);
   drag-**reassign** is on the Board (drop on a tech lane).
 
+## 3.8 — Cross-device stock-move requests (owner-approved backend addition, 2026-06-27)
+The one backend item from 3.6, approved. Tech→manager stock-move requests now **sync across devices**.
+- **Migration (NEW — must be applied):** `supabase/phase3/3a_move_requests.sql` — a `move_requests`
+  table (item, from/to, qty, job, note, status pending/approved/denied, requester) + RLS: a staff member
+  **inserts their own** request; **managers see all** (a requester sees their own); **only managers
+  decide** (status update); requester may withdraw their own pending one. **No new move logic** — approve
+  still calls the existing `inv_move`. Depends on phase1 1a (`is_staff`/`is_manager`) + 1b (`inventory`/`inv_move`).
+  ⚠️ **I can't apply it from here** (no `supabase`/`psql` CLI or service key) — apply via Supabase
+  dashboard → SQL editor → paste the file → Run (same as every prior migration).
+- **Data layer:** `TKS.MoveReq` (create / pending / decide / remove) in `store.js`.
+- **Wiring:** the request queue now uses the table when signed-in (`mrIsCloud`) — `requestStockMove`
+  inserts a row; the manager banner + modal read `move_requests`; **Approve** runs `inv_move` then flips
+  the row to `approved`; **Dismiss** = `denied`. **Falls back to the local (same-device) queue** when
+  offline, so nothing breaks before the migration is applied.
+- **Verified via headless Chromium (local-fallback path):** request → manager banner ("📦 1 stock-move
+  request… Review") → modal lists it with Approve/Dismiss. 8/8 inline scripts + store.js pass syntax; no errors.
+- 🚩 **Pending (needs the migration + a signed-in session — can't test here):** the cross-device cloud
+  round-trip (tech on one device → manager sees it on another → approve runs inv_move). Batched for the sweep.
+
 ## 📌 WHERE PHASE 3 STANDS
 **The unification build is functionally complete** (code-complete, rendering-verified, pending the
 owner device sweep): Fleet, Settings, Programmers **inlined as native views**; Lishi + Receipts

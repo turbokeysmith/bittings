@@ -1369,44 +1369,59 @@ window.renderConsolBanner = function(){
   var g=document.getElementById('cbGo'); if(g) g.onclick=function(){ var b=document.querySelector('.bt-nav__item[data-go="schedule"]'); if(b) b.click(); };
 };
 
-/* ===== Stock-move requests (tech → manager approval) =====
-   The backend (inv_move) lets a manager move stock directly. To route TECH moves through manager
-   approval without changing the backend, a request is recorded and a manager approves it (which then
-   calls inv_move). NOTE: requests persist in localStorage (same device). Cross-device tech→manager
-   sync would need a small `move_requests` table — flagged as the one backend decision (not built). */
-function moveReqs(){ try{ return JSON.parse(localStorage.getItem('tks_move_requests')||'[]'); }catch(e){ return []; } }
-function saveMoveReqs(a){ try{ localStorage.setItem('tks_move_requests', JSON.stringify(a||[])); }catch(e){} }
-window.requestStockMove=function(req){ var a=moveReqs(); req.id='mr_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); req.ts=Date.now(); try{ req.by=(TKS.auth&&TKS.auth.email&&TKS.auth.email())||req.by||''; }catch(e){} a.push(req); saveMoveReqs(a); if(window.renderMoveReqBanner) window.renderMoveReqBanner(); };
+/* ===== Stock-move requests (tech → manager approval) — Phase 3a =====
+   Synced via the move_requests table (TKS.MoveReq) so a tech's request reaches the manager on ANY
+   device; the manager approves → the app calls the existing inv_move. Falls back to a local queue
+   when offline / not signed in. Requires the 3a migration applied to Supabase. */
+function mrIsCloud(){ try{ return !!(TKS.auth && TKS.auth.isSignedIn && TKS.auth.isSignedIn() && TKS.MoveReq); }catch(e){ return false; } }
+function mrLocal(){ try{ return JSON.parse(localStorage.getItem('tks_move_requests')||'[]'); }catch(e){ return []; } }
+function mrSaveLocal(a){ try{ localStorage.setItem('tks_move_requests', JSON.stringify(a||[])); }catch(e){} }
+function mrLocName(loc){ if(loc==='shop') return '🏪 Shop'; if(String(loc).indexOf('van:')===0) return '🚐 '+(loc.split(':')[1]||'Van'); return loc||'—'; }
+function mrPending(){  // → Promise<[normalized request]>
+  if(mrIsCloud()){ return TKS.MoveReq.pending().then(function(res){ if(res&&res.error) return []; return ((res&&res.data)||[]).map(function(r){ return {id:r.id, itemId:r.item_id, itemName:r.item_name, from:r.from_loc, to:r.to_loc, qty:r.qty, by:r.requested_by_name, jobNote:r.note, _cloud:true}; }); }).catch(function(){ return []; }); }
+  return Promise.resolve(mrLocal());
+}
+window.requestStockMove=function(req){
+  req=req||{}; req.note=req.note||req.jobNote||null;
+  try{ req.byName=(TKS.auth&&TKS.auth.email&&TKS.auth.email())||req.byName||''; }catch(e){}
+  if(mrIsCloud()){ TKS.MoveReq.create(req).then(function(res){ if(res&&res.error){ try{TKS_ACCESS.toast(res.error.message);}catch(e){} return; } if(window.renderMoveReqBanner) renderMoveReqBanner(); }).catch(function(){}); return; }
+  var a=mrLocal(); req.id='mr_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); req.by=req.byName; a.push(req); mrSaveLocal(a); if(window.renderMoveReqBanner) renderMoveReqBanner();
+};
 window.renderMoveReqBanner=function(){
   var el=document.getElementById('moveReqBanner'); if(!el) return;
   var mgr=false; try{ mgr=!!(TKS.auth && TKS.auth.can && TKS.auth.can('setup')); }catch(e){}
-  var rs=moveReqs();
-  if(!mgr || !rs.length){ el.style.display='none'; el.innerHTML=''; return; }
-  el.style.display='flex';
-  el.innerHTML='📦 <span><b>'+rs.length+' stock-move request'+(rs.length>1?'s':'')+'</b> waiting for your approval.</span><button class="cb-go" id="mrGo">Review</button>';
-  var g=document.getElementById('mrGo'); if(g) g.onclick=openMoveReqModal;
+  if(!mgr){ el.style.display='none'; el.innerHTML=''; return; }
+  mrPending().then(function(rs){
+    if(!rs.length){ el.style.display='none'; el.innerHTML=''; return; }
+    el.style.display='flex';
+    el.innerHTML='📦 <span><b>'+rs.length+' stock-move request'+(rs.length>1?'s':'')+'</b> waiting for your approval.</span><button class="cb-go" id="mrGo">Review</button>';
+    var g=document.getElementById('mrGo'); if(g) g.onclick=openMoveReqModal;
+  });
 };
-function locLabel(loc){ if(loc==='shop') return 'Shop'; if(String(loc).indexOf('van:')===0) return (loc.split(':')[1]||'Van'); return loc||'—'; }
 function openMoveReqModal(){
-  var rs=moveReqs();
   var ov=document.createElement('div'); ov.className='sch-modal';
-  function rows(){ return rs.length?rs.map(function(r){ return '<div data-id="'+r.id+'" style="display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid #eef0f3"><div style="flex:1;font-size:13.5px"><b>'+ ((r.itemName||'Part')) +'</b><div style="font-size:12px;color:#5a616c">'+(r.qty||1)+' · '+locLabel(r.from)+' → '+locLabel(r.to)+(r.by?(' · '+r.by):'')+(r.jobNote?(' · '+r.jobNote):'')+'</div></div><button class="btn save" data-ok="'+r.id+'" style="min-height:36px;padding:6px 12px;flex:0 0 auto">Approve</button><button class="btn ghost" data-no="'+r.id+'" style="min-height:36px;padding:6px 10px;flex:0 0 auto">Dismiss</button></div>'; }).join(''):'<div class="meta">No pending requests.</div>'; }
-  ov.innerHTML='<div class="sheet"><h3>Stock-move requests</h3><div class="meta">Approve to move the stock now (you have permission), or dismiss.</div><div id="mrList">'+rows()+'</div><div class="msg" id="mrMsg"></div><div class="acts"><button class="btn save" id="mrClose">Close</button></div></div>';
+  ov.innerHTML='<div class="sheet"><h3>Stock-move requests</h3><div class="meta">Approve to move the stock now (you have permission), or dismiss.</div><div id="mrList"><div class="meta">Loading…</div></div><div class="msg" id="mrMsg"></div><div class="acts"><button class="btn save" id="mrClose">Close</button></div></div>';
   document.body.appendChild(ov);
   function close(){ ov.remove(); }
   ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
   ov.querySelector('#mrClose').onclick=close;
-  function refresh(){ rs=moveReqs(); ov.querySelector('#mrList').innerHTML=rows(); wire(); if(window.renderMoveReqBanner) window.renderMoveReqBanner(); }
-  function remove(id){ saveMoveReqs(moveReqs().filter(function(x){return x.id!==id;})); refresh(); }
-  function wire(){
-    ov.querySelectorAll('[data-no]').forEach(function(b){ b.onclick=function(){ remove(b.dataset.no); }; });
-    ov.querySelectorAll('[data-ok]').forEach(function(b){ b.onclick=function(){ var r=moveReqs().find(function(x){return x.id===b.dataset.ok;}); if(!r) return;
-      if(!(TKS.InvOps && TKS.InvOps.move)){ ov.querySelector('#mrMsg').textContent='Connect to the cloud to move stock.'; return; }
-      ov.querySelector('#mrMsg').textContent='Moving…';
-      TKS.InvOps.move(r.itemId, r.from, r.to, r.qty||1).then(function(res){ if(res&&res.error){ ov.querySelector('#mrMsg').textContent=res.error.message; return; } remove(r.id); try{ if(typeof renderInventory==='function') renderInventory(); }catch(e){} }).catch(function(e){ ov.querySelector('#mrMsg').textContent=(e&&e.message)||'Move failed.'; });
-    }; });
+  function rowsHtml(rs){ return rs.length?rs.map(function(r){ return '<div data-id="'+r.id+'" style="display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid #eef0f3"><div style="flex:1;font-size:13.5px"><b>'+(r.itemName||'Part')+'</b><div style="font-size:12px;color:#5a616c">'+(r.qty||1)+' · '+mrLocName(r.from)+' → '+mrLocName(r.to)+(r.by?(' · '+r.by):'')+(r.jobNote?(' · '+r.jobNote):'')+'</div></div><button class="btn save" data-ok="'+r.id+'" style="min-height:36px;padding:6px 12px;flex:0 0 auto">Approve</button><button class="btn ghost" data-no="'+r.id+'" style="min-height:36px;padding:6px 10px;flex:0 0 auto">Dismiss</button></div>'; }).join(''):'<div class="meta">No pending requests.</div>'; }
+  function load(){ mrPending().then(function(rs){ var L=ov.querySelector('#mrList'); if(!L) return; L.innerHTML=rowsHtml(rs); wire(rs); }); }
+  function afterChange(){ load(); if(window.renderMoveReqBanner) renderMoveReqBanner(); }
+  function dismiss(r){ if(r._cloud){ TKS.MoveReq.decide(r.id,false).then(afterChange).catch(afterChange); } else { mrSaveLocal(mrLocal().filter(function(x){return x.id!==r.id;})); afterChange(); } }
+  function approve(r){ var m=ov.querySelector('#mrMsg');
+    if(!(TKS.InvOps&&TKS.InvOps.move)){ m.textContent='Connect to the cloud to move stock.'; return; }
+    m.textContent='Moving…';
+    TKS.InvOps.move(r.itemId, r.from, r.to, r.qty||1).then(function(res){ if(res&&res.error){ m.textContent=res.error.message; return; } m.textContent='Moved.';
+      if(r._cloud){ TKS.MoveReq.decide(r.id,true).then(afterChange).catch(afterChange); } else { mrSaveLocal(mrLocal().filter(function(x){return x.id!==r.id;})); afterChange(); }
+      try{ if(typeof renderInventory==='function') renderInventory(); }catch(e){}
+    }).catch(function(e){ m.textContent=(e&&e.message)||'Move failed.'; });
   }
-  wire();
+  function wire(rs){
+    ov.querySelectorAll('[data-no]').forEach(function(btn){ btn.onclick=function(){ var r=rs.find(function(x){return x.id===btn.dataset.no;}); if(r) dismiss(r); }; });
+    ov.querySelectorAll('[data-ok]').forEach(function(btn){ btn.onclick=function(){ var r=rs.find(function(x){return x.id===btn.dataset.ok;}); if(r) approve(r); }; });
+  }
+  load();
 }
 
 document.querySelectorAll('[data-go]').forEach(b=>{
