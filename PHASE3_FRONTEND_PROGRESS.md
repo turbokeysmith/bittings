@@ -238,6 +238,22 @@ All wiring + UX on the proven backend (inv_move + job_cancel/reconcile unchanged
 - Cancel does **not** auto-return parts — it only **flags** reconciliation; consolidation = reconciling
   each part (cut keys need a photo). Status/`reconciliation_pending` change **only** via the RPCs (DB guard).
 
+## 3.7 — Scheduler testing fixes (owner testing, 2026-06-27)
+Three issues found driving the rebuilt scheduler; all fixed + render-verified via headless Chromium.
+- **Drag-to-reschedule did nothing visible.** `reschedule()` no longer opens a (skippable) reason
+  modal — it now **moves the job immediately**, persists via `TKS.Bookings.save`, re-renders, and shows a
+  toast ("Moved to Sun · Jun 28"). Verified: dragging chip `s1` onto another day cell updated its date.
+- **Day label always said "Today".** Toolbar label is now **contextual**: "Today" only when the cursor
+  is actually today; otherwise the real date ("Sun · Jun 28"). Verified: today→"Today", next→"Sun · Jun 28".
+- **Edit/save didn't persist.** Root cause: the form reused element ids (`fName`/`fSave`) that **collide
+  with the Customers form** (invalid HTML; `getElementById` hit the wrong node). Namespaced all scheduler-
+  form ids to `sj*`. Save now applies **every field directly (incl. date/time + status)** and persists
+  (no silent routing through reschedule); success/failure toast. Verified: name + date + service all
+  persisted, modal closes.
+- 🚩 **Real-pointer drag still on the device-sweep list** (HTML5 drag gestures can't be confirmed
+  headless — only simulated events were). Note: drag-**reschedule** is in Month/Week views (drop on a day);
+  drag-**reassign** is on the Board (drop on a tech lane).
+
 ## 📌 WHERE PHASE 3 STANDS
 **The unification build is functionally complete** (code-complete, rendering-verified, pending the
 owner device sweep): Fleet, Settings, Programmers **inlined as native views**; Lishi + Receipts
