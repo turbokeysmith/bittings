@@ -859,6 +859,7 @@
    home-screen flash and no network is required to reach a usable app. */
 (function(){
   try{
+    if(localStorage.getItem('tks_demo_mode')==='1') return;  // DEMO: skip login, run on seeded sample data
     var cfg = window.TKS_CLOUD;
     if(!cfg || cfg.AUTO_CONNECT===false) return;            // cloud/login disabled → no gate
     var hasToken=false;
