@@ -161,22 +161,37 @@ Programmers) are native on both.
 
 **Tooling note:** Git **and Node.js (24.18)** are now installed on this PC (both were missing). Node is
 needed for the next `npx wrangler` website deploy and is used here to syntax-check the inline scripts.
-- **3.3 Native scheduler** ✅ (code-complete, rendering-verified, pending owner device sign-off) —
-  native **Month/Week/Day** calendar (`#view-schedule`, `window.renderSchedule`) over the existing
-  `TKS.Bookings` store — **no Google dependency**; this calendar is the system of record. Month grid
-  with status-colored chips (blue=Scheduled · amber=In Progress · green=Completed · purple=Rescheduled
-  · struck-through=Canceled), today highlighted; Week columns; Day = time-sorted job cards with
-  icon/vehicle/address + status badge. Tap a job → detail modal: change **status**, **reschedule**
-  (date/time), edit name/phone/address/make/model, or delete — all write back via `TKS.Bookings`
-  (same store path the old day-view used → syncs to Supabase when signed in). **+ New job** opens the
-  proven **guided intake** (`scheduler.html`) — only the calendar view layer is new; the intake flow
-  + server-side job accountability (Phase-1 `TKS.Jobs` state machine) are unchanged.
-  **Verified via headless Chromium** (seeded bookings): 42-cell month grid renders, 5 bookings show as
-  color-coded chips, white cards + dark readable text in dark mode, Day view cards correct. Also fixed
-  a load-order bug: the nav dispatch now guards `window.renderFleet/Settings/Programmers/Schedule` so an
-  early auto-trigger can't throw "renderX is not defined".
-  🚩 **Pending owner device sign-off:** reschedule/status writes round-trip to Supabase on a real
-  signed-in session; the guided-intake "+ New job" round-trips back to the calendar.
+- **3.3 Native scheduler → REBUILT as a field-service DISPATCH tool** ✅ (code-complete,
+  rendering-verified, pending owner device sign-off). The first pass was a view-only calendar; the
+  owner needed a true dispatch tool, so it was scrapped and rebuilt to a locked spec.
+  - **Views:** **Board** (per-tech lanes — the heart; column per staff member + an Unassigned lane,
+    job cards for the cursor day) + **Day / Week / Month** calendar. Toggle in the toolbar.
+  - **Job cards** show customer, time, job type (+subtype), vehicle, status pill, address, 📍 Navigate
+    (one-tap maps from the address), and an async **"⚠ parts not on van"** flag (per-location inventory
+    via `TKS.InvOps.locations` vs the assigned tech's `home_van_id`).
+  - **Status** = the field-service flow **Scheduled → En route → On site → In progress → Completed →
+    Cancelled**, each a distinct color from the palette. Status changes route through
+    `TKS.Jobs.setStatus` (server role-enforced: tech own-job only, front-desk blocked, manager/owner
+    any) with a local mirror; UI mirrors, server is authority.
+  - **Assign / reassign** a tech from the real roster (`TKS.Fleet.staff()`, fallback to Settings
+    employees) → `TKS.Jobs.assign(job,userId,'lead')` (manager+).
+  - **Drag-and-drop** (manager+ only): drag a card between **board lanes** → reassign; drag a chip to
+    another **calendar day** → reschedule. Both call the same button-action functions.
+  - **Reschedule + Cancel** both go through the **required reason capture** (modal with the unused-parts/
+    manager-signoff warning; note required for non-owners) → `TKS.Jobs.cancel(job,reason,detail)` /
+    reschedule keeps server status `scheduled` + local `Rescheduled` flag, mirroring the old scheduler.
+  - **Create / edit form:** job type, customer (+ **pull from existing customers**), phone, service,
+    date/time, address, **VIN decode** (`TKS.decodeVin` → year/make/model) + ignition for auto,
+    technician, status; Delete; Cancel-job.
+  - **Backend untouched** — all through `TKS.Bookings` / `TKS.Jobs` / `TKS.Fleet` / `TKS.InvOps` /
+    `TKS.decodeVin`. Old `scheduler.html` (guided intake) still present as the fallback until cutover.
+  - **Verified via headless Chromium** (gate bypassed, seeded roster + jobs): Board renders 3 lanes +
+    4 cards with correct color-coded status pills/Navigate/vehicle; calendar Month/Week/Day render; the
+    full job form opens (12 fields, VIN decode, tech select). 8/8 inline scripts pass syntax. No console errors.
+  🚩 **Pending owner device sign-off (can't test here):** drag-and-drop interactions on a real
+  pointer/touch device; the cloud round-trips on a signed-in session (status via `TKS.Jobs.setStatus`,
+  reassign via `TKS.Jobs.assign`, cancel via `TKS.Jobs.cancel`, the van-stock flag); role gating
+  (tech sees own-job status only, front-desk can't change status, only manager+ can drag/reassign).
 - **3.4 Full self-verification** ⬜ — every screen native, no iframes; role gating (owner vs staff)
   holds; reads/writes hit the same Supabase rows the old app did.
 - **3.5 Cutover** ⬜ — only after a full device sweep passes: point the run/deploy at

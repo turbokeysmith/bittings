@@ -362,6 +362,59 @@
   .sch-modal .msg{font-size:12.5px;min-height:15px;margin-top:6px;color:#c8323c;}
   @media(max-width:680px){ #view-schedule .sch-grid .sch-cell{min-height:78px;} #view-schedule .sch-week{grid-template-columns:1fr;} }
 
+  /* ===== Dispatch board + richer field-service statuses + job cards + drag (3.3 rebuild) ===== */
+  /* status palette (left border / dot) — readable on the white cards */
+  #view-schedule .st-scheduled,.sch-modal .st-scheduled{--stc:#2f7ed8;}
+  #view-schedule .st-enroute,.sch-modal .st-enroute{--stc:#0e9aa7;}
+  #view-schedule .st-onsite,.sch-modal .st-onsite{--stc:#5b54d6;}
+  #view-schedule .st-inprogress,.sch-modal .st-inprogress{--stc:#d68a0e;}
+  #view-schedule .st-completed,.sch-modal .st-completed{--stc:#1f8f43;}
+  #view-schedule .st-onhold,.sch-modal .st-onhold{--stc:#6b7280;}
+  #view-schedule .st-rescheduled,.sch-modal .st-rescheduled{--stc:#7a4fd0;}
+  #view-schedule .st-canceled,.sch-modal .st-canceled{--stc:#c8323c;}
+  /* chips/cards take their status color from --stc */
+  #view-schedule .sch-chip{border-left-color:var(--stc,#888)!important;}
+  #view-schedule .sch-item{border-left-color:var(--stc,#888)!important;}
+  #view-schedule .sch-chip.st-canceled,#view-schedule .sch-item.st-canceled .nm{text-decoration:line-through;}
+  /* view toggle gets a Board option (reuse .sch-seg) */
+  /* BOARD */
+  #view-schedule .sch-board{display:flex;gap:10px;overflow-x:auto;padding-bottom:10px;align-items:flex-start;}
+  #view-schedule .sch-lane{flex:0 0 236px;width:236px;background:var(--bg2);border:1px solid var(--edge);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:8px;min-height:140px;}
+  #view-schedule .sch-lane.unassigned{background:repeating-linear-gradient(45deg,var(--bg2),var(--bg2) 10px,rgba(0,0,0,.03) 10px,rgba(0,0,0,.03) 20px);}
+  #view-schedule .sch-lane.dragover{outline:2px dashed var(--red);outline-offset:-2px;}
+  #view-schedule .sch-lane .lh{display:flex;align-items:center;gap:7px;padding:2px 4px 6px;border-bottom:1px solid var(--edge);}
+  #view-schedule .sch-lane .lh .av{width:26px;height:26px;border-radius:999px;background:var(--red);color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  #view-schedule .sch-lane .lh .nm{font-weight:800;font-size:13.5px;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #view-schedule .sch-lane .lh .ro{font-size:10.5px;color:var(--dim);text-transform:capitalize;}
+  #view-schedule .sch-lane .lh .ct{font-size:11px;font-weight:800;color:var(--dim);background:var(--card);border:1px solid var(--edge);border-radius:999px;padding:1px 7px;}
+  #view-schedule .sch-lane .lempty{color:var(--dim);font-size:12px;text-align:center;padding:14px 4px;}
+  /* job card (board) */
+  #view-schedule .sch-card{background:var(--card);border:1px solid var(--edge);border-left:4px solid var(--stc,#888);border-radius:10px;padding:9px 10px;cursor:pointer;}
+  #view-schedule .sch-card[draggable="true"]{cursor:grab;}
+  #view-schedule .sch-card.dragging{opacity:.45;}
+  #view-schedule .sch-card .ct{display:flex;align-items:center;gap:6px;margin-bottom:2px;}
+  #view-schedule .sch-card .ct .tm{font-weight:800;font-size:12.5px;color:var(--ink);}
+  #view-schedule .sch-card .ct .dot{width:8px;height:8px;border-radius:999px;background:var(--stc,#888);flex:0 0 auto;}
+  #view-schedule .sch-card .cn{font-weight:800;font-size:13.5px;color:var(--ink);}
+  #view-schedule .sch-card .cm{font-size:11.5px;color:var(--dim);margin-top:1px;overflow-wrap:anywhere;}
+  #view-schedule .sch-card .cf{display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap;}
+  #view-schedule .sch-card .pill{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;padding:1px 7px;border-radius:999px;color:#fff;background:var(--stc,#888);}
+  #view-schedule .sch-card .nav,.sch-modal .nav-link{font-size:11px;font-weight:700;color:#2f7ed8;text-decoration:none;}
+  #view-schedule .sch-card .warn,.sch-modal .warn{font-size:11px;font-weight:700;color:#c8323c;}
+  /* chip status dot for calendar chips */
+  #view-schedule .sch-chip .dot{display:inline-block;width:7px;height:7px;border-radius:999px;background:var(--stc,#888);margin-right:3px;}
+  /* modal extras: customer search, VIN row, status grid */
+  .sch-modal .vinrow{display:flex;gap:6px;}
+  .sch-modal .vinrow input{flex:1;}
+  .sch-modal .vinrow button{flex:0 0 auto;background:var(--red);color:#fff;border:none;border-radius:10px;padding:0 12px;font-weight:800;cursor:pointer;}
+  .sch-modal .custlist{border:1px solid #e3e6ea;border-radius:10px;max-height:140px;overflow:auto;margin-top:4px;}
+  .sch-modal .custlist div{padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid #eef0f3;}
+  .sch-modal .custlist div:hover{background:#f3f4f6;}
+  .sch-modal .seg2{display:flex;gap:6px;flex-wrap:wrap;}
+  .sch-modal .seg2 button{flex:1;min-width:90px;border:1px solid #e3e6ea;background:#f3f4f6;color:#14171b;border-radius:9px;padding:9px;font-weight:700;font-size:13px;cursor:pointer;}
+  .sch-modal .seg2 button.on{background:var(--red);color:#fff;border-color:var(--red);}
+  .sch-modal .stbtns button.on{background:var(--stc,#c8323c);border-color:var(--stc,#c8323c);}
+
   .bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
   .search{flex:1;background:var(--card);border:1px solid var(--edge);border-radius:12px;padding:12px 14px;
     color:var(--ink);font-size:15px;outline:none;}
@@ -4894,18 +4947,24 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
 })();
 </script>
 <script>
-/* ===================== NATIVE SCHEDULER (Phase 3.3) =====================
-   An in-app Month/Week/Day calendar over the EXISTING bookings (TKS.Bookings) — no Google
-   Calendar dependency; this calendar is the system of record. View + reschedule (date/time) +
-   edit core fields + simple status + delete, all writing back through TKS.Bookings (same store
-   path the old day-view used → syncs to Supabase when signed in). Creating a job still goes
-   through the proven GUIDED INTAKE (scheduler.html) — only the calendar view layer is new.
-   Server-side job accountability (the Phase-1 state machine via TKS.Jobs) is unchanged. */
+/* ============== NATIVE SCHEDULER / DISPATCH (Phase 3.3 rebuild) ==============
+   Field-service dispatch tool over the existing bookings (TKS.Bookings) + Phase-1 job
+   accountability (TKS.Jobs) — NO Google dependency; the in-app calendar is the system of record.
+   Views: Board (per-tech lanes — the heart) + Day/Week/Month calendar. Create/edit jobs (VIN
+   decode, pull from customers, assign tech, status, one-tap nav), reassign + reschedule(reason) +
+   cancel(reason) + status — all through the proven flow (status -> TKS.Jobs.setStatus role-enforced
+   server-side with a local mirror; reassign -> TKS.Jobs.assign manager+; van-stock flag via
+   TKS.InvOps.locations vs the tech's home van). Drag layer sits on top of the same button actions.
+   Backend untouched. */
 (function(){
-  var mode='month';
+  var view='board';                 // 'board' | 'day' | 'week' | 'month'
   var cursor=new Date(); cursor.setHours(0,0,0,0);
+  var STAFF=null, VANS=null, loaded=false, dragId=null;
   var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   var MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var STATUSES=[{k:'scheduled',L:'Scheduled'},{k:'en_route',L:'En route'},{k:'on_site',L:'On site'},{k:'in_progress',L:'In progress'},{k:'completed',L:'Completed'},{k:'canceled',L:'Cancelled'}];
+  var CANCEL_REASONS=['Customer no-show','Customer canceled','Duplicate booking','Unable to complete (vehicle/parts)','Priced too high','Other'];
+
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
   function pad(n){ return n<10?'0'+n:''+n; }
   function iso(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
@@ -4915,110 +4974,278 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
   function startOfWeek(d){ var x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-x.getDay()); return x; }
   function todayISO(){ return iso(new Date()); }
   function fmtTime(t){ if(!t) return ''; var p=String(t).split(':'); var h=+p[0]||0, m=p[1]||'00'; var ap=h<12?'AM':'PM'; var hh=h%12||12; return hh+':'+m+' '+ap; }
-  function stCls(s){ return 'st-'+String(s||'Scheduled').toLowerCase().replace(/[^a-z]/g,''); }
+  function stKey(label){ var f=STATUSES.find(function(s){return s.L.toLowerCase()===String(label||'').toLowerCase();}); return f?f.k:'scheduled'; }
+  function stLabel(k){ var f=STATUSES.find(function(s){return s.k===k;}); return f?f.L:(k||'Scheduled'); }
+  function stCls(label){ return 'st-'+String(label||'Scheduled').toLowerCase().replace(/[^a-z]/g,''); }
+  function signedIn(){ try{ return TKS.auth.isSignedIn(); }catch(e){ return false; } }
+  function isManager(){ try{ return signedIn() && TKS.auth.can && TKS.auth.can('setup'); }catch(e){ return false; } }
+  function isOwner(){ try{ return TKS.auth.isOwner && TKS.auth.isOwner(); }catch(e){ return false; } }
+  function toast(m){ try{ if(window.TKS_ACCESS && TKS_ACCESS.toast){ TKS_ACCESS.toast(m); return; } }catch(e){} }
+
   function bookings(){ try{ return (TKS.Bookings.all()||[]); }catch(e){ return []; } }
   function byDate(d){ return bookings().filter(function(b){return (b.date||'')===d;}).sort(function(a,b){return (a.time||'').localeCompare(b.time||'');}); }
   function custName(b){ return (b.customer && (b.customer.name||b.customer.customer)) || b.customerName || '—'; }
   function jobIcon(b){ return b.jobType==='auto'?'🚗':b.jobType==='res'?'🏠':b.jobType==='com'?'🏢':'🔑'; }
-  function jobText(b){ var t=[]; if(b.subType)t.push(b.subType); var v=b.vehicle; if(v&&(v.make||v.model))t.push(((v.year||'')+' '+(v.make||'')+' '+(v.model||'')).replace(/\s+/g,' ').trim()); if(b.address)t.push(b.address); return t.filter(Boolean).join(' · '); }
+  function typeWord(b){ var m={auto:'Automotive',res:'Residential',com:'Commercial'}; var base=m[b.jobType]||(b.jobType||'Job'); return b.subType?(base+' · '+b.subType):base; }
+  function vehStr(b){ var v=b.vehicle||{}; return (v.year||v.make||v.model)?((v.year||'')+' '+(v.make||'')+' '+(v.model||'')).replace(/\s+/g,' ').trim():''; }
+  function addrStr(b){ return b.address || [b.street,b.city,b.state,b.zip].filter(Boolean).join(', '); }
+  function navUrl(b){ var a=addrStr(b); return a?('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(a)):''; }
 
-  window.renderSchedule=function(){ render(); };
-  function render(){
-    var body=document.getElementById('schBody'); if(!body) return;
-    body.innerHTML=toolbar()+(mode==='month'?monthView():mode==='week'?weekView():dayView());
-    wire(body);
+  // staff roster: cloud staff if loaded, else Settings employees (offline)
+  function teamMembers(){
+    if(STAFF && STAFF.length) return STAFF;
+    try{ return (TKS.Config.access().employees||[]).filter(function(e){return (e.name||'').trim();})
+      .map(function(e){ return {user_id:'name:'+e.name, name:e.name, role:e.owner?'manager':'technician', active:true, home_van_id:null}; }); }
+    catch(e){ return []; }
+  }
+  function techOf(b){
+    if(b.technicianId) return b.technicianId;
+    if(b.technician){ var m=teamMembers().find(function(t){return t.name===b.technician;}); return m?m.user_id:('name:'+b.technician); }
+    return null;
+  }
+  function memberById(id){ return teamMembers().find(function(t){return t.user_id===id;})||null; }
+
+  window.renderSchedule=function(){
+    if(loaded){ render(); return; }
+    var body=document.getElementById('schBody'); if(body) body.innerHTML='<div class="sch-empty">Loading roster…</div>';
+    var n=0; function fin(){ if(++n>=2 && !loaded){ loaded=true; render(); } }
+    try{ (TKS.Fleet && TKS.Fleet.staff) ? TKS.Fleet.staff().then(function(r){ STAFF=((r&&r.data)||[]).filter(function(s){return s.active!==false;}); fin(); }).catch(function(){ STAFF=[]; fin(); }) : (function(){STAFF=[];fin();})(); }catch(e){ STAFF=[]; fin(); }
+    try{ (TKS.Fleet && TKS.Fleet.list) ? TKS.Fleet.list().then(function(r){ VANS=((r&&r.data)||[]); fin(); }).catch(function(){ VANS=[]; fin(); }) : (function(){VANS=[];fin();})(); }catch(e){ VANS=[]; fin(); }
+    setTimeout(function(){ if(!loaded){ loaded=true; render(); } }, 1600);
+  };
+
+  function render(){ var body=document.getElementById('schBody'); if(!body) return;
+    body.innerHTML=toolbar()+(view==='board'?boardView():view==='month'?monthView():view==='week'?weekView():dayView());
+    wire(body); checkVanFlags();
   }
   function toolbar(){
-    var lbl = mode==='day' ? (DOW[cursor.getDay()]+', '+MON[cursor.getMonth()]+' '+cursor.getDate()+', '+cursor.getFullYear())
-            : mode==='week' ? (function(){var s=startOfWeek(cursor),e=addDays(s,6); return MON[s.getMonth()].slice(0,3)+' '+s.getDate()+' – '+MON[e.getMonth()].slice(0,3)+' '+e.getDate();})()
-            : (MON[cursor.getMonth()]+' '+cursor.getFullYear());
+    var lbl=(view==='board'||view==='day')?(DOW[cursor.getDay()]+', '+MON[cursor.getMonth()]+' '+cursor.getDate())
+      :view==='week'?(function(){var s=startOfWeek(cursor),e=addDays(s,6);return MON[s.getMonth()].slice(0,3)+' '+s.getDate()+' – '+MON[e.getMonth()].slice(0,3)+' '+e.getDate();})()
+      :(MON[cursor.getMonth()]+' '+cursor.getFullYear());
     return '<div class="sch-toolbar">'+
-      '<div class="sch-seg">'+['month','week','day'].map(function(m){return '<button data-mode="'+m+'"'+(mode===m?' class="on"':'')+'>'+m.charAt(0).toUpperCase()+m.slice(1)+'</button>';}).join('')+'</div>'+
+      '<div class="sch-seg">'+[['board','Board'],['day','Day'],['week','Week'],['month','Month']].map(function(m){return '<button data-view="'+m[0]+'"'+(view===m[0]?' class="on"':'')+'>'+m[1]+'</button>';}).join('')+'</div>'+
       '<div class="sch-nav"><button data-nav="-1" title="Previous">‹</button><button class="sch-today" data-today>Today</button><button data-nav="1" title="Next">›</button></div>'+
       '<div class="sch-label">'+esc(lbl)+'</div>'+
       '<button class="sch-new" data-new>+ New job</button>'+
     '</div>';
   }
+
+  // ---------- BOARD (per-tech lanes for the cursor day) ----------
+  function boardView(){
+    var id=iso(cursor), bs=byDate(id), team=teamMembers();
+    var lanes=lane('','Unassigned','', bs.filter(function(b){return !techOf(b);}));
+    team.forEach(function(t){ lanes+=lane(t.user_id, t.name, t.role, bs.filter(function(b){return techOf(b)===t.user_id;})); });
+    return '<div class="sch-board">'+lanes+'</div>'+
+      (team.length?'':'<div class="sch-empty" style="margin-top:8px">No staff roster yet — add your team in Settings → Access. Jobs still show in the Unassigned lane.</div>');
+  }
+  function lane(techId, name, role, list){
+    list=list.slice().sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
+    var cards=list.length?list.map(card).join(''):'<div class="lempty">No jobs</div>';
+    var initials=(name||'?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
+    var av=techId?('<span class="av">'+esc(initials)+'</span>'):'<span class="av" style="background:#9aa1ac">∅</span>';
+    return '<div class="sch-lane'+(techId?'':' unassigned')+'" data-lane="'+esc(techId)+'">'+
+      '<div class="lh">'+av+'<span class="nm">'+esc(name)+'</span>'+(role?'<span class="ro">'+esc(role)+'</span>':'')+'<span class="ct">'+list.length+'</span></div>'+
+      cards+'</div>';
+  }
+  function card(b){
+    var k=stKey(b.status);
+    return '<div class="sch-card '+stCls(b.status)+'" data-open="'+esc(b.id)+'"'+(canReassign()?' draggable="true"':'')+'>'+
+      '<div class="ct"><span class="dot"></span><span class="tm">'+esc(fmtTime(b.time)||'—')+'</span></div>'+
+      '<div class="cn">'+jobIcon(b)+' '+esc(custName(b))+'</div>'+
+      '<div class="cm">'+esc(typeWord(b))+(vehStr(b)?(' · '+esc(vehStr(b))):'')+'</div>'+
+      (addrStr(b)?('<div class="cm">'+esc(addrStr(b))+'</div>'):'')+
+      '<div class="cf"><span class="pill">'+esc(stLabel(k))+'</span>'+
+        (navUrl(b)?('<a class="nav" href="'+esc(navUrl(b))+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">📍 Navigate</a>'):'')+
+        '<span class="warn" data-vanflag="'+esc(b.id)+'"></span></div>'+
+    '</div>';
+  }
+  function canReassign(){ return isManager(); }   // job_staff update = manager+ (server-enforced)
+
+  // ---------- CALENDAR (month / week / day) ----------
+  function chip(b){ return '<div class="sch-chip '+stCls(b.status)+'" data-open="'+esc(b.id)+'"'+(canReassign()?' draggable="true"':'')+'><span class="dot"></span>'+esc(fmtTime(b.time))+' '+esc(custName(b))+'</div>'; }
   function monthView(){
-    var first=new Date(cursor.getFullYear(),cursor.getMonth(),1);
-    var g=startOfWeek(first), html='<div class="sch-dow">'+DOW.map(function(d){return '<span>'+d+'</span>';}).join('')+'</div><div class="sch-grid">';
-    for(var i=0;i<42;i++){
-      var d=addDays(g,i), id=iso(d), oth=d.getMonth()!==cursor.getMonth(), today=id===todayISO(), bs=byDate(id);
-      var chips=bs.slice(0,3).map(function(b){return '<div class="sch-chip '+stCls(b.status)+'" data-open="'+esc(b.id)+'">'+esc(fmtTime(b.time))+' '+esc(custName(b))+'</div>';}).join('');
-      var more=bs.length>3?'<div class="sch-more">+'+(bs.length-3)+' more</div>':'';
-      html+='<div class="sch-cell'+(oth?' oth':'')+(today?' today':'')+'" data-day="'+id+'"><div class="dn">'+d.getDate()+'</div>'+chips+more+'</div>';
-    }
+    var first=new Date(cursor.getFullYear(),cursor.getMonth(),1), g=startOfWeek(first);
+    var html='<div class="sch-dow">'+DOW.map(function(d){return '<span>'+d+'</span>';}).join('')+'</div><div class="sch-grid">';
+    for(var i=0;i<42;i++){ var d=addDays(g,i), id=iso(d), oth=d.getMonth()!==cursor.getMonth(), today=id===todayISO(), bs=byDate(id);
+      var chips=bs.slice(0,3).map(chip).join(''); var more=bs.length>3?'<div class="sch-more">+'+(bs.length-3)+' more</div>':'';
+      html+='<div class="sch-cell'+(oth?' oth':'')+(today?' today':'')+'" data-day="'+id+'" data-drop="day"><div class="dn">'+d.getDate()+'</div>'+chips+more+'</div>'; }
     return html+'</div>';
   }
   function weekView(){
     var s=startOfWeek(cursor), html='<div class="sch-week">';
-    for(var i=0;i<7;i++){
-      var d=addDays(s,i), id=iso(d), today=id===todayISO(), bs=byDate(id);
-      var items=bs.length?bs.map(function(b){return '<div class="sch-chip '+stCls(b.status)+'" data-open="'+esc(b.id)+'">'+esc(fmtTime(b.time))+' '+esc(custName(b))+'</div>';}).join(''):'<div class="sch-more">—</div>';
-      html+='<div class="sch-wcol"><h4'+(today?' class="today"':'')+'>'+DOW[d.getDay()]+' '+d.getDate()+'</h4><div data-day="'+id+'" style="cursor:pointer;display:flex;flex-direction:column;gap:4px;flex:1">'+items+'</div></div>';
-    }
+    for(var i=0;i<7;i++){ var d=addDays(s,i), id=iso(d), today=id===todayISO(), bs=byDate(id);
+      var items=bs.length?bs.map(chip).join(''):'<div class="sch-more">—</div>';
+      html+='<div class="sch-wcol"><h4'+(today?' class="today"':'')+'>'+DOW[d.getDay()]+' '+d.getDate()+'</h4><div data-day="'+id+'" data-drop="day" style="display:flex;flex-direction:column;gap:4px;flex:1;cursor:pointer">'+items+'</div></div>'; }
     return html+'</div>';
   }
   function dayView(){
     var id=iso(cursor), bs=byDate(id);
-    if(!bs.length) return '<div class="sch-empty">No jobs scheduled for this day.<br><br><button class="sch-new" data-new style="margin:0">+ New job</button></div>';
-    return '<div class="sch-day">'+bs.map(function(b){
-      return '<div class="sch-item '+stCls(b.status)+'" data-open="'+esc(b.id)+'"><div class="tm">'+esc(fmtTime(b.time)||'—')+'</div>'+
-        '<div class="bd"><div class="nm">'+jobIcon(b)+' '+esc(custName(b))+'</div><div class="mt">'+esc(jobText(b)||'—')+'</div></div>'+
-        '<span class="sch-badge">'+esc(b.status||'Scheduled')+'</span></div>';
-    }).join('')+'</div>';
+    if(!bs.length) return '<div class="sch-empty">No jobs for this day.<br><br><button class="sch-new" data-new style="margin:0">+ New job</button></div>';
+    return '<div class="sch-day">'+bs.map(card).join('')+'</div>';
   }
+
   function wire(body){
-    body.querySelectorAll('[data-mode]').forEach(function(b){b.onclick=function(){mode=b.dataset.mode;render();};});
-    body.querySelectorAll('[data-nav]').forEach(function(b){b.onclick=function(){var n=+b.dataset.nav; cursor=mode==='month'?addMonths(cursor,n):addDays(cursor,mode==='week'?7*n:n); render();};});
+    body.querySelectorAll('[data-view]').forEach(function(b){b.onclick=function(){view=b.dataset.view;render();};});
+    body.querySelectorAll('[data-nav]').forEach(function(b){b.onclick=function(){var n=+b.dataset.nav; cursor=view==='month'?addMonths(cursor,n):addDays(cursor,view==='week'?7*n:n); render();};});
     var t=body.querySelector('[data-today]'); if(t)t.onclick=function(){cursor=new Date();cursor.setHours(0,0,0,0);render();};
-    body.querySelectorAll('[data-new]').forEach(function(b){b.onclick=newJob;});
-    body.querySelectorAll('[data-open]').forEach(function(b){b.onclick=function(e){e.stopPropagation();openDetail(b.dataset.open);};});
-    body.querySelectorAll('[data-day]').forEach(function(c){c.onclick=function(){cursor=fromISO(c.dataset.day);mode='day';render();};});
+    body.querySelectorAll('[data-new]').forEach(function(b){b.onclick=function(){openForm(null, iso(cursor));};});
+    body.querySelectorAll('[data-open]').forEach(function(el){ el.onclick=function(e){ if(el.classList.contains('dragging'))return; e.stopPropagation(); var b=TKS.Bookings.get(el.dataset.open); if(b) openForm(b); }; });
+    body.querySelectorAll('[data-day]').forEach(function(c){ c.onclick=function(e){ if(e.target.closest('[data-open]'))return; cursor=fromISO(c.dataset.day); view='day'; render(); }; });
+    // DRAG layer: cards/chips are draggable (manager+); board lanes reassign, calendar days reschedule.
+    body.querySelectorAll('[data-open][draggable="true"]').forEach(function(el){
+      el.addEventListener('dragstart',function(e){ dragId=el.dataset.open; el.classList.add('dragging'); try{e.dataTransfer.setData('text/plain',dragId);e.dataTransfer.effectAllowed='move';}catch(_){} });
+      el.addEventListener('dragend',function(){ el.classList.remove('dragging'); dragId=null; });
+    });
+    body.querySelectorAll('.sch-lane').forEach(function(ln){
+      ln.addEventListener('dragover',function(e){ e.preventDefault(); ln.classList.add('dragover'); });
+      ln.addEventListener('dragleave',function(){ ln.classList.remove('dragover'); });
+      ln.addEventListener('drop',function(e){ e.preventDefault(); ln.classList.remove('dragover'); if(dragId) reassign(dragId, ln.dataset.lane||''); });
+    });
+    body.querySelectorAll('[data-drop="day"]').forEach(function(cell){
+      cell.addEventListener('dragover',function(e){ e.preventDefault(); cell.classList.add('dragover'); });
+      cell.addEventListener('dragleave',function(){ cell.classList.remove('dragover'); });
+      cell.addEventListener('drop',function(e){ e.preventDefault(); cell.classList.remove('dragover'); if(dragId){ var b=TKS.Bookings.get(dragId); if(b && b.date!==cell.dataset.day) reschedule(dragId, cell.dataset.day, b.time); } });
+    });
   }
-  function newJob(){
-    try{ if(window.openEmbed && !(window.isPhoneView&&window.isPhoneView())){ openEmbed('scheduler.html'); return; } }catch(e){}
-    location.href='scheduler.html';
+
+  // ---------- async: flag parts not on the assigned tech's van (cloud only) ----------
+  function checkVanFlags(){
+    if(!signedIn() || !(TKS.Jobs&&TKS.Jobs.parts) || !(TKS.InvOps&&TKS.InvOps.locations)) return;
+    document.querySelectorAll('#view-schedule [data-vanflag]').forEach(function(el){
+      var id=el.dataset.vanflag, b=TKS.Bookings.get(id); if(!b) return;
+      var m=memberById(techOf(b)); var van=m&&m.home_van_id; if(!van) return;
+      TKS.Jobs.parts(id).then(function(r){ var parts=((r&&r.data)||[]).filter(function(p){return p.item_id;}); if(!parts.length) return;
+        var miss=0, n=0; parts.forEach(function(p){ TKS.InvOps.locations(p.item_id).then(function(lr){ n++; var locs=(lr&&lr.data)||[]; var on=locs.find(function(l){return l.location==='van:'+van && (l.qty||0)>0;}); if(!on)miss++; if(n===parts.length && miss){ el.textContent='⚠ '+miss+' part'+(miss>1?'s':'')+' not on van'; } }).catch(function(){}); });
+      }).catch(function(){});
+    });
   }
-  function openDetail(id){
-    var b=TKS.Bookings.get(id); if(!b) return;
-    var STAT=(TKS.Bookings.STATUSES||['Scheduled','In Progress','Completed','Rescheduled','Canceled']);
-    var sel=b.status||'Scheduled', veh=b.vehicle||{};
+
+  // ---------- actions (server-correct; drag + buttons both call these) ----------
+  function reassign(jobId, techId){
+    if(!canReassign()){ toast('Only a manager can reassign jobs.'); return; }
+    var b=TKS.Bookings.get(jobId); if(!b) return;
+    if(techId){ var t=memberById(techId); b.technician=t?t.name:''; b.technicianId=(String(techId).indexOf('name:')===0)?null:techId; }
+    else { b.technician=''; b.technicianId=null; }
+    try{ TKS.Bookings.save(b); }catch(e){}
+    if(signedIn() && b.technicianId && TKS.Jobs && TKS.Jobs.assign){ TKS.Jobs.assign(jobId, b.technicianId, 'lead').then(function(res){ if(res&&res.error) toast(res.error.message); }).catch(function(e){ toast((e&&e.message)||'Reassign blocked'); }); }
+    render();
+  }
+  function reschedule(jobId, newDate, newTime){
+    reasonModal({title:'Reschedule job', reasons:false, confirm:'Reschedule'}, function(reason, note){
+      var b=TKS.Bookings.get(jobId); if(!b) return;
+      if(newDate) b.date=newDate; if(typeof newTime!=='undefined' && newTime!==null) b.time=newTime;
+      b.status='Rescheduled'; b.needsManagerSignoff=true; b.signoffReason='Rescheduled';
+      if(note) b.notes=((b.notes||'')+'\n[reschedule] '+note).trim();
+      try{ TKS.Bookings.save(b); }catch(e){}
+      if(signedIn() && TKS.Jobs && TKS.Jobs.setStatus){ TKS.Jobs.setStatus(jobId,'scheduled').catch(function(){}); }
+      render();
+    });
+  }
+  function doCancel(jobId){
+    reasonModal({title:'Cancel job', reasons:true, confirm:'Cancel job'}, function(reason, note){
+      var b=TKS.Bookings.get(jobId); if(!b) return;
+      function localApply(){ b.status='Cancelled'; b.needsManagerSignoff=true; b.signoffReason='Canceled: '+reason; if(note||reason) b.notes=((b.notes||'')+'\n[cancel] '+reason+(note?(' — '+note):'')).trim(); try{TKS.Bookings.save(b);}catch(e){} render(); }
+      if(signedIn() && TKS.Jobs && TKS.Jobs.cancel){ TKS.Jobs.cancel(jobId, reason, note).then(function(res){ if(res&&res.error){ toast(res.error.message); return; } localApply(); }).catch(function(e){ toast((e&&e.message)||'Cancel blocked'); }); }
+      else localApply();
+    });
+  }
+  function doStatus(jobId, key, after){
+    if(key==='canceled'){ doCancel(jobId); return; }
+    var b=TKS.Bookings.get(jobId); if(!b) return;
+    function localApply(){ b.status=stLabel(key); try{TKS.Bookings.save(b);}catch(e){} if(after)after(); render(); }
+    if(signedIn() && TKS.Jobs && TKS.Jobs.setStatus){ TKS.Jobs.setStatus(jobId, key).then(function(res){ if(res&&res.error){ toast(res.error.message||'Not allowed'); return; } localApply(); }).catch(function(e){ toast((e&&e.message)||'Status change blocked'); }); }
+    else localApply();
+  }
+
+  // ---------- reason modal (cancel/reschedule) ----------
+  function reasonModal(opts, cb){
     var ov=document.createElement('div'); ov.className='sch-modal';
-    ov.innerHTML='<div class="sheet">'+
-      '<h3>'+esc(custName(b))+'</h3>'+
-      '<div class="meta">'+jobIcon(b)+' '+esc(jobText(b)||'—')+((b.customer&&b.customer.phone)?(' · '+esc(b.customer.phone)):'')+'</div>'+
-      '<label>Status</label><div class="stbtns" id="schSt">'+STAT.map(function(s){return '<button data-s="'+esc(s)+'"'+(s===sel?' class="on"':'')+'>'+esc(s)+'</button>';}).join('')+'</div>'+
-      '<div class="row2"><div><label>Date</label><input type="date" id="schDate" value="'+esc(b.date||'')+'"></div>'+
-        '<div><label>Time</label><input type="time" id="schTime" value="'+esc(b.time||'')+'"></div></div>'+
-      '<label>Customer name</label><input id="schName" value="'+esc(custName(b)==='—'?'':custName(b))+'">'+
-      '<label>Phone</label><input id="schPhone" value="'+esc((b.customer&&b.customer.phone)||'')+'">'+
-      '<label>Address</label><input id="schAddr" value="'+esc(b.address||'')+'">'+
-      '<div class="row2"><div><label>Make</label><input id="schMake" value="'+esc(veh.make||'')+'"></div><div><label>Model</label><input id="schModel" value="'+esc(veh.model||'')+'"></div></div>'+
-      '<div class="msg" id="schMsg"></div>'+
-      '<div class="acts"><button class="btn ghost" id="schDel">Delete</button><button class="btn save" id="schSave">Save</button></div>'+
-    '</div>';
+    ov.innerHTML='<div class="sheet"><h3>'+esc(opts.title)+'</h3>'+
+      '<div class="warn" style="margin:0 0 10px;line-height:1.4">Confirm every part, key, or piece of equipment taken for this job is <b>unused</b> and returned to stock. <b>A manager must sign off</b> before any of it goes back into inventory.</div>'+
+      (opts.reasons?('<label>Reason</label><select id="rmReason">'+CANCEL_REASONS.map(function(r){return '<option>'+esc(r)+'</option>';}).join('')+'</select>'):'')+
+      '<label>Note'+(isOwner()?' (optional)':'')+'</label><textarea id="rmNote" rows="3" style="width:100%;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:10px;padding:9px 11px;font-family:inherit;font-size:15px"></textarea>'+
+      '<div class="msg" id="rmMsg"></div>'+
+      '<div class="acts"><button class="btn ghost" id="rmBack">Back</button><button class="btn save" id="rmOk">'+esc(opts.confirm||'Confirm')+'</button></div></div>';
     document.body.appendChild(ov);
     function close(){ ov.remove(); }
     ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
-    ov.querySelectorAll('#schSt button').forEach(function(btn){ btn.onclick=function(){ sel=btn.dataset.s; ov.querySelectorAll('#schSt button').forEach(function(x){x.classList.toggle('on',x===btn);}); }; });
-    ov.querySelector('#schDel').onclick=function(){
-      function go(){ try{ TKS.Bookings.remove(id); }catch(e){} close(); render(); }
-      if(window.TKS_ACCESS && TKS_ACCESS.confirmDanger){ TKS_ACCESS.confirmDanger({title:'Delete this job?',message:'Remove it from the schedule. This can’t be undone.',confirmLabel:'Delete'}).then(function(ok){ if(ok) go(); }); }
-      else go();
+    ov.querySelector('#rmBack').onclick=close;
+    ov.querySelector('#rmOk').onclick=function(){
+      var note=ov.querySelector('#rmNote').value.trim();
+      var reason=opts.reasons?ov.querySelector('#rmReason').value:'Rescheduled';
+      if(!note && !isOwner()){ ov.querySelector('#rmMsg').textContent='Please add a note (required).'; return; }
+      close(); cb(reason, note);
     };
-    ov.querySelector('#schSave').onclick=function(){
-      var nb=TKS.Bookings.get(id)||b;
-      nb.date=ov.querySelector('#schDate').value||nb.date;
-      nb.time=ov.querySelector('#schTime').value||nb.time;
-      nb.customer=nb.customer||{};
-      var nm=ov.querySelector('#schName').value.trim(); if(nm) nb.customer.name=nm;
-      nb.customer.phone=ov.querySelector('#schPhone').value.trim();
-      nb.address=ov.querySelector('#schAddr').value.trim();
-      nb.vehicle=nb.vehicle||{}; nb.vehicle.make=ov.querySelector('#schMake').value.trim(); nb.vehicle.model=ov.querySelector('#schModel').value.trim();
-      nb.status=sel||nb.status;
-      try{ TKS.Bookings.save(nb); close(); render(); }
-      catch(e){ ov.querySelector('#schMsg').textContent=e.message||'Save failed.'; }
+  }
+
+  // ---------- create / edit job form ----------
+  function openForm(b, presetDate){
+    var isNew=!b; b=b||{};
+    var jt=b.jobType||'auto', sel=stKey(b.status), veh=b.vehicle||{}, cust=b.customer||{}, custId=b.customerId||null;
+    var JT=[['auto','🚗 Auto'],['res','🏠 Residential'],['com','🏢 Commercial']];
+    var ov=document.createElement('div'); ov.className='sch-modal';
+    ov.innerHTML='<div class="sheet">'+
+      '<h3>'+(isNew?'New job':'Edit job')+'</h3>'+
+      '<label>Job type</label><div class="seg2" id="fJt">'+JT.map(function(j){return '<button data-jt="'+j[0]+'"'+(j[0]===jt?' class="on"':'')+'>'+j[1]+'</button>';}).join('')+'</div>'+
+      '<label>Customer</label><div class="vinrow"><input id="fName" placeholder="Customer name" value="'+esc(cust.name||'')+'"><button type="button" id="fPick" title="Pull from customers">👤</button></div>'+
+      '<div class="custlist" id="fCustList" style="display:none"></div>'+
+      '<div class="row2"><div><label>Phone</label><input id="fPhone" value="'+esc(cust.phone||'')+'"></div><div><label>Service / details</label><input id="fSvc" value="'+esc(b.subType||'')+'" placeholder="lockout, AKL, rekey…"></div></div>'+
+      '<div class="row2"><div><label>Date</label><input type="date" id="fDate" value="'+esc(b.date||presetDate||'')+'"></div><div><label>Time</label><input type="time" id="fTime" value="'+esc(b.time||'')+'"></div></div>'+
+      '<label>Address</label><input id="fAddr" value="'+esc(addrStr(b))+'" placeholder="Street, City, ST ZIP">'+
+      '<div id="fVeh"'+(jt==='auto'?'':' style="display:none"')+'>'+
+        '<label>VIN</label><div class="vinrow"><input id="fVin" maxlength="17" style="text-transform:uppercase" value="'+esc(veh.vin||'')+'"><button type="button" id="fVinBtn">Decode</button></div>'+
+        '<div class="row2"><div><label>Year</label><input id="fYear" value="'+esc(veh.year||'')+'"></div><div><label>Make</label><input id="fMake" value="'+esc(veh.make||'')+'"></div></div>'+
+        '<div class="row2"><div><label>Model</label><input id="fModel" value="'+esc(veh.model||'')+'"></div><div><label>Ignition</label><select id="fIgn"><option value="">—</option><option value="push"'+(veh.ignition==='push'?' selected':'')+'>Push-to-start</option><option value="keyed"'+(veh.ignition==='keyed'?' selected':'')+'>Keyed</option></select></div></div>'+
+      '</div>'+
+      '<label>Technician</label><select id="fTech"><option value="">Unassigned</option>'+teamMembers().map(function(t){return '<option value="'+esc(t.user_id)+'"'+(techOf(b)===t.user_id?' selected':'')+'>'+esc(t.name)+(t.role?(' — '+esc(t.role)):'')+'</option>';}).join('')+'</select>'+
+      '<label>Status</label><div class="stbtns" id="fSt">'+STATUSES.map(function(s){return '<button class="'+('st-'+s.k.replace(/_/g,''))+(s.k===sel?' on':'')+'" data-s="'+s.k+'">'+esc(s.L)+'</button>';}).join('')+'</div>'+
+      '<div class="msg" id="fMsg"></div>'+
+      '<div class="acts">'+(isNew?'':'<button class="btn ghost" id="fCancelJob">Cancel job</button>')+'<button class="btn save" id="fSave">'+(isNew?'Create job':'Save changes')+'</button></div>'+
+      (isNew?'':'<div style="text-align:center;margin-top:8px"><a href="#" id="fDelete" class="nav-link" style="color:#c8323c">Delete this job</a></div>')+
+    '</div>';
+    document.body.appendChild(ov);
+    function close(){ ov.remove(); }
+    function q(id){ return ov.querySelector('#'+id); }
+    ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
+    ov.querySelectorAll('#fJt button').forEach(function(btn){ btn.onclick=function(){ jt=btn.dataset.jt; ov.querySelectorAll('#fJt button').forEach(function(x){x.classList.toggle('on',x===btn);}); q('fVeh').style.display=(jt==='auto'?'':'none'); }; });
+    ov.querySelectorAll('#fSt button').forEach(function(btn){ btn.onclick=function(){ sel=btn.dataset.s; ov.querySelectorAll('#fSt button').forEach(function(x){x.classList.toggle('on',x===btn);}); }; });
+    // pull from customers
+    q('fPick').onclick=function(){ var list=q('fCustList'); if(list.style.display!=='none'){ list.style.display='none'; return; }
+      var cs=[]; try{ cs=(TKS.list&&TKS.list('customers'))||[]; }catch(e){}
+      list.innerHTML=cs.length?cs.slice(0,50).map(function(c,i){ return '<div data-ci="'+i+'">'+esc(c.customer||c.name||'—')+(c.phone?(' · '+esc(c.phone)):'')+'</div>'; }).join(''):'<div>No saved customers.</div>';
+      list.style.display='block';
+      list.querySelectorAll('[data-ci]').forEach(function(row){ row.onclick=function(){ var c=cs[+row.dataset.ci]; q('fName').value=c.customer||c.name||''; if(c.phone)q('fPhone').value=c.phone; if(c.address)q('fAddr').value=c.address; custId=c.id||null; list.style.display='none'; }; });
+    };
+    // VIN decode
+    var vb=q('fVinBtn'); if(vb) vb.onclick=function(){ var vin=(q('fVin').value||'').trim().toUpperCase(); if(vin.length!==17){ q('fMsg').textContent='Enter a 17-character VIN.'; return; } q('fMsg').textContent='Decoding…'; try{ TKS.decodeVin(vin).then(function(r){ if(r.year)q('fYear').value=r.year; if(r.make)q('fMake').value=r.make; if(r.model)q('fModel').value=r.model; q('fMsg').textContent='Decoded: '+[r.year,r.make,r.model].filter(Boolean).join(' '); }).catch(function(e){ q('fMsg').textContent=(e&&e.message)||'Could not decode VIN.'; }); }catch(e){ q('fMsg').textContent='VIN decode unavailable.'; } };
+    var del=q('fDelete'); if(del) del.onclick=function(e){ e.preventDefault(); function go(){ try{TKS.Bookings.remove(b.id);}catch(_){ } close(); render(); } if(window.TKS_ACCESS&&TKS_ACCESS.confirmDanger){ TKS_ACCESS.confirmDanger({title:'Delete this job?',message:'Remove it from the schedule.',confirmLabel:'Delete'}).then(function(ok){if(ok)go();}); } else go(); };
+    var cj=q('fCancelJob'); if(cj) cj.onclick=function(){ close(); doCancel(b.id); };
+    q('fSave').onclick=function(){
+      var rec=isNew?{}:(TKS.Bookings.get(b.id)||b);
+      rec.jobType=jt;
+      rec.customer=rec.customer||{}; rec.customer.name=q('fName').value.trim(); rec.customer.phone=q('fPhone').value.trim();
+      if(custId)rec.customerId=custId;
+      rec.subType=q('fSvc').value.trim(); rec.address=q('fAddr').value.trim();
+      if(jt==='auto'){ rec.vehicle={year:q('fYear').value.trim(),make:q('fMake').value.trim(),model:q('fModel').value.trim(),vin:(q('fVin').value||'').trim().toUpperCase(),ignition:(q('fIgn')||{}).value||''}; }
+      var tv=q('fTech').value||'';
+      if(tv){ var t=memberById(tv); rec.technician=t?t.name:''; rec.technicianId=(tv.indexOf('name:')===0)?null:tv; } else { rec.technician=''; rec.technicianId=null; }
+      var newDate=q('fDate').value, newTime=q('fTime').value;
+      if(!rec.customer.name && !newDate){ q('fMsg').textContent='Add at least a customer name and a date.'; return; }
+      if(isNew){ rec.date=newDate; rec.time=newTime; rec.status=stLabel(sel); }
+      else { rec.status=b.status; /* status/date changes handled below via accountable flows */ }
+      try{ TKS.Bookings.save(rec); }catch(e){ q('fMsg').textContent=(e&&e.message)||'Save failed.'; return; }
+      // cloud: assign tech (manager+, server-enforced)
+      if(signedIn() && rec.technicianId && TKS.Jobs && TKS.Jobs.assign){ TKS.Jobs.assign(rec.id||b.id, rec.technicianId, 'lead').catch(function(){}); }
+      var jid=rec.id||b.id;
+      if(!isNew){
+        var stChanged=(sel!==stKey(b.status));
+        var dateChanged=(newDate!==b.date)||(newTime!==b.time);
+        close();
+        if(stChanged){ doStatus(jid, sel); }            // role-enforced (cancel routes to reason)
+        if(dateChanged && sel!=='canceled'){ reschedule(jid, newDate, newTime); return; }  // reason capture
+        render(); return;
+      }
+      close(); render();
     };
   }
 })();
