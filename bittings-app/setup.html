@@ -21,7 +21,7 @@
     background:radial-gradient(1100px 520px at 50% -10%,#ffffff 0%,rgba(255,255,255,0) 60%),linear-gradient(180deg,var(--bg),var(--bg2));
     background-attachment:fixed;color:var(--ink);min-height:100vh;min-height:100dvh;
     padding:calc(12px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));}
-  .wrap{max-width:640px;margin:0 auto;}
+  .wrap{max-width:900px;margin:0 auto;}
   header.app{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
   header.app img{height:32px;width:auto;max-width:120px;object-fit:contain;}
   header.app h1{margin:0;font-size:18px;font-weight:800;}
@@ -100,6 +100,50 @@
   .saved{font-size:12px;color:#7fd49b;min-height:15px;margin-top:6px;}
   .block{max-width:460px;margin:60px auto;text-align:center;color:var(--dim);}
   .block h2{color:var(--ink);}
+  /* ===== Vertical category rail (mirrors the main app's .bt-sidebar) ===== */
+  .setupShell{display:flex;gap:20px;align-items:flex-start;}
+  .setupRail{flex:0 0 214px;width:214px;background:var(--card);border:1px solid var(--edge);
+    border-radius:16px;padding:14px 12px;display:flex;flex-direction:column;gap:3px;
+    position:sticky;top:12px;}
+  .railBrand{display:flex;align-items:center;gap:10px;padding:4px 8px 12px;
+    border-bottom:1px solid var(--edge);margin-bottom:8px;}
+  .railBrand img{width:34px;height:34px;border-radius:9px;object-fit:contain;background:#f3f4f6;flex:0 0 auto;}
+  .railTitle{display:flex;flex-direction:column;min-width:0;}
+  .railTitle .rt1{font-weight:800;font-size:15px;line-height:1.15;}
+  .railTitle .rt2{font-size:11px;color:var(--dim);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .railNav{display:flex;flex-direction:column;gap:3px;}
+  .railItem{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;border:none;
+    background:transparent;border-radius:11px;cursor:pointer;text-align:left;color:var(--dim);
+    font-size:14px;font-weight:600;font-family:inherit;min-height:44px;}
+  .railItem .ric{font-size:18px;line-height:1;flex:0 0 auto;filter:grayscale(.35);}
+  .railItem .rlbl{flex:1;min-width:0;}
+  .railItem .rtick{font-size:12px;font-weight:800;flex:0 0 auto;}
+  .railItem .rtick.done{color:var(--green);} .railItem .rtick.skip{color:var(--amber);}
+  .railItem:hover{background:var(--bg2);}
+  .railItem.cur{background:rgba(200,50,60,.12);color:var(--red);font-weight:800;}
+  .railItem.cur .ric{filter:none;}
+  .railLater{align-self:stretch;justify-content:center;margin-top:10px;}
+  .setupBody{flex:1;min-width:0;max-width:600px;}
+  .setupBody .intro{margin-top:2px;}
+  html[data-bt-theme="dark"] .railBrand img{background:#252a32;}
+  html[data-bt-theme="dark"] .railItem:hover{background:rgba(255,255,255,.05);}
+  html[data-bt-theme="dark"] .railItem.cur{background:rgba(200,50,60,.20);}
+  /* Phone: keep the rail VERTICAL on the left, just compact (icon + small label). */
+  @media (max-width:620px){
+    .setupShell{gap:10px;}
+    .setupRail{flex:0 0 64px;width:64px;padding:10px 5px;position:static;border-radius:14px;}
+    .railBrand{flex-direction:column;gap:0;padding:2px 0 8px;}
+    .railBrand .railTitle{display:none;}
+    .railItem{flex-direction:column;gap:3px;padding:8px 2px;text-align:center;line-height:1.12;
+      font-size:9px;font-weight:700;min-height:56px;border-radius:10px;}
+    .railItem .ric{font-size:20px;}
+    .railItem .rlbl{flex:none;width:100%;}
+    .railItem .rtick{display:none;}
+    .railItem.done .rlbl{color:var(--green);}
+    .railItem.skip .rlbl{color:var(--amber);}
+    .railLater{font-size:10px;padding:8px 4px;}
+    .setupBody{max-width:none;}
+  }
   /* Dark-mode fixes for this page's hardcoded light inputs (palette vars from legacy-dark.css;
      html[...] specificity beats the page's own :root). */
   html[data-bt-theme="dark"] input,html[data-bt-theme="dark"] select,html[data-bt-theme="dark"] textarea{background:#2c313a;color:var(--ink);}
@@ -131,16 +175,16 @@ const TAX_CATS = [
   {key:'AfterHours', label:'After-Hours'}
 ];
 const STEPS = [
-  {key:'identity', title:'Business identity'},
-  {key:'tax',      title:'Sales tax'},
-  {key:'payments', title:'Payments'},
-  {key:'access',   title:'Access & managers'},
-  {key:'quicklinks',title:'Quick links'},
-  {key:'servicetypes',title:'Service types'},
-  {key:'services', title:'Services'},
-  {key:'hours',    title:'Hours & footer'},
-  {key:'inventory',title:'Inventory (optional)'},
-  {key:'review',   title:'Review & finish'}
+  {key:'identity',     title:'Business identity',    ic:'🏪'},
+  {key:'tax',          title:'Sales tax',            ic:'💲'},
+  {key:'payments',     title:'Payments',             ic:'💳'},
+  {key:'access',       title:'Access & managers',    ic:'👥'},
+  {key:'quicklinks',   title:'Quick links',          ic:'🔗'},
+  {key:'servicetypes', title:'Service types',        ic:'🗂'},
+  {key:'services',     title:'Services',             ic:'🛠'},
+  {key:'hours',        title:'Hours & footer',       ic:'🕒'},
+  {key:'inventory',    title:'Inventory (optional)', ic:'📦'},
+  {key:'review',       title:'Review & finish',      ic:'✅'}
 ];
 let cur = 0;            // current step index
 let cfg = null;         // working copy of config
@@ -183,28 +227,43 @@ function render(){
   // Show the SHOP's own logo/name here (this is their setup) — never hardcode a shop name.
   const _idy=(function(){ try{ return TKS.Config.identity()||{}; }catch(e){ return {}; } })();
   const _logo=_idy.logo||'tks_logo.png', _bn=(_idy.name||'').trim();
-  let html = '<header class="app"><img src="'+esc(_logo)+'" alt="'+esc(_bn||'logo')+'">'+
-    '<div class="sp"></div><a class="ghost" id="laterBtn" href="#">Finish later</a></header>';
-  html += '<p class="intro">Set up your shop. Every step is optional and saved as you go — you can come back here anytime from the app to edit. Skipped items are listed at the end.</p>';
-  // chips
-  html += '<div class="chips">'+ STEPS.map((s,i)=>{
-    const st = (s.key==='review')?'':status(s.key);
-    return '<div class="chip '+(i===cur?'cur ':'')+st+'" data-i="'+i+'"><span class="st">'+(s.key==='review'?'★':statusIcon(st))+'</span>'+esc(s.title)+'</div>';
-  }).join('') +'</div>';
-  html += '<div class="panel" id="panel"></div>';
+
+  // LEFT RAIL — vertical category list, styled to match the main app's sidebar.
+  let rail = '<aside class="setupRail">'+
+    '<div class="railBrand"><img src="'+esc(_logo)+'" alt="">'+
+      '<div class="railTitle"><span class="rt1">Settings</span><span class="rt2">'+esc(_bn||'Your shop')+'</span></div></div>'+
+    '<nav class="railNav" aria-label="Settings sections">'+
+      STEPS.map((s,i)=>{
+        const st=(s.key==='review')?'':status(s.key);
+        const tick=(s.key==='review')?''
+          :(st==='done'?'<span class="rtick done" title="Done">✓</span>'
+          : st==='skip'?'<span class="rtick skip" title="Skipped">⤼</span>':'');
+        return '<button class="railItem'+(i===cur?' cur':'')+(st?(' '+st):'')+'" data-i="'+i+'"'+
+          (i===cur?' aria-current="step"':'')+'>'+
+          '<span class="ric">'+s.ic+'</span><span class="rlbl">'+esc(s.title)+'</span>'+tick+'</button>';
+      }).join('')+
+    '</nav>'+
+    '<a class="ghost railLater" id="laterBtn" href="#">Finish later</a>'+
+  '</aside>';
+
+  // RIGHT BODY — intro + the active step's panel + the step nav buttons.
+  let body = '<section class="setupBody">'+
+    '<p class="intro">Set up your shop. Every step is optional and saved as you go — come back anytime from the app to edit. Skipped items are listed at the end.</p>'+
+    '<div class="panel" id="panel"></div>';
   if(step.key!=='review'){
-    html += '<div class="nav">'+
+    body += '<div class="nav">'+
       (cur>0?'<button class="btn back" id="backBtn">‹ Back</button>':'')+
       '<button class="btn skip" id="skipBtn">Skip</button>'+
       '<button class="btn save" id="saveBtn">Save &amp; continue ›</button></div>';
   } else {
-    html += '<div class="nav">'+
+    body += '<div class="nav">'+
       '<button class="btn back" id="backBtn">‹ Back</button>'+
       '<button class="btn save" id="finishBtn">Finish setup ✓</button></div>';
   }
-  html += '<div class="saved" id="saved"></div>';
-  wrap.innerHTML = html;
-  wrap.querySelectorAll('.chip').forEach(c=> c.onclick=()=>{ persistCurrent(); cur=+c.dataset.i; render(); });
+  body += '<div class="saved" id="saved"></div></section>';
+
+  wrap.innerHTML = '<div class="setupShell">'+rail+body+'</div>';
+  wrap.querySelectorAll('.railItem').forEach(c=> c.onclick=()=>{ persistCurrent(); cur=+c.dataset.i; render(); });
   document.getElementById('laterBtn').onclick=(e)=>{ e.preventDefault(); finishLater(); };
   const bk=document.getElementById('backBtn'); if(bk) bk.onclick=()=>{ persistCurrent(); cur=Math.max(0,cur-1); render(); };
   const sk=document.getElementById('skipBtn'); if(sk) sk.onclick=()=> skipStep();
@@ -252,6 +311,9 @@ function renderPanel(key){
         '<label>Standard warranty (months)</label><input id="f_warrantyMonths" type="number" min="0" step="1" inputmode="numeric" value="'+(war.months!=null?war.months:6)+'" placeholder="6">'+
         '<div class="hint">The warranty you stand behind on labor/parts — e.g. a <b>6-month</b> standard warranty. New receipts &amp; invoices show a pill counting down the days until it expires. Set <b>0</b> to turn warranties off.</div>'+
         '<label class="toggle"><input type="checkbox" id="f_warrantyDefault" '+(war.defaultOn?'checked':'')+'> Add the warranty to new documents by default</label>'; })()+
+      (function(){ var n=cfg.nastf||{d1Days:5}; return ''+
+        '<label>NASTF D1 filing window (days)</label><input id="f_d1Days" type="number" min="1" step="1" inputmode="numeric" value="'+(n.d1Days!=null?n.d1Days:5)+'" placeholder="5">'+
+        '<div class="hint">When a job is tagged <b>NASTF</b> (on the register or Start-a-Job) Bittings starts a D1-filing countdown and shows a color-degrading badge (green → yellow → orange → red → overdue). Default <b>5 days</b>. You still file the actual D1 on the NASTF website — this only tracks the deadline.</div>'; })()+
       '<div class="note"><b>Stripe keys — never typed into this page.</b> Your <b>secret key</b> lives only as a Supabase Edge Function secret (<code>STRIPE_SECRET_KEY</code>) — set it in the Supabase dashboard, never here. Your <b>publishable key</b> (<code>pk_…</code>) is entered once on the Pay screen when you take a typed-card payment. This keeps you PCI-safe (no card data or secret ever touches the app).</div>';
   }
   else if(key==='access'){
@@ -307,7 +369,21 @@ function renderPanel(key){
     renderReview(p);
   }
 }
-function appAlertLite(t,m){ alert(t+(m?('\n\n'+m):'')); }
+function appAlertLite(t,m){
+  function _e(s){ return String(s==null?'':s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(6,8,11,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML='<div style="background:var(--card);color:var(--ink);width:100%;max-width:400px;border-radius:16px;border:1px solid var(--edge);padding:18px;">'+
+    '<div style="font-weight:800;font-size:16px;margin-bottom:'+(m?'8px':'16px')+'">'+_e(t)+'</div>'+
+    (m?('<div style="font-size:14px;color:var(--dim);line-height:1.5;margin-bottom:16px">'+_e(m)+'</div>'):'')+
+    '<div style="display:flex;justify-content:flex-end"><button type="button" id="_alOk" style="background:var(--amber,#e08a2a);color:#fff;border:none;border-radius:10px;padding:11px 18px;font-weight:800;font-size:14px;cursor:pointer;min-width:96px;min-height:42px">OK</button></div></div>';
+  document.body.appendChild(ov);
+  function close(){ if(ov.parentNode) ov.remove(); document.removeEventListener('keydown',onkey); }
+  function onkey(e){ if(e.key==='Escape'||e.key==='Enter') close(); }
+  ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
+  ov.querySelector('#_alOk').onclick=close;
+  document.addEventListener('keydown',onkey);
+}
 
 function renderQuickLinks(){
   const el=document.getElementById('qlEditor'); if(!el) return;
@@ -464,7 +540,8 @@ function gather(key){
   else if(key==='payments'){ const s=g('f_surcharge'); cfg.payments.surchargePct=s!==''?(parseFloat(s)||0):2;
     const fl=g('f_float'); cfg.payments.drawerFloatCents=fl!==''?Math.max(0,Math.round((parseFloat(fl)||0)*100)):12000;
     if(!cfg.warranty) cfg.warranty={}; const wm=g('f_warrantyMonths'); cfg.warranty.months=wm!==''?Math.max(0,parseInt(wm,10)||0):6;
-    const wd=document.getElementById('f_warrantyDefault'); cfg.warranty.defaultOn=!!(wd&&wd.checked); }
+    const wd=document.getElementById('f_warrantyDefault'); cfg.warranty.defaultOn=!!(wd&&wd.checked);
+    if(!cfg.nastf) cfg.nastf={}; const dd=g('f_d1Days'); cfg.nastf.d1Days=(dd!==''&&parseInt(dd,10)>=1)?parseInt(dd,10):5; }
   else if(key==='access'){
     const emps=(cfg.access.employees||[]).filter(e=>(e.name||'').trim()||(e.email||'').trim());
     cfg.access.employees=emps;

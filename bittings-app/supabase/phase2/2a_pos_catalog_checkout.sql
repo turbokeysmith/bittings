@@ -19,6 +19,13 @@
 --       staff at the register (setting the missing price, not changing one).
 --       Verified: tech prices unpriced PASS · tech changes set price BLOCKED ·
 --       manager changes set price PASS.
+--   • phase2_2a_pos_checkout_vehicle / _nastf — stores the automotive vehicle +
+--       the NASTF tag + D1 deadline on the receipt (see 2e_nastf_d1_tracking.sql).
+--   • phase2_pos_checkout_other_lines — the else (custom/"Other", unlisted) branch
+--       no longer manager-gates: ANY staff may add a custom-priced line (setting a
+--       price for an unlisted item; needs priceCents>0; honors lineType). Discounts
+--       + changing a SET catalog price stay manager-only. Verified: tech adds Other
+--       service + Other part PASS.
 -- ============================================================================
 
 alter table public.inventory add column if not exists sell_price_cents integer;

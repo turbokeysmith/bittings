@@ -75,6 +75,17 @@
 
   // Day closeout: transactions in [fromISO, toISO). Reads as the signed-in staff.
   window.TKPay.dayTransactions = async function(fromISO, toISO){
+    // Demo mode: serve seeded local transactions (set by START-DEMO.html) so Reports,
+    // Transaction History and Closeout populate offline without a cloud connection.
+    // Production never sets tks_demo_mode, so this is inert there.
+    try{
+      if(localStorage.getItem("tks_demo_mode")==="1"){
+        var all=JSON.parse(localStorage.getItem("tks_demo_txns")||"[]");
+        var rows=all.filter(function(t){ return t.created_at>=fromISO && t.created_at<toISO; })
+                    .sort(function(a,b){ return a.created_at<b.created_at?1:-1; });
+        return { rows: rows };
+      }
+    }catch(e){}
     const c=client(); if(!c) return { error:"not connected" };
     const q=await c.from("payment_transactions").select("*").gte("created_at", fromISO).lt("created_at", toISO).order("created_at", { ascending:false });
     return q.error ? { error:q.error.message } : { rows:q.data||[] };

@@ -90,7 +90,7 @@
   .view.active{display:block;animation:fade .25s ease;}
   @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
-  .bar{display:flex;gap:10px;margin-bottom:14px;}
+  .bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
   .search{flex:1;background:var(--card);border:1px solid var(--edge);border-radius:12px;padding:12px 14px;
     color:var(--ink);font-size:15px;outline:none;}
   .add{background:linear-gradient(180deg,var(--red),var(--red-deep));border:none;color:#fff;border-radius:12px;
@@ -208,13 +208,27 @@
   .chg-modal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:16px;color:var(--ink);}
   .chg-modal-x{background:none;border:none;font-size:24px;line-height:1;color:var(--dim);cursor:pointer;padding:0 4px;}
   .chg-modal input{width:100%;background:var(--bg);border:1px solid var(--edge);border-radius:10px;padding:10px 11px;color:var(--ink);font-size:16px;}
+  .chg-modal select,.chg-modal textarea{width:100%;background:var(--bg);border:1px solid var(--edge);border-radius:10px;padding:10px 11px;color:var(--ink);font-size:16px;}
+  /* shared themed prompt/confirm bits (uiPrompt/uiConfirm/uiModal) */
+  .chg-modal .ui-l{display:block;font-size:13px;color:var(--dim);margin-bottom:6px;font-weight:600;}
+  .chg-modal .ui-l+input,.chg-modal .ui-l+select{margin-bottom:2px;}
+  .chg-modal .ui-help{font-size:12px;color:var(--dim);margin-top:8px;line-height:1.45;}
+  .chg-modal .ui-msg{font-size:14px;color:var(--ink);line-height:1.5;}
+  .chg-modal .ui-row{display:flex;gap:8px;}
+  .ui-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;}
+  .ui-actions .btn{min-width:96px;min-height:42px;}
+  .ui-check{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:12.5px;color:var(--dim);cursor:pointer;user-select:none;}
+  .ui-check input{width:18px;height:18px;flex:0 0 auto;}
+  .btn.danger{background:#c8323c;color:#fff;border-color:#c8323c;}
   .chg-cplist{margin-top:8px;max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:6px;}
   .chg-cprow{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;width:100%;background:var(--bg);border:1px solid var(--edge);border-radius:10px;padding:9px 11px;cursor:pointer;min-height:44px;}
   .chg-cprow:hover{border-color:#4aa3ff;} .chg-cprow b{font-size:14px;color:var(--ink);font-weight:700;} .chg-cprow span{font-size:12px;color:var(--dim);}
+  .chg-cpother{background:rgba(42,125,225,.08);border-color:#2a7de1;border-style:dashed;} .chg-cpother b{color:#2a7de1;}
   .chg-cpempty{font-size:13px;color:var(--dim);padding:10px 2px;}
   /* POS register ticket */
   .pos-ticket{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
-  .pos-empty{font-size:13px;color:var(--dim);padding:12px 2px;text-align:center;border:1px dashed var(--edge);border-radius:10px;}
+  .pos-empty{font-size:13.5px;color:#5a616c;padding:18px 14px;text-align:center;background:#fff;border:1px solid #e6e9ee;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.06);}
+  .pos-empty b{color:#14171b;}
   .pos-line{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--edge);border-radius:10px;padding:8px 10px;}
   .pos-line .pl-info{flex:1;min-width:0;}
   .pos-line .pl-name{font-size:14px;color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -229,19 +243,24 @@
   .pos-meta label{font-size:11px;color:var(--dim);display:block;margin-bottom:2px;}
   .pos-meta select{width:100%;}
   /* register grid (cash-register look) */
-  .pos-grid{width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid var(--edge);border-radius:10px;overflow:hidden;}
-  .pos-grid thead th{background:var(--bg2);color:var(--dim);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;text-align:left;padding:7px 8px;}
+  /* Register ticket = a white "spreadsheet" with black text, independent of the app theme. */
+  .pos-grid{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:13.5px;}
+  .pos-grid thead th{background:#eef1f5;color:#5a6470;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;text-align:left;padding:8px 10px;border-bottom:1px solid #d7dbe0;}
   .pos-grid th:nth-child(4),.pos-grid th:nth-child(5),.pos-grid th:nth-child(6){text-align:right;}
-  .pos-grid td{padding:8px;border-top:1px solid var(--edge);color:var(--ink);vertical-align:middle;}
-  .pos-grid .pl-ln{color:var(--dim);width:22px;}
-  .pos-grid .pl-sku{color:var(--dim);font-size:11.5px;white-space:nowrap;}
-  .pos-grid .pl-desc{font-weight:600;}
-  .pos-grid .pl-price,.pos-grid .pl-tot{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .pos-grid tbody tr{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.18);}
+  .pos-grid tbody td{padding:10px;color:#111;vertical-align:middle;border-top:1px solid #e6e9ee;border-bottom:1px solid #e6e9ee;}
+  .pos-grid tbody td:first-child{border-left:1px solid #e6e9ee;border-top-left-radius:8px;border-bottom-left-radius:8px;}
+  .pos-grid tbody td:last-child{border-right:1px solid #e6e9ee;border-top-right-radius:8px;border-bottom-right-radius:8px;}
+  .pos-grid .pl-ln{color:#8a9099;width:22px;}
+  .pos-grid .pl-sku{color:#6b7280;font-size:11.5px;white-space:nowrap;}
+  .pos-grid .pl-desc{font-weight:600;color:#111;}
+  .pos-grid .pl-price,.pos-grid .pl-tot{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:#111;}
   .pos-grid .pl-tot{font-weight:800;}
   .pos-grid .pl-qty{display:flex;align-items:center;gap:3px;justify-content:flex-end;}
-  .pos-grid .pl-qty button{width:24px;height:24px;border:1px solid var(--edge);background:var(--card);color:var(--ink);border-radius:6px;font-size:15px;line-height:1;cursor:pointer;}
-  .pos-grid .pl-qty span{min-width:16px;text-align:center;font-weight:700;}
+  .pos-grid .pl-qty button{width:24px;height:24px;border:1px solid #c7ccd3;background:#fff;color:#111;border-radius:6px;font-size:15px;line-height:1;cursor:pointer;}
+  .pos-grid .pl-qty span{min-width:16px;text-align:center;font-weight:700;color:#111;}
   .pos-grid .pl-x{background:none;border:none;color:#c8323c;font-size:17px;cursor:pointer;padding:0 2px;}
+  .pos-grid tr.discount td{background:#f1faf3;}
   .pos-grid tr.discount .pl-tot{color:#1c7d3e;}
   @media (max-width:560px){ .pos-grid .pl-sku,.pos-grid th:nth-child(2){display:none;} }
   .pos-profit{display:flex;gap:14px;justify-content:flex-end;font-size:12px;color:var(--dim);margin:6px 2px 0;}
@@ -271,8 +290,30 @@
     .pos-totline.pos-grand{font-size:24px;}
   }
   @media (max-width:560px){ .pos-funcs{grid-template-columns:repeat(2,1fr);} }
-  /* Register is a DESKTOP cash-register only — on phones, payments go through Start-a-job / Receipts */
+  /* Register is a DESKTOP cash-register only; Start-a-job is the MOBILE payment path. One per device, no double-up. */
   @media (max-width:720px){ .pos-desktop-only{display:none !important;} }
+  @media (min-width:721px){ .pos-mobile-only{display:none !important;} }
+  /* register job-type toggle + vehicle capture (automotive) */
+  .pos-jobtype{display:flex;gap:8px;margin-bottom:10px;}
+  .pos-jobtype button{flex:1;border:1px solid #cfd4da;background:#fff;color:#333;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;}
+  .pos-jobtype button.on{background:#2a7de1;color:#fff;border-color:#2a7de1;}
+  .pos-vehicle{background:#fff;border:1px solid #d7dbe0;border-radius:12px;padding:10px 12px;margin-bottom:10px;}
+  .pos-veh-row{display:flex;gap:8px;}
+  .pos-veh-row input{flex:1;background:#fff;border:1px solid #c7ccd3;border-radius:9px;padding:9px 11px;color:#111;font-size:15px;}
+  .pos-veh-row .ghostbtn{background:#f3f4f6;border:1px solid #c7ccd3;color:#1f6fd6;}
+  .pos-veh-ymm{display:grid;grid-template-columns:auto 1fr 1fr;gap:8px;margin-top:8px;}
+  .pos-veh-ymm select{background:#fff;border:1px solid #c7ccd3;border-radius:9px;padding:9px;color:#111;font-size:14px;min-width:0;}
+  .pos-veh-note{font-size:12px;color:#666;margin-top:6px;min-height:14px;}
+  .pos-nastf{margin-top:10px;padding-top:10px;border-top:1px dashed #d7dbe0;}
+  .pos-nastf-lbl{font-size:12.5px;font-weight:700;color:#222;margin-bottom:6px;}
+  .pos-nastf-lbl span{font-weight:400;color:#777;}
+  .pos-nastf-seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .pos-nastf-seg button{border:1px solid #cfd4da;background:#fff;color:#333;border-radius:8px;padding:8px 6px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .pos-nastf-seg button.on{background:#6b8cff;color:#fff;border-color:#6b8cff;}
+  .pos-nastf-badge{margin-top:8px;min-height:0;}
+  .pos-nastf-badge:not(:empty){min-height:22px;}
+  @media (max-width:560px){ .pos-nastf-seg{grid-template-columns:repeat(2,1fr);} }
+  @keyframes d1pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
   .pay-secret-note{background:rgba(242,180,58,.10);border:1px dashed rgba(242,180,58,.45);border-radius:11px;
     padding:12px 14px;font-size:12.5px;line-height:1.5;color:var(--dim);margin:6px 0 2px;}
   .pay-secret-note b{color:#f2d18a;}
@@ -315,6 +356,11 @@
   .search,.form input,.form textarea{font-size:16px;}   /* prevent iOS zoom-on-focus */
   .qbtn{width:40px;height:40px;}                          /* ≥40px tap target */
   .crow .sub{overflow-wrap:anywhere;}
+  /* phones: the toolbar search takes its own row; action buttons wrap below and share the width */
+  @media (max-width:600px){
+    .bar .search{flex:1 1 100%;}
+    .bar .add{flex:1 1 auto;text-align:center;padding:0 12px;min-height:44px;}
+  }
   /* Customer Job history (read-only) */
   .cust-history{margin-top:18px;}
   .cust-history .hist-h{font-size:13px;font-weight:800;letter-spacing:.3px;color:var(--muted,#9aa3af);
@@ -399,6 +445,7 @@
   }
   [data-bt-theme="dark"] #view-dashboard .dash{
     --ds-card:#1f232a; --ds-sunk:#11141a; --ds-bd:#2c313a; --ds-ink:#f4f5f7; --ds-2:#9aa1ac; --ds-3:#5a616c;
+    background:#14171b;   /* the base rule hardcodes a light panel bg — flip it for dark */
   }
   /* hardcoded light surfaces → dark equivalents */
   [data-bt-theme="dark"] .ll-sheet{background:var(--card);}
@@ -440,6 +487,11 @@
   body.bt{padding:0;}
   .bt .wrap{max-width:760px;}
   .moveloc{flex:0 0 auto;align-self:center;background:rgba(20,23,27,.05);border:1px solid var(--edge);color:var(--dim);border-radius:9px;padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;min-height:40px;}
+  /* stock-by-location modal: themed, constrained selects + a move grid that stacks on phones */
+  #stkCard select,#stkCard input{width:100%;min-width:0;max-width:100%;background:var(--card);border:1px solid var(--edge);border-radius:9px;padding:9px 10px;color:var(--ink);font-size:15px;box-sizing:border-box;}
+  .mv-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:end;}
+  .mv-grid select{width:100%;min-width:0;}
+  @media (max-width:480px){ .mv-grid{grid-template-columns:1fr;} .mv-grid .mv-arrow{display:none;} }
   .moveloc:active{transform:scale(.96);}
   .bt-navhead{font-size:8px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--text-tertiary);padding:16px 14px 6px;}
   /* Sidebar footer: Settings + who's signed in + cloud status, sitting above the theme toggle. */
@@ -501,9 +553,9 @@
     </div>
     <nav class="bt-nav">
       <button class="bt-nav__item pos-desktop-only" data-go="payments"><span class="bt-nav__ic">💳</span>Register</button>
-      <button class="bt-nav__item" data-go="startjob"><span class="bt-nav__ic">🔑</span>Start a job</button>
+      <button class="bt-nav__item pos-mobile-only" data-go="startjob"><span class="bt-nav__ic">🔑</span>Start a job</button>
       <button class="bt-nav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
-      <button class="bt-nav__item" data-embed="bittings.html"><span class="bt-nav__ic">🧾</span>Receipts &amp; NASTF</button>
+      <button class="bt-nav__item" data-embed="bittings.html?receipts=1"><span class="bt-nav__ic">🧾</span>Receipts</button>
       <button class="bt-nav__item" data-embed="scheduler.html"><span class="bt-nav__ic">📅</span>Scheduler</button>
       <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Commission</button>
       <button class="bt-nav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Inventory</button>
@@ -646,6 +698,32 @@
     <div class="pay-banner" id="chgBanner"></div>
     <div class="note" id="chgGate" style="display:none"></div>
     <div class="form pos-form" id="chgForm">
+      <div class="pos-jobtype" id="posJobType">
+        <button type="button" data-jt="automotive" class="on">🚗 Automotive</button>
+        <button type="button" data-jt="other">🏠 Residential / Commercial</button>
+      </div>
+      <div class="pos-vehicle" id="posVehicle">
+        <div class="pos-veh-row">
+          <input id="posVin" placeholder="17-character VIN" maxlength="17" autocomplete="off" style="text-transform:uppercase">
+          <button type="button" class="btn ghostbtn" id="posVinBtn">🔎 Decode VIN</button>
+        </div>
+        <div class="pos-veh-ymm">
+          <select id="posYear" aria-label="Year"></select>
+          <select id="posMake" aria-label="Make"></select>
+          <select id="posModel" aria-label="Model"></select>
+        </div>
+        <div class="pos-veh-note" id="posVehNote"></div>
+        <div class="pos-nastf" id="posNastfWrap">
+          <div class="pos-nastf-lbl">NASTF security job? <span>— starts the D1 filing clock</span></div>
+          <div class="pos-nastf-seg" id="posNastfSeg">
+            <button type="button" data-n="" class="on">No</button>
+            <button type="button" data-n="Customer D1">Customer D1</button>
+            <button type="button" data-n="Auction/Fleet D1">Auction / Fleet</button>
+            <button type="button" data-n="Contracting D1">Contracting D1</button>
+          </div>
+          <div class="pos-nastf-badge" id="posNastfBadge"></div>
+        </div>
+      </div>
       <div class="pos-layout">
         <div class="pos-main">
           <div class="pos-ticket" id="posTicket"></div>
@@ -661,11 +739,7 @@
                 <button type="button" class="btn ghostbtn" id="chgCustClear" style="flex:0 0 auto;display:none">Clear</button>
               </div>
             </div>
-            <div class="pos-meta" style="margin-top:10px">
-              <div><label>Sell stock from</label><select id="posLocation"></select></div>
-              <div><label>Technician</label><select id="posTech"></select></div>
-            </div>
-            <p class="note" id="chgCustHint" style="margin-top:8px;font-size:11px">Cash can be anonymous. <b>Card &amp; check need the customer.</b></p>
+            <p class="note" id="chgCustHint" style="margin-top:8px;font-size:11px">Sells from <b>Shop</b> stock; the sale is credited to <b id="posSelfName">you</b>. Cash can be anonymous; <b>card &amp; check need the customer.</b></p>
           </div>
           <div class="pos-rail-totals"><div class="pay-breakdown" id="chgBreakdown"></div></div>
         </aside>
@@ -821,7 +895,7 @@
 
   <nav class="bt-bottomnav">
     <button class="bt-bottomnav__item" data-go="startjob"><span class="bt-nav__ic">🔑</span>Start job</button>
-    <button class="bt-bottomnav__item" data-open="bittings.html"><span class="bt-nav__ic">🧾</span>Receipts</button>
+    <button class="bt-bottomnav__item" data-open="bittings.html?receipts=1"><span class="bt-nav__ic">🧾</span>Receipts</button>
     <button class="bt-bottomnav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
     <button class="bt-bottomnav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Stock</button>
     <button class="bt-bottomnav__item" id="btMore"><span class="bt-nav__ic">⋯</span>More</button>
@@ -843,8 +917,14 @@
 <!-- Shared data layer (localStorage today; flips to cloud via TKS.connectCloud) -->
 <script src="app/store.js"></script>
 <script src="app/access.js"></script>
+<!-- Shared Year/Make/Model dropdowns (same as the scheduler) — used by the desktop Register -->
+<script src="app/ymm.js"></script>
+<!-- Shared NASTF D1 filing-countdown badge (register · Start-a-Job · Receipts NASTF tab) -->
+<script src="app/d1.js"></script>
 <!-- Lishi tool + vehicle seed (so Start a Job populates even if the Lishi page was never opened) -->
 <script src="app/lishi-seed.js"></script>
+<!-- Ilco 2025 code-series dataset (extracted from the owner's reference PDF) — fills code-series gaps -->
+<script src="app/ilco-2025.js"></script>
 <!-- Shared Pay Now engine (Payments tile "New Charge"; invoice flow has its own) -->
 <script src="app/pay.js"></script>
 <!-- Shared inventory importer (Inventory tile + Setup wizard); SheetJS for .xlsx -->
@@ -892,7 +972,7 @@ function openEmbed(url){
   if(isPhoneView()){ location.href = url; return; }
   var f=document.getElementById('btEmbed');
   if(f){ var cur=(f.getAttribute('src')||'').split('?')[0];
-    if(cur!==url) f.setAttribute('src', url + '?v=' + Date.now()); }   // cache-bust so embedded tools always load FRESH (no stale gating)
+    if(cur!==url) f.setAttribute('src', url + (url.indexOf('?')>=0?'&':'?') + 'v=' + Date.now()); }   // cache-bust so embedded tools always load FRESH (no stale gating)
   if(_btApp) _btApp.classList.add('is-embedding');
   document.querySelectorAll('.bt-nav__item,.bt-bottomnav__item').forEach(el=>el.classList.toggle('is-active', el.dataset.embed===url));
   // close the phone slide-in menu if it happens to be open
@@ -1131,7 +1211,7 @@ function renderCustHistory(c){
   }).join('');
   box.innerHTML = '<div class="hist-h">Job history ('+jobs.length+')</div>'+
     '<div class="hist-empty" style="margin:-2px 0 6px">Tap a job to see details.</div>'+rows;
-  box.querySelectorAll('.job-row').forEach(function(el){ el.onclick=function(){ try{ openJobModal(jobs[+el.dataset.i]); }catch(e){ alert('Could not open this job: '+((e&&e.message)||e)); } }; });
+  box.querySelectorAll('.job-row').forEach(function(el){ el.onclick=function(){ try{ openJobModal(jobs[+el.dataset.i]); }catch(e){ uiAlert({ title:'Couldn’t open job', message:((e&&e.message)||String(e)) }); } }; });
 }
 // Job detail — opened from a customer's Job history row.
 function openJobModal(b){
@@ -1277,7 +1357,7 @@ function renderCustInvoices(c){
     : '';
   box.innerHTML='<div class="hist-h">Invoices &amp; receipts ('+mine.length+')</div>'+owedBanner+paidBlock+
     '<div class="hist-empty" style="margin:-2px 0 6px">Tap an invoice to see what was sold'+(nUnpaid?' or mark it paid':'')+'.</div>'+rows;
-  box.querySelectorAll('.inv-row').forEach(function(el){ el.onclick=function(){ try{ openInvoiceModal(mine[+el.dataset.i], c); }catch(e){ alert('Could not open this invoice: '+((e&&e.message)||e)); } }; });
+  box.querySelectorAll('.inv-row').forEach(function(el){ el.onclick=function(){ try{ openInvoiceModal(mine[+el.dataset.i], c); }catch(e){ uiAlert({ title:'Couldn’t open invoice', message:((e&&e.message)||String(e)) }); } }; });
 }
 // Invoice detail — "what was sold" — opened from a customer's invoice list. `cust` lets
 // us refresh the list after marking paid.
@@ -1320,12 +1400,14 @@ function openInvoiceModal(r, cust){
   ov.querySelector('#invClose').onclick=function(){ ov.remove(); };
   const paidBtn=ov.querySelector('#invPaid');
   if(paidBtn) paidBtn.onclick=function(){
-    if(!confirm('Mark '+(r.number||'this invoice')+' as paid? This converts it to a receipt and clears it from the balance owed.')) return;
-    if(markInvoicePaid(r)){
-      ov.remove();
-      if(cust){ renderCustInvoices(cust); }
-      try{ renderCustomers(); }catch(e){}
-    } else { alert('Could not update this invoice.'); }
+    uiConfirm({ title:'Mark as paid?', message:'Mark '+(r.number||'this invoice')+' as paid? This converts it to a receipt and clears it from the balance owed.', okText:'Mark paid' }).then(function(ok){
+      if(!ok) return;
+      if(markInvoicePaid(r)){
+        ov.remove();
+        if(cust){ renderCustInvoices(cust); }
+        try{ renderCustomers(); }catch(e){}
+      } else { uiAlert('Could not update this invoice.'); }
+    });
   };
   document.body.appendChild(ov);
 }
@@ -1384,7 +1466,7 @@ invSearchEl.addEventListener('input', renderInventory);
 document.getElementById('invAdd').onclick = ()=> openPart(null);
 document.getElementById('invImport').onclick = ()=>{
   if(window.TKImport && TKImport.open){ TKImport.open({ onDone: ()=> renderInventory() }); }
-  else { alert('Importer not loaded — reload and try again.'); }
+  else { uiAlert('Importer not loaded — reload and try again.'); }
 };
 
 /* VIN → key/fob: decode the VIN to make+model, then filter the parts list by
@@ -1427,7 +1509,7 @@ function openVinModal(prefill){
 document.getElementById('invExport').onclick = ()=> exportInventoryCsv();
 function exportInventoryCsv(){
   let rows=[]; try{ rows=TKS.Inventory.all()||[]; }catch(e){}
-  if(!rows.length){ alert('No inventory to export yet.'); return; }
+  if(!rows.length){ uiAlert('No inventory to export yet.'); return; }
   const cols=['name','sku','category','qty','lowAt','unit','cost','location','supplier','reorderQty','fitment','notes'];
   const cell=v=>{ v=(v==null?'':String(v)); return /[",\n]/.test(v)?('"'+v.replace(/"/g,'""')+'"'):v; };
   const csv=cols.join(',')+'\n'+rows.map(r=>cols.map(c=>cell(r[c])).join(',')).join('\n');
@@ -1530,7 +1612,7 @@ function locName(loc, vans){
   return loc;
 }
 function openStockPanel(p){
-  if(!(TKS.auth && TKS.auth.isSignedIn())){ alert('Sign in to the cloud to manage stock by location.'); return; }
+  if(!(TKS.auth && TKS.auth.isSignedIn())){ uiAlert('Sign in to the cloud to manage stock by location.'); return; }
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
   ov.innerHTML='<div id="stkCard" style="background:var(--card,#fff);width:100%;max-width:560px;border-radius:16px;padding:16px;max-height:88vh;overflow:auto;"><div class="empty" style="padding:20px;text-align:center;color:var(--dim)">Loading stock…</div></div>';
@@ -1561,9 +1643,9 @@ function openStockPanel(p){
       '<div data-cap="invMove" style="border:1px solid var(--edge,#e3e6ea);border-radius:11px;padding:10px 12px;margin-bottom:9px">'+
         '<div style="font-weight:800;font-size:13px;margin-bottom:6px">↔ Move between locations</div>'+
         (withStock.length
-          ? '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:end">'+
+          ? '<div class="mv-grid">'+
               '<div><label style="font-size:11px;color:var(--dim)">From</label><select id="mvFrom">'+fromOpts+'</select></div>'+
-              '<div style="padding-bottom:9px;color:var(--dim)">→</div>'+
+              '<div class="mv-arrow" style="padding-bottom:9px;color:var(--dim)">→</div>'+
               '<div><label style="font-size:11px;color:var(--dim)">To</label><select id="mvTo">'+destOpts('')+'</select></div></div>'+
             '<div style="display:flex;gap:6px;margin-top:6px"><input id="mvQty" type="number" min="1" inputmode="numeric" placeholder="Qty" style="flex:1">'+
               '<button type="button" class="mini" id="mvBtn" style="background:var(--edge);color:var(--ink);border:none;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer">Move</button></div>'
@@ -1752,9 +1834,9 @@ function chgGate(){
   const hasPin=(window.TKS && TKS.auth) ? TKS.auth.hasManagerPin() : !!(window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN);
   e.form.style.display='none'; e.gate.style.display='block';
   if(!hasPin){ e.gate.textContent='Manager sign-in required to take a payment.'; return; }
-  function pinPrompt(){ const v=prompt('Manager PIN to take a payment:'); if(v===null) return;
+  function pinPrompt(){ uiPrompt({ title:'Manager PIN', label:'Manager PIN to take a payment:', type:'password', inputmode:'numeric', okText:'Unlock' }).then(function(v){ if(v===null) return;
     if(window.TKS && TKS.auth && TKS.auth.managerByPin(v)) chgShowForm();
-    else { e.gate.innerHTML='Wrong PIN. <button class="btn ghostbtn" id="chgPinBtn">Try again</button>'; document.getElementById('chgPinBtn').onclick=pinPrompt; } }
+    else { e.gate.innerHTML='Wrong PIN. <button class="btn ghostbtn" id="chgPinBtn">Try again</button>'; document.getElementById('chgPinBtn').onclick=pinPrompt; } }); }
   e.gate.innerHTML='Manager-only. <button class="btn ghostbtn" id="chgPinBtn">Unlock with PIN</button>';
   document.getElementById('chgPinBtn').onclick=pinPrompt;
 }
@@ -1766,6 +1848,46 @@ function chgGate(){
    decrements stock from the chosen location. */
 let posTicket = [];        // [{ key, type:'part'|'service'|'custom', refId, desc, qty, unitCents, taxable, lineType }]
 let posDiscountCents = 0, posDiscountReason = '';
+/* register job type + vehicle (for an automotive ticket: VIN + Year/Make/Model, captured onto the receipt) */
+let posJobType = 'automotive';
+let posVeh = { year:'', make:'', model:'', vin:'' };
+let posNastf = '';   // '' = none, else 'Customer D1' | 'Auction/Fleet D1' | 'Contracting D1'
+function posSetNastf(type){
+  posNastf = type || '';
+  document.querySelectorAll('#posNastfSeg button').forEach(b=> b.classList.toggle('on', (b.dataset.n||'')===posNastf));
+  posRenderNastfBadge();
+}
+function posRenderNastfBadge(){
+  const el=document.getElementById('posNastfBadge'); if(!el) return;
+  if(!posNastf || posJobType!=='automotive'){ el.innerHTML=''; return; }
+  let days=5; try{ days=TKS.Config.d1Days(); }catch(e){}
+  el.innerHTML = window.TKS_D1 ? TKS_D1.pillHTML({ type:posNastf, d1Days:days }, { showType:false }) : '';
+}
+function posFillYmm(){
+  if(!window.TKS_YMM) return;
+  try{
+    const y=document.getElementById('posYear'); if(y) y.innerHTML=TKS_YMM.yearOptionsHTML(posVeh.year);
+    const mk=document.getElementById('posMake'); if(mk) mk.innerHTML=TKS_YMM.makeOptionsHTML(posVeh.make);
+    const md=document.getElementById('posModel'); if(md) md.innerHTML=TKS_YMM.modelOptionsHTML(posVeh.make, posVeh.year, posVeh.model);
+  }catch(e){}
+}
+function posSetVeh(field,val){ posVeh[field]=val; if(field==='make'||field==='year') posVeh.model=''; posFillYmm(); }
+function posDecodeVin(){
+  const inp=document.getElementById('posVin'), note=document.getElementById('posVehNote');
+  const vin=((inp&&inp.value)||'').trim().toUpperCase();
+  if(!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)){ if(note){ note.style.color='#c8323c'; note.textContent='Enter a valid 17-character VIN.'; } return; }
+  posVeh.vin=vin; if(note){ note.style.color='var(--dim)'; note.textContent='Decoding…'; }
+  TKS.decodeVin(vin).then(r=>{ posVeh.year=(r.year||'')+''; posVeh.make=r.make||''; posVeh.model=r.model||''; posFillYmm();
+    if(note){ note.style.color='var(--dim)'; note.textContent=[r.year,r.make,r.model].filter(Boolean).join(' ')||'Decoded — confirm Year/Make/Model.'; }
+  }).catch(()=>{ if(note){ note.style.color='#c8323c'; note.textContent="Couldn't decode — pick Year/Make/Model below."; } });
+}
+function posSetJobType(jt){
+  posJobType = (jt==='other')?'other':'automotive';
+  document.querySelectorAll('#posJobType button').forEach(b=> b.classList.toggle('on', b.dataset.jt===posJobType));
+  const veh=document.getElementById('posVehicle'); if(veh) veh.style.display = (posJobType==='automotive')?'block':'none';
+  if(posJobType!=='automotive' && posNastf) posSetNastf('');   // NASTF is automotive-only
+  posRenderNastfBadge();
+}
 function posTaxRate(){ try{ return Number(TKS.Config.get().taxRate)||0; }catch(e){ return 0; } }
 function posLineAmtCents(l){ return (l.unitCents||0)*(l.qty||1); }
 function money2(c){ return '$'+(Math.round(c||0)/100).toFixed(2); }
@@ -1781,7 +1903,10 @@ function posTotals(){
 function posAddLine(line){ line.key='l'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); line.qty=line.qty||1; posTicket.push(line); posRender(); }
 function posSetQty(key,delta){ const l=posTicket.find(x=>x.key===key); if(l){ l.qty=Math.max(1,(l.qty||1)+delta); posRender(); } }
 function posRemove(key){ posTicket=posTicket.filter(x=>x.key!==key); posRender(); }
-function posClear(){ posTicket=[]; posDiscountCents=0; posDiscountReason=''; setChgCustomer(null); posRender();
+function posClear(){ posTicket=[]; posDiscountCents=0; posDiscountReason=''; setChgCustomer(null);
+  posVeh={year:'',make:'',model:'',vin:''}; const vinEl=document.getElementById('posVin'); if(vinEl) vinEl.value=''; const vn=document.getElementById('posVehNote'); if(vn) vn.textContent=''; posFillYmm();
+  posSetNastf('');
+  posRender();
   const sr=document.getElementById('chgSendRow'); if(sr){ sr.style.display='none'; sr.innerHTML=''; } }
 function posRender(){
   const host=document.getElementById('posTicket'); if(!host) return;
@@ -1826,17 +1951,16 @@ function posRenderProfit(){
 function posBuildPayload(){
   const c=chgCustomer||{};
   if((c.customer||'').trim()){ try{ TKS.Customers.upsert({ customer:c.customer.trim(), phone:c.phone||'', email:c.email||'', source:'pos' }); }catch(_){} }
-  const loc=(document.getElementById('posLocation')||{}).value||'shop';
-  const techSel=document.getElementById('posTech');
-  const techVal=techSel?techSel.value:'';
-  const tech=posResolveTech(techVal);
+  const tech=posSelfTech();   // the signed-in person did the sale
   return {
     customer:(c.customer||''), customerId:(c.id||null), phone:(c.phone||''), email:(c.email||''),
-    location:loc, technician:tech.name, technicianId:tech.id, taxRate:posTaxRate(),
+    location:'shop', technician:tech.name, technicianId:tech.id, taxRate:posTaxRate(),
     discountCents:posDiscountCents, discountReason:posDiscountReason,
+    vehicle: (posJobType==='automotive' && (posVeh.vin||posVeh.make||posVeh.model)) ? posVeh : null,
+    nastf: (posJobType==='automotive' && posNastf) ? posNastf : null,
     lines: posTicket.map(l=> l.type==='part' ? Object.assign({ type:'part', itemId:l.refId, qty:l.qty }, l.priceOverride?{priceCents:l.unitCents}:{})
                           : l.type==='service' ? Object.assign({ type:'service', svc:l.svc, cat:l.cat, qty:l.qty }, l.priceOverride?{priceCents:l.unitCents}:{})  // Setup service priced server-side unless overridden
-                          : { type:l.lineType||'service', desc:l.desc, priceCents:l.unitCents, qty:l.qty, taxable:!!l.taxable } )
+                          : { type:'custom', desc:l.desc, priceCents:l.unitCents, qty:l.qty, taxable:!!l.taxable, lineType:(l.lineType||'service') } )
   };
 }
 /* Send the customer their receipt using the DEVICE's own apps — no email service,
@@ -1853,7 +1977,7 @@ function sendChargeReceipt(r){
   if(navigator.share){ navigator.share({ title:bizName()+' receipt', text }).catch(()=>{}); return; }
   const email=(r.email||'').trim();
   if(email){ window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Your '+bizName()+' receipt')+'&body='+encodeURIComponent(text); return; }
-  try{ navigator.clipboard.writeText(text); chgSay('Receipt summary copied — paste into a text/email.',true); }catch(e){ alert(text); }
+  try{ navigator.clipboard.writeText(text); chgSay('Receipt summary copied — paste into a text/email.',true); }catch(e){ uiAlert({ title:'Receipt summary', message:text }); }
 }
 function showChgSend(r){
   const sr=document.getElementById('chgSendRow'); if(!sr||!r) return;
@@ -1865,23 +1989,28 @@ function showChgSend(r){
   const em=document.getElementById('chgSendEmail'); if(em) em.onclick=()=>{ window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Your '+bizName()+' receipt')+'&body='+encodeURIComponent(chgSummaryText(r)); };
 }
 function chgSay(msg,ok){ const e=chgEls(); e.status.textContent=msg; e.status.style.color=ok?'#7fd49b':(ok===false?'#f0a0a6':'var(--dim)'); }
-function posResolveTech(val){ if(!val) return {id:'',name:''}; const m=(window._posStaff||[]).find(s=>s.user_id===val); return m?{id:m.user_id,name:(m.name||'')}:{id:'',name:''}; }
+// The register sells from SHOP stock and credits the SALE to the logged-in user —
+// no selectors. Resolve the signed-in person's name for the receipt/commission.
+function posSelfTech(){
+  let id=''; try{ const u=TKS.auth.user&&TKS.auth.user(); id=u?u.id:''; }catch(e){}
+  let name=''; if(id && window._posStaff){ const s=window._posStaff.find(x=>x.user_id===id); if(s) name=(s.name||''); }
+  if(!name){ try{ name=(TKS.auth.roleLabel&&TKS.auth.roleLabel())||''; }catch(e){} }
+  return { id, name };
+}
 function posPopulateMeta(){
-  const locSel=document.getElementById('posLocation');
-  if(locSel){ locSel.innerHTML='<option value="shop">🏪 Shop</option>';
-    try{ TKS.Fleet.list().then(r=>{ ((r&&r.data)||[]).filter(v=>v.status!=='retired').forEach(v=>{
-      const o=document.createElement('option'); o.value='van:'+v.id; o.textContent='🚐 '+(v.nickname||('Van '+(v.fleet_no||''))); locSel.appendChild(o); }); }).catch(()=>{}); }catch(e){} }
-  const techSel=document.getElementById('posTech');
-  if(techSel){ try{ TKS.Fleet.staff().then(r=>{ const staff=((r&&r.data)||[]).filter(s=>s.active!==false); window._posStaff=staff;
-      let myId=''; try{ const u=TKS.auth.user&&TKS.auth.user(); myId=u?u.id:''; }catch(e){}
-      techSel.innerHTML='<option value="">— none —</option>'+staff.map(s=>'<option value="'+esc2(s.user_id)+'"'+(s.user_id===myId?' selected':'')+'>'+esc2((s.name||s.role)+' — '+s.role)+'</option>').join('');
-    }).catch(()=>{ techSel.innerHTML='<option value="">— none —</option>'; }); }catch(e){} }
+  // cache the staff roster once so we can show + credit the signed-in person's name
+  try{ TKS.Fleet.staff().then(r=>{ window._posStaff=((r&&r.data)||[]).filter(s=>s.active!==false);
+    const el=document.getElementById('posSelfName'); if(el){ const me=posSelfTech(); el.textContent=me.name||'you'; }
+  }).catch(()=>{}); }catch(e){}
 }
 function renderPayments(){
   const e=chgEls();
   e.banner.className='pay-banner'; e.banner.textContent='Register — same Stripe engine as invoices (TEST until live keys).';
   if(e.status) e.status.textContent='';
   posPopulateMeta();
+  posSetJobType(posJobType);
+  posFillYmm();
+  posSetNastf(posNastf);
   renderChgCustomer();
   posRender();
   chgGate();
@@ -1892,19 +2021,169 @@ document.getElementById('posAddPart').onclick=()=> posPickItem('part');
 document.getElementById('posAddService').onclick=()=> posPickItem('service');
 document.getElementById('posAddCustom').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Custom-priced lines are manager-only.',false); return; } posCustomLine(); };
 document.getElementById('posDiscountBtn').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Discounts are manager-only.',false); return; } posDiscountPrompt(); };
-document.getElementById('posClearBtn').onclick=function(){ if(posTicket.length||posDiscountCents>0){ if(confirm('Clear the whole ticket?')) posClear(); } };
+document.getElementById('posClearBtn').onclick=function(){ if(posTicket.length||posDiscountCents>0){ uiConfirm({ title:'Clear ticket?', message:'Remove all lines and any discount from this ticket?', okText:'Clear', danger:true }).then(ok=>{ if(ok) posClear(); }); } };
+document.querySelectorAll('#posJobType button').forEach(b=> b.onclick=()=> posSetJobType(b.dataset.jt));
+document.querySelectorAll('#posNastfSeg button').forEach(b=> b.onclick=()=> posSetNastf(b.dataset.n||''));
+document.getElementById('posVinBtn').onclick=posDecodeVin;
+document.getElementById('posVin').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); posDecodeVin(); } });
+document.getElementById('posYear').onchange=function(){ posSetVeh('year', this.value); };
+document.getElementById('posMake').onchange=function(){ posSetVeh('make', this.value); };
+document.getElementById('posModel').onchange=function(){ posSetVeh('model', this.value); };
 
 // Picker: a part (inventory, sell price) or a service (the price list).
 function posSvcCents(s){ const v=parseFloat(s&&s.price); return (isNaN(v)||v<=0)?null:Math.round(v*100); }
-// Ask for a price (used when a catalog item has none — any staff may set it). Returns cents or null.
-function posAskPrice(name){ const v=prompt('Price for '+(name||'item')+' ($):'); if(v===null) return null; const c=Math.round((parseFloat(v)||0)*100); if(c<=0){ chgSay('Enter a price greater than 0.',false); return null; } return c; }
-// Manager: edit an existing line's price inline.
+// Manager: edit an existing line's price inline (themed prompt).
 function posEditLinePrice(key){
   if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Only a manager can change a set price.',false); return; }
   const l=posTicket.find(x=>x.key===key); if(!l) return;
-  const v=prompt('New price for '+(l.desc||'line')+' ($):', (l.unitCents/100).toFixed(2)); if(v===null) return;
-  const c=Math.round((parseFloat(v)||0)*100); if(c<=0){ chgSay('Enter a price greater than 0.',false); return; }
-  l.unitCents=c; l.priceOverride=true; posRender();
+  uiAskPriceCents({ title:'New price for '+(l.desc||'line'), value:(l.unitCents/100).toFixed(2), okText:'Update' }).then(c=>{
+    if(c==null) return; l.unitCents=c; l.priceOverride=true; posRender();
+  });
+}
+/* ---- Reusable themed, centered popups (replace native prompt/confirm so every
+   register dialog shares the app theme). Both return a Promise. ---- */
+function uiConfirm(opts){
+  opts=opts||{};
+  return new Promise(function(resolve){
+    var ov=document.createElement('div'); ov.className='chg-modal-ov';
+    ov.innerHTML='<div class="chg-modal" style="max-width:420px">'+
+      '<div class="chg-modal-h"><b>'+esc2(opts.title||'Confirm')+'</b><button type="button" class="chg-modal-x" data-x aria-label="Close">×</button></div>'+
+      (opts.message?'<div class="ui-msg">'+esc2(opts.message)+'</div>':'')+
+      '<div class="ui-actions"><button type="button" class="btn ghostbtn" data-no>'+esc2(opts.cancelText||'Cancel')+'</button>'+
+      '<button type="button" class="btn '+(opts.danger?'danger':'save')+'" data-yes>'+esc2(opts.okText||'OK')+'</button></div></div>';
+    document.body.appendChild(ov);
+    function done(v){ ov.remove(); document.removeEventListener('keydown',onkey); resolve(v); }
+    function onkey(e){ if(e.key==='Escape') done(false); }
+    ov.addEventListener('mousedown',function(e){ if(e.target===ov) done(false); });
+    ov.querySelector('[data-x]').onclick=function(){ done(false); };
+    ov.querySelector('[data-no]').onclick=function(){ done(false); };
+    ov.querySelector('[data-yes]').onclick=function(){ done(true); };
+    document.addEventListener('keydown',onkey);
+  });
+}
+function uiPrompt(opts){
+  opts=opts||{};
+  return new Promise(function(resolve){
+    var ov=document.createElement('div'); ov.className='chg-modal-ov';
+    ov.innerHTML='<div class="chg-modal" style="max-width:420px">'+
+      '<div class="chg-modal-h"><b>'+esc2(opts.title||'Enter a value')+'</b><button type="button" class="chg-modal-x" data-x aria-label="Close">×</button></div>'+
+      (opts.label?'<label class="ui-l">'+esc2(opts.label)+'</label>':'')+
+      '<input id="uiPI" type="'+(opts.type||'text')+'"'+(opts.inputmode?' inputmode="'+opts.inputmode+'"':'')+' placeholder="'+esc2(opts.placeholder||'')+'" value="'+esc2(opts.value!=null?opts.value:'')+'">'+
+      (opts.help?'<div class="ui-help">'+esc2(opts.help)+'</div>':'')+
+      '<div class="ui-actions"><button type="button" class="btn ghostbtn" data-no>Cancel</button>'+
+      '<button type="button" class="btn save" data-yes>'+esc2(opts.okText||'OK')+'</button></div></div>';
+    document.body.appendChild(ov);
+    var inp=ov.querySelector('#uiPI');
+    function done(v){ ov.remove(); document.removeEventListener('keydown',onkey); resolve(v); }
+    function onkey(e){ if(e.key==='Escape') done(null); }
+    ov.addEventListener('mousedown',function(e){ if(e.target===ov) done(null); });
+    ov.querySelector('[data-x]').onclick=function(){ done(null); };
+    ov.querySelector('[data-no]').onclick=function(){ done(null); };
+    ov.querySelector('[data-yes]').onclick=function(){ done(inp.value); };
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); done(inp.value); } });
+    document.addEventListener('keydown',onkey);
+    setTimeout(function(){ inp.focus(); try{ inp.select(); }catch(_){} },30);
+  });
+}
+// Themed, centered notice (replaces native alert for app messages).
+function uiAlert(opts){
+  if(typeof opts==='string') opts={ message:opts };
+  opts=opts||{};
+  return new Promise(function(resolve){
+    var ov=document.createElement('div'); ov.className='chg-modal-ov';
+    ov.innerHTML='<div class="chg-modal" style="max-width:400px">'+
+      '<div class="chg-modal-h"><b>'+esc2(opts.title||'Heads up')+'</b><button type="button" class="chg-modal-x" data-x aria-label="Close">×</button></div>'+
+      '<div class="ui-msg">'+esc2(opts.message||'')+'</div>'+
+      '<div class="ui-actions"><button type="button" class="btn save" data-ok>'+esc2(opts.okText||'OK')+'</button></div></div>';
+    document.body.appendChild(ov);
+    function done(){ ov.remove(); document.removeEventListener('keydown',onkey); resolve(); }
+    function onkey(e){ if(e.key==='Escape'||e.key==='Enter') done(); }
+    ov.addEventListener('mousedown',function(e){ if(e.target===ov) done(); });
+    ov.querySelector('[data-x]').onclick=done; ov.querySelector('[data-ok]').onclick=done;
+    document.addEventListener('keydown',onkey);
+  });
+}
+// expose so every script block + flow shares the themed popups
+try{ window.uiConfirm=uiConfirm; window.uiPrompt=uiPrompt; window.uiAlert=uiAlert; window.uiAskPriceCents=uiAskPriceCents; }catch(e){}
+// Ask for a price in dollars; returns cents (>0) or null. Themed.
+function uiAskPriceCents(opts){
+  opts=opts||{};
+  return uiPrompt({ title:opts.title||'Enter a price', label:opts.label||'Price ($)', type:'number', inputmode:'decimal',
+    value:opts.value, placeholder:'0.00', okText:opts.okText||'OK' }).then(function(v){
+    if(v===null) return null;
+    var c=Math.round((parseFloat(v)||0)*100);
+    if(c<=0){ chgSay('Enter a price greater than 0.',false); return null; }
+    return c;
+  });
+}
+
+/* ---- "Other" (unlisted) part/service entry + optional save-to-catalog offer ---- */
+// Commission line-type inferred from the name (same rule pos_checkout uses for catalog services).
+function posInferLineType(name){ name=(name||'').toLowerCase(); if(/program/.test(name)) return 'programming'; if(/labor/.test(name)) return 'labor'; return 'service'; }
+function posOtherEntry(kind, svcType){
+  var isSvc=(kind==='service');
+  // catalog grouping follows the picker tab (automotive vs residential/commercial)
+  svcType = (svcType==='automotive'||svcType==='other') ? svcType : (posJobType==='other'?'other':'automotive');
+  var catGroup = (svcType==='automotive') ? 'automotive' : 'residential';
+  var ov=document.createElement('div'); ov.className='chg-modal-ov';
+  ov.innerHTML='<div class="chg-modal" style="max-width:440px">'+
+    '<div class="chg-modal-h"><b>Other '+(isSvc?'service':'part')+'</b><button type="button" class="chg-modal-x" data-x aria-label="Close">×</button></div>'+
+    '<label class="ui-l">'+(isSvc?'Service':'Item')+' name</label>'+
+    '<input id="oeName" type="text" placeholder="'+(isSvc?'e.g. Rekey deadbolt':'e.g. Blank key')+'">'+
+    '<label class="ui-l" style="margin-top:10px">Price ($)</label><input id="oePrice" type="number" inputmode="decimal" placeholder="0.00">'+
+    '<label class="ui-check"><input type="checkbox" id="oeTax" '+(isSvc?'':'checked')+'> Taxable line</label>'+
+    '<div class="ui-actions"><button type="button" class="btn ghostbtn" data-no>Cancel</button>'+
+    '<button type="button" class="btn save" data-add>Add to ticket</button></div></div>';
+  document.body.appendChild(ov);
+  function close(){ ov.remove(); }
+  ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
+  ov.querySelector('[data-x]').onclick=close; ov.querySelector('[data-no]').onclick=close;
+  var nameEl=ov.querySelector('#oeName'); setTimeout(function(){ nameEl.focus(); },30);
+  ov.querySelector('[data-add]').onclick=function(){
+    var name=(nameEl.value||'').trim(); if(!name){ nameEl.focus(); return; }
+    var cents=Math.round((parseFloat(ov.querySelector('#oePrice').value)||0)*100);
+    if(cents<=0){ chgSay('Enter a price greater than 0.',false); ov.querySelector('#oePrice').focus(); return; }
+    var taxable=!!ov.querySelector('#oeTax').checked;
+    if(isSvc){
+      var lt=posInferLineType(name);
+      posAddLine({type:'custom',refId:null,svc:name,cat:catGroup,desc:name,unitCents:cents,taxable:taxable,lineType:lt,priceOverride:true});
+      close();
+      maybeOfferSaveService(name, cents, catGroup, taxable);
+    } else {
+      posAddLine({type:'custom',refId:null,desc:name,unitCents:cents,taxable:taxable,lineType:'part'});
+      close();
+    }
+  };
+}
+// After adding an "Other" service, offer to save it to Setup → Services (with a
+// "Don't ask again" checkbox that suppresses the offer shop-wide).
+function maybeOfferSaveService(name, cents, cat, taxable){
+  var prefs={}; try{ prefs=TKS.Config.prefs(); }catch(e){}
+  if(prefs.offerSaveOtherService===false) return;
+  var ov=document.createElement('div'); ov.className='chg-modal-ov';
+  ov.innerHTML='<div class="chg-modal" style="max-width:420px">'+
+    '<div class="chg-modal-h"><b>Add to your services?</b><button type="button" class="chg-modal-x" data-x aria-label="Close">×</button></div>'+
+    '<div class="ui-msg">Save <b>'+esc2(name)+'</b> ('+money2(cents)+') to your Services list so it’s there next time?</div>'+
+    '<label class="ui-check"><input type="checkbox" id="oeNoAsk"> Don’t ask again</label>'+
+    '<div class="ui-actions"><button type="button" class="btn ghostbtn" data-no>Not now</button>'+
+    '<button type="button" class="btn save" data-yes>Save to services</button></div></div>';
+  document.body.appendChild(ov);
+  function finishUp(){
+    if(ov.querySelector('#oeNoAsk').checked){ try{ TKS.Config.save({ prefs:{ offerSaveOtherService:false } }); }catch(e){} }
+    ov.remove();
+  }
+  ov.addEventListener('mousedown',function(e){ if(e.target===ov) finishUp(); });
+  ov.querySelector('[data-x]').onclick=finishUp;
+  ov.querySelector('[data-no]').onclick=finishUp;
+  ov.querySelector('[data-yes]').onclick=function(){
+    try{
+      var cfg=TKS.Config.get(); var services=(cfg.services||[]).slice();
+      var exists=services.some(function(s){ return String(s.value||s.en||'').toLowerCase()===name.toLowerCase() && (s.cat||'other')===cat; });
+      if(!exists){ services.push({ value:name, en:name, cat:cat, price:(cents/100).toFixed(2), taxable:taxable }); TKS.Config.save({ services:services }); chgSay('Saved “'+name+'” to your services.',true); }
+      else { chgSay('“'+name+'” is already in your services.',true); }
+    }catch(e){ chgSay('Could not save the service.',false); }
+    finishUp();
+  };
 }
 function posPickItem(kind){
   const isSvc=(kind==='service');
@@ -1916,48 +2195,60 @@ function posPickItem(kind){
   function close(){ ov.remove(); }
   ov.addEventListener('mousedown',ev=>{ if(ev.target===ov) close(); });
   document.getElementById('piX').onclick=close;
-  const searchEl=document.getElementById('piSearch'), listEl=document.getElementById('piList'); let svcType='automotive';
+  const searchEl=document.getElementById('piSearch'), listEl=document.getElementById('piList'); let svcType=(posJobType==='other')?'other':'automotive';
+  function otherBtnHTML(){ return '<button type="button" class="chg-cprow chg-cpother" data-other><b>➕ Other (not listed)</b><span>Add a custom '+(isSvc?'service':'part')+' with a price</span></button>'; }
+  function wireOther(){ const b=listEl.querySelector('[data-other]'); if(b) b.onclick=()=>{ close(); posOtherEntry(kind, svcType); }; }
   function renderParts(){
     let list=[]; try{ list=TKS.Inventory.search(searchEl.value).filter(p=>!p.deletedAt).slice(0,40); }catch(_){}
-    listEl.innerHTML = list.length ? list.map(p=>{ const c=p.sellPriceCents, ok=(c!=null && c>0);
+    const rows = list.length ? list.map(p=>{ const c=p.sellPriceCents, ok=(c!=null && c>0);
       return '<button type="button" class="chg-cprow" data-id="'+esc2(p.id)+'"><b>'+esc2(p.name||'(part)')+'</b><span>'+(ok?money2(c):'no price — tap to enter')+(p.sku?(' · '+esc2(p.sku)):'')+'</span></button>';
     }).join('') : '<div class="chg-cpempty">No matching parts.</div>';
-    listEl.querySelectorAll('.chg-cprow').forEach(b=> b.onclick=()=>{ const p=TKS.Inventory.get(b.dataset.id); if(!p) return; const c=p.sellPriceCents;
+    listEl.innerHTML = otherBtnHTML() + rows; wireOther();
+    listEl.querySelectorAll('.chg-cprow[data-id]').forEach(b=> b.onclick=()=>{ const p=TKS.Inventory.get(b.dataset.id); if(!p) return; const c=p.sellPriceCents;
       if(c!=null && c>0){ posAddLine({type:'part',refId:p.id,desc:p.name,unitCents:c,taxable:true,lineType:'part'}); close(); }
-      else { const ent=posAskPrice(p.name); if(ent==null) return; posAddLine({type:'part',refId:p.id,desc:p.name,unitCents:ent,taxable:true,lineType:'part',priceOverride:true}); close(); } });
+      else { uiAskPriceCents({title:'Price for '+(p.name||'part')}).then(ent=>{ if(ent==null) return; posAddLine({type:'part',refId:p.id,desc:p.name,unitCents:ent,taxable:true,lineType:'part',priceOverride:true}); close(); }); } });
   }
   function renderServices(){
     let all=[]; try{ all=(TKS.Config.get().services)||[]; }catch(_){}
     const q=(searchEl.value||'').toLowerCase();
     const list=all.filter(s=>{ const cat=(s.cat||'other'); const inType = svcType==='automotive' ? cat==='automotive' : cat!=='automotive';
       return inType && (!q || String(s.value||s.en||'').toLowerCase().indexOf(q)>=0); });
-    listEl.innerHTML = list.length ? list.map((s,i)=>{ const cents=posSvcCents(s), ok=(cents!=null);
+    const rows = list.length ? list.map((s,i)=>{ const cents=posSvcCents(s), ok=(cents!=null);
       return '<button type="button" class="chg-cprow" data-i="'+i+'"><b>'+esc2(s.value||s.en)+'</b><span>'+(ok?money2(cents):'no price — tap to enter')+'</span></button>';
-    }).join('') : '<div class="chg-cpempty">No '+(svcType==='automotive'?'automotive':'residential/commercial')+' services. Add them in Setup → Services.</div>';
+    }).join('') : '<div class="chg-cpempty">No '+(svcType==='automotive'?'automotive':'residential/commercial')+' services yet. Use <b>➕ Other</b> below, or add them in Setup → Services.</div>';
+    listEl.innerHTML = otherBtnHTML() + rows; wireOther();
     const flist=list;
-    listEl.querySelectorAll('.chg-cprow').forEach(b=> b.onclick=()=>{ const s=flist[+b.dataset.i]; if(!s) return; const cents=posSvcCents(s);
+    listEl.querySelectorAll('.chg-cprow[data-i]').forEach(b=> b.onclick=()=>{ const s=flist[+b.dataset.i]; if(!s) return; const cents=posSvcCents(s);
       const base={type:'service',svc:(s.value||s.en),cat:(s.cat||'other'),desc:(s.value||s.en),taxable:false,lineType:'service'};
       if(cents!=null){ posAddLine(Object.assign(base,{unitCents:cents})); close(); }
-      else { const ent=posAskPrice(s.value||s.en); if(ent==null) return; posAddLine(Object.assign(base,{unitCents:ent,priceOverride:true})); close(); } });
+      else { uiAskPriceCents({title:'Price for '+(s.value||s.en)}).then(ent=>{ if(ent==null) return; posAddLine(Object.assign(base,{unitCents:ent,priceOverride:true})); close(); }); } });
   }
   if(isSvc){
+    ov.querySelectorAll('#piType button').forEach(x=>x.classList.toggle('on', x.dataset.t===svcType));
     ov.querySelectorAll('#piType button').forEach(b=> b.onclick=()=>{ svcType=b.dataset.t; ov.querySelectorAll('#piType button').forEach(x=>x.classList.toggle('on',x===b)); renderServices(); });
     searchEl.oninput=renderServices; renderServices();
   } else { searchEl.oninput=renderParts; renderParts(); }
   setTimeout(()=>searchEl.focus(),30);
 }
-function posCustomLine(){
-  const desc=prompt('Custom line — description:'); if(!desc) return;
-  const price=prompt('Price (e.g. 45.00):'); if(price===null) return;
-  const cents=Math.round((parseFloat(price)||0)*100); if(cents<=0){ chgSay('Enter a price.',false); return; }
-  const taxable=confirm('Taxable line?  OK = yes,  Cancel = no');
-  posAddLine({type:'custom',refId:null,desc:desc.trim(),unitCents:cents,taxable:taxable,lineType:'service'});
-}
+// "+ Custom" (manager): a free-form line — same themed entry as "Other" service.
+function posCustomLine(){ posOtherEntry('service'); }
 function posDiscountPrompt(){
-  const v=prompt('Discount amount in $ (0 to clear):', posDiscountCents>0?(posDiscountCents/100).toFixed(2):'0'); if(v===null) return;
-  const cents=Math.round((parseFloat(v)||0)*100);
-  if(cents<=0){ posDiscountCents=0; posDiscountReason=''; posRender(); return; }
-  const reason=prompt('Discount reason (optional):')||''; posDiscountCents=cents; posDiscountReason=reason.trim(); posRender();
+  const ov=document.createElement('div'); ov.className='chg-modal-ov';
+  ov.innerHTML='<div class="chg-modal" style="max-width:420px">'+
+    '<div class="chg-modal-h"><b>Discount</b><button type="button" class="chg-modal-x" data-x aria-label="Close">×</button></div>'+
+    '<label class="ui-l">Amount ($) — enter 0 to clear</label><input id="dcAmt" type="number" inputmode="decimal" value="'+(posDiscountCents>0?(posDiscountCents/100).toFixed(2):'0')+'">'+
+    '<label class="ui-l" style="margin-top:10px">Reason (optional)</label><input id="dcReason" type="text" value="'+esc2(posDiscountReason||'')+'" placeholder="e.g. repeat customer">'+
+    '<div class="ui-actions"><button type="button" class="btn ghostbtn" data-no>Cancel</button><button type="button" class="btn save" data-ok>Apply</button></div></div>';
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.addEventListener('mousedown',e=>{ if(e.target===ov) close(); });
+  ov.querySelector('[data-x]').onclick=close; ov.querySelector('[data-no]').onclick=close;
+  const amtEl=ov.querySelector('#dcAmt'); setTimeout(()=>{ amtEl.focus(); try{amtEl.select();}catch(_){} },30);
+  ov.querySelector('[data-ok]').onclick=()=>{
+    const cents=Math.round((parseFloat(amtEl.value)||0)*100);
+    if(cents<=0){ posDiscountCents=0; posDiscountReason=''; posRender(); close(); return; }
+    posDiscountCents=cents; posDiscountReason=(ov.querySelector('#dcReason').value||'').trim(); posRender(); close();
+  };
 }
 // Manager editor for the register's services price list (the `services` table).
 function posManageServices(){
@@ -1979,7 +2270,7 @@ function posManageServices(){
       listEl.innerHTML = list.length ? list.map(s=>'<div class="chg-cprow" style="cursor:default;position:relative;padding-right:34px"><b>'+esc2(s.name)+'</b><span>'+money2(s.price_cents)+' · '+esc2(s.category)+(s.active?'':' · inactive')+'</span>'+
         '<button class="pl-x" data-del="'+esc2(s.id)+'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%)" aria-label="Delete">×</button></div>').join('')
         : '<div class="chg-cpempty">No services yet — add your first below.</div>';
-      listEl.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>{ if(!confirm('Delete this service?')) return; TKS.POS.removeService(b.dataset.del).then(()=>load()); });
+      listEl.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>{ uiConfirm({ title:'Delete service?', message:'Remove this service from the price list?', okText:'Delete', danger:true }).then(ok=>{ if(ok) TKS.POS.removeService(b.dataset.del).then(()=>load()); }); });
     }).catch(()=>{ listEl.innerHTML='<div class="chg-cpempty">Couldn’t load.</div>'; }); }catch(e){ listEl.innerHTML='<div class="chg-cpempty">Sign in first.</div>'; } }
   document.getElementById('msAdd').onclick=function(){
     const name=document.getElementById('msName').value.trim(), cat=document.getElementById('msCat').value;
@@ -2180,15 +2471,15 @@ function depositSummaryText(d){
     (d.overShort>0?'Over':d.overShort<0?'Short':'Balanced')+' vs expected: '+dMoney(d.overShort)+'\n';
 }
 function fallbackCopy(txt){
-  try{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('Deposit summary copied.'); }
-  catch(e){ alert('Copy not supported here — long-press the on-screen totals to select.'); }
+  try{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); uiAlert('Deposit summary copied.'); }
+  catch(e){ uiAlert('Copy not supported here — long-press the on-screen totals to select.'); }
 }
 function copyDepositSummary(){
-  if(!ownerHard()){ alert('Managers only.'); return; }
+  if(!ownerHard()){ uiAlert('Managers only.'); return; }
   const d=depositData();
   finalizeCloseout(d);
   const txt=depositSummaryText(d);
-  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(()=>alert('Deposit summary copied.'), ()=>fallbackCopy(txt)); }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(()=>uiAlert('Deposit summary copied.'), ()=>fallbackCopy(txt)); }
   else fallbackCopy(txt);
 }
 function makeDepositPDF(d){
@@ -2253,23 +2544,23 @@ function downloadBlob(res){
 // Opens the PDF in a new tab (so it's viewable inline); falls back to a direct
 // download if the tab is blocked.
 function openDepositSlip(){
-  if(!ownerHard()){ alert('Managers only.'); return; }
+  if(!ownerHard()){ uiAlert('Managers only.'); return; }
   const d=depositData();
   finalizeCloseout(d);
   const res=makeDepositPDF(d);
-  if(!res){ copyDepositSummary(); alert('PDF engine not loaded (offline?). The text summary was copied instead.'); return; }
+  if(!res){ copyDepositSummary(); uiAlert('PDF engine not loaded (offline?). The text summary was copied instead.'); return; }
   const url=URL.createObjectURL(res.blob);
   const w=window.open(url, '_blank');
   if(!w){ const a=document.createElement('a'); a.href=url; a.download=res.filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
   setTimeout(()=>URL.revokeObjectURL(url), 60000);
 }
 function shareDepositSlip(){
-  if(!ownerHard()){ alert('Managers only.'); return; }
+  if(!ownerHard()){ uiAlert('Managers only.'); return; }
   const d=depositData();
   finalizeCloseout(d);
   const id=(window.TKS&&TKS.Config)?(TKS.Config.identity()||{}):{};
   const res=makeDepositPDF(d);
-  if(!res){ copyDepositSummary(); alert('PDF engine not loaded (offline?). The text summary was copied instead.'); return; }
+  if(!res){ copyDepositSummary(); uiAlert('PDF engine not loaded (offline?). The text summary was copied instead.'); return; }
   const file=new File([res.blob], res.filename, {type:'application/pdf'});
   const shareData={ files:[file], title:'Deposit slip — '+d.date,
     text:'Deposit slip from '+(id.name||'the shop')+' for '+d.date+' — deposit '+dMoney(d.deposit) };
@@ -2337,7 +2628,7 @@ function repBuckets(start, end, gran){
 function renderRepToggles(){
   const m=repMetrics(), box=document.getElementById('repToggles');
   box.innerHTML = REP_METRICS.map(x=>'<button class="m-'+x.key+(m[x.key]?' on':'')+'" data-m="'+x.key+'"><span class="dot"></span>'+x.label+'</button>').join('');
-  box.querySelectorAll('button').forEach(b=> b.onclick=()=>{ const cur=repMetrics(); cur[b.dataset.m]=!cur[b.dataset.m]; repSetMetrics(cur); renderReports(); });
+  box.querySelectorAll('button').forEach(b=> b.onclick=()=>{ const cur=repMetrics(); cur[b.dataset.m]=!cur[b.dataset.m]; repSetMetrics(cur); renderRepToggles(); renderReports(); });
 }
 function openReports(){
   const v=repView();
@@ -2413,8 +2704,12 @@ async function renderCommHolds(){
   holds.querySelectorAll('[data-uphold]').forEach(b=> b.onclick=()=> commSignoff(b.getAttribute('data-uphold'),'uphold'));
 }
 function commSignoff(job, action){
-  const note = prompt(action==='release' ? 'Confirm equipment is unused/returned. Note (optional):' : 'Reason for keeping the hold:'); if(note===null) return;
-  TKS.Commission.releaseHold(job, action, note||'').then(r=>{ if(r&&r.error){ alert(r.error.message); } else { renderCommission(); } }).catch(e=> alert(e.message||'Failed.'));
+  uiPrompt({ title:(action==='release'?'Release hold':'Keep hold'),
+    label:(action==='release' ? 'Confirm equipment is unused/returned. Note (optional):' : 'Reason for keeping the hold:'),
+    okText:(action==='release'?'Release':'Keep hold') }).then(function(note){
+    if(note===null) return;
+    TKS.Commission.releaseHold(job, action, note||'').then(r=>{ if(r&&r.error){ uiAlert(r.error.message); } else { renderCommission(); } }).catch(e=> uiAlert(e.message||'Failed.'));
+  });
 }
 function openCommissionRules(){
   const ov=document.createElement('div'); ov.className='chg-modal-ov';
@@ -2530,7 +2825,7 @@ async function renderReports(){
     if(!(await TKS_ACCESS.confirmDanger({ title:'Refund / void this '+(isCard?'card charge':method+' payment')+'?', message:'Any parts used will be returned to stock. This can’t be undone.', confirmLabel:'Refund / Void' }))) return;
     b.disabled=true; const old=b.textContent; b.textContent='…';
     let r2; try{ r2 = isCard ? await TKPay.refundCard(pi) : await TKPay.voidCashCheck(id); }catch(e){ r2={error:String(e)}; }
-    if(r2 && r2.error){ alert('Could not refund/void: '+r2.error); b.disabled=false; b.textContent=old; return; }
+    if(r2 && r2.error){ uiAlert({ title:'Couldn’t refund/void', message:String(r2.error) }); b.disabled=false; b.textContent=old; return; }
     reverseStockForInvoice(inv);
     renderReports();
   });
@@ -2653,11 +2948,11 @@ async function renderDashboard(){
   const owedSub=owedAll.count?(owedAll.count+' unpaid invoice'+(owedAll.count===1?'':'s')):'All settled';
   kbox.innerHTML =
     dashKpiCard('Revenue', dashMoney0(cur.sales), revSub, '#22994a')+
-    dashKpiCard('Jobs', String(cur.jobs), jobsSub, '#14171b')+
+    dashKpiCard('Jobs', String(cur.jobs), jobsSub, 'var(--ds-ink)')+
     dashKpiCard('Repeat customers', rcVal, rcSub, '#4aa3ff')+
-    dashKpiCard('Avg ticket', avgVal, avgSub, '#14171b')+
+    dashKpiCard('Avg ticket', avgVal, avgSub, 'var(--ds-ink)')+
     dashKpiCard('Owed (A/R)', '$'+Math.round(owedAll.amount).toLocaleString(), owedSub, owedAll.amount>0?'#c92c3d':'#22994a')+
-    dashKpiCard('Tax collected', dashMoney0(cur.tax), 'this month · pass-through', '#5a616c');
+    dashKpiCard('Tax collected', dashMoney0(cur.tax), 'this month · pass-through', 'var(--ds-2)');
   // Jobs this week
   const wk=dashWeekJobs(), max=Math.max(1,...wk.days.map(d=>d.n));
   let hi=wk.days.findIndex(d=>d.key===wk.todayKey);
@@ -2816,14 +3111,14 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
   function safe(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   // The shop's business name (Setup → Business). NEVER hardcode a shop name — this is multi-tenant.
   function bizName(){ try{ var n=((window.TKS&&TKS.Config&&TKS.Config.identity&&TKS.Config.identity().name)||'').trim(); return n||'your shop'; }catch(e){ return 'your shop'; } }
-  // The SHOP's branding (their business) drives the TOP header + the workspace subheading + tab title.
-  // NOTE: the left "Bittings" mark/name is the SOFTWARE/product brand — it is intentionally hardcoded and
-  // must NOT be changed per shop.
+  // The SHOP's branding (their business) drives the TOP header + the workspace subheading.
+  // The browser/window TITLE is the SOFTWARE/product brand "Bittings" (intentionally hardcoded,
+  // same as the left sidebar mark) — product chrome, not per-shop.
   try{
     var _nm=bizName();
     var w=$('btWorkspaceName'); if(w) w.textContent=_nm;       // sidebar "Locksmith" subheading = the shop
     var an=$('appName'); if(an) an.textContent=_nm;            // top header title = the shop
-    try{ document.title=_nm; }catch(_e){}                       // browser tab = the shop
+    try{ document.title='Bittings'; }catch(_e){}                // browser tab/window = the product brand
   }catch(e){}
   // The shop's uploaded logo (Setup → Logo) shows in the TOP header only (not the Bittings sidebar mark).
   try{
@@ -2908,8 +3203,32 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
   function matchVeh(make,year,model){
     var mk=(make||'').toLowerCase(), md=(model||'').toLowerCase();
     var rows=_ls('tks_vehicle_keyways').filter(function(r){ return r.make&&r.make.toLowerCase()===mk && yMatch(r,year); });
-    if(md){ var bm=rows.filter(function(r){ var m=(r.model||'').toLowerCase(); return m&&(md.indexOf(m)>=0||m.indexOf(md)>=0); }); if(bm.length) return bm[0]; }
+    // When a model is named, only return a record for THAT model. Never fall back to a
+    // different model's data (e.g. don't show MKZ data for an MKS) — show "verify" instead.
+    if(md){ var bm=rows.filter(function(r){ var m=(r.model||'').toLowerCase(); return m&&(md.indexOf(m)>=0||m.indexOf(md)>=0); }); return bm.length ? bm[0] : null; }
     return rows[0]||null;
+  }
+  // Ilco/AKS code series by make/model/year — shown even when there's no keyway record yet.
+  // Checks the curated seed first, then the full Ilco-2025 dataset (fuzzy model match).
+  function _nmod(s){ return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+  function codeSeriesFor(make,model,year){
+    try{ var mk=(make||'').toLowerCase(), nm=_nmod(model), y=parseInt(year,10)||0;
+      var cs=(window.TKS_LISHI_SEED&&window.TKS_LISHI_SEED.codeSeries)||[];
+      var h=cs.find(function(c){ return (c.make||'').toLowerCase()===mk && _nmod(c.model)===nm && c.ys<=y && c.ye>=y; });
+      if(h) return {series:h.series, card:h.card, note:h.note};
+      var il=window.TKS_ILCO_2025||[];
+      var b=il.find(function(r){ if((r.mk||'').toLowerCase()!==mk || !(r.ys<=y && r.ye>=y)) return false;
+        var rm=_nmod(r.md); return rm===nm || (nm.length>=3 && (rm.indexOf(nm)>=0 || nm.indexOf(rm)>=0)); });
+      if(b) return {series:b.s, card:b.c, note:'', keyway:b.k};
+      return null;
+    }catch(e){ return null; }
+  }
+  function codeSeriesCellHTML(veh, make, model, year){
+    var s = (veh&&veh.code_series) ? {series:veh.code_series, card:veh.code_card, note:veh.code_series_note} : codeSeriesFor(make, model, year);
+    if(!s || !s.series) return '<span class="bt-stat__sub">Add in Lishi</span>';
+    return '<div class="mono" style="font-weight:800;font-size:14px;color:var(--brand-red)">'+safe(s.series)+'</div>'+
+      (s.card?'<div class="bt-stat__sub" style="font-size:11px">HPC card: <b>'+safe(s.card)+'</b></div>':'')+
+      (s.note?'<div class="bt-stat__sub" style="font-size:11px">'+safe(s.note)+'</div>':'');
   }
   function vanParts(keys){
     var needles=keys.filter(Boolean).map(function(s){return String(s).toUpperCase();}); if(!needles.length) return [];
@@ -2919,11 +3238,55 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
   function progTag(c){ if(!c) return null; var a=String(c.akl||'').toLowerCase(), ad=String(c.add||'').toLowerCase();
     if(a==='yes') return 'AKL'; if(a==='pin') return 'AKL · PIN'; if(a==='license') return 'AKL · license'; if(a==='points') return 'AKL · points';
     if(a==='bench') return 'bench'; if(ad==='yes') return 'add-key'; return null; }
+  // Honest "needs dealer/OEM software" guard for the newest models — keeps the lookup from
+  // over-promising AKL. Specifics are sourced (web search, 2026); a universal rule covers
+  // the newest year for ALL makes. The owner refines reality via the Corrections log.
+  // Cross-references the programmer coverage: where a tool CAN do it, we show "verify —
+  // might be dealer software" + the physical tell (so you decide on the vehicle), and only
+  // hard-flag the genuinely OEM-locked makes. Sourced from a 2026 web search + shop experience.
+  function dealerSoftwareNote(make, year){
+    var mk=(make||'').toLowerCase(), y=parseInt(year,10)||0; if(!y) return null;
+    // 1) genuinely dealer/OEM-only — no real aftermarket path
+    if(/^(tesla|rivian|lucid|polestar)$/.test(mk)) return {level:'dealer', text:'OEM/app only — no aftermarket key path (added through the maker’s app/dealer).'};
+    if(mk.indexOf('mercedes')>=0 && y>=2015) return {level:'dealer', text:'Mercedes <b>FBS4</b> (2015+): 128-bit server-locked — dealer-only; no aftermarket tool does all-keys-lost.'};
+    if((mk==='bmw'||mk==='mini') && y>=2021) return {level:'dealer', text:'Newest BMW/MINI — typically dealer/specialist for all-keys-lost (CAS/FEM/BDC bench work); verify.'};
+    if(mk==='porsche' && y>=2010) return {level:'dealer', text:'Porsche AKL = <b>BCM board-level read</b> (not OBD) — needs PIWIS / VVDI Key Tool Plus / Abrites; dealer/specialist.'};
+    // 2) doable, but MIGHT be dealer — show the physical tell to decide on the vehicle
+    if(/^(chrysler|dodge|jeep|ram|fiat)$/.test(mk) && y>=2018)
+      return {level:'verify', text:'Might be dealer software only. <b>Tell:</b> older <b>egg-shaped FOBIK</b> = we can do it; newer <b>square proximity</b> fob = usually dealer (2023+ rolling PIN).'};
+    if(/^(chevrolet|gmc|buick|cadillac)$/.test(mk) && y>=2020)
+      return {level:'verify', text:'Might be dealer software only. <b>Tell:</b> newest <b>“shark-fin” keys</b> = dealer-only; older flip/blade = doable (Global B AKL needs a rolling-code calc).'};
+    if(/^(ford|lincoln)$/.test(mk) && y>=2017)
+      return {level:'verify', text:'Check the <b>door keyhole</b>: <b>vertical</b> = we can do it; <b>horizontal</b> = dealer software.'};
+    if(/^(jaguar|land rover|range rover)$/.test(mk) && y>=2016)
+      return {level:'dealer', text:'JLR <b>DOIP/KVM</b> — needs a dedicated JLR tool (JET / SX / Lock50), not the general programmers — effectively dealer/specialist.'};
+    if(mk==='volvo' && y>=2015)
+      return {level:'verify', text:'High-security <b>CEM</b> — all-keys-lost usually means CEM bench work (Lonsdor / ACDP), several hours; not a quick OBD job.'};
+    // 3) any other make, very newest year — just confirm the tool covers it
+    if(y>=2025) return {level:'verify', text:'Newest model year — confirm your tool actually covers it before quoting.'};
+    return null;
+  }
+  // Confirmed real-world tool removals the vendor coverage pages DON'T reflect (a maker forced
+  // the tool to drop functions). Sourced 2026. Returns 'none' (tool can't touch it) or 'addonly'.
+  function toolRestriction(toolKey, make, year){
+    var t=(toolKey||'').toLowerCase(), mk=(make||'').toLowerCase(), y=parseInt(year,10)||0;
+    var AUTEL=/^(im608|im508|km100)$/.test(t);
+    if(AUTEL && /^(ford|lincoln)$/.test(mk) && y>=2015) return 'none';     // Ford forced Autel to remove 2015+ Ford key/IMMO (Aug 2025)
+    if(AUTEL && /^(toyota|lexus|scion)$/.test(mk)) return 'addonly';        // Autel removed Toyota/Lexus AKL in the US — add-key only
+    return null;
+  }
   function progPills(make,year){
     var rows=_ls('tks_prog_coverage').filter(function(r){ return r.make&&r.make.toLowerCase()===(make||'').toLowerCase() && yMatch(r,year); });
-    if(!rows.length) return []; var row=rows[0], out=[];
+    if(!rows.length) return []; var row=rows[0], out=[]; var note=dealerSoftwareNote(make,year);
     _ls('tks_prog_devices').filter(function(d){return d.owned!==false;}).forEach(function(d){
-      var c=row.cov&&row.cov[d.covkey||d.key], tag=progTag(c); if(tag) out.push({name:d.name, tag:tag, cls:/AKL/.test(tag)?'is-info':(tag==='add-key'?'is-warn':'is-info')}); });
+      var dk=d.covkey||d.key, restr=toolRestriction(dk, make, year);
+      if(restr==='none') return;                                                                                   // this tool can no longer touch this make — don't list it
+      var c=row.cov&&row.cov[dk], tag=progTag(c); if(!tag) return;
+      var isAkl=/AKL/.test(tag);
+      if(isAkl && restr==='addonly'){ out.push({name:d.name, tag:'add-key only (AKL removed)', cls:'is-warn'}); } // Autel Toyota: add yes, AKL gone (US)
+      else if(isAkl && note && note.level==='dealer'){ out.push({name:d.name, tag:'AKL? dealer', cls:'is-no'}); }  // genuinely OEM-locked
+      else if(isAkl && note){ out.push({name:d.name, tag:tag+' · verify', cls:'is-warn'}); }                       // doable but might be dealer — verify
+      else out.push({name:d.name, tag:tag, cls:isAkl?'is-info':(tag==='add-key'?'is-warn':'is-info')}); });
     return out;
   }
   function pill(state,label){ return '<span class="bt-pill '+state+'">'+safe(label)+'</span>'; }
@@ -2938,7 +3301,9 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
   function renderResult(year, make, model, vin){
     var box=$('sjResult'); if(!box) return;
     var veh=matchVeh(make,year,model);
-    var kw=veh?veh.keyway:'', tool=kw?toolForKeyway(kw):null;
+    var kw=veh?veh.keyway:'';
+    if(!kw){ var _ilkw=codeSeriesFor(make,model,year); if(_ilkw && _ilkw.keyway) kw=_ilkw.keyway; }   // Ilco keyway when no Lishi record
+    var tool=kw?toolForKeyway(kw):null;
     var trans=veh?veh.transponder_system:'', ign=veh?veh.can_pick_ignition:'';
     var prog=progPills(make,year), parts=vanParts([kw, tool&&tool.key_blank, make]);
     var inStockN=parts.reduce(function(s,p){return s+(p.qty>0?1:0);},0);
@@ -2956,7 +3321,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
          '</div>'+
          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px">'+
            cell('Keyway — Lishi tool','<div style="font-weight:800;color:var(--brand-red)">'+safe(kw||'—')+(tool?' <span class="mono" style="color:var(--text-secondary);font-weight:600;font-size:12.5px">· '+safe(tool.tool_designation)+'</span>':'')+'</div>')+
-           cell('Code series', (veh&&veh.code_series) ? '<div class="mono" style="font-weight:800;font-size:14px;color:var(--brand-red)">'+safe(veh.code_series)+'</div>'+(veh.code_card?'<div class="bt-stat__sub" style="font-size:11px">HPC card: <b>'+safe(veh.code_card)+'</b></div>':'')+(veh.code_series_note?'<div class="bt-stat__sub" style="font-size:11px">'+safe(veh.code_series_note)+'</div>':'') : '<span class="bt-stat__sub">Add in Lishi</span>')+
+           cell('Code series', codeSeriesCellHTML(veh, make, model, year))+
            cell('Inventory check', parts.length?pill('is-ok', inStockN+' matching in van'):pill('is-warn','No matching stock'))+
            cell('Transponder','<div class="mono" style="font-size:13px;font-weight:600">'+safe(trans||'—')+'</div>')+
            cell('Ignition pickable', ynPill(ign))+
@@ -2964,6 +3329,8 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
          '<div style="margin-top:16px;border-top:1px solid var(--border-subtle);padding-top:14px">'+
            '<div class="eyebrow" style="margin-bottom:8px">Programmers</div>'+
            '<div style="display:flex;gap:8px;flex-wrap:wrap">'+(prog.length?prog.map(function(p){return pill(p.cls, p.name+' · '+p.tag);}).join(''):'<span class="bt-stat__sub">Add your tools in Programmers.</span>')+'</div>'+
+           (function(){ var dn=dealerSoftwareNote(make,year); if(!dn) return ''; var c=(dn.level==='dealer'?'#c8323c':'#d98a00');
+             return '<div style="margin-top:10px;font-size:12px;font-weight:600;color:'+c+';background:'+(dn.level==='dealer'?'rgba(200,50,60,.10)':'rgba(217,138,0,.10)')+';border:1px solid '+c+'66;border-radius:9px;padding:8px 11px;line-height:1.5">'+(dn.level==='dealer'?'🔒 Dealer / OEM software only — ':'⚠ Verify — ')+dn.text+' <span style="display:block;margin-top:5px;font-weight:700;opacity:.85">Log what actually worked under “⚠ Something wrong?” below — it shows here next time.</span></div>'; })()+
          '</div>'+
          ((oem||nastf)?'<div style="margin-top:12px">'+pill('is-no',(oem?'OEM-only ':'')+(nastf?'NASTF required':''))+'</div>':'')+
        '</div>'+

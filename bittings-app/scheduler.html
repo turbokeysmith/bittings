@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Scheduler</title>
+<title>Scheduler — Bittings</title>
 <meta name="theme-color" content="#f6f7f9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -53,8 +53,8 @@
   --red:#C0392B;
   --red-soft:#FDF1F0;
   --on-gold:#1C1C1E;       /* text that sits on a gold button (dark in both themes) */
-  /* header */
-  --header-bg:#1C1C1E; --header-fg:#FFFFFF; --toggle-bg:#2C2C2E; --toggle-fg:#9A9A9F;
+  /* header — light surface in light mode (themed to match the rest of the app) */
+  --header-bg:#fbfcfd; --header-fg:#14171b; --toggle-bg:#eef1f5; --toggle-fg:#5a616c;
   /* "say this" coaching card */
   --coach-bg:#FFF6E2; --coach-border:#F0C462; --coach-accent:#E8A317; --coach-tag:#9A6B00; --coach-text:#3A2D08;
   /* "tip" coaching card */
@@ -100,7 +100,7 @@ h1,h2,h3,.brand{font-family:"Sora",-apple-system,sans-serif;}
 /* ---------- header ---------- */
 header{
   position:sticky;top:0;z-index:50;height:var(--header-h);
-  background:var(--header-bg);color:var(--header-fg);
+  background:var(--header-bg);color:var(--header-fg);border-bottom:1px solid rgba(0,0,0,.08);
   display:flex;align-items:center;justify-content:space-between;
   padding:0 16px;padding-top:env(safe-area-inset-top);
 }

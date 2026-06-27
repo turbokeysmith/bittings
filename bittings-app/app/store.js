@@ -693,6 +693,10 @@
     // where the shop operates: mobile (van) and/or a physical storefront. Drives whether
     // inventory splits into van vs shop + shows "move" buttons. Mobile-first default.
     locations: { van: true, shop: false },
+    // NASTF D1 filing window (days) — manager-set in Setup; drives the D1 countdown badge.
+    nastf: { d1Days: 5 },
+    // misc UI preferences (e.g. suppress the "save this Other service?" offer). Shop-wide, cloud-synced.
+    prefs: { offerSaveOtherService: true },
     // employees: [{name,email,owner}]; ownerEmails is derived from owner=true rows.
     access: { employees: [], ownerEmails: [], staffEmails: [], quickFormPin: '', quickInvoiceEnabled: true, quickInvoiceDefault: true },
     quickLinks: DEFAULT_QUICKLINKS.map(function (c) { return { key: c.key, label: c.label, icon: c.icon, links: c.links.slice() }; }),
@@ -751,6 +755,8 @@
       identity: Object.assign({}, d.identity, c.identity || {}),
       payments: Object.assign({}, d.payments, c.payments || {}),
       locations: Object.assign({}, d.locations, c.locations || {}),
+      nastf: Object.assign({}, d.nastf, c.nastf || {}),
+      prefs: Object.assign({}, d.prefs, c.prefs || {}),
       access: Object.assign({}, d.access, c.access || {}),
       quickLinks: normalizeQuickLinks(c.quickLinks, c.vendors),
       services: Array.isArray(c.services) ? c.services : [],
@@ -897,6 +903,9 @@
       payments: function () { return getConfig().payments; },
       warranty: function () { return getConfig().warranty || { months: 0, defaultOn: false }; },
       locations: function () { return getConfig().locations; },
+      nastf: function () { return getConfig().nastf || { d1Days: 5 }; },
+      d1Days: function () { var n = getConfig().nastf || {}; var d = parseInt(n.d1Days, 10); return (d >= 1) ? d : 5; },
+      prefs: function () { return getConfig().prefs || {}; },
       quickLinks: function () { return getConfig().quickLinks; },
       // back-compat: the links in the "vendors" category
       vendors: function () { var q = getConfig().quickLinks.filter(function (c) { return c.key === 'vendors'; })[0]; return q ? q.links : []; },
@@ -918,7 +927,7 @@
         partial = partial || {};
         var cur = getConfig();
         var merged = Object.assign({}, cur);
-        ['identity', 'payments', 'access', 'setup', 'locations', 'warranty'].forEach(function (g) {
+        ['identity', 'payments', 'access', 'setup', 'locations', 'warranty', 'nastf', 'prefs'].forEach(function (g) {
           if (partial[g]) merged[g] = Object.assign({}, cur[g], partial[g]);
         });
         if (partial.taxableByCategory) merged.taxableByCategory = Object.assign({}, cur.taxableByCategory, partial.taxableByCategory);
@@ -1020,28 +1029,80 @@
      =================================================================== */
   function _sb(){ if(!authState.sb) throw new Error('Connect to the cloud (sign in) to use this.'); return authState.sb; }
 
+  /* ===================================================================
+     DEMO MODE (offline pitch). START-DEMO.html seeds localStorage and sets
+     tks_demo_mode='1'. The cloud-only sections below (Fleet, Commission,
+     NASTF, per-location stock) have no local adapter, so they short-circuit
+     to seeded local data when the flag is on. Production never sets the flag,
+     so every branch here is inert outside the demo.
+     =================================================================== */
+  function _demoOn(){ try{ return localStorage.getItem('tks_demo_mode')==='1'; }catch(e){ return false; } }
+  function _demoGet(k,d){ try{ var v=JSON.parse(localStorage.getItem(k)); return (v==null)?d:v; }catch(e){ return d; } }
+  function _demoSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  function _demoOk(data){ return Promise.resolve({ data:data, error:null }); }
+  // Commission day-rows synthesized from the seeded transactions: 8% of the
+  // commissionable base (sales ex-tax), with a $150/day minimum, by tech & day.
+  function _demoCommissionRows(from, to, tech){
+    var txns=_demoGet('tks_demo_txns',[]), staff=_demoGet('tks_demo_staff',[]);
+    var nameById={}; staff.forEach(function(s){ nameById[s.user_id]=s.name; });
+    var byKey={};
+    txns.forEach(function(t){
+      if(t.status!=='completed') return;
+      var day=(t.created_at||'').slice(0,10);
+      if(from && day<from) return; if(to && day>to) return;
+      var tid=t.tech_id||t.technician||'tech';
+      if(tech && tid!==tech) return;
+      var base=Math.max(0,(t.base_cents||0)-(t.tax_cents||0));
+      var k=tid+'|'+day, g=byKey[k]||(byKey[k]={tech_id:tid, tech_name:t.technician||nameById[tid]||'Tech', day:day, base:0});
+      g.base+=base;
+    });
+    var DAILY_MIN=15000, PCT=0.08;
+    return Object.keys(byKey).map(function(k){ var g=byKey[k];
+      var raw=Math.round(g.base*PCT), met=raw>=DAILY_MIN;
+      return { tech_id:g.tech_id, tech_name:g.tech_name, day:g.day, base_cents:g.base,
+               commission_cents:Math.max(raw,DAILY_MIN), held_cents:0, met_min:met };
+    });
+  }
+  function _demoNastfWorklist(includeFiled){
+    var recs=_demoGet('tks_receipts',[]);
+    return recs.filter(function(r){ return r.nastf && r.nastf.type && (includeFiled || !r.nastf.d1Filed); })
+      .map(function(r){ return { id:r.id, number:r.number, customer:r.customer, doc_date:r.date,
+        nastf_type:r.nastf.type, d1_days:r.nastf.d1Days, d1_due:r.nastf.d1DueDate,
+        d1_filed:!!r.nastf.d1Filed, d1_filed_by_name:r.nastf.d1FiledByName||'', can_file:true }; })
+      .sort(function(a,b){ return String(a.d1_due||'').localeCompare(String(b.d1_due||'')); });
+  }
+
   // Fleet / vans (manage = manager+, read = any staff; enforced by RLS).
   global.TKS.Fleet = {
-    list:    function(){ return _sb().from('vans').select('*').order('fleet_no', { ascending: true }); },
+    list:    function(){ if(_demoOn()) return _demoOk(_demoGet('tks_demo_vans',[])); return _sb().from('vans').select('*').order('fleet_no', { ascending: true }); },
     save:    function(v){
       var row = { fleet_no: v.fleet_no || null, vin: (v.vin||'').toUpperCase() || null,
                   nickname: v.nickname || null, plate: v.plate || null, status: v.status || 'active' };
+      if(_demoOn()){ var vs=_demoGet('tks_demo_vans',[]);
+        if(v.id){ var i=vs.findIndex(function(x){return x.id===v.id;}); if(i>=0) vs[i]=Object.assign(vs[i],row); }
+        else { row.id='van_'+Date.now().toString(36); vs.push(row); }
+        _demoSet('tks_demo_vans',vs); return _demoOk([row]); }
       return v.id ? _sb().from('vans').update(row).eq('id', v.id).select()
                   : _sb().from('vans').insert(row).select();
     },
-    setStatus: function(id, status){ return _sb().from('vans').update({ status: status }).eq('id', id); },
-    remove:  function(id){ return _sb().from('vans').delete().eq('id', id); },
-    staff:   function(){ return _sb().from('staff').select('user_id,name,role,active,home_van_id').order('role'); },
-    assignHomeVan: function(userId, vanId){ return _sb().from('staff').update({ home_van_id: vanId || null }).eq('user_id', userId); }
+    setStatus: function(id, status){ if(_demoOn()){ var vs=_demoGet('tks_demo_vans',[]); var x=vs.find(function(v){return v.id===id;}); if(x)x.status=status; _demoSet('tks_demo_vans',vs); return _demoOk(null); } return _sb().from('vans').update({ status: status }).eq('id', id); },
+    remove:  function(id){ if(_demoOn()){ _demoSet('tks_demo_vans', _demoGet('tks_demo_vans',[]).filter(function(v){return v.id!==id;})); return _demoOk(null); } return _sb().from('vans').delete().eq('id', id); },
+    staff:   function(){ if(_demoOn()) return _demoOk(_demoGet('tks_demo_staff',[])); return _sb().from('staff').select('user_id,name,role,active,home_van_id').order('role'); },
+    assignHomeVan: function(userId, vanId){ if(_demoOn()) return _demoOk(null); return _sb().from('staff').update({ home_van_id: vanId || null }).eq('user_id', userId); }
   };
 
   // Inventory location ops — all role-checked server-side.
   // location strings: 'shop' or 'van:<vanId>'.
   global.TKS.InvOps = {
-    locations: function(itemId){ return _sb().from('inventory_locations').select('*').eq('item_id', itemId).order('location'); },
-    move:    function(item, from, to, qty){ return _sb().rpc('inv_move',    { p_item: item, p_from: from, p_to: to, p_qty: qty }); },   // tech+
-    receive: function(item, qty){           return _sb().rpc('inv_receive', { p_item: item, p_qty: qty }); },                            // front_desk+
-    adjust:  function(item, loc, newQty, reason){ return _sb().rpc('inv_adjust', { p_item: item, p_loc: loc, p_new_qty: newQty, p_reason: reason || '' }); } // manager+
+    locations: function(itemId){
+      if(_demoOn()){ var it=(_demoGet('tks_inventory',[])||[]).find(function(p){return p.id===itemId;});
+        if(!it) return _demoOk([]);
+        if(Array.isArray(it.locs) && it.locs.length) return _demoOk(it.locs.map(function(l){ return { item_id:itemId, location:l.location, qty:l.qty }; }));
+        return _demoOk([{ item_id:itemId, location:it.location||'shop', qty:it.qty||0 }]); }
+      return _sb().from('inventory_locations').select('*').eq('item_id', itemId).order('location'); },
+    move:    function(item, from, to, qty){ if(_demoOn()) return _demoOk(null); return _sb().rpc('inv_move',    { p_item: item, p_from: from, p_to: to, p_qty: qty }); },   // tech+
+    receive: function(item, qty){           if(_demoOn()) return _demoOk(null); return _sb().rpc('inv_receive', { p_item: item, p_qty: qty }); },                            // front_desk+
+    adjust:  function(item, loc, newQty, reason){ if(_demoOn()) return _demoOk(null); return _sb().rpc('inv_adjust', { p_item: item, p_loc: loc, p_new_qty: newQty, p_reason: reason || '' }); } // manager+
   };
 
   // Job status + accountability — guarded RPCs (front_desk can't set status;
@@ -1082,11 +1143,21 @@
 
   // ---- Phase 2b: configurable commission engine ----
   global.TKS.Commission = {
-    config:     function(){ return _sb().from('commission_config').select('*').eq('id',1).maybeSingle(); },     // read = any staff (the rules)
-    saveConfig: function(c){ return _sb().from('commission_config').update(Object.assign({ updated_at:new Date().toISOString() }, c)).eq('id',1); },  // write = manager+ (RLS)
-    dayRows:    function(from,to,tech){ return _sb().rpc('commission_day_rows', { p_from:from, p_to:to, p_tech:tech||null }); },  // tech = own only (server-forced)
+    config:     function(){ if(_demoOn()) return Promise.resolve({ data:_demoGet('tks_demo_comm_config', { id:1, pay_on:'whole_job', structure:'daily_min_pct', pct:8, daily_min_cents:15000, exclude_parts:true, earned_when:'paid', hold_unreconciled:true }), error:null }); return _sb().from('commission_config').select('*').eq('id',1).maybeSingle(); },     // read = any staff (the rules)
+    saveConfig: function(c){ if(_demoOn()){ _demoSet('tks_demo_comm_config', c); return _demoOk(null); } return _sb().from('commission_config').update(Object.assign({ updated_at:new Date().toISOString() }, c)).eq('id',1); },  // write = manager+ (RLS)
+    dayRows:    function(from,to,tech){ if(_demoOn()) return _demoOk(_demoCommissionRows(from,to,tech)); return _sb().rpc('commission_day_rows', { p_from:from, p_to:to, p_tech:tech||null }); },  // tech = own only (server-forced)
     // 2d — manager sign-off / reconciliation approval (releasing a hold releases the commission hold)
-    awaitingSignoff: function(){ return _sb().rpc('jobs_awaiting_signoff'); },                                   // manager+ only
-    releaseHold:     function(job, action, note){ return _sb().rpc('job_release_hold', { p_job:job, p_action:action, p_note:note||'' }); }
+    awaitingSignoff: function(){ if(_demoOn()) return _demoOk([]); return _sb().rpc('jobs_awaiting_signoff'); },                                   // manager+ only
+    releaseHold:     function(job, action, note){ if(_demoOn()) return _demoOk(null); return _sb().rpc('job_release_hold', { p_job:job, p_action:action, p_note:note||'' }); }
+  };
+
+  // ---- NASTF D1 filing tracking (shared worklist + job-scoped filing) ----
+  global.TKS.NASTF = {
+    // the shared outstanding-D1 worklist (urgency-sorted; each row carries can_file).
+    worklist:  function(includeFiled){ if(_demoOn()) return _demoOk(_demoNastfWorklist(includeFiled)); return _sb().rpc('nastf_worklist', { p_include_filed: includeFiled !== false }); },
+    // file / un-file a D1 — server enforces job-scope (manager OR the staff who did the job).
+    setFiled:  function(receiptId, filed){ if(_demoOn()){ var recs=_demoGet('tks_receipts',[]); var r=recs.find(function(x){return x.id===receiptId;}); if(r&&r.nastf){ r.nastf.d1Filed=(filed!==false); r.nastf.d1FiledByName=r.nastf.d1FiledByName||'Samer Haddad'; _demoSet('tks_receipts',recs); } return _demoOk(null); } return _sb().rpc('set_d1_filed', { p_receipt: receiptId, p_filed: filed !== false }); },
+    // UI mirror: may this user file D1 on this receipt?
+    canFile:   function(receiptId){ if(_demoOn()) return _demoOk(true); return _sb().rpc('can_file_d1', { p_receipt: receiptId }); }
   };
 })(window);
