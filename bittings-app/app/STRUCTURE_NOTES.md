@@ -8,6 +8,14 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 - **Staff app** (dark): http://127.0.0.1:8088/  → Customers · Receipts · Scheduler · Payments · Inventory
 - **Public site** (light): http://127.0.0.1:8099/  → contact form `/contact/`, language toggle 🌐 in the header
 
+## 2026-06-26 22:00 CST — repo: Git installed on the new PC, full GitHub backup
+- The new PC had **no Git CLI installed** (it's at `C:\Program Files\Git\cmd\git.exe`; a fresh shell will have it
+  on PATH). All recent work (NASTF/D1, Ilco import, demo, blog #2, 20+ edited files) was **uncommitted**.
+- Committed that batch to `phase2-pos-commission` and **pushed every local branch to `origin`**
+  (`github.com/turbokeysmith/bittings`). Before today only `main`/`repo-cleanup` existed on the remote; now
+  `phase1-roles-security`, `phase2-pos-commission`, `app-structure`, `public-website`, `restructure` are all there too.
+- `.gitignore` now excludes `.wrangler/` (Cloudflare deploy cache) and `bittings-app.zip` (regenerable demo bundle).
+
 ## 2026-06-26 PM — self-contained demo + warranty/Reports fixes
 - **Reports toggles:** the metric pill click handler (`renderRepToggles` in `index.html`) now calls
   `renderRepToggles()` as well as `renderReports()`, so the pill's `.on` state re-renders on each click (it was
