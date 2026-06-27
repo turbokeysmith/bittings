@@ -161,8 +161,22 @@ Programmers) are native on both.
 
 **Tooling note:** Git **and Node.js (24.18)** are now installed on this PC (both were missing). Node is
 needed for the next `npx wrangler` website deploy and is used here to syntax-check the inline scripts.
-- **3.3 Native scheduler** ⬜ — Day/Week/Month calendar over `bookings`, reschedule writes back,
-  intake flow preserved, Google link demoted to optional export.
+- **3.3 Native scheduler** ✅ (code-complete, rendering-verified, pending owner device sign-off) —
+  native **Month/Week/Day** calendar (`#view-schedule`, `window.renderSchedule`) over the existing
+  `TKS.Bookings` store — **no Google dependency**; this calendar is the system of record. Month grid
+  with status-colored chips (blue=Scheduled · amber=In Progress · green=Completed · purple=Rescheduled
+  · struck-through=Canceled), today highlighted; Week columns; Day = time-sorted job cards with
+  icon/vehicle/address + status badge. Tap a job → detail modal: change **status**, **reschedule**
+  (date/time), edit name/phone/address/make/model, or delete — all write back via `TKS.Bookings`
+  (same store path the old day-view used → syncs to Supabase when signed in). **+ New job** opens the
+  proven **guided intake** (`scheduler.html`) — only the calendar view layer is new; the intake flow
+  + server-side job accountability (Phase-1 `TKS.Jobs` state machine) are unchanged.
+  **Verified via headless Chromium** (seeded bookings): 42-cell month grid renders, 5 bookings show as
+  color-coded chips, white cards + dark readable text in dark mode, Day view cards correct. Also fixed
+  a load-order bug: the nav dispatch now guards `window.renderFleet/Settings/Programmers/Schedule` so an
+  early auto-trigger can't throw "renderX is not defined".
+  🚩 **Pending owner device sign-off:** reschedule/status writes round-trip to Supabase on a real
+  signed-in session; the guided-intake "+ New job" round-trips back to the calendar.
 - **3.4 Full self-verification** ⬜ — every screen native, no iframes; role gating (owner vs staff)
   holds; reads/writes hit the same Supabase rows the old app did.
 - **3.5 Cutover** ⬜ — only after a full device sweep passes: point the run/deploy at
@@ -175,9 +189,13 @@ needed for the next `npx wrangler` website deploy and is used here to syntax-che
 - Native scheduler: create/open/reschedule a booking; it persists to the same cloud record.
 
 ## 📌 WHERE PHASE 3 STANDS
-**All 6 iframe-seam screens are now unified** (code-complete, pending the device sweep): Fleet, Settings,
-Programmers **inlined as native views**; Lishi, Receipts, Scheduler **seamless module-mounts** (no
-page-within-a-page chrome). Backend untouched throughout; everything committed + pushed.
-**Remaining: 3.3 native scheduler** (the from-scratch calendar over `bookings`, replacing the
-Google-Calendar link — the one genuinely new build) → 3.4 full self-verify → 3.5 cutover.
-**Batched for the owner's device sweep:** every screen's "pending device verify" note above.
+**The unification build is functionally complete** (code-complete, rendering-verified, pending the
+owner device sweep): Fleet, Settings, Programmers **inlined as native views**; Lishi + Receipts
+**seamless module-mounts**; and the **native Month/Week/Day scheduler** (3.3) replaces the
+Google-Calendar link. The proven Supabase backend was **never touched**; everything committed + pushed.
+A headless-Chromium harness now exists (`scratchpad/probe*.js`) and was used to verify dark-mode
+readability + the scheduler rendering.
+**Remaining: 3.4 full self-verify + 3.5 cutover** — the owner's one device sweep (iPhone Safari +
+Android Chrome, owner + staff), then point the run/deploy at `bittings-unified/` keeping
+`bittings-app/` as the fallback until confirmed. Batched checklist = every "pending device verify"
+note above.
