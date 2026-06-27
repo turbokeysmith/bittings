@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-26 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-26 22:00 CST (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,19 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-26 22:00 CST (💾 New PC: Git installed · all work committed + backed up to GitHub)
+- **New PC had no Git installed at all** — so weeks of recent work (the NASTF/D1 stage, the Ilco 2025
+  key-blank import, the investor demo, blog post #2, plus 20+ edited core files) were sitting **uncommitted
+  and un-backed-up** in the working folder. Installed Git (2.54.0) and **committed the whole batch** to the
+  `phase2-pos-commission` branch.
+- **Backed everything up to GitHub** (`github.com/turbokeysmith/bittings`). Previously **none** of the
+  branches except `main`/`repo-cleanup` existed on GitHub — they lived only on the old PC. Pushed **all**
+  branches: `phase2-pos-commission`, `phase1-roles-security` (192 commits), `app-structure` (146),
+  `restructure` (136), `public-website` (21). Nothing now lives only on one machine.
+- **Tidied what Git tracks:** the Cloudflare deploy cache (`.wrangler/`) and the regenerable demo zip
+  (`bittings-app.zip`) are now ignored (they're rebuilt on demand, no need to store them).
+- No app/website behavior changed — this was repo safety only.
 
 ### 2026-06-26 PM (🧰 Demo made self-contained · warranty fixes · Reports toggles · fleet/commission/NASTF in the demo)
 - **Reports metric toggles now light up when tapped.** The Total Sales / Cost / Profit pills weren't re-rendering on
