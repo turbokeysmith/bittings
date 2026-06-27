@@ -243,8 +243,11 @@ Three issues found driving the rebuilt scheduler; all fixed + render-verified vi
 - **Drag-to-reschedule did nothing visible.** `reschedule()` no longer opens a (skippable) reason
   modal — it now **moves the job immediately**, persists via `TKS.Bookings.save`, re-renders, and shows a
   toast ("Moved to Sun · Jun 28"). Verified: dragging chip `s1` onto another day cell updated its date.
-- **Day label always said "Today".** Toolbar label is now **contextual**: "Today" only when the cursor
-  is actually today; otherwise the real date ("Sun · Jun 28"). Verified: today→"Today", next→"Sun · Jun 28".
+- **Day label always said "Today" + invisible in dark mode.** The contextual label now lives **inside
+  the nav** (a white pill where the "Today" button was — readable in BOTH themes; the old bare
+  `.sch-label` on the dark content bg is gone). Per view: board/day → **"Today"** on today else the date
+  ("Sun · Jun 28"); week → **"This week"** else **"Week of Jun 28"**; month → **"July 2026"** (the
+  month). Clicking it still jumps to today. Verified across all views in dark mode (white bg, dark text).
 - **Edit/save didn't persist.** Root cause: the form reused element ids (`fName`/`fSave`) that **collide
   with the Customers form** (invalid HTML; `getElementById` hit the wrong node). Namespaced all scheduler-
   form ids to `sj*`. Save now applies **every field directly (incl. date/time + status)** and persists
