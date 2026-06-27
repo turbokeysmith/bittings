@@ -203,6 +203,41 @@ needed for the next `npx wrangler` website deploy and is used here to syntax-che
 - Owner-gating still hides owner-only tools (Fleet/Dashboard/Closeout/Reports/Settings) from staff.
 - Native scheduler: create/open/reschedule a booking; it persists to the same cloud record.
 
+## 3.6 — Stock-move surfacing + explicit cancel/consolidation (owner request, 2026-06-27)
+All wiring + UX on the proven backend (inv_move + job_cancel/reconcile unchanged).
+
+### Stock moves (van ↔ shop), role-aware
+- **Inventory stock panel** (`openStockPanel`): owner/manager (`can('setup')`) see a direct **Move**
+  (calls `inv_move`); a **technician** sees **Request move** → records a request (no direct move).
+- **Scheduler "not on van" flag** (`checkVanFlags`/`renderVanFlag`): when a job's part isn't on the
+  assigned tech's home van but is at the shop, the flag gets a one-tap **Move to van** (manager →
+  `inv_move shop→van`) or **Request** (tech).
+- **Manager approval surface:** app-wide banner "📦 N stock-move requests waiting" → modal listing each
+  with **Approve** (runs `inv_move`) / **Dismiss**. `window.requestStockMove` + `moveReqs` store.
+- 🚩 **One backend decision flagged:** requests persist in **localStorage (same device)**. A real
+  cross-device tech→manager queue needs a tiny `move_requests` table (the only backend addition) — NOT
+  built, per "backend untouched." Manager direct-move + the approval flow on one device work now.
+  (The server actually permits `inv_move` for technicians too — the request flow is a UI-imposed policy.)
+
+### Explicit cancel → key consolidation (no silent owner exception)
+- Cancel asks for a **reason note** (required for tech/front-desk; **optional for owner AND manager** —
+  was owner-only). Reason + note → `TKS.Jobs.cancel(job,reason,detail)` + local mirror.
+- Then an explicit **keys step**: **Consolidate now** · **Consolidate later — remind me** · **No keys /
+  parts involved**. "Now" → reconcile list (Returned→stock / Used; cut keys need a return photo via
+  `uploadProof`+`reconcilePart`). "Later" flags the job. "No keys" never flags/nags.
+- **Persistent app-wide banner** "🔑 N jobs need keys consolidated" while a job has the local
+  `needsManagerSignoff` flag and isn't consolidated/no-keys → "Review in Scheduler". Cleared on consolidate.
+- **Verified via headless Chromium:** card→Cancel→reason→keys step→"Later"→banner appears + job shows
+  CANCELLED; the manager move-request banner shows. 8/8 inline scripts pass syntax; no console errors.
+
+### Server-side cancel behavior per role (confirmed from `1c_jobs_status_accountability.sql`)
+- **Owner / Manager:** cancel ANY job → status='canceled' + reason/detail; if unreconciled parts exist,
+  `reconciliation_pending=true` + `responsible_tech`=lead. Audited.
+- **Technician:** only **own** jobs (`is_own_job`); same effects. Others' jobs → blocked.
+- **Front desk:** only while **status='scheduled'** (pre-dispatch); later → blocked.
+- Cancel does **not** auto-return parts — it only **flags** reconciliation; consolidation = reconciling
+  each part (cut keys need a photo). Status/`reconciliation_pending` change **only** via the RPCs (DB guard).
+
 ## 📌 WHERE PHASE 3 STANDS
 **The unification build is functionally complete** (code-complete, rendering-verified, pending the
 owner device sweep): Fleet, Settings, Programmers **inlined as native views**; Lishi + Receipts

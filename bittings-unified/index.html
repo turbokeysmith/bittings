@@ -90,6 +90,13 @@
   .view.active{display:block;animation:fade .25s ease;}
   @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
+  /* Persistent "consolidate keys" reminder — shown app-wide while any canceled/rescheduled job
+     still has keys/parts to return to stock (ties to reconciliation_pending / needsManagerSignoff). */
+  .consol-banner{display:flex;align-items:center;gap:10px;background:#fff3cd;border:1px solid #f2b43a;color:#7a4f00;border-radius:12px;padding:10px 14px;margin:0 0 14px;font-size:13.5px;font-weight:600;line-height:1.35;}
+  [data-bt-theme="dark"] .consol-banner{background:rgba(242,180,58,.14);color:#f2d18a;border-color:rgba(242,180,58,.5);}
+  .consol-banner b{font-weight:800;}
+  .consol-banner .cb-go{margin-left:auto;background:var(--red,#c8323c);color:#fff;border:none;border-radius:9px;padding:7px 12px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap;}
+
   /* ===== De-iframed views render as WHITE content cards on the dark chrome (same as the app's
      existing #view-customers pattern). The bug: card text inherited the dark-mode body color
      (light) → invisible headings on the white card. Fix: pin the LIGHT palette for these views'
@@ -913,6 +920,9 @@
 
   <div class="authbar" id="authBar"></div>
 
+  <div id="consolBanner" class="consol-banner" style="display:none"></div>
+  <div id="moveReqBanner" class="consol-banner" style="display:none"></div>
+
   <!-- Tile hub removed — every destination lives in the left menu (sidebar / phone "More"). Landing = Start a job. -->
   <p class="note" id="homeNote" style="display:none"></p>
 
@@ -1341,9 +1351,63 @@ function show(name){
   back.style.display = (name==='startjob') ? 'none' : 'block';
   back.dataset.to = (name==='form') ? 'customers' : (name==='part' ? 'inventory' : 'startjob');
   document.querySelectorAll('.bt-nav__item,.bt-bottomnav__item').forEach(el=>el.classList.toggle('is-active', el.dataset.go===name));
+  if(window.renderConsolBanner) window.renderConsolBanner();
+  if(window.renderMoveReqBanner) window.renderMoveReqBanner();
   window.scrollTo(0,0);
 }
 document.getElementById('backBtn').onclick = function(){ show(this.dataset.to || 'startjob'); };
+/* App-wide "consolidate keys" reminder: any canceled/rescheduled job still holding keys/parts that
+   must be returned to stock (local needsManagerSignoff flag, set at cancel; cleared once consolidated
+   or marked "no keys"). Tapping jumps to the Scheduler. */
+window.renderConsolBanner = function(){
+  var el=document.getElementById('consolBanner'); if(!el) return;
+  var js=[]; try{ js=(TKS.Bookings.all()||[]).filter(function(b){ return b.needsManagerSignoff && !b.keysConsolidated && !b.noKeys; }); }catch(e){}
+  if(!js.length){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='flex';
+  el.innerHTML='🔑 <span><b>'+js.length+' job'+(js.length>1?'s':'')+'</b> '+(js.length>1?'need':'needs')+' keys/parts consolidated &amp; returned to stock.</span>'+
+    '<button class="cb-go" id="cbGo">Review in Scheduler</button>';
+  var g=document.getElementById('cbGo'); if(g) g.onclick=function(){ var b=document.querySelector('.bt-nav__item[data-go="schedule"]'); if(b) b.click(); };
+};
+
+/* ===== Stock-move requests (tech → manager approval) =====
+   The backend (inv_move) lets a manager move stock directly. To route TECH moves through manager
+   approval without changing the backend, a request is recorded and a manager approves it (which then
+   calls inv_move). NOTE: requests persist in localStorage (same device). Cross-device tech→manager
+   sync would need a small `move_requests` table — flagged as the one backend decision (not built). */
+function moveReqs(){ try{ return JSON.parse(localStorage.getItem('tks_move_requests')||'[]'); }catch(e){ return []; } }
+function saveMoveReqs(a){ try{ localStorage.setItem('tks_move_requests', JSON.stringify(a||[])); }catch(e){} }
+window.requestStockMove=function(req){ var a=moveReqs(); req.id='mr_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); req.ts=Date.now(); try{ req.by=(TKS.auth&&TKS.auth.email&&TKS.auth.email())||req.by||''; }catch(e){} a.push(req); saveMoveReqs(a); if(window.renderMoveReqBanner) window.renderMoveReqBanner(); };
+window.renderMoveReqBanner=function(){
+  var el=document.getElementById('moveReqBanner'); if(!el) return;
+  var mgr=false; try{ mgr=!!(TKS.auth && TKS.auth.can && TKS.auth.can('setup')); }catch(e){}
+  var rs=moveReqs();
+  if(!mgr || !rs.length){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='flex';
+  el.innerHTML='📦 <span><b>'+rs.length+' stock-move request'+(rs.length>1?'s':'')+'</b> waiting for your approval.</span><button class="cb-go" id="mrGo">Review</button>';
+  var g=document.getElementById('mrGo'); if(g) g.onclick=openMoveReqModal;
+};
+function locLabel(loc){ if(loc==='shop') return 'Shop'; if(String(loc).indexOf('van:')===0) return (loc.split(':')[1]||'Van'); return loc||'—'; }
+function openMoveReqModal(){
+  var rs=moveReqs();
+  var ov=document.createElement('div'); ov.className='sch-modal';
+  function rows(){ return rs.length?rs.map(function(r){ return '<div data-id="'+r.id+'" style="display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid #eef0f3"><div style="flex:1;font-size:13.5px"><b>'+ ((r.itemName||'Part')) +'</b><div style="font-size:12px;color:#5a616c">'+(r.qty||1)+' · '+locLabel(r.from)+' → '+locLabel(r.to)+(r.by?(' · '+r.by):'')+(r.jobNote?(' · '+r.jobNote):'')+'</div></div><button class="btn save" data-ok="'+r.id+'" style="min-height:36px;padding:6px 12px;flex:0 0 auto">Approve</button><button class="btn ghost" data-no="'+r.id+'" style="min-height:36px;padding:6px 10px;flex:0 0 auto">Dismiss</button></div>'; }).join(''):'<div class="meta">No pending requests.</div>'; }
+  ov.innerHTML='<div class="sheet"><h3>Stock-move requests</h3><div class="meta">Approve to move the stock now (you have permission), or dismiss.</div><div id="mrList">'+rows()+'</div><div class="msg" id="mrMsg"></div><div class="acts"><button class="btn save" id="mrClose">Close</button></div></div>';
+  document.body.appendChild(ov);
+  function close(){ ov.remove(); }
+  ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
+  ov.querySelector('#mrClose').onclick=close;
+  function refresh(){ rs=moveReqs(); ov.querySelector('#mrList').innerHTML=rows(); wire(); if(window.renderMoveReqBanner) window.renderMoveReqBanner(); }
+  function remove(id){ saveMoveReqs(moveReqs().filter(function(x){return x.id!==id;})); refresh(); }
+  function wire(){
+    ov.querySelectorAll('[data-no]').forEach(function(b){ b.onclick=function(){ remove(b.dataset.no); }; });
+    ov.querySelectorAll('[data-ok]').forEach(function(b){ b.onclick=function(){ var r=moveReqs().find(function(x){return x.id===b.dataset.ok;}); if(!r) return;
+      if(!(TKS.InvOps && TKS.InvOps.move)){ ov.querySelector('#mrMsg').textContent='Connect to the cloud to move stock.'; return; }
+      ov.querySelector('#mrMsg').textContent='Moving…';
+      TKS.InvOps.move(r.itemId, r.from, r.to, r.qty||1).then(function(res){ if(res&&res.error){ ov.querySelector('#mrMsg').textContent=res.error.message; return; } remove(r.id); try{ if(typeof renderInventory==='function') renderInventory(); }catch(e){} }).catch(function(e){ ov.querySelector('#mrMsg').textContent=(e&&e.message)||'Move failed.'; });
+    }; });
+  }
+  wire();
+}
 
 document.querySelectorAll('[data-go]').forEach(b=>{
   b.onclick = ()=>{ const t=b.dataset.go;
@@ -2028,6 +2092,7 @@ function openStockPanel(p){
   function draw(){
     const total=locs.reduce((s,r)=>s+(parseInt(r.qty,10)||0),0);
     const withStock=locs.filter(r=>(parseInt(r.qty,10)||0)>0);
+    const mgrMove=(function(){ try{ return !!(TKS.auth && TKS.auth.can && TKS.auth.can('setup')); }catch(e){ return false; } })();  // owner/manager move directly; tech requests
     const locRows = locs.length
       ? locs.map(r=>'<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--edge,#e3e6ea)"><span>'+esc(locName(r.location,vans))+'</span><b>'+(parseInt(r.qty,10)||0)+'</b></div>').join('')
       : '<div class="empty" style="color:var(--dim);padding:6px 0">No stock recorded yet — Receive some into the shop to begin.</div>';
@@ -2039,14 +2104,14 @@ function openStockPanel(p){
       '<div style="margin-bottom:14px">'+locRows+'</div>'+
       // MOVE
       '<div data-cap="invMove" style="border:1px solid var(--edge,#e3e6ea);border-radius:11px;padding:10px 12px;margin-bottom:9px">'+
-        '<div style="font-weight:800;font-size:13px;margin-bottom:6px">↔ Move between locations</div>'+
+        '<div style="font-weight:800;font-size:13px;margin-bottom:6px">↔ Move between locations'+(mgrMove?'':' <span style="font-weight:600;color:var(--dim);font-size:11px">— sends a request to a manager</span>')+'</div>'+
         (withStock.length
           ? '<div class="mv-grid">'+
               '<div><label style="font-size:11px;color:var(--dim)">From</label><select id="mvFrom">'+fromOpts+'</select></div>'+
               '<div class="mv-arrow" style="padding-bottom:9px;color:var(--dim)">→</div>'+
               '<div><label style="font-size:11px;color:var(--dim)">To</label><select id="mvTo">'+destOpts('')+'</select></div></div>'+
             '<div style="display:flex;gap:6px;margin-top:6px"><input id="mvQty" type="number" min="1" inputmode="numeric" placeholder="Qty" style="flex:1">'+
-              '<button type="button" class="mini" id="mvBtn" style="background:var(--edge);color:var(--ink);border:none;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer">Move</button></div>'
+              '<button type="button" class="mini" id="mvBtn" style="background:'+(mgrMove?'var(--edge)':'var(--red,#c8323c)')+';color:'+(mgrMove?'var(--ink)':'#fff')+';border:none;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer">'+(mgrMove?'Move':'Request move')+'</button></div>'
           : '<div style="font-size:12px;color:var(--dim)">Nothing to move yet.</div>')+
         '<div id="mvMsg" style="font-size:12px;min-height:15px;margin-top:5px"></div></div>'+
       // RECEIVE
@@ -2069,6 +2134,10 @@ function openStockPanel(p){
       const from=document.getElementById('mvFrom').value, to=document.getElementById('mvTo').value, qty=parseInt(document.getElementById('mvQty').value,10)||0;
       if(from===to){ msg('mvMsg','Pick two different locations.',false); return; }
       if(qty<1){ msg('mvMsg','Enter a quantity.',false); return; }
+      if(!mgrMove){ // technician → record a request for a manager to approve (no direct move)
+        try{ window.requestStockMove({itemId:p.id, itemName:p.name, from:from, to:to, qty:qty}); }catch(e){}
+        msg('mvMsg','Requested — a manager will approve the move.',true); return;
+      }
       msg('mvMsg','Moving…',true);
       TKS.InvOps.move(p.id,from,to,qty).then(res=>{ if(res && res.error){ msg('mvMsg',res.error.message,false); } else { msg('mvMsg','Moved.',true); reload(); renderInventory(); } }).catch(e=> msg('mvMsg',e.message||'Move failed.',false));
     };
@@ -3479,7 +3548,7 @@ function rerenderActive(){
   if(document.getElementById('view-history').classList.contains('active')) renderHistory();
   if(document.getElementById('view-reports').classList.contains('active')) renderReports();
 }
-TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
+TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanner) window.renderConsolBanner(); });
 
 (function cloudBootstrap(){
   setCloudPill('off');
@@ -5115,9 +5184,30 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
       var id=el.dataset.vanflag, b=TKS.Bookings.get(id); if(!b) return;
       var m=memberById(techOf(b)); var van=m&&m.home_van_id; if(!van) return;
       TKS.Jobs.parts(id).then(function(r){ var parts=((r&&r.data)||[]).filter(function(p){return p.item_id;}); if(!parts.length) return;
-        var miss=0, n=0; parts.forEach(function(p){ TKS.InvOps.locations(p.item_id).then(function(lr){ n++; var locs=(lr&&lr.data)||[]; var on=locs.find(function(l){return l.location==='van:'+van && (l.qty||0)>0;}); if(!on)miss++; if(n===parts.length && miss){ el.textContent='⚠ '+miss+' part'+(miss>1?'s':'')+' not on van'; } }).catch(function(){}); });
+        var n=0, missing=[];
+        parts.forEach(function(p){ TKS.InvOps.locations(p.item_id).then(function(lr){ n++; var locs=(lr&&lr.data)||[];
+          var onVan=locs.find(function(l){return l.location==='van:'+van && (l.qty||0)>0;});
+          var atShop=locs.find(function(l){return l.location==='shop' && (l.qty||0)>0;});
+          if(!onVan) missing.push({item:p.item_id, name:p.description||'part', shop:!!atShop});
+          if(n===parts.length && missing.length){ renderVanFlag(el, b, van, m, missing); }
+        }).catch(function(){ n++; }); });
       }).catch(function(){});
     });
+  }
+  // Actionable "not on van" flag: manager → one-tap move shop→van; tech → request manager approval.
+  function renderVanFlag(el, b, van, m, missing){
+    var mgr=canReassign(); var moveable=missing.filter(function(x){return x.shop;});
+    el.textContent='⚠ '+missing.length+' not on '+((m&&m.name)||'tech')+'’s van';
+    if(!moveable.length) return;
+    var first=moveable[0];
+    var btn=document.createElement('button');
+    btn.textContent=mgr?('Move to van'):'Request';
+    btn.style.cssText='margin-left:6px;border:none;border-radius:7px;padding:2px 8px;font-size:10.5px;font-weight:800;cursor:pointer;'+(mgr?'background:#c8323c;color:#fff':'background:#e7e9ee;color:#3a4250');
+    btn.onclick=function(ev){ ev.stopPropagation();
+      if(mgr){ btn.textContent='…'; TKS.InvOps.move(first.item,'shop','van:'+van,1).then(function(res){ if(res&&res.error){ toast(res.error.message); btn.textContent='Move to van'; } else { toast('Moved to van.'); render(); } }).catch(function(e){ toast((e&&e.message)||'Move failed'); btn.textContent='Move to van'; }); }
+      else { try{ window.requestStockMove({itemId:first.item, itemName:first.name, from:'shop', to:'van:'+van, qty:1, jobNote:'for '+custName(b)}); }catch(e){} btn.textContent='Requested'; btn.disabled=true; toast('Requested — a manager will approve.'); }
+    };
+    el.appendChild(btn);
   }
 
   // ---------- actions (server-correct; drag + buttons both call these) ----------
@@ -5141,13 +5231,67 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
       render();
     });
   }
+  function banner(){ try{ if(window.renderConsolBanner) window.renderConsolBanner(); }catch(e){} }
+  // CANCEL: reason note -> server job_cancel (sets reconciliation_pending if unreconciled parts) +
+  // local status -> then the explicit KEYS step (consolidate now / later / no keys). Never silently flags.
   function doCancel(jobId){
     reasonModal({title:'Cancel job', reasons:true, confirm:'Cancel job'}, function(reason, note){
       var b=TKS.Bookings.get(jobId); if(!b) return;
-      function localApply(){ b.status='Cancelled'; b.needsManagerSignoff=true; b.signoffReason='Canceled: '+reason; if(note||reason) b.notes=((b.notes||'')+'\n[cancel] '+reason+(note?(' — '+note):'')).trim(); try{TKS.Bookings.save(b);}catch(e){} render(); }
-      if(signedIn() && TKS.Jobs && TKS.Jobs.cancel){ TKS.Jobs.cancel(jobId, reason, note).then(function(res){ if(res&&res.error){ toast(res.error.message); return; } localApply(); }).catch(function(e){ toast((e&&e.message)||'Cancel blocked'); }); }
-      else localApply();
+      function applied(){ b.status='Cancelled'; if(reason||note) b.notes=((b.notes||'')+'\n[cancel] '+reason+(note?(' — '+note):'')).trim(); try{TKS.Bookings.save(b);}catch(e){} render(); keysStep(jobId); }
+      if(signedIn() && TKS.Jobs && TKS.Jobs.cancel){ TKS.Jobs.cancel(jobId, reason, note).then(function(res){ if(res&&res.error){ toast(res.error.message); return; } applied(); }).catch(function(e){ toast((e&&e.message)||'Cancel blocked'); }); }
+      else applied();
     });
+  }
+  // After a cancel, decide what happens to keys/parts — explicit for every role.
+  function keysStep(jobId){
+    var b=TKS.Bookings.get(jobId); if(!b) return;
+    var ov=document.createElement('div'); ov.className='sch-modal';
+    ov.innerHTML='<div class="sheet"><h3>Keys &amp; parts for this job</h3>'+
+      '<div class="warn" style="margin:0 0 12px;line-height:1.4">Any key cut or part taken for this job must be <b>consolidated back to stock</b>. A manager signs off once it\'s returned.</div>'+
+      '<div class="acts" style="flex-direction:column;gap:8px">'+
+        '<button class="btn save" id="ksNow">Consolidate keys now (in hand)</button>'+
+        '<button class="btn ghost" id="ksLater">Consolidate later — remind me</button>'+
+        '<button class="btn ghost" id="ksNone">No keys / parts involved</button>'+
+      '</div></div>';
+    document.body.appendChild(ov);
+    function close(){ ov.remove(); }
+    ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
+    ov.querySelector('#ksNone').onclick=function(){ b.noKeys=true; b.needsManagerSignoff=false; b.keysConsolidated=false; try{TKS.Bookings.save(b);}catch(e){} banner(); close(); render(); };
+    ov.querySelector('#ksLater').onclick=function(){ b.needsManagerSignoff=true; b.signoffReason='Cancel — consolidate keys'; b.noKeys=false; b.keysConsolidated=false; try{TKS.Bookings.save(b);}catch(e){} banner(); close(); toast('Flagged — reminder banner is up until the keys are consolidated.'); render(); };
+    ov.querySelector('#ksNow').onclick=function(){ close(); consolidateNow(jobId); };
+  }
+  function markConsolidated(b){ if(!b) return; b.keysConsolidated=true; b.needsManagerSignoff=false; try{TKS.Bookings.save(b);}catch(e){} banner(); render(); toast('Keys consolidated & returned to stock.'); }
+  function consolidateNow(jobId){
+    var b=TKS.Bookings.get(jobId);
+    if(signedIn() && TKS.Jobs && TKS.Jobs.parts){
+      TKS.Jobs.parts(jobId).then(function(r){ var parts=((r&&r.data)||[]).filter(function(p){return p.state!=='used'&&p.state!=='returned';}); if(!parts.length){ markConsolidated(b); return; } reconcileModal(jobId, parts); }).catch(function(){ markConsolidated(b); });
+    } else { markConsolidated(b); }   // offline / no cloud parts list -> mark consolidated
+  }
+  // reconcile each outstanding part (returned -> stock, or used); cut keys need a return photo.
+  function reconcileModal(jobId, parts){
+    var ov=document.createElement('div'); ov.className='sch-modal';
+    function rows(list){ return list.map(function(p){ return '<div data-pid="'+esc(p.id)+'" style="display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid #eef0f3"><div style="flex:1;font-size:13.5px">'+esc(p.description||'Part')+(p.is_cut_key?' <b style="color:#c8323c">cut key</b>':'')+'</div><button class="btn ghost rcRet" data-pid="'+esc(p.id)+'" data-cut="'+(p.is_cut_key?1:0)+'" style="min-height:36px;padding:6px 10px;flex:0 0 auto">Returned'+(p.is_cut_key?' 📷':'')+'</button><button class="btn ghost rcUse" data-pid="'+esc(p.id)+'" style="min-height:36px;padding:6px 10px;flex:0 0 auto">Used</button></div>'; }).join(''); }
+    var remaining=parts.slice();
+    ov.innerHTML='<div class="sheet"><h3>Consolidate keys / parts</h3><div class="meta">Mark each item <b>Returned</b> to stock or <b>Used</b> on the job. Cut keys need a return photo.</div><div id="rcList">'+rows(remaining)+'</div><div class="msg" id="rcMsg"></div><div class="acts"><button class="btn ghost" id="rcLater">Finish later</button><button class="btn save" id="rcDone" disabled style="opacity:.5">All done</button></div></div>';
+    document.body.appendChild(ov);
+    function close(){ ov.remove(); }
+    ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
+    function refresh(){ ov.querySelector('#rcList').innerHTML=rows(remaining); wireRows(); var d=ov.querySelector('#rcDone'); if(!remaining.length){ d.disabled=false; d.style.opacity='1'; } }
+    function done(pid){ remaining=remaining.filter(function(p){return p.id!==pid;}); refresh(); }
+    function reconcile(pid, state, proof){ if(!(signedIn()&&TKS.Jobs&&TKS.Jobs.reconcilePart)){ done(pid); return; } TKS.Jobs.reconcilePart(pid, state, proof||'').then(function(res){ if(res&&res.error){ ov.querySelector('#rcMsg').textContent=res.error.message; return; } done(pid); }).catch(function(e){ ov.querySelector('#rcMsg').textContent=(e&&e.message)||'Could not save.'; }); }
+    function wireRows(){
+      ov.querySelectorAll('.rcUse').forEach(function(btn){ btn.onclick=function(){ reconcile(btn.dataset.pid,'used',''); }; });
+      ov.querySelectorAll('.rcRet').forEach(function(btn){ btn.onclick=function(){
+        if(btn.dataset.cut==='1' && signedIn() && TKS.Jobs && TKS.Jobs.uploadProof){
+          var fi=document.createElement('input'); fi.type='file'; fi.accept='image/*'; fi.capture='environment';
+          fi.onchange=function(){ var f=fi.files&&fi.files[0]; if(!f) return; ov.querySelector('#rcMsg').textContent='Uploading photo…'; TKS.Jobs.uploadProof(jobId,f).then(function(path){ reconcile(btn.dataset.pid,'returned',path); }).catch(function(e){ ov.querySelector('#rcMsg').textContent=(e&&e.message)||'Upload failed.'; }); };
+          fi.click();
+        } else { reconcile(btn.dataset.pid,'returned',''); }
+      }; });
+    }
+    wireRows();
+    ov.querySelector('#rcLater').onclick=function(){ var b=TKS.Bookings.get(jobId); if(b){ b.needsManagerSignoff=true; b.signoffReason='Cancel — consolidate keys'; try{TKS.Bookings.save(b);}catch(e){} banner(); } close(); render(); };
+    ov.querySelector('#rcDone').onclick=function(){ close(); markConsolidated(TKS.Bookings.get(jobId)); };
   }
   function doStatus(jobId, key, after){
     if(key==='canceled'){ doCancel(jobId); return; }
@@ -5173,7 +5317,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
     ov.querySelector('#rmOk').onclick=function(){
       var note=ov.querySelector('#rmNote').value.trim();
       var reason=opts.reasons?ov.querySelector('#rmReason').value:'Rescheduled';
-      if(!note && !isOwner()){ ov.querySelector('#rmMsg').textContent='Please add a note (required).'; return; }
+      if(!note && !isManager()){ ov.querySelector('#rmMsg').textContent='Please add a note (required).'; return; }
       close(); cb(reason, note);
     };
   }
