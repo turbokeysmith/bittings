@@ -90,6 +90,52 @@
   .view.active{display:block;animation:fade .25s ease;}
   @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
+  /* ===== Fleet (de-iframed from fleet.html — scoped under #view-fleet so it shares the
+     shell's themed --card/--edge/--ink/--dim/--red vars; #id specificity outranks globals) ===== */
+  #view-fleet .intro{color:var(--dim);font-size:12px;line-height:1.45;margin:0 0 10px;}
+  #view-fleet .panel{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:13px 14px;margin-bottom:10px;}
+  #view-fleet .panel h2{margin:0 0 3px;font-size:16px;font-weight:800;}
+  #view-fleet .panel .sub{color:var(--dim);font-size:12px;line-height:1.4;margin:0 0 10px;}
+  #view-fleet label{display:block;font-size:12px;color:var(--dim);font-weight:600;margin:8px 0 4px;}
+  #view-fleet input,#view-fleet select{width:100%;background:#f3f4f6;border:1px solid var(--edge);border-radius:10px;padding:9px 11px;color:var(--ink);font-size:16px;outline:none;font-family:inherit;}
+  html[data-bt-theme="dark"] #view-fleet input,html[data-bt-theme="dark"] #view-fleet select{background:#2c313a;color:var(--ink);}
+  #view-fleet .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  #view-fleet .van{border:1px solid var(--edge);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;}
+  #view-fleet .van .vmain{flex:1;min-width:0;}
+  #view-fleet .van .vtitle{font-weight:800;font-size:15px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  #view-fleet .van .vmeta{color:var(--dim);font-size:12px;margin-top:2px;overflow-wrap:anywhere;}
+  #view-fleet .badge{font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;text-transform:uppercase;}
+  #view-fleet .badge.active{background:rgba(34,153,74,.14);color:#1c7d3e;}
+  #view-fleet .badge.maintenance{background:rgba(242,180,58,.16);color:#9a6b08;}
+  #view-fleet .badge.down{background:rgba(200,50,60,.14);color:#a3252e;}
+  #view-fleet .badge.retired{background:rgba(90,97,108,.14);color:#5a616c;}
+  #view-fleet .van .vact{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;align-items:stretch;}
+  #view-fleet .van .vact select{font-size:12px;padding:6px 8px;min-width:122px;}
+  #view-fleet .mini{background:#e7e9ee;border:none;color:#3a4250;border-radius:8px;padding:7px 10px;font-size:12.5px;font-weight:700;cursor:pointer;min-height:36px;}
+  #view-fleet .del{background:transparent;border:1px solid rgba(200,50,60,.5);color:#a3252e;border-radius:8px;padding:7px 10px;font-size:12.5px;font-weight:700;cursor:pointer;min-height:36px;}
+  #view-fleet .addbtn{background:#e7e9ee;border:none;color:#3a4250;border-radius:9px;padding:10px 14px;font-size:14px;font-weight:800;cursor:pointer;min-height:44px;margin-top:8px;width:100%;}
+  #view-fleet .crew-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-top:1px solid var(--edge);}
+  #view-fleet .crew-row:first-child{border-top:none;}
+  #view-fleet .crew-row .cname{flex:1;min-width:0;}
+  #view-fleet .crew-row .cname b{display:block;font-size:14px;}
+  #view-fleet .crew-row .crole{font-size:11.5px;color:var(--dim);text-transform:capitalize;}
+  #view-fleet .crew-row select{flex:0 0 160px;font-size:13px;padding:7px 9px;}
+  #view-fleet .msg{font-size:12.5px;min-height:16px;margin-top:6px;}
+  #view-fleet .msg.ok{color:#1c7d3e;} #view-fleet .msg.err{color:#a3252e;}
+  #view-fleet .empty{color:var(--dim);font-size:13px;padding:6px 2px;}
+  #view-fleet .block{max-width:460px;margin:60px auto;text-align:center;color:var(--dim);}
+  #view-fleet .block h2{color:var(--ink);}
+  /* Fleet van add/edit modal (appended to body) */
+  .fl-modal{position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:center;justify-content:center;padding:16px;}
+  .fl-modal .sheet{background:var(--card);color:var(--ink);width:100%;max-width:560px;border-radius:16px;padding:16px;max-height:88vh;overflow:auto;}
+  .fl-modal label{display:block;font-size:12px;color:var(--dim);font-weight:600;margin:8px 0 4px;}
+  .fl-modal input,.fl-modal select{width:100%;background:#f3f4f6;border:1px solid var(--edge);border-radius:10px;padding:9px 11px;color:var(--ink);font-size:16px;outline:none;font-family:inherit;}
+  html[data-bt-theme="dark"] .fl-modal input,html[data-bt-theme="dark"] .fl-modal select{background:#2c313a;color:var(--ink);}
+  .fl-modal .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .fl-modal .msg{font-size:12.5px;min-height:16px;margin-top:6px;} .fl-modal .msg.err{color:#a3252e;}
+  .fl-modal .ghost{background:rgba(127,127,127,.08);border:1px solid var(--edge);color:var(--dim);border-radius:11px;padding:12px;font-weight:800;font-size:15px;cursor:pointer;min-height:46px;}
+  .fl-modal .btn.save{border:none;border-radius:11px;padding:12px;font-size:15px;font-weight:800;cursor:pointer;min-height:46px;color:#fff;background:linear-gradient(180deg,var(--red),var(--red-deep));}
+
   .bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
   .search{flex:1;background:var(--card);border:1px solid var(--edge);border-radius:12px;padding:12px 14px;
     color:var(--ink);font-size:15px;outline:none;}
@@ -559,7 +605,7 @@
       <button class="bt-nav__item" data-embed="scheduler.html"><span class="bt-nav__ic">📅</span>Scheduler</button>
       <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Commission</button>
       <button class="bt-nav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Inventory</button>
-      <button class="bt-nav__item owner-soft" data-embed="fleet.html" style="display:none"><span class="bt-nav__ic">🚐</span>Fleet</button>
+      <button class="bt-nav__item owner-soft" data-go="fleet" style="display:none"><span class="bt-nav__ic">🚐</span>Fleet</button>
       <button class="bt-nav__item" data-embed="lishi.html"><span class="bt-nav__ic">📇</span>Lishi &amp; Keys</button>
       <button class="bt-nav__item" data-embed="programmers.html"><span class="bt-nav__ic">🛠</span>Programmers</button>
       <button class="bt-nav__item owner-only" data-go="dashboard" style="display:none"><span class="bt-nav__ic">📊</span>Dashboard</button>
@@ -590,6 +636,11 @@
 
   <!-- Tile hub removed — every destination lives in the left menu (sidebar / phone "More"). Landing = Start a job. -->
   <p class="note" id="homeNote" style="display:none"></p>
+
+  <div class="view" id="view-fleet">
+    <div class="bt-pagehead"><div><div class="eyebrow">Fleet</div><h1>Vans &amp; crew</h1></div></div>
+    <div id="fleetBody"><div class="empty">Loading…</div></div>
+  </div>
 
   <div class="view active" id="view-startjob">
     <div class="bt-pagehead"><div><div class="eyebrow">Start a job</div><h1>What kind of job?</h1></div></div>
@@ -940,7 +991,7 @@ function saveCustomers(a){ TKS.saveList("customers", a); }
 function getShops(){ return TKS.list("shops"); }
 function saveShops(a){ TKS.saveList("shops", a); }
 
-const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','dashboard','inventory','part'];
+const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','dashboard','inventory','part','fleet'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
@@ -958,7 +1009,7 @@ document.querySelectorAll('[data-go]').forEach(b=>{
     if(t==='reports'){ openReports(); return; }
     if(t==='dashboard'){ openDashboard(); return; }
     if(t==='startjob'){ openStartJob(); return; }
-    if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } if(t==='payments'){ renderPayments(); } if(t==='commission'){ renderCommission(); } show(t); };
+    if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } if(t==='payments'){ renderPayments(); } if(t==='commission'){ renderCommission(); } if(t==='fleet'){ renderFleet(); } show(t); };
 });
 document.querySelectorAll('[data-open]').forEach(b=>{
   b.onclick = ()=>{ location.href = b.dataset.open; };
@@ -3467,6 +3518,154 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); });
   };
   // landing default: Start a job → Automotive / VIN ready
   pick('automotive'); setMode('vin');
+})();
+</script>
+<script>
+/* ===================== FLEET / VANS (de-iframed) =====================
+   Lifted verbatim from fleet.html into a native shell view. Wrapped in an IIFE so its
+   helpers (esc/render/loadVans/…) never collide with the shell's globals; renders into
+   #fleetBody; exposed as window.renderFleet (called by the [data-go="fleet"] handler).
+   Server rules unchanged (vans_insert/update=manager+, vans_delete/staff_update=owner). */
+(function(){
+  const VAN_STATUS = [['active','Active'],['maintenance','Maintenance'],['down','Down'],['retired','Retired']];
+  let VANS = [];
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function body(){ return document.getElementById('fleetBody'); }
+  function canManage(){ try{ return TKS.auth.isSignedIn() && TKS.auth.can && TKS.auth.can('setup'); }catch(e){ return false; } }
+
+  window.renderFleet = function(){
+    const el = body(); if(!el) return;
+    if(!canManage()){
+      el.innerHTML = '<div class="block"><h2>Managers only</h2><p>Fleet management is for managers &amp; the owner. '+
+        'Ask a manager to add or change vans.</p></div>';
+      return;
+    }
+    el.innerHTML =
+      '<p class="intro">Your company vans. Stock lives <b>with the van</b>, not with whoever drives it — so when crew swap trucks the inventory stays put. '+
+        'Add or edit vans below; assign each person a <b>home van</b> at the bottom.</p>'+
+      '<div class="panel"><h2>Vans</h2><div class="sub">Each van is identified by its fleet # and/or VIN.</div>'+
+        '<div id="vanList"><div class="empty">Loading vans…</div></div>'+
+        '<button type="button" class="addbtn" id="addVanBtn">+ Add a van</button>'+
+        '<div class="msg" id="vanMsg"></div></div>'+
+      '<div class="panel" data-cap="manageStaff"><h2>Crew &amp; home vans</h2>'+
+        '<div class="sub">Set each person’s home van. (Owner only — this decides where a tech’s stock counts.)</div>'+
+        '<div id="crewList"><div class="empty">Loading crew…</div></div>'+
+        '<div class="msg" id="crewMsg"></div></div>';
+    document.getElementById('addVanBtn').onclick = ()=> openVanForm(null);
+    loadVans();
+    if(TKS.auth.can && TKS.auth.can('manageStaff')) loadCrew();
+    if(window.TKS_ACCESS) TKS_ACCESS.applyGates(el);
+  };
+
+  function statusBadge(s){ const lbl=(VAN_STATUS.find(x=>x[0]===s)||[s,s])[1]; return '<span class="badge '+esc(s||'active')+'">'+esc(lbl)+'</span>'; }
+
+  function loadVans(){
+    const el=document.getElementById('vanList'); if(!el) return;
+    TKS.Fleet.list().then(res=>{
+      if(res.error){ el.innerHTML='<div class="empty">Couldn’t load vans: '+esc(res.error.message)+'</div>'; return; }
+      VANS = res.data||[];
+      if(!VANS.length){ el.innerHTML='<div class="empty">No vans yet — add your first one below.</div>'; return; }
+      el.innerHTML = VANS.map(v=>{
+        const name = v.nickname || ('Van '+(v.fleet_no||'')) || 'Van';
+        const meta = [v.fleet_no?('Fleet #'+v.fleet_no):'', v.vin?('VIN '+v.vin):'', v.plate?('Plate '+v.plate):''].filter(Boolean).join(' · ');
+        const opts = VAN_STATUS.map(s=>'<option value="'+s[0]+'"'+(v.status===s[0]?' selected':'')+'>'+s[1]+'</option>').join('');
+        return '<div class="van"><div class="vmain"><div class="vtitle">'+esc(name)+' '+statusBadge(v.status)+'</div>'+
+          '<div class="vmeta">'+(meta||'No identifiers set')+'</div></div>'+
+          '<div class="vact">'+
+            '<select data-id="'+esc(v.id)+'" class="vstatus" title="Van status">'+opts+'</select>'+
+            '<button type="button" class="mini" data-edit="'+esc(v.id)+'">Edit</button>'+
+            '<button type="button" class="del" data-cap="hardDelete" data-del="'+esc(v.id)+'">Delete</button>'+
+          '</div></div>';
+      }).join('');
+      el.querySelectorAll('.vstatus').forEach(s=> s.onchange=()=> setStatus(s.dataset.id, s.value));
+      el.querySelectorAll('[data-edit]').forEach(b=> b.onclick=()=> openVanForm(VANS.find(v=>v.id===b.dataset.edit)));
+      el.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=> delVan(VANS.find(v=>v.id===b.dataset.del)));
+      if(window.TKS_ACCESS) TKS_ACCESS.applyGates(el);
+    }).catch(e=>{ el.innerHTML='<div class="empty">'+esc(e.message||'Connect to the cloud to manage vans.')+'</div>'; });
+  }
+
+  function vanMsg(t,ok){ const m=document.getElementById('vanMsg'); if(m){ m.className='msg '+(ok?'ok':'err'); m.textContent=t; if(ok) setTimeout(()=>{ if(m){m.textContent='';} },2200); } }
+
+  function setStatus(id,status){
+    TKS.Fleet.setStatus(id,status).then(res=>{
+      if(res.error){ vanMsg('Couldn’t update status: '+res.error.message,false); loadVans(); }
+      else vanMsg('Status updated.',true);
+    }).catch(e=> vanMsg(e.message||'Update failed.',false));
+  }
+
+  function delVan(v){
+    if(!v) return;
+    TKS_ACCESS.confirmDanger({
+      title:'Delete this van?',
+      message:'Delete “'+(v.nickname||('Van '+(v.fleet_no||'')))+'”? Any stock recorded on this van must be moved first. This can’t be undone.',
+      confirmLabel:'Delete van'
+    }).then(ok=>{ if(!ok) return;
+      TKS.Fleet.remove(v.id).then(res=>{
+        if(res.error){ vanMsg('Couldn’t delete: '+res.error.message,false); }
+        else { vanMsg('Van deleted.',true); loadVans(); }
+      }).catch(e=> vanMsg(e.message||'Delete failed.',false));
+    });
+  }
+
+  function openVanForm(v){
+    v = v || {};
+    const isEdit = !!v.id;
+    const ov=document.createElement('div');
+    ov.className='fl-modal';
+    ov.innerHTML='<div class="sheet">'+
+      '<h2 style="margin:0 0 10px;font-size:17px;">'+(isEdit?'Edit van':'Add a van')+'</h2>'+
+      '<div class="row2"><div><label>Fleet #</label><input id="vf_fleet" value="'+esc(v.fleet_no||'')+'" placeholder="e.g. 12"></div>'+
+        '<div><label>Nickname</label><input id="vf_nick" value="'+esc(v.nickname||'')+'" placeholder="e.g. Big White"></div></div>'+
+      '<label>VIN</label><input id="vf_vin" value="'+esc(v.vin||'')+'" placeholder="17-char VIN" maxlength="17" style="text-transform:uppercase">'+
+      '<div class="row2"><div><label>Plate</label><input id="vf_plate" value="'+esc(v.plate||'')+'" placeholder="Plate #"></div>'+
+        '<div><label>Status</label><select id="vf_status">'+VAN_STATUS.map(s=>'<option value="'+s[0]+'"'+((v.status||'active')===s[0]?' selected':'')+'>'+s[1]+'</option>').join('')+'</select></div></div>'+
+      '<div style="font-size:11.5px;color:var(--dim);margin:8px 0 0">Give it a fleet # or a VIN (at least one). The nickname is what shows on the inventory move buttons.</div>'+
+      '<div class="msg" id="vf_msg"></div>'+
+      '<div style="display:flex;gap:8px;margin-top:12px;"><button type="button" class="ghost" id="vf_cancel" style="flex:1">Cancel</button>'+
+        '<button type="button" class="btn save" id="vf_save" style="flex:2">'+(isEdit?'Save changes':'Add van')+'</button></div>'+
+      '</div>';
+    document.body.appendChild(ov);
+    function close(){ ov.remove(); }
+    ov.addEventListener('mousedown', e=>{ if(e.target===ov) close(); });
+    document.getElementById('vf_cancel').onclick=close;
+    document.getElementById('vf_save').onclick=function(){
+      const get=id=>{ const e=document.getElementById(id); return e?e.value.trim():''; };
+      const row={ id:v.id, fleet_no:get('vf_fleet'), vin:get('vf_vin'), nickname:get('vf_nick'), plate:get('vf_plate'), status:document.getElementById('vf_status').value };
+      const m=document.getElementById('vf_msg');
+      if(!row.fleet_no && !row.vin){ m.className='msg err'; m.textContent='Enter a fleet # or a VIN.'; return; }
+      if(row.vin && row.vin.length!==17){ m.className='msg err'; m.textContent='A VIN is 17 characters (or leave it blank).'; return; }
+      m.className='msg'; m.textContent='Saving…';
+      TKS.Fleet.save(row).then(res=>{
+        if(res.error){ m.className='msg err'; m.textContent=res.error.message; }
+        else { close(); vanMsg(isEdit?'Van updated.':'Van added.',true); loadVans(); }
+      }).catch(e=>{ m.className='msg err'; m.textContent=e.message||'Save failed.'; });
+    };
+  }
+
+  function loadCrew(){
+    const el=document.getElementById('crewList'); if(!el) return;
+    Promise.all([TKS.Fleet.staff(), TKS.Fleet.list()]).then(([s,v])=>{
+      if(s.error){ el.innerHTML='<div class="empty">Couldn’t load crew: '+esc(s.error.message)+'</div>'; return; }
+      const vans=(v&&v.data)||[];
+      const staff=(s.data||[]).filter(x=>x.active!==false);
+      if(!staff.length){ el.innerHTML='<div class="empty">No crew yet.</div>'; return; }
+      const vanOpts=cur=>'<option value="">— none —</option>'+vans.map(x=>{
+        const nm=x.nickname||('Van '+(x.fleet_no||''))||'Van';
+        return '<option value="'+esc(x.id)+'"'+(cur===x.id?' selected':'')+'>'+esc(nm)+'</option>';
+      }).join('');
+      el.innerHTML = staff.map(p=>'<div class="crew-row"><div class="cname"><b>'+esc(p.name||p.user_id.slice(0,8))+'</b>'+
+        '<span class="crole">'+esc(p.role||'')+'</span></div>'+
+        '<select data-u="'+esc(p.user_id)+'">'+vanOpts(p.home_van_id)+'</select></div>').join('');
+      el.querySelectorAll('select[data-u]').forEach(sel=> sel.onchange=()=> assignHome(sel.dataset.u, sel.value));
+    }).catch(e=>{ el.innerHTML='<div class="empty">'+esc(e.message||'Couldn’t load crew.')+'</div>'; });
+  }
+  function crewMsg(t,ok){ const m=document.getElementById('crewMsg'); if(m){ m.className='msg '+(ok?'ok':'err'); m.textContent=t; if(ok) setTimeout(()=>{ if(m){m.textContent='';} },2200); } }
+  function assignHome(userId,vanId){
+    TKS.Fleet.assignHomeVan(userId, vanId||null).then(res=>{
+      if(res.error){ crewMsg('Couldn’t assign: '+res.error.message,false); }
+      else crewMsg('Home van updated.',true);
+    }).catch(e=> crewMsg(e.message||'Update failed.',false));
+  }
 })();
 </script>
 <script src="app/ui/bittings-ui.js"></script>
