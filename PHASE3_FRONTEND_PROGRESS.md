@@ -91,12 +91,25 @@ Reads/writes the **existing** Supabase data (no Google dependency, no new backen
 
 ## BUILD ORDER (sub-stages)
 - **3.0 Clone + tracker + inventory** ✅ (this doc).
-- **3.1 Unified shell pass** ⬜ — in `bittings-unified/index.html`, make the shell render the 6
+- **3.1 Unified shell pass** 🔨 — in `bittings-unified/index.html`, make the shell render the 6
   embedded screens as **native views** (remove the `btEmbed` iframe path) one at a time, sharing
-  `bittings-ui.css`. Start with the simplest (Fleet/Settings), end with the heaviest (Receipts,
-  built from `bittings.html`'s 638 KB).
-- **3.2 De-iframe each tool** ⬜ — Fleet → Settings → Programmers → Lishi → Receipts. Each: lift its
+  the shell design system. **Pattern proven on Fleet** (see 3.2). Remaining: Settings, Programmers,
+  Lishi, Receipts.
+- **3.2 De-iframe each tool** 🔨 — Fleet → Settings → Programmers → Lishi → Receipts. Each: lift its
   markup/logic into the shell as a `data-go` view, drop its private CSS, verify role-gating + data.
+  - ✅ **Fleet** (code-complete, pending device sign-off) — the **template** for the rest. Done as
+    5 coordinated edits to `index.html`: (1) Fleet's component CSS folded in, **scoped under
+    `#view-fleet`** so it reuses the shell's themed `--card/--edge/--ink/--red` vars and an `#id`
+    selector outranks any global class collision; (2) nav button switched `data-embed="fleet.html"`
+    → `data-go="fleet"`; (3) a `#view-fleet` view div added; (4) `'fleet'` added to the `views`
+    array + a `renderFleet()` dispatch in the `[data-go]` handler; (5) Fleet's JS lifted **verbatim
+    into an IIFE** exposing `window.renderFleet` (helpers `esc/render/loadVans/…` stay closure-scoped
+    so they can't collide with the shell's globals), rendering into `#fleetBody`, modal namespaced
+    `.fl-modal`. Server rules untouched (vans_insert/update=manager+, delete/staff_update=owner;
+    `data-cap` gates preserved). `fleet.html` is now orphaned in the clone (kept until cutover).
+    🚩 **Pending real-device verify** (no browser/Node here): Fleet opens as a native view (no iframe
+    seam), themes light/dark, owner sees crew/home-van + delete, manager doesn't; add/edit/delete van
+    writes to the same Supabase rows.
 - **3.3 Native scheduler** ⬜ — Day/Week/Month calendar over `bookings`, reschedule writes back,
   intake flow preserved, Google link demoted to optional export.
 - **3.4 Full self-verification** ⬜ — every screen native, no iframes; role gating (owner vs staff)
