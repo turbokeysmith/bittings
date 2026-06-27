@@ -59,15 +59,13 @@
   <!-- LOGIN -->
   <div id="loginView">
     <h1>Staff sign-in</h1>
-    <p class="sub">Use the employee login you created in Supabase. <b>Important:</b> open this at the
-    same web address you run the app from (e.g. <b>http://127.0.0.1:8088/cloud-test.html</b>) — not a
-    double-clicked <code>file://</code> page, or the login won't carry over to the app.</p>
+    <p class="sub">Sign in with your Turbo Keysmith staff account.</p>
     <label>Email</label>
     <input id="email" type="email" autocomplete="username" placeholder="you@email.com">
     <label>Password</label>
     <input id="password" type="password" autocomplete="current-password" placeholder="••••••••">
     <button class="btn" id="loginBtn">Sign in</button>
-    <button class="btn ghost" id="checkBtn">Check connection</button>
+    <button class="btn ghost" id="checkBtn" style="display:none">Check connection</button>
     <div id="loginMsg" class="msg"></div>
     <button class="btn ghost" id="offlineBtn" style="margin-top:10px">Use the app offline (no sign-in)</button>
     <p class="sub" style="margin-top:8px;font-size:11.5px;">No signal? You can still work on this device — your data saves locally and syncs next time you sign in.</p>
