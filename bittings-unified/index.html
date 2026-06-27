@@ -90,24 +90,27 @@
   .view.active{display:block;animation:fade .25s ease;}
   @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
-  /* ===== De-iframed views: bind the legacy inline var names (--card/--ink/--dim/--edge/--bg2/--off)
-     to the shell's CANONICAL themed vars (bittings-ui.css --surface-*/--text-*). The inline :root
-     --card etc. were desyncing from the chrome's theme in dark mode (white panel + light, invisible
-     text). Remapping at #id scope (specificity beats :root and html[data-bt-theme]) makes background
-     and text always come from the SAME correctly-themed pair, in both light and dark. ===== */
+  /* ===== De-iframed views render as WHITE content cards on the dark chrome (same as the app's
+     existing #view-customers pattern). The bug: card text inherited the dark-mode body color
+     (light) → invisible headings on the white card. Fix: pin the LIGHT palette for these views'
+     card content so the card vars (--card/--ink/--dim/--edge) are always a white-card/dark-text
+     pair, in BOTH themes. We pin the VARS (not a blanket `color`) so the page-title text on the
+     dark content background (.bt-pagehead) keeps the shell's light color. ===== */
   #view-fleet, #view-settings, #view-programmers{
-    --card: var(--surface-card);
-    --ink: var(--text-primary);
-    --dim: var(--text-secondary);
-    --off: var(--text-tertiary);
-    --edge: var(--border-subtle);
-    --bg2: var(--surface-sunken);
+    --card:#ffffff; --ink:#14171b; --dim:#5a616c; --off:#9aa1ac; --edge:#e3e6ea; --bg2:#eef0f3;
   }
-  /* Inputs/selects in these views: theme via the shell vars instead of hardcoded light + a dark
-     override (which was the other half of the desync). */
-  #view-fleet input, #view-fleet select, #view-settings input, #view-settings select, #view-settings textarea,
-  #view-programmers .in{ background:var(--surface-sunken)!important; color:var(--text-primary)!important; }
-  .fl-modal input, .fl-modal select{ background:var(--surface-sunken)!important; color:var(--text-primary)!important; }
+  /* Card containers: set an explicit dark text color so headings/labels that inherit (h2, <b>, etc.)
+     are readable on the white card. */
+  #view-fleet .panel, #view-settings .panel, #view-settings .setupRail,
+  #view-programmers .card, #view-programmers .sheet, .fl-modal .sheet{ color:var(--ink); }
+  /* Inputs sit on white cards → keep them light even in dark mode (override the per-view dark
+     input rules, which would otherwise be dark-on-dark / dark-text-on-dark-input). */
+  html[data-bt-theme="dark"] #view-fleet input, html[data-bt-theme="dark"] #view-fleet select,
+  html[data-bt-theme="dark"] #view-settings input, html[data-bt-theme="dark"] #view-settings select, html[data-bt-theme="dark"] #view-settings textarea,
+  html[data-bt-theme="dark"] #view-programmers .in,
+  html[data-bt-theme="dark"] .fl-modal input, html[data-bt-theme="dark"] .fl-modal select{
+    background:#f3f4f6 !important; color:#14171b !important;
+  }
 
   /* ===== Fleet (de-iframed from fleet.html — scoped under #view-fleet so it shares the
      shell's themed --card/--edge/--ink/--dim/--red vars; #id specificity outranks globals) ===== */
