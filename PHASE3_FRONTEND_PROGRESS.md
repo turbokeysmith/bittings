@@ -95,8 +95,16 @@ Reads/writes the **existing** Supabase data (no Google dependency, no new backen
   embedded screens as **native views** (remove the `btEmbed` iframe path) one at a time, sharing
   the shell design system. **Pattern proven on Fleet** (see 3.2). Remaining: Settings, Programmers,
   Lishi, Receipts.
-- **3.2 De-iframe each tool** 🔨 — Fleet → Settings → Programmers → Lishi → Receipts. Each: lift its
-  markup/logic into the shell as a `data-go` view, drop its private CSS, verify role-gating + data.
+**🚩 STRATEGY DECISION (owner, 2026-06-26):** two techniques by page size —
+- **Small self-contained pages → full inline port** (their markup+CSS+JS lifted into the shell as a
+  native `data-go` view). Done: Fleet, Settings, Programmers.
+- **Large pages → seamless module-mount** (keep the page as its own file, mount it into the shell's
+  content area with the shared design system + theme and **no visible iframe chrome / no page-within-a-page
+  header**, so it reads as one app without a risky huge rewrite). Applies to **Lishi (121 KB)** and
+  **Receipts / bittings.html (638 KB)** — owner chose module-mount for Receipts; same rationale covers Lishi.
+
+- **3.2 De-iframe each tool** 🔨 — Fleet → Settings → Programmers (inline, done) · Lishi → Receipts
+  (seamless module-mount). Each: native/seamless in the shell, shared design system, role-gating + data intact.
   - ✅ **Fleet** (code-complete, pending device sign-off) — the **template** for the rest. Done as
     5 coordinated edits to `index.html`: (1) Fleet's component CSS folded in, **scoped under
     `#view-fleet`** so it reuses the shell's themed `--card/--edge/--ink/--red` vars and an `#id`
@@ -133,6 +141,23 @@ Reads/writes the **existing** Supabase data (no Google dependency, no new backen
     the Lookup on open. Local-first data (`tks_prog_*`) unchanged. All 7 inline scripts pass node syntax check.
     🚩 **Pending real-device verify:** Lookup (VIN + make/year), My-tools checkboxes, Coverage table,
     add/edit modal, CSV import/export — all in-app, themed, with `editReference` gating intact.
+  - ✅ **Lishi & Keys** (seamless module-mount, pending device sign-off) — stays its own file
+    (`lishi.html`, 121 KB), mounted in the shell's borderless full-area iframe. Added the embed-detection
+    snippet (`window.self!==window.top` → `html.bt-embedded`) that hides its own "‹ Apps" back-link +
+    bottom nav so there's no page-within-a-page seam; theme already syncs into the iframe. Nav button
+    unchanged (`data-embed="lishi.html"`). Syntax-checked.
+  - ✅ **Receipts** (seamless module-mount, pending device sign-off) — `bittings.html?receipts=1` in the
+    shell iframe. It **already** had the embed-detection (hides its bottom appnav + "‹ Apps" link when
+    `window.self!==window.top`), so it was effectively already a seamless mount — no risky 638 KB rewrite.
+    Read-only history/NASTF/D1 viewer + the invoice viewer all unchanged. Nav button unchanged.
+  - ✅ **Scheduler** (interim seamless mount) — added the same embed snippet to `scheduler.html` so it
+    reads as one app now. **This is interim:** 3.3 replaces it with a **native** in-app calendar.
+
+### Phone note
+On phones the shell opens embedded tools as their own full page (`location.href`) rather than an iframe
+(an iframe in a narrow column is cramped) — so on phone Lishi/Receipts/Scheduler keep their own nav (correct;
+`window.top===self` there). Desktop is the seamless-mount surface. The inlined screens (Fleet/Settings/
+Programmers) are native on both.
 
 **Tooling note:** Git **and Node.js (24.18)** are now installed on this PC (both were missing). Node is
 needed for the next `npx wrangler` website deploy and is used here to syntax-check the inline scripts.
@@ -150,5 +175,9 @@ needed for the next `npx wrangler` website deploy and is used here to syntax-che
 - Native scheduler: create/open/reschedule a booking; it persists to the same cloud record.
 
 ## 📌 WHERE PHASE 3 STANDS
-Stage 0 complete: branch + clone + architecture inventory + scheduler data model captured. Backend
-untouched. Next: 3.1 unified shell pass in `bittings-unified/`, de-iframing the simplest screens first.
+**All 6 iframe-seam screens are now unified** (code-complete, pending the device sweep): Fleet, Settings,
+Programmers **inlined as native views**; Lishi, Receipts, Scheduler **seamless module-mounts** (no
+page-within-a-page chrome). Backend untouched throughout; everything committed + pushed.
+**Remaining: 3.3 native scheduler** (the from-scratch calendar over `bookings`, replacing the
+Google-Calendar link — the one genuinely new build) → 3.4 full self-verify → 3.5 cutover.
+**Batched for the owner's device sweep:** every screen's "pending device verify" note above.

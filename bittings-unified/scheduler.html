@@ -314,6 +314,10 @@ textarea{min-height:70px;resize:vertical;}
 </style>
 </head>
 <body>
+<script>/* Seamless module-mount: when embedded in the unified shell's iframe, hide our bottom nav +
+   any back-to-app link so it reads as one app. (Interim — Scheduler gets a native rebuild in 3.3.) */
+try{ if(window.self!==window.top){ document.documentElement.classList.add('bt-embedded'); } }catch(e){}</script>
+<style>html.bt-embedded #appnav{display:none!important;} html.bt-embedded a[href="index.html"]{display:none!important;}</style>
 
 <header>
   <div class="brand"><span class="dot"></span>Scheduler</div>

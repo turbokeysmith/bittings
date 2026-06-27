@@ -91,6 +91,10 @@
 </style>
 </head>
 <body>
+<script>/* Seamless module-mount: when embedded in the unified shell's iframe, the parent's left menu
+   is the nav — hide our own "‹ Apps" back-link + bottom nav so it reads as one app (matches bittings.html). */
+try{ if(window.self!==window.top){ document.documentElement.classList.add('bt-embedded'); } }catch(e){}</script>
+<style>html.bt-embedded .top .back{display:none!important;} html.bt-embedded #appnav{display:none!important;}</style>
 <div class="wrap">
   <div class="top">
     <a class="back" href="index.html">‹ Apps</a>
