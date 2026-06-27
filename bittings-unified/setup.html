@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7f9">
+<title>Setup — Bittings</title>
+<link rel="icon" href="tks_mark.png">
+<!-- cloud config early so the gate can read it before render -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app/cloud-config.js"></script>
+<!-- Follow the global Light/Dark toggle (shared with the dashboard via localStorage). -->
+<script>try{if(localStorage.getItem('bt_theme')==='dark')document.documentElement.setAttribute('data-bt-theme','dark');}catch(e){}</script>
+<link rel="stylesheet" href="app/ui/legacy-dark.css">
+<style>
+  :root{--bg:#f6f7f9;--bg2:#eef0f3;--card:#ffffff;--edge:#e3e6ea;--ink:#14171b;--dim:#5a616c;
+    --red:#c8323c;--red-deep:#8f1f27;--amber:#f2b43a;--green:#22994a;--blue:#4aa3ff;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1100px 520px at 50% -10%,#ffffff 0%,rgba(255,255,255,0) 60%),linear-gradient(180deg,var(--bg),var(--bg2));
+    background-attachment:fixed;color:var(--ink);min-height:100vh;min-height:100dvh;
+    padding:calc(12px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));}
+  .wrap{max-width:900px;margin:0 auto;}
+  header.app{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  header.app img{height:32px;width:auto;max-width:120px;object-fit:contain;}
+  header.app h1{margin:0;font-size:18px;font-weight:800;}
+  header.app .sp{margin-left:auto;}
+  .ghost{background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--dim);border-radius:10px;
+    padding:8px 12px;font-weight:700;font-size:13px;cursor:pointer;min-height:40px;text-decoration:none;display:inline-flex;align-items:center;}
+  .intro{color:var(--dim);font-size:12px;line-height:1.45;margin:0 0 8px;}
+  /* step chips */
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .chip{display:flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--edge);
+    color:var(--dim);border-radius:999px;padding:6px 10px;font-weight:700;font-size:12px;cursor:pointer;min-height:34px;}
+  .chip.cur{border-color:var(--amber);color:var(--ink);}
+  .chip .st{font-size:11px;}
+  .chip.done .st{color:#7fd49b;} .chip.skip .st{color:var(--amber);}
+  .panel{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:13px 14px;margin-bottom:10px;}
+  .panel h2{margin:0 0 3px;font-size:16px;font-weight:800;}
+  .panel .sub{color:var(--dim);font-size:12px;line-height:1.4;margin:0 0 10px;}
+  label{display:block;font-size:12px;color:var(--dim);font-weight:600;margin:8px 0 4px;}
+  input,select,textarea{width:100%;background:#f3f4f6;border:1px solid var(--edge);border-radius:10px;
+    padding:9px 11px;color:var(--ink);font-size:16px;outline:none;font-family:inherit;}
+  textarea{min-height:48px;resize:vertical;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .toggle{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--ink);margin:7px 0;cursor:pointer;}
+  .toggle input{width:20px;height:20px;flex:0 0 auto;}
+  .hint{font-size:11.5px;color:#9a9a9a;margin-top:5px;line-height:1.45;}
+  .note{background:rgba(242,180,58,.10);border:1px dashed rgba(242,180,58,.45);border-radius:10px;
+    padding:10px 12px;font-size:12px;line-height:1.45;color:#f2d18a;margin:8px 0;}
+  .note code{background:rgba(20,23,27,.06);padding:1px 5px;border-radius:5px;color:var(--ink);}
+  .rowlist .item{display:flex;gap:6px;align-items:center;margin-bottom:6px;}
+  .rowlist .item input{flex:1;}
+  .rowlist .item select{flex:0 0 120px;}
+  .del{background:transparent;border:1px solid rgba(200,50,60,.5);color:#f0a0a6;border-radius:9px;
+    min-width:44px;min-height:44px;font-size:18px;cursor:pointer;flex:0 0 auto;}
+  .mv{background:#e7e9ee;border:none;color:#5a616c;border-radius:8px;min-width:34px;min-height:44px;font-size:13px;cursor:pointer;flex:0 0 auto;}
+  .mv:disabled{opacity:.35;}
+  .addbtn{background:#e7e9ee;border:none;color:#5a616c;border-radius:9px;padding:8px 12px;font-size:13px;
+    font-weight:700;cursor:pointer;min-height:40px;margin-top:2px;}
+  /* grouped services editor */
+  .svc-group{margin-bottom:8px;}
+  .svc-cat{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--amber);margin:10px 2px 5px;display:flex;align-items:center;}
+  .svc-allbtn{margin-left:auto;background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--dim);
+    border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;letter-spacing:0;text-transform:none;cursor:pointer;min-height:32px;}
+  .svc-row{display:flex;gap:6px;align-items:center;margin-bottom:6px;}
+  .svc-row input{flex:1;}
+  /* pick-and-price service rows */
+  .svc-pick{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+  .svc-pick .sp_l{display:flex;align-items:center;gap:8px;flex:1;min-width:0;margin:0;font-size:14px;color:var(--ink);font-weight:500;cursor:pointer;}
+  .svc-pick .sp_l input{width:19px;height:19px;flex:0 0 auto;}
+  .svc-pick .sp_price,.svc-pick .cs_price{flex:0 0 92px;width:92px;padding:8px 9px;}
+  .svc-pick .sp_price:disabled{opacity:.4;}
+  .svc-pick.custom .cs_name{flex:1;}
+  /* employee rows */
+  .emp-row{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
+  .emp-row input.tx{flex:1 1 40%;min-width:120px;}
+  .emp-own{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim);white-space:nowrap;}
+  .emp-own input{width:18px;height:18px;flex:0 0 auto;min-width:0;}
+  .emp-row input.e_pin{flex:0 0 92px;min-width:72px;}
+  /* business hours editor */
+  .hours-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;}
+  .hours-row .hd{flex:0 0 38px;font-weight:700;font-size:13px;color:var(--ink);}
+  .hours-row select{width:auto;flex:1 1 90px;min-width:84px;padding:8px 9px;}
+  .hours-row .h_to{color:var(--dim);font-size:13px;flex:0 0 auto;}
+  .hours-row select.h_copy{flex:0 0 auto;min-width:104px;width:auto;font-size:12px;color:var(--dim);}
+  .logo-prev{display:flex;align-items:center;gap:12px;margin:5px 0;}
+  .logo-prev img{height:42px;width:auto;max-width:140px;object-fit:contain;background:#f3f4f6;border:1px solid var(--edge);border-radius:8px;padding:4px;}
+  .nav{display:flex;gap:8px;flex-wrap:wrap;}
+  .btn{border:none;border-radius:11px;padding:12px;font-size:15px;font-weight:800;cursor:pointer;min-height:46px;}
+  .btn.save{flex:1;background:linear-gradient(180deg,var(--red),var(--red-deep));color:#fff;}
+  .btn.skip{background:transparent;border:1px solid var(--edge);color:var(--dim);}
+  .btn.back{background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--dim);}
+  .review .rv{border-top:1px solid var(--edge);padding:9px 0;}
+  .review .rv:first-child{border-top:none;}
+  .review .rv b{display:block;font-size:14px;}
+  .review .rv .v{font-size:12.5px;color:var(--dim);margin-top:2px;overflow-wrap:anywhere;}
+  .review .rv .miss{color:var(--amber);}
+  .saved{font-size:12px;color:#7fd49b;min-height:15px;margin-top:6px;}
+  .block{max-width:460px;margin:60px auto;text-align:center;color:var(--dim);}
+  .block h2{color:var(--ink);}
+  /* ===== Vertical category rail (mirrors the main app's .bt-sidebar) ===== */
+  .setupShell{display:flex;gap:20px;align-items:flex-start;}
+  .setupRail{flex:0 0 214px;width:214px;background:var(--card);border:1px solid var(--edge);
+    border-radius:16px;padding:14px 12px;display:flex;flex-direction:column;gap:3px;
+    position:sticky;top:12px;}
+  .railBrand{display:flex;align-items:center;gap:10px;padding:4px 8px 12px;
+    border-bottom:1px solid var(--edge);margin-bottom:8px;}
+  .railBrand img{width:34px;height:34px;border-radius:9px;object-fit:contain;background:#f3f4f6;flex:0 0 auto;}
+  .railTitle{display:flex;flex-direction:column;min-width:0;}
+  .railTitle .rt1{font-weight:800;font-size:15px;line-height:1.15;}
+  .railTitle .rt2{font-size:11px;color:var(--dim);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .railNav{display:flex;flex-direction:column;gap:3px;}
+  .railItem{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;border:none;
+    background:transparent;border-radius:11px;cursor:pointer;text-align:left;color:var(--dim);
+    font-size:14px;font-weight:600;font-family:inherit;min-height:44px;}
+  .railItem .ric{font-size:18px;line-height:1;flex:0 0 auto;filter:grayscale(.35);}
+  .railItem .rlbl{flex:1;min-width:0;}
+  .railItem .rtick{font-size:12px;font-weight:800;flex:0 0 auto;}
+  .railItem .rtick.done{color:var(--green);} .railItem .rtick.skip{color:var(--amber);}
+  .railItem:hover{background:var(--bg2);}
+  .railItem.cur{background:rgba(200,50,60,.12);color:var(--red);font-weight:800;}
+  .railItem.cur .ric{filter:none;}
+  .railLater{align-self:stretch;justify-content:center;margin-top:10px;}
+  .setupBody{flex:1;min-width:0;max-width:600px;}
+  .setupBody .intro{margin-top:2px;}
+  html[data-bt-theme="dark"] .railBrand img{background:#252a32;}
+  html[data-bt-theme="dark"] .railItem:hover{background:rgba(255,255,255,.05);}
+  html[data-bt-theme="dark"] .railItem.cur{background:rgba(200,50,60,.20);}
+  /* Phone: keep the rail VERTICAL on the left, just compact (icon + small label). */
+  @media (max-width:620px){
+    .setupShell{gap:10px;}
+    .setupRail{flex:0 0 64px;width:64px;padding:10px 5px;position:static;border-radius:14px;}
+    .railBrand{flex-direction:column;gap:0;padding:2px 0 8px;}
+    .railBrand .railTitle{display:none;}
+    .railItem{flex-direction:column;gap:3px;padding:8px 2px;text-align:center;line-height:1.12;
+      font-size:9px;font-weight:700;min-height:56px;border-radius:10px;}
+    .railItem .ric{font-size:20px;}
+    .railItem .rlbl{flex:none;width:100%;}
+    .railItem .rtick{display:none;}
+    .railItem.done .rlbl{color:var(--green);}
+    .railItem.skip .rlbl{color:var(--amber);}
+    .railLater{font-size:10px;padding:8px 4px;}
+    .setupBody{max-width:none;}
+  }
+  /* Dark-mode fixes for this page's hardcoded light inputs (palette vars from legacy-dark.css;
+     html[...] specificity beats the page's own :root). */
+  html[data-bt-theme="dark"] input,html[data-bt-theme="dark"] select,html[data-bt-theme="dark"] textarea{background:#2c313a;color:var(--ink);}
+  html[data-bt-theme="dark"] .logo-prev img{background:#252a32;}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap"><div class="block">Loading…</div></div>
+
+<script src="app/store.js"></script>
+<script src="app/access.js"></script>
+<!-- SheetJS for .xlsx parsing (CSV works without it); shared importer module -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="app/inventory-import.js"></script>
+<script>
+/* ===================== TURBO KEYSMITH — GUIDED SETUP / SETTINGS =====================
+   One page, two modes: a first-run WIZARD (stepped, before Home) and the editable
+   SETTINGS (jump to any step) later. Saves to the cloud-synced owner config
+   (TKS.Config) so every signed-in device shares it. Owner-gated. Each step is
+   skippable with progress saved + a completion indicator + finish-later; the
+   Review step surfaces anything skipped. Grouped so a multi-tenant version can
+   reuse it as per-shop onboarding (nothing hardcoded into one shop). */
+
+const TAX_CATS = [
+  {key:'Labor', label:'Labor / Service'},
+  {key:'Materials', label:'Materials / Parts'},
+  {key:'Travel', label:'Travel / Mileage'},
+  {key:'Programming', label:'Programming'},
+  {key:'AfterHours', label:'After-Hours'}
+];
+const STEPS = [
+  {key:'identity',     title:'Business identity',    ic:'🏪'},
+  {key:'tax',          title:'Sales tax',            ic:'💲'},
+  {key:'payments',     title:'Payments',             ic:'💳'},
+  {key:'access',       title:'Access & managers',    ic:'👥'},
+  {key:'quicklinks',   title:'Quick links',          ic:'🔗'},
+  {key:'servicetypes', title:'Service types',        ic:'🗂'},
+  {key:'services',     title:'Services',             ic:'🛠'},
+  {key:'hours',        title:'Hours & footer',       ic:'🕒'},
+  {key:'inventory',    title:'Inventory (optional)', ic:'📦'},
+  {key:'review',       title:'Review & finish',      ic:'✅'}
+];
+let cur = 0;            // current step index
+let cfg = null;         // working copy of config
+const wrap = document.getElementById('wrap');
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function isStaff(){ try{ return TKS.auth.isSignedIn() && !(TKS.auth.can && TKS.auth.can('setup')); }catch(e){ return false; } }
+
+/* ---- boot: connect cloud (so config syncs), gate, then render ---- */
+(function boot(){
+  function go(){
+    if(isStaff()){ wrap.innerHTML = '<div class="block"><h2>Managers only</h2><p>Setup &amp; Settings are manager-only. Ask a manager to make changes.</p><p><a class="ghost" href="index.html">‹ Back to the app</a></p></div>'; return; }
+    cfg = JSON.parse(JSON.stringify(TKS.Config.get()));
+    // jump to first incomplete step on first run; else start at identity
+    if(!TKS.Config.isSetupComplete()){
+      const st = TKS.Config.setupState();
+      const idx = STEPS.findIndex(s=> s.key!=='review' && !(st.done&&st.done[s.key]) && !(st.skipped&&st.skipped[s.key]));
+      cur = idx>=0 ? idx : 0;
+    }
+    render();
+  }
+  const c = window.TKS_CLOUD;
+  if(c && c.AUTO_CONNECT!==false && window.supabase && window.supabase.createClient){
+    try{
+      const probe = window.supabase.createClient(c.url, c.anonKey);
+      probe.auth.getSession().then(({data})=>{
+        if(data && data.session){ TKS.connectCloud({url:c.url, anonKey:c.anonKey}).then(go).catch(go); }
+        else go();
+      }).catch(go);
+      return;
+    }catch(e){}
+  }
+  go();
+})();
+
+function status(key){ const st=cfg.setup||{}; if(st.done&&st.done[key]) return 'done'; if(st.skipped&&st.skipped[key]) return 'skip'; return ''; }
+function statusIcon(s){ return s==='done'?'✓':s==='skip'?'⤼':'•'; }
+
+function render(){
+  const step = STEPS[cur];
+  // Show the SHOP's own logo/name here (this is their setup) — never hardcode a shop name.
+  const _idy=(function(){ try{ return TKS.Config.identity()||{}; }catch(e){ return {}; } })();
+  const _logo=_idy.logo||'tks_logo.png', _bn=(_idy.name||'').trim();
+
+  // LEFT RAIL — vertical category list, styled to match the main app's sidebar.
+  let rail = '<aside class="setupRail">'+
+    '<div class="railBrand"><img src="'+esc(_logo)+'" alt="">'+
+      '<div class="railTitle"><span class="rt1">Settings</span><span class="rt2">'+esc(_bn||'Your shop')+'</span></div></div>'+
+    '<nav class="railNav" aria-label="Settings sections">'+
+      STEPS.map((s,i)=>{
+        const st=(s.key==='review')?'':status(s.key);
+        const tick=(s.key==='review')?''
+          :(st==='done'?'<span class="rtick done" title="Done">✓</span>'
+          : st==='skip'?'<span class="rtick skip" title="Skipped">⤼</span>':'');
+        return '<button class="railItem'+(i===cur?' cur':'')+(st?(' '+st):'')+'" data-i="'+i+'"'+
+          (i===cur?' aria-current="step"':'')+'>'+
+          '<span class="ric">'+s.ic+'</span><span class="rlbl">'+esc(s.title)+'</span>'+tick+'</button>';
+      }).join('')+
+    '</nav>'+
+    '<a class="ghost railLater" id="laterBtn" href="#">Finish later</a>'+
+  '</aside>';
+
+  // RIGHT BODY — intro + the active step's panel + the step nav buttons.
+  let body = '<section class="setupBody">'+
+    '<p class="intro">Set up your shop. Every step is optional and saved as you go — come back anytime from the app to edit. Skipped items are listed at the end.</p>'+
+    '<div class="panel" id="panel"></div>';
+  if(step.key!=='review'){
+    body += '<div class="nav">'+
+      (cur>0?'<button class="btn back" id="backBtn">‹ Back</button>':'')+
+      '<button class="btn skip" id="skipBtn">Skip</button>'+
+      '<button class="btn save" id="saveBtn">Save &amp; continue ›</button></div>';
+  } else {
+    body += '<div class="nav">'+
+      '<button class="btn back" id="backBtn">‹ Back</button>'+
+      '<button class="btn save" id="finishBtn">Finish setup ✓</button></div>';
+  }
+  body += '<div class="saved" id="saved"></div></section>';
+
+  wrap.innerHTML = '<div class="setupShell">'+rail+body+'</div>';
+  wrap.querySelectorAll('.railItem').forEach(c=> c.onclick=()=>{ persistCurrent(); cur=+c.dataset.i; render(); });
+  document.getElementById('laterBtn').onclick=(e)=>{ e.preventDefault(); finishLater(); };
+  const bk=document.getElementById('backBtn'); if(bk) bk.onclick=()=>{ persistCurrent(); cur=Math.max(0,cur-1); render(); };
+  const sk=document.getElementById('skipBtn'); if(sk) sk.onclick=()=> skipStep();
+  const sv=document.getElementById('saveBtn'); if(sv) sv.onclick=()=> saveStep(true);
+  const fn=document.getElementById('finishBtn'); if(fn) fn.onclick=()=> finishSetup();
+  renderPanel(step.key);
+  window.scrollTo(0,0);
+}
+
+function renderPanel(key){
+  const p = document.getElementById('panel');
+  const id = cfg.identity, ac = cfg.access, pay = cfg.payments, loc = cfg.locations || {van:true,shop:false};
+  if(key==='identity'){
+    p.innerHTML = '<h2>Business identity</h2><div class="sub">Prints on your receipts, invoices &amp; PDFs.</div>'+
+      '<label>Business name</label><input id="f_name" value="'+esc(id.name)+'" placeholder="Your business name">'+
+      '<label>Address</label><input id="f_address" value="'+esc(id.address)+'" placeholder="123 Main St, City, ST 00000">'+
+      '<div class="row2"><div><label>Phone</label><input id="f_phone" value="'+esc(id.phone)+'" placeholder="(555) 123-4567"></div>'+
+      '<div><label>Email</label><input id="f_email" value="'+esc(id.email)+'" placeholder="name@example.com"></div></div>'+
+      '<label>License # (printed on receipts)</label><input id="f_license" value="'+esc(id.license)+'" placeholder="State license #">'+
+      '<label>Terms &amp; Conditions link <span style="font-weight:400;color:#8a8f98">(optional)</span></label><input id="f_termsUrl" value="'+esc(id.termsUrl||'')+'" placeholder="yourshop.com/terms">'+
+      '<div class="hint">If you have a Terms &amp; Conditions page, paste its link. It prints on receipts/invoices and in the signature line (&ldquo;agreed to [your shop]&rsquo;s Terms &amp; Conditions&rdquo;). Leave blank if you don&rsquo;t have one.</div>'+
+      '<label>Logo</label><div class="logo-prev"><img id="logoPrev" src="'+esc(id.logo||'tks_mark.png')+'" alt="logo">'+
+      '<button type="button" class="addbtn" id="logoBtn">Upload logo</button><input type="file" id="logoFile" accept="image/*" style="display:none"></div>'+
+      '<div class="hint">Square-ish PNG with a transparent background looks crispest. Leave it to keep the default mark.</div>'+
+      '<label style="margin-top:18px">Where do you work?</label>'+
+      '<label class="toggle"><input type="checkbox" id="f_locVan" '+(loc.van?'checked':'')+'> 🚐 Mobile (van / field)</label>'+
+      '<label class="toggle"><input type="checkbox" id="f_locShop" '+(loc.shop?'checked':'')+'> 🏪 Physical shop / storefront</label>'+
+      '<div class="hint">Pick one or both. With <b>both</b>, Inventory splits into <b>van vs shop</b> with one-tap move buttons; with just one it stays a single list.</div>';
+    document.getElementById('logoBtn').onclick=()=>document.getElementById('logoFile').click();
+    document.getElementById('logoFile').addEventListener('change', onLogoPick);
+  }
+  else if(key==='tax'){
+    p.innerHTML = '<h2>Sales tax</h2><div class="sub">Default rate for taxable goods. Oklahoma exempts separately-stated labor — keep labor on its own line and it\'s excluded automatically. You can override the rate per receipt.</div>'+
+      '<label>Default tax rate (%)</label><input id="f_taxRate" type="number" step="0.001" inputmode="decimal" value="'+(cfg.taxRate||'')+'" placeholder="e.g. 8.625">'+
+      '<label>Taxable line categories</label>'+
+      TAX_CATS.map(c=>'<label class="toggle"><input type="checkbox" class="taxcat" data-k="'+c.key+'" '+(cfg.taxableByCategory[c.key]?'checked':'')+'> '+esc(c.label)+'</label>').join('');
+  }
+  else if(key==='payments'){
+    p.innerHTML = '<h2>Payments</h2><div class="sub">How charges are taken. Card processing runs through Stripe.</div>'+
+      '<label>Card surcharge shown to customers (%)</label><input id="f_surcharge" type="number" step="0.01" inputmode="decimal" value="'+(pay.surchargePct!=null?pay.surchargePct:2)+'" placeholder="2">'+
+      '<div class="hint">Oklahoma allows up to <b>2% on credit cards only</b> (never debit/prepaid, never cash/check). The 2% is enforced on the server at capture; this field is the figure shown on screen/receipt.</div>'+
+      '<label>Cash drawer float ($)</label><input id="f_float" type="number" step="0.01" inputmode="decimal" value="'+(pay.drawerFloatCents!=null?(pay.drawerFloatCents/100).toFixed(2):"120.00")+'" placeholder="120.00">'+
+      '<div class="hint">The cash you keep in the drawer to start each day. Closeout uses this as the <b>starting float</b> (you can adjust it for a single day right on the Closeout screen). Raise it here as the business grows.</div>'+
+      (function(){ var war=cfg.warranty||{months:6,defaultOn:true}; return ''+
+        '<label>Standard warranty (months)</label><input id="f_warrantyMonths" type="number" min="0" step="1" inputmode="numeric" value="'+(war.months!=null?war.months:6)+'" placeholder="6">'+
+        '<div class="hint">The warranty you stand behind on labor/parts — e.g. a <b>6-month</b> standard warranty. New receipts &amp; invoices show a pill counting down the days until it expires. Set <b>0</b> to turn warranties off.</div>'+
+        '<label class="toggle"><input type="checkbox" id="f_warrantyDefault" '+(war.defaultOn?'checked':'')+'> Add the warranty to new documents by default</label>'; })()+
+      (function(){ var n=cfg.nastf||{d1Days:5}; return ''+
+        '<label>NASTF D1 filing window (days)</label><input id="f_d1Days" type="number" min="1" step="1" inputmode="numeric" value="'+(n.d1Days!=null?n.d1Days:5)+'" placeholder="5">'+
+        '<div class="hint">When a job is tagged <b>NASTF</b> (on the register or Start-a-Job) Bittings starts a D1-filing countdown and shows a color-degrading badge (green → yellow → orange → red → overdue). Default <b>5 days</b>. You still file the actual D1 on the NASTF website — this only tracks the deadline.</div>'; })()+
+      '<div class="note"><b>Stripe keys — never typed into this page.</b> Your <b>secret key</b> lives only as a Supabase Edge Function secret (<code>STRIPE_SECRET_KEY</code>) — set it in the Supabase dashboard, never here. Your <b>publishable key</b> (<code>pk_…</code>) is entered once on the Pay screen when you take a typed-card payment. This keeps you PCI-safe (no card data or secret ever touches the app).</div>';
+  }
+  else if(key==='access'){
+    p.innerHTML = '<h2>Access &amp; managers</h2><div class="sub">Your team. Tick <b>Manager</b> for anyone who should see manager-only tools (Closeout, Transaction History, taking payments, Setup); everyone else gets the everyday tools. Give each manager their <b>own PIN</b> — it unlocks those tools on a signed-out/offline device.</div>'+
+      '<label>Employees</label><div id="emplist"></div><button type="button" class="addbtn" id="empAdd">+ Add user</button>'+
+      '<div class="hint">Manager powers follow the email of any row marked Manager. (The bootstrap manager in cloud-config.js is always a manager — you can\'t lock yourself out.) Each manager\'s PIN is personal; any manager\'s PIN unlocks manager actions when nobody is signed in.</div>'+
+      '<label>Shared fallback PIN (optional)</label><input id="f_pin" value="'+esc(ac.quickFormPin||'')+'" placeholder="e.g. 1234" inputmode="numeric">'+
+      '<div class="hint">An extra PIN that also unlocks manager actions when nobody is signed in — handy if you\'d rather use one shop PIN instead of (or alongside) personal manager PINs. Leave blank to require a personal manager PIN or sign-in.</div>'+
+      '<label class="toggle"><input type="checkbox" id="f_qiEnabled" '+(ac.quickInvoiceEnabled!==false?'checked':'')+'> Enable the Receipts <b>Quick invoice</b> shortcut</label>'+
+      '<label class="toggle"><input type="checkbox" id="f_qiDefault" '+(ac.quickInvoiceDefault?'checked':'')+'> Open Quick invoice automatically for a signed-in manager</label>';
+    if(!cfg.access.employees || !cfg.access.employees.length){ cfg.access.employees = (cfg.access.employees&&cfg.access.employees.length)?cfg.access.employees:[{name:'',email:'',owner:true}]; }
+    renderEmployees();
+    document.getElementById('empAdd').onclick=()=>{ cfg.access.employees.push({name:'',email:'',owner:false}); renderEmployees(); };
+  }
+  else if(key==='quicklinks'){
+    p.innerHTML = '<h2>Quick links</h2><div class="sub">Optional bookmark groups for the Home screen, organized by category. Empty groups are hidden — add a link to a group and its tile appears.</div>'+
+      '<div id="qlEditor"></div>'+
+      '<div class="hint"><b>Keycodes</b> (the dealer/OEM portals) are built in and always shown on Home — no need to add them here.</div>';
+    renderQuickLinks();
+  }
+  else if(key==='servicetypes'){
+    p.innerHTML='<h2>Service types</h2><div class="sub">What kinds of work do you do? Pick your categories — the next step lists the common services in each so you can check what you offer and set pricing.</div>'+
+      SVC_CATS2.map(([ck,cl])=>'<label class="toggle"><input type="checkbox" class="stype" data-c="'+ck+'" '+(((cfg.serviceCats||[]).indexOf(ck)>=0)?'checked':'')+'> '+esc(cl)+'</label>').join('');
+    p.querySelectorAll('.stype').forEach(cb=> cb.onchange=()=>{ const c=cb.dataset.c;
+      cfg.serviceCats=(cfg.serviceCats||[]).filter(x=>x!==c);
+      if(cb.checked){ cfg.serviceCats.push(c);
+        // pre-check: offer every common service in this category (skip any already there)
+        (CATALOG[c]||[]).forEach(name=>{ if(svcIndex(name,c)<0) cfg.services.push({value:name,en:name,es:'',cat:c,price:''}); });
+      } else { cfg.services=cfg.services.filter(s=>(s.cat||'')!==c); }   // dropping the type drops its services
+    });
+  }
+  else if(key==='services'){
+    p.innerHTML='<h2>Services</h2><div class="sub">Check the services you offer and add a standard price (or leave blank for per-job pricing). Use "+ Add a service" under a category for specialty work.</div>'+
+      '<div id="slist"></div>';
+    renderServices();
+  }
+  else if(key==='hours'){
+    p.innerHTML = '<h2>Hours &amp; receipt footer</h2><div class="sub">Optional. Keep two separate schedules: when your <b>shop/storefront</b> is open for walk-ins, and when you <b>take service jobs</b> in the field (these often differ — e.g. a shop open 10–6 but service running overnight). For an overnight window, set the close time past midnight on the next day (e.g. Sunday 12:00 AM–4:00 AM covers Saturday night). <b>Tip:</b> set one day, then use <b>⧉ Copy to…</b> on that row to reuse it for all days, weekdays (Mon–Fri), or the weekend.</div>'+
+      '<label>🏪 Shop / storefront hours <span class="hint" style="font-weight:400">(walk-ins)</span></label><div id="hoursEd"></div>'+
+      '<label style="margin-top:14px">🚐 Service hours <span class="hint" style="font-weight:400">(when you take jobs)</span></label><div id="svcHoursEd"></div>'+
+      '<label style="margin-top:14px">Receipt footer line (optional)</label><input id="f_footer" value="'+esc(id.footer||'')+'" placeholder="Insured &amp; Bonded · Thank you!">';
+    renderHoursEditor('hoursEd','hours');
+    renderHoursEditor('svcHoursEd','serviceHours');
+  }
+  else if(key==='inventory'){
+    p.innerHTML='<h2>Inventory (optional)</h2><div class="sub">Already have a parts list in a spreadsheet? Import it now — upload an .xlsx or .csv, match your columns to the app\'s fields, preview, and import. Duplicates are skipped.</div>'+
+      '<button type="button" class="btn save" id="invImport" style="flex:none;width:100%">📥 Import inventory from a file</button>'+
+      '<div class="hint">You can also do this anytime later from the <b>Inventory</b> tile. Nothing here is required to finish setup.</div>';
+    const ib=document.getElementById('invImport');
+    ib.onclick=()=>{ if(window.TKImport && TKImport.open){ TKImport.open({}); } else { appAlertLite('Importer not loaded','Reload the page and try again.'); } };
+  }
+  else if(key==='review'){
+    renderReview(p);
+  }
+}
+function appAlertLite(t,m){
+  function _e(s){ return String(s==null?'':s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(6,8,11,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML='<div style="background:var(--card);color:var(--ink);width:100%;max-width:400px;border-radius:16px;border:1px solid var(--edge);padding:18px;">'+
+    '<div style="font-weight:800;font-size:16px;margin-bottom:'+(m?'8px':'16px')+'">'+_e(t)+'</div>'+
+    (m?('<div style="font-size:14px;color:var(--dim);line-height:1.5;margin-bottom:16px">'+_e(m)+'</div>'):'')+
+    '<div style="display:flex;justify-content:flex-end"><button type="button" id="_alOk" style="background:var(--amber,#e08a2a);color:#fff;border:none;border-radius:10px;padding:11px 18px;font-weight:800;font-size:14px;cursor:pointer;min-width:96px;min-height:42px">OK</button></div></div>';
+  document.body.appendChild(ov);
+  function close(){ if(ov.parentNode) ov.remove(); document.removeEventListener('keydown',onkey); }
+  function onkey(e){ if(e.key==='Escape'||e.key==='Enter') close(); }
+  ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
+  ov.querySelector('#_alOk').onclick=close;
+  document.addEventListener('keydown',onkey);
+}
+
+function renderQuickLinks(){
+  const el=document.getElementById('qlEditor'); if(!el) return;
+  if(!Array.isArray(cfg.quickLinks)) cfg.quickLinks=[];
+  el.innerHTML = cfg.quickLinks.map((c,ci)=>{
+    const links=(c.links||[]).map((l,li)=>'<div class="item">'+
+      '<input class="ql_label" data-c="'+ci+'" data-l="'+li+'" placeholder="Name" value="'+esc(l.label||'')+'">'+
+      '<input class="ql_url" data-c="'+ci+'" data-l="'+li+'" placeholder="https://…" value="'+esc(l.url||'')+'">'+
+      '<button type="button" class="del" data-c="'+ci+'" data-l="'+li+'">&times;</button></div>').join('');
+    return '<div class="svc-group"><div class="svc-cat">'+esc((c.icon||'')+' '+c.label)+'</div>'+links+
+      '<button type="button" class="addbtn ql_add" data-c="'+ci+'">+ Add link</button></div>';
+  }).join('');
+  el.querySelectorAll('.ql_label').forEach(x=> x.oninput=()=> cfg.quickLinks[+x.dataset.c].links[+x.dataset.l].label=x.value);
+  el.querySelectorAll('.ql_url').forEach(x=> x.oninput=()=> cfg.quickLinks[+x.dataset.c].links[+x.dataset.l].url=x.value);
+  el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.quickLinks[+b.dataset.c].links.splice(+b.dataset.l,1); renderQuickLinks(); });
+  el.querySelectorAll('.ql_add').forEach(b=> b.onclick=()=>{ cfg.quickLinks[+b.dataset.c].links.push({label:'',url:''}); renderQuickLinks(); });
+}
+/* Service categories (step 1) + the common-service catalog shown per category in
+   step 2. The catalog is the reference list to check off; the owner's offered
+   services live in cfg.services as {value,cat,price}. */
+const SVC_CATS2=[['automotive','Automotive'],['residential','Residential'],['commercial','Commercial'],['safe','Safe & Vault'],['emergency','Emergency'],['accesscontrol','Access Control'],['other','Other']];
+const SVC_CAT_LABEL=Object.fromEntries(SVC_CATS2);
+const CATALOG={
+  automotive:['Car lockout','Car key duplication / spare','Car key replacement (lost all keys)','Transponder / chip key programming','Key fob / remote programming','Smart / proximity key programming','Push-to-start programming','Ignition repair / replacement','Broken key extraction','ECU / immobilizer programming','High-security / laser-cut key cutting','Motorcycle / powersport keys','Fleet vehicle keys'],
+  residential:['House lockout','Rekey','Lock change / replacement','Lock repair','Deadbolt installation','Smart lock installation','Key duplication','Master key system','Mailbox lock','Garage / gate keys'],
+  commercial:['Commercial lockout','Commercial rekey','Commercial lock change / install','Master key system','Panic / exit device (push bar)','Door closer install / repair','File cabinet / desk locks','High-security locks','Storefront / mortise locks'],
+  safe:['Safe opening / lockout','Safe combination change','Safe installation / moving','Safe repair','Gun safe service'],
+  emergency:['24/7 emergency lockout','Roadside assistance','Emergency rekey','Break-in / board-up & rekey'],
+  accesscontrol:['Keypad / electronic locks','Access control system install','Card / fob reader','Keyless entry','Intercom / buzzer entry','Service & maintenance'],
+  other:['Security audit / consultation','Walk-in key cutting','Lock sales','Other (describe)']
+};
+function svcIndex(val,cat){ return cfg.services.findIndex(s=> s.value===val && (s.cat||'')===cat); }
+function toggleSvc(val,cat,on){ const i=svcIndex(val,cat); if(on && i<0) cfg.services.push({value:val,en:val,es:'',cat:cat,price:''}); else if(!on && i>=0) cfg.services.splice(i,1); }
+function setSvcPrice(val,cat,price){ const i=svcIndex(val,cat); if(i>=0) cfg.services[i].price=price; }
+function renderServices(){
+  const el=document.getElementById('slist'); if(!el) return;
+  const cats=(cfg.serviceCats||[]).slice();
+  if(!cats.length){ el.innerHTML='<div class="hint">Go <b>‹ Back</b> and pick the service types you offer — then your common services show here to check off.</div>'; return; }
+  let html='';
+  SVC_CATS2.forEach(([ck,clabel])=>{
+    if(cats.indexOf(ck)<0) return;
+    const catNames=CATALOG[ck]||[];
+    const allOn=catNames.length>0 && catNames.every(n=> svcIndex(n,ck)>=0);
+    html+='<div class="svc-group"><div class="svc-cat">'+esc(clabel)+
+      '<button type="button" class="svc-allbtn" data-cat="'+ck+'">'+(allOn?'Clear':'Select all')+'</button></div>';
+    catNames.forEach(name=>{
+      const i=svcIndex(name,ck), off=i>=0, price=off?(cfg.services[i].price||''):'';
+      html+='<div class="svc-pick"><label class="sp_l"><input type="checkbox" class="sp_off" data-val="'+esc(name)+'" data-cat="'+ck+'" '+(off?'checked':'')+'> '+esc(name)+'</label>'+
+        '<input class="sp_price" data-val="'+esc(name)+'" data-cat="'+ck+'" inputmode="decimal" placeholder="$ / job" value="'+esc(price)+'"'+(off?'':' disabled')+'></div>';
+    });
+    // specialty/custom services the owner added in this category (not in the catalog)
+    cfg.services.forEach((s,i)=>{ if((s.cat||'')!==ck) return; if((CATALOG[ck]||[]).indexOf(s.value)>=0) return;
+      html+='<div class="svc-pick custom"><input class="cs_name" data-i="'+i+'" value="'+esc(s.value)+'" placeholder="Service name">'+
+        '<input class="cs_price" data-i="'+i+'" inputmode="decimal" placeholder="$ / job" value="'+esc(s.price||'')+'">'+
+        '<button type="button" class="del" data-i="'+i+'">&times;</button></div>';
+    });
+    html+='<button type="button" class="addbtn svc-addone" data-cat="'+ck+'">+ Add a service</button>';
+    html+='</div>';
+  });
+  el.innerHTML=html;
+  el.querySelectorAll('.svc-allbtn').forEach(b=> b.onclick=()=>{ const ck=b.dataset.cat, names=CATALOG[ck]||[];
+    const on=names.length>0 && names.every(n=> svcIndex(n,ck)>=0);   // all currently checked? -> Clear, else Select all
+    names.forEach(n=>{ if(on){ const i=svcIndex(n,ck); if(i>=0) cfg.services.splice(i,1); } else if(svcIndex(n,ck)<0){ cfg.services.push({value:n,en:n,es:'',cat:ck,price:''}); } });
+    renderServices(); });
+  el.querySelectorAll('.sp_off').forEach(cb=> cb.onchange=()=>{ toggleSvc(cb.dataset.val, cb.dataset.cat, cb.checked); renderServices(); });
+  el.querySelectorAll('.sp_price').forEach(x=> x.oninput=()=> setSvcPrice(x.dataset.val, x.dataset.cat, x.value));
+  el.querySelectorAll('.cs_name').forEach(x=> x.oninput=()=>{ const s=cfg.services[+x.dataset.i]; s.value=x.value; s.en=x.value; });
+  el.querySelectorAll('.cs_price').forEach(x=> x.oninput=()=> cfg.services[+x.dataset.i].price=x.value);
+  el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.services.splice(+b.dataset.i,1); renderServices(); });
+  el.querySelectorAll('.svc-addone').forEach(b=> b.onclick=()=>{ cfg.services.push({value:'',en:'',es:'',cat:b.dataset.cat,price:''}); renderServices(); });
+}
+function renderEmployees(){
+  const el=document.getElementById('emplist'); if(!el) return;
+  if(!cfg.access.employees) cfg.access.employees=[];
+  el.innerHTML = cfg.access.employees.map((e,i)=>'<div class="emp-row">'+
+    '<input class="tx e_name" data-i="'+i+'" placeholder="Name" value="'+esc(e.name||'')+'">'+
+    '<input class="tx e_email" data-i="'+i+'" type="email" placeholder="name@example.com" value="'+esc(e.email||'')+'">'+
+    '<label class="emp-own"><input type="checkbox" class="e_owner" data-i="'+i+'" '+(e.owner?'checked':'')+'>Manager</label>'+
+    '<input class="tx e_pin" data-i="'+i+'" inputmode="numeric" placeholder="PIN" value="'+esc(e.pin||'')+'"'+(e.owner?'':' style="display:none"')+'>'+
+    '<button type="button" class="del" data-i="'+i+'">&times;</button></div>').join('');
+  el.querySelectorAll('.e_name').forEach(x=> x.oninput=()=> cfg.access.employees[+x.dataset.i].name=x.value);
+  el.querySelectorAll('.e_email').forEach(x=> x.oninput=()=> cfg.access.employees[+x.dataset.i].email=x.value);
+  el.querySelectorAll('.e_owner').forEach(x=> x.onchange=()=>{ cfg.access.employees[+x.dataset.i].owner=x.checked; renderEmployees(); });
+  el.querySelectorAll('.e_pin').forEach(x=> x.oninput=()=> cfg.access.employees[+x.dataset.i].pin=x.value.trim());
+  el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.access.employees.splice(+b.dataset.i,1); renderEmployees(); });
+}
+const HOURS_DAYS=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri'],['sat','Sat'],['sun','Sun']];
+function timeOpts(sel){ let o=''; for(let h=0;h<24;h++){ for(const m of [0,30]){ const v=(h<10?'0':'')+h+':'+(m<10?'0':'')+m; const ap=h<12?'AM':'PM'; const hh=h%12||12; o+='<option value="'+v+'"'+(sel===v?' selected':'')+'>'+hh+':'+(m<10?'0':'')+m+' '+ap+'</option>'; } } return o; }
+function renderHoursEditor(elId, key){
+  const el=document.getElementById(elId); if(!el) return;
+  if(!cfg[key] || typeof cfg[key]!=='object') cfg[key]={};
+  const H=cfg[key];
+  el.innerHTML = HOURS_DAYS.map(([dk,dl])=>{
+    if(!H[dk] || typeof H[dk]!=='object') H[dk]={mode:'closed',open:'08:00',close:'17:00'};
+    const d = H[dk];
+    const open = d.mode==='open';
+    return '<div class="hours-row"><span class="hd">'+dl+'</span>'+
+      '<select class="h_mode" data-d="'+dk+'"><option value="open"'+(d.mode==='open'?' selected':'')+'>Open</option>'+
+        '<option value="closed"'+(d.mode==='closed'?' selected':'')+'>Closed</option>'+
+        '<option value="24"'+(d.mode==='24'?' selected':'')+'>24 hours</option></select>'+
+      '<select class="h_open" data-d="'+dk+'"'+(open?'':' style="display:none"')+'>'+timeOpts(d.open)+'</select>'+
+      '<span class="h_to"'+(open?'':' style="display:none"')+'>to</span>'+
+      '<select class="h_close" data-d="'+dk+'"'+(open?'':' style="display:none"')+'>'+timeOpts(d.close)+'</select>'+
+      '<select class="h_copy" data-d="'+dk+'" title="Copy this day\'s hours to other days">'+
+        '<option value="">⧉ Copy to…</option>'+
+        '<option value="all">All days</option>'+
+        '<option value="weekdays">Mon–Fri</option>'+
+        '<option value="weekend">Sat–Sun</option></select></div>';
+  }).join('');
+  el.querySelectorAll('.h_mode').forEach(s=> s.onchange=()=>{ H[s.dataset.d].mode=s.value; renderHoursEditor(elId,key); });
+  el.querySelectorAll('.h_open').forEach(s=> s.onchange=()=> H[s.dataset.d].open=s.value);
+  el.querySelectorAll('.h_close').forEach(s=> s.onchange=()=> H[s.dataset.d].close=s.value);
+  el.querySelectorAll('.h_copy').forEach(s=> s.onchange=()=>{
+    const src=s.dataset.d, v=s.value; if(!v){ return; }
+    const groups={all:['mon','tue','wed','thu','fri','sat','sun'], weekdays:['mon','tue','wed','thu','fri'], weekend:['sat','sun']};
+    const targets=(groups[v]||[]).filter(dk=>dk!==src);
+    const sd=H[src]; let n=0;
+    targets.forEach(dk=>{ H[dk]={mode:sd.mode, open:sd.open, close:sd.close}; n++; });
+    renderHoursEditor(elId,key);
+    try{ flash('Copied '+(HOURS_DAYS.find(x=>x[0]===src)||[,src])[1]+'’s hours to '+n+' day'+(n===1?'':'s')+'.'); }catch(e){}
+  });
+}
+// Compact readable summary for the Review step, grouping consecutive same-schedule days.
+function hoursSummary(h){
+  if(!h || typeof h!=='object') return '';
+  const order=['mon','tue','wed','thu','fri','sat','sun'], lbl={mon:'Mon',tue:'Tue',wed:'Wed',thu:'Thu',fri:'Fri',sat:'Sat',sun:'Sun'};
+  const fmt=t=>{ const [H,M]=String(t||'').split(':').map(Number); const ap=H<12?'a':'p'; const hh=H%12||12; return hh+(M?(':'+(M<10?'0':'')+M):'')+ap; };
+  const day=d=> (!d||d.mode==='closed')?'closed':(d.mode==='24'?'24h':(fmt(d.open)+'–'+fmt(d.close)));
+  let out=[], i=0;
+  while(i<order.length){ const s=day(h[order[i]]); let j=i; while(j+1<order.length && day(h[order[j+1]])===s) j++;
+    out.push((i===j?lbl[order[i]]:lbl[order[i]]+'–'+lbl[order[j]])+' '+s); i=j+1; }
+  return out.join(' · ');
+}
+
+function onLogoPick(e){
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{ const img=new Image(); img.onload=()=>{
+    const max=400; let w=img.width,h=img.height; if(w>max||h>max){ if(w>h){h=h*max/w;w=max;}else{w=w*max/h;h=max;} }
+    const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
+    const data=cv.toDataURL('image/png'); cfg.identity.logo=data; cfg.identity.logoCustom=true;
+    const pv=document.getElementById('logoPrev'); if(pv) pv.src=data;
+  }; img.src=ev.target.result; };
+  reader.readAsDataURL(f);
+}
+
+/* ---- gather the current step's fields into cfg ---- */
+function gather(key){
+  const g=id=>{ const el=document.getElementById(id); return el?el.value.trim():''; };
+  if(key==='identity'){ cfg.identity.name=g('f_name'); cfg.identity.address=g('f_address'); cfg.identity.phone=g('f_phone'); cfg.identity.email=g('f_email'); cfg.identity.license=g('f_license'); cfg.identity.termsUrl=g('f_termsUrl');
+    cfg.locations=cfg.locations||{}; const lv=document.getElementById('f_locVan'), lsh=document.getElementById('f_locShop');
+    if(lv||lsh){ cfg.locations.van=!!(lv&&lv.checked); cfg.locations.shop=!!(lsh&&lsh.checked); if(!cfg.locations.van&&!cfg.locations.shop) cfg.locations.van=true; } }
+  else if(key==='tax'){ const r=g('f_taxRate'); cfg.taxRate=r!==''?(parseFloat(r)||0):0; document.querySelectorAll('.taxcat').forEach(cb=> cfg.taxableByCategory[cb.dataset.k]=cb.checked); }
+  else if(key==='payments'){ const s=g('f_surcharge'); cfg.payments.surchargePct=s!==''?(parseFloat(s)||0):2;
+    const fl=g('f_float'); cfg.payments.drawerFloatCents=fl!==''?Math.max(0,Math.round((parseFloat(fl)||0)*100)):12000;
+    if(!cfg.warranty) cfg.warranty={}; const wm=g('f_warrantyMonths'); cfg.warranty.months=wm!==''?Math.max(0,parseInt(wm,10)||0):6;
+    const wd=document.getElementById('f_warrantyDefault'); cfg.warranty.defaultOn=!!(wd&&wd.checked);
+    if(!cfg.nastf) cfg.nastf={}; const dd=g('f_d1Days'); cfg.nastf.d1Days=(dd!==''&&parseInt(dd,10)>=1)?parseInt(dd,10):5; }
+  else if(key==='access'){
+    const emps=(cfg.access.employees||[]).filter(e=>(e.name||'').trim()||(e.email||'').trim());
+    cfg.access.employees=emps;
+    cfg.access.ownerEmails=emps.filter(e=>e.owner && (e.email||'').trim()).map(e=>e.email.trim());
+    cfg.access.staffEmails=emps.filter(e=>!e.owner && (e.email||'').trim()).map(e=>e.email.trim());
+    const pe=document.getElementById('f_pin'); if(pe) cfg.access.quickFormPin=pe.value.trim();
+    const qe=document.getElementById('f_qiEnabled'); if(qe) cfg.access.quickInvoiceEnabled=qe.checked;
+    const qd=document.getElementById('f_qiDefault'); if(qd) cfg.access.quickInvoiceDefault=qd.checked;
+  }
+  else if(key==='quicklinks'){ cfg.quickLinks=(cfg.quickLinks||[]).map(c=>({ key:c.key, label:c.label, icon:c.icon,
+    links:(c.links||[]).filter(l=>(l.url||'').trim()).map(l=>({label:(l.label||'').trim(), url:(l.url||'').trim()})) })); }
+  else if(key==='servicetypes'){ const ck=[]; document.querySelectorAll('.stype').forEach(cb=>{ if(cb.checked) ck.push(cb.dataset.c); }); if(ck.length||document.querySelector('.stype')) cfg.serviceCats=ck; }
+  else if(key==='services'){ cfg.services=cfg.services.filter(s=>(s.value||'').trim()).map(s=>({ value:s.value.trim(), en:(s.value||'').trim(), es:s.es||'', cat:s.cat||'other', price:(s.price!=null?String(s.price).trim():'') })); }
+  else if(key==='inventory'){ /* import is its own modal; nothing to gather here */ }
+  else if(key==='hours'){ /* hours live-bound to cfg.hours via the editor */ cfg.identity.footer=g('f_footer'); }
+}
+
+function persist(extraSetup){
+  const setup = Object.assign({}, cfg.setup, extraSetup||{});
+  const saved = TKS.Config.save(Object.assign({}, cfg, { setup }));
+  cfg = JSON.parse(JSON.stringify(saved));
+  return saved;
+}
+/* Gather + save the current step before leaving it (chip jump / Back), so every
+   keystroke is persisted to the cloud-synced config — you only fill it in once. */
+function persistCurrent(){ try{ const key=STEPS[cur].key; if(key!=='review' && key!=='inventory'){ gather(key); persist(); } }catch(e){} }
+
+function saveStep(advance){
+  const key = STEPS[cur].key;
+  gather(key);
+  const done=Object.assign({}, cfg.setup.done); done[key]=true;
+  const skipped=Object.assign({}, cfg.setup.skipped); delete skipped[key];
+  persist({ done, skipped });
+  flash('Saved.');
+  if(advance){ cur=Math.min(STEPS.length-1, cur+1); render(); } else render();
+}
+function skipStep(){
+  const key = STEPS[cur].key;
+  const skipped=Object.assign({}, cfg.setup.skipped); skipped[key]=true;
+  const done=Object.assign({}, cfg.setup.done); delete done[key];
+  persist({ skipped, done });
+  cur=Math.min(STEPS.length-1, cur+1); render();
+}
+function finishLater(){ try{ const key=STEPS[cur].key; if(key!=='review'){ gather(key); persist(); } }catch(e){} try{ sessionStorage.setItem('tks_setup_later','1'); }catch(e){} location.href='index.html'; }
+function finishSetup(){ persist({ completed:true }); location.href='index.html'; }
+function flash(m){ const s=document.getElementById('saved'); if(s){ s.textContent=m; setTimeout(()=>{ if(s) s.textContent=''; },1800); } }
+
+function renderReview(p){
+  const id=cfg.identity, ac=cfg.access;
+  const emps=(ac.employees||[]); const owners=emps.filter(e=>e.owner).length;
+  let invCount=0; try{ invCount=(TKS.Inventory.all()||[]).length; }catch(e){}
+  const rows=[
+    ['Business identity','identity', id.name? (id.name+(id.phone?(' · '+id.phone):'')) : ''],
+    ['Sales tax','tax', cfg.taxRate? (cfg.taxRate+'%') : 'No rate set'],
+    ['Payments','payments', (cfg.payments.surchargePct!=null?cfg.payments.surchargePct:2)+'% credit surcharge · $'+(((cfg.payments.drawerFloatCents!=null?cfg.payments.drawerFloatCents:12000)/100).toFixed(2))+' drawer float'],
+    ['Access & managers','access', (emps.length? (emps.length+' user(s), '+owners+' manager(s)') : '') + (emps.filter(e=>e.owner && (e.pin||'').trim()).length?(' · '+emps.filter(e=>e.owner && (e.pin||'').trim()).length+' personal PIN(s)'):'') + (ac.quickFormPin?' · shared PIN set':'')],
+    ['Quick links','quicklinks', (function(){ let n=0; (cfg.quickLinks||[]).forEach(c=>n+=(c.links||[]).length); return n+' link(s)'; })()],
+    ['Service types','servicetypes', (cfg.serviceCats||[]).map(c=>SVC_CAT_LABEL[c]||c).join(', ')],
+    ['Services','services', cfg.services.length+' offered'+(cfg.services.filter(s=>(s.price||'').trim()).length?(' · '+cfg.services.filter(s=>(s.price||'').trim()).length+' priced'):'')],
+    ['Hours & footer','hours', [
+        (hoursSummary(cfg.hours)? ('🏪 Shop: '+hoursSummary(cfg.hours)) : ''),
+        (hoursSummary(cfg.serviceHours)? ('🚐 Service: '+hoursSummary(cfg.serviceHours)) : ''),
+        id.footer
+      ].filter(Boolean).join('  ·  ')],
+    ['Inventory','inventory', invCount+' part(s) in stock']
+  ];
+  let h='<h2>Review &amp; finish</h2><div class="sub">Anything you skipped is flagged — you can fix it now or finish and come back later.</div><div class="review">';
+  rows.forEach(r=>{
+    const st=status(r[1]); const skipped=st==='skip'||(!r[2] && st!=='done');
+    h+='<div class="rv"><b>'+esc(r[0])+' <span class="st" style="font-weight:400;color:'+(st==='done'?'#7fd49b':'var(--amber)')+'">'+(st==='done'?'✓':'⤼ skipped/empty')+'</span></b>'+
+       '<div class="v '+(skipped?'miss':'')+'">'+(r[2]?esc(r[2]):'Not set — tap the step above to fill it in')+'</div></div>';
+  });
+  h+='</div>';
+  p.innerHTML=h;
+}
+</script>
+<script src="app/ui/appnav.js"></script>
+</body>
+</html>

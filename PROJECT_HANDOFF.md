@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-26 22:00 CST (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-26 22:10 CST (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,17 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-26 22:10 CST (🏗️ Phase 3 kicked off — front-end unification on a clone)
+- Started the **front-end unification** plan (the inconsistent iframe-glued staff app → one unified,
+  iframe-free app on the same proven backend, plus a native in-app calendar).
+- **Made a clone:** new branch `phase3-frontend-unification` + a copy of the staff app at
+  **`bittings-unified/`**. The proven app (`bittings-app/`) and the investor demo stay **untouched as
+  the fallback** the whole time; all rebuild work happens in the clone.
+- **Mapped the job:** exactly **6 screens** are the iframe seams — Receipts, Scheduler, Fleet, Lishi,
+  Programmers, Settings; the other 8 screens are already unified. Wrote the authoritative tracker
+  **`PHASE3_FRONTEND_PROGRESS.md`** (architecture inventory, design-system plan, scheduler data model,
+  staged build order). The backend is not touched by any of this.
 
 ### 2026-06-26 22:00 CST (💾 New PC: Git installed · all work committed + backed up to GitHub)
 - **New PC had no Git installed at all** — so weeks of recent work (the NASTF/D1 stage, the Ilco 2025

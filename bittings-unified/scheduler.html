@@ -1,0 +1,2094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Scheduler — Bittings</title>
+<meta name="theme-color" content="#f6f7f9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Scheduler">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA2NCA2NCc+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0nZycgeDE9JzAnIHkxPScwJyB4Mj0nMCcgeTI9JzEnPjxzdG9wIG9mZnNldD0nMCcgc3RvcC1jb2xvcj0nI0Y0QkEzRScvPjxzdG9wIG9mZnNldD0nMScgc3RvcC1jb2xvcj0nI0Q2OEMwQycvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cmVjdCB4PScyJyB5PScyJyB3aWR0aD0nNjAnIGhlaWdodD0nNjAnIHJ4PScxNCcgZmlsbD0ndXJsKCNnKScvPgo8cmVjdCB4PScxNScgeT0nMjEnIHdpZHRoPSczNCcgaGVpZ2h0PScyOCcgcng9JzQnIGZpbGw9JyMxQzFDMUUnLz4KPHJlY3QgeD0nMjInIHk9JzE2JyB3aWR0aD0nNC41JyBoZWlnaHQ9JzknIHJ4PScyLjInIGZpbGw9JyMxQzFDMUUnLz48cmVjdCB4PSczNy41JyB5PScxNicgd2lkdGg9JzQuNScgaGVpZ2h0PSc5JyByeD0nMi4yJyBmaWxsPScjMUMxQzFFJy8+CjxyZWN0IHg9JzE5JyB5PScyOScgd2lkdGg9JzI2JyBoZWlnaHQ9JzE3JyByeD0nMi41JyBmaWxsPSd1cmwoI2cpJy8+CjxyZWN0IHg9JzIwLjUnIHk9JzMwLjUnIHdpZHRoPSc4LjUnIGhlaWdodD0nNicgcng9JzEuNicgZmlsbD0nIzFDMUMxRScvPjx0ZXh0IHg9JzI0Ljc1JyB5PSczNS40JyBmb250LWZhbWlseT0nQXJpYWwsc2Fucy1zZXJpZicgZm9udC13ZWlnaHQ9J2JvbGQnIGZvbnQtc2l6ZT0nNScgdGV4dC1hbmNob3I9J21pZGRsZScgZmlsbD0nI0U4QTMxNyc+MzE8L3RleHQ+CjxjaXJjbGUgY3g9JzMzJyBjeT0nMzYnIHI9JzMuNCcgZmlsbD0nIzFDMUMxRScvPjxwYXRoIGQ9J00zMS4zIDM3LjYgTDM0LjcgMzcuNiBMMzMuOCA0MyBMMzIuMiA0MyBaJyBmaWxsPScjMUMxQzFFJy8+Cjwvc3ZnPg==">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiVHVyYm8gU2NoZWR1bGVyIiwic2hvcnRfbmFtZSI6IlNjaGVkdWxlciIsImljb25zIjpbeyJzcmMiOiJpY29uLTE5Mi5wbmciLCJzaXplcyI6IjE5MngxOTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIn0seyJzcmMiOiJpY29uLTUxMi5wbmciLCJzaXplcyI6IjUxMng1MTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIn1dLCJ0aGVtZV9jb2xvciI6IiMxQzFDMUUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzExMTExMyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwic3RhcnRfdXJsIjoiLi8ifQ==">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+<script>
+/* Set theme before the page paints so a dark-mode user never sees a white flash. */
+(function(){
+  try{
+    var g = localStorage.getItem('bt_theme');           // global Light/Dark toggle (shared w/ dashboard)
+    var s = localStorage.getItem('tks_sched_theme');     // this app's own remembered choice
+    var theme = g ? g
+      : s ? JSON.parse(s)
+      : ((window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
+<style>
+/* =========================================================================
+   TURBO KEYSMITH — TRAINEE SCHEDULER
+   Single-file app. Walks a new hire through booking a job, tells him exactly
+   what to say, coaches small talk + upselling, and adds the job to your
+   calendar with one tap. Shares the Bittings customer database.
+   No backend, no logins, no cost. Works offline once loaded.
+   ========================================================================= */
+
+/* ---- LIGHT THEME (default) ---- */
+:root{
+  color-scheme:light;      /* native time/date pickers render light */
+  --gold:#E8A317;          /* brand accent (key gold) */
+  --gold-soft:#FFF6E2;     /* tint for selected choices */
+  --gold-line:#F0C462;
+  --ink:#14171b;           /* main text */
+  --ink-soft:#5a616c;      /* secondary text */
+  --bg:#f6f7f9;            /* page background */
+  --card:#FFFFFF;
+  --input-bg:#FFFFFF;
+  --line:#e3e6ea;
+  --green:#1F8A4C;
+  --green-soft:#E7F4EC;
+  --red:#C0392B;
+  --red-soft:#FDF1F0;
+  --on-gold:#1C1C1E;       /* text that sits on a gold button (dark in both themes) */
+  /* header — light surface in light mode (themed to match the rest of the app) */
+  --header-bg:#fbfcfd; --header-fg:#14171b; --toggle-bg:#eef1f5; --toggle-fg:#5a616c;
+  /* "say this" coaching card */
+  --coach-bg:#FFF6E2; --coach-border:#F0C462; --coach-accent:#E8A317; --coach-tag:#9A6B00; --coach-text:#3A2D08;
+  /* "tip" coaching card */
+  --tip-bg:#EEF3FF; --tip-border:#C9D8FF; --tip-accent:#3B6FE0; --tip-tag:#2E55B5; --tip-text:#22335E;
+  --header-h:64px;
+  --maxw:540px;
+  --radius:16px;
+  --shadow:0 1px 2px rgba(20,23,27,.04),0 8px 24px rgba(20,23,27,.06);
+}
+/* ---- DARK THEME ---- */
+:root[data-theme="dark"]{
+  color-scheme:dark;       /* native time/date picker icons go light/white in dark mode */
+  --gold:#F2B43A;
+  --gold-soft:#3A2E12;
+  --gold-line:#5C4A1E;
+  --ink:#F1F1F4;
+  --ink-soft:#9A9AA2;
+  --bg:#111113;
+  --card:#1C1C20;
+  --input-bg:#16161A;
+  --line:#33333A;
+  --green:#54C98A;
+  --green-soft:#16291F;
+  --red:#E26A5E;
+  --red-soft:#2E1A18;
+  --on-gold:#1C1C1E;
+  --header-bg:#0E0E10; --header-fg:#FFFFFF; --toggle-bg:#28282C; --toggle-fg:#9A9AA2;
+  --coach-bg:#2E2410; --coach-border:#5C4A1E; --coach-accent:#F2B43A; --coach-tag:#E0A93C; --coach-text:#F5E4C2;
+  --tip-bg:#16203A; --tip-border:#2A3F6B; --tip-accent:#5B86E5; --tip-tag:#9DB8F0; --tip-text:#D3E0FA;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--ink);
+  font-size:17px;line-height:1.45;
+  padding-bottom:env(safe-area-inset-bottom);
+  transition:background-color .2s ease,color .2s ease;
+}
+h1,h2,h3,.brand{font-family:"Sora",-apple-system,sans-serif;}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:50;height:var(--header-h);
+  background:var(--header-bg);color:var(--header-fg);border-bottom:1px solid rgba(0,0,0,.08);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;padding-top:env(safe-area-inset-top);
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;}
+.brand .dot{width:10px;height:10px;border-radius:50%;background:var(--gold);}
+.hdr-right{display:flex;align-items:center;gap:10px;}
+.lang-toggle{
+  display:flex;background:var(--toggle-bg);border-radius:999px;padding:3px;font-size:13px;font-weight:600;
+}
+.lang-toggle button{
+  border:0;background:transparent;color:var(--toggle-fg);padding:5px 11px;border-radius:999px;cursor:pointer;font:inherit;
+}
+.lang-toggle button.active{background:var(--gold);color:var(--on-gold);}
+.theme-btn{
+  border:0;background:var(--toggle-bg);color:var(--header-fg);width:38px;height:38px;
+  border-radius:50%;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
+}
+
+/* ---------- layout ---------- */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:18px 16px 120px;}
+.screen{display:none;}
+.screen.active{display:block;animation:fade .25s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+/* ---------- progress ---------- */
+.progress{height:6px;background:var(--line);border-radius:999px;margin-bottom:18px;overflow:hidden;}
+.progress > i{display:block;height:100%;background:var(--gold);width:0;transition:width .3s ease;}
+
+/* ---------- coaching card (the "say this" box) ---------- */
+.coach{
+  background:var(--coach-bg);border:1px solid var(--coach-border);
+  border-left:5px solid var(--coach-accent);border-radius:14px;
+  padding:14px 16px;margin:0 0 18px;position:relative;
+}
+.coach .tag{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--coach-tag);margin-bottom:6px;
+}
+.coach .line{font-size:18px;font-weight:600;color:var(--coach-text);line-height:1.4;}
+.coach.tip{background:var(--tip-bg);border-color:var(--tip-border);border-left-color:var(--tip-accent);}
+.coach.tip .tag{color:var(--tip-tag);}
+.coach.tip .line{font-weight:500;color:var(--tip-text);}
+
+/* ---------- step content ---------- */
+.step-title{font-size:15px;font-weight:600;color:var(--ink-soft);margin:0 0 12px;}
+label{display:block;font-size:14px;font-weight:600;color:var(--ink-soft);margin:14px 0 6px;}
+input,select,textarea{
+  width:100%;font:inherit;padding:13px 14px;border:1.5px solid var(--line);
+  border-radius:12px;background:var(--input-bg);color:var(--ink);
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);}
+textarea{min-height:70px;resize:vertical;}
+.field-err{border-color:var(--red)!important;background:var(--red-soft);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* ---------- big choice buttons ---------- */
+.choices{display:grid;gap:10px;}
+.choice{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  background:var(--card);border:1.5px solid var(--line);border-radius:14px;
+  padding:16px;font:inherit;font-weight:600;font-size:17px;cursor:pointer;color:var(--ink);
+  transition:.15s;
+}
+.choice:active{transform:scale(.99);}
+.choice.sel{border-color:var(--gold);background:var(--gold-soft);}
+.choice .emo{font-size:22px;width:28px;text-align:center;}
+
+/* ---------- yes/no toggle for upsell ---------- */
+.yn{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.yn button{
+  padding:14px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);
+  font:inherit;font-weight:700;font-size:16px;cursor:pointer;color:var(--ink);
+}
+.yn button.yes.sel{background:var(--green-soft);border-color:var(--green);color:var(--green);}
+.yn button.no.sel{background:var(--red-soft);border-color:var(--red);color:var(--red);}
+
+/* ---------- nav buttons ---------- */
+.nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:40;
+  background:linear-gradient(to top,var(--bg) 70%,transparent);
+  padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+}
+.nav-inner{max-width:var(--maxw);margin:0 auto;display:flex;gap:10px;}
+.btn{
+  flex:1;padding:16px;border-radius:14px;border:0;font:inherit;font-weight:700;font-size:17px;
+  cursor:pointer;font-family:"Sora",sans-serif;
+}
+.btn.primary{background:var(--gold);color:var(--on-gold);}
+.btn.ghost{flex:0 0 auto;background:transparent;border:1.5px solid var(--line);color:var(--ink-soft);min-width:84px;}
+.btn:disabled{opacity:.45;}
+
+/* ---------- summary + calendar ---------- */
+.summary{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px 16px;margin-bottom:16px;box-shadow:var(--shadow);}
+.summary .r{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px;}
+.summary .r:last-child{border-bottom:0;}
+.summary .r b{color:var(--ink-soft);font-weight:600;}
+.cal{display:grid;gap:10px;margin-bottom:10px;}
+.cal a,.cal button{
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  padding:14px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);
+  font:inherit;font-weight:600;text-decoration:none;color:var(--ink);cursor:pointer;font-size:16px;
+}
+.opencal{
+  display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
+  padding:15px;border-radius:12px;border:1.5px solid var(--gold);background:var(--gold-soft);
+  color:var(--ink);font:inherit;font-weight:700;font-size:16px;cursor:pointer;margin-bottom:18px;
+}
+
+/* ---------- home + lists ---------- */
+.hero{text-align:center;padding:18px 0 8px;}
+.hero h1{font-size:26px;margin:0 0 4px;}
+.hero p{color:var(--ink-soft);margin:0 0 22px;}
+.tile{
+  display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);
+  border-radius:16px;padding:18px;width:100%;font:inherit;text-align:left;cursor:pointer;
+  margin-bottom:12px;box-shadow:var(--shadow);color:var(--ink);
+}
+.tile .big{font-size:26px;}
+.tile h3{margin:0;font-size:18px;}
+.tile p{margin:2px 0 0;color:var(--ink-soft);font-size:14px;}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;}
+.stat .n{font-family:"Sora";font-size:24px;font-weight:700;}
+.stat .l{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+.backup-row{display:flex;gap:10px;margin-top:24px;}
+.mini{flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink-soft);font:inherit;font-weight:600;font-size:14px;cursor:pointer;}
+.bk-caption{font-size:12px;color:var(--ink-soft);text-align:center;margin:10px 4px 0;line-height:1.4;}
+.job{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);}
+.job .top{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft);}
+.job h3{margin:4px 0 2px;font-size:17px;}
+.job .meta{font-size:14px;color:var(--ink-soft);}
+.empty{text-align:center;color:var(--ink-soft);padding:40px 0;}
+.section-h{font-family:"Sora";font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin:24px 0 10px;}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--gold-soft);color:var(--coach-tag);}
+.cust-hit{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;}
+.cust-hit b{display:block;}
+.cust-hit span{font-size:14px;color:var(--ink-soft);}
+.done-check{font-size:54px;text-align:center;margin:18px 0 6px;}
+
+/* ---- Day view (in-app calendar) ---- */
+.daybar{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.daybar .navd{width:42px;height:42px;border-radius:11px;border:1.5px solid var(--line);background:var(--card);
+  color:var(--ink);font-size:20px;font-weight:800;cursor:pointer;flex:0 0 auto;}
+.daybar input[type=date]{flex:1;background:var(--card);border:1.5px solid var(--line);border-radius:11px;
+  padding:11px 12px;color:var(--ink);font-size:16px;font-family:inherit;}
+.daysum{font-size:13px;color:var(--ink-soft);margin:0 2px 12px;}
+.slot{display:flex;gap:12px;align-items:stretch;border-top:1px solid var(--line);padding:10px 2px;}
+.slot .hr{flex:0 0 64px;font-weight:700;font-size:13px;color:var(--ink-soft);padding-top:4px;}
+.slot .cell{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;}
+.slot.free .cell{justify-content:center;}
+.book-card{background:var(--card);border:1.5px solid var(--line);border-left:4px solid var(--gold,#f2b43a);
+  border-radius:12px;padding:10px 12px;cursor:pointer;}
+.book-card.urgent{border-left-color:var(--coach-tag,#c8323c);}
+.book-card b{font-size:15px;}
+.book-card .m{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+.slot .addbtn{align-self:flex-start;background:transparent;border:1.5px dashed var(--line);color:var(--ink-soft);
+  border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer;}
+.slot .addbtn:hover{color:var(--ink);}
+.gcal-stub{margin-top:18px;background:var(--card);border:1.5px dashed var(--line);border-radius:12px;
+  padding:14px 16px;font-size:13px;color:var(--ink-soft);line-height:1.5;}
+.gcal-stub b{color:var(--ink);}
+.gcal-stub .tagph{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.5px;background:var(--gold-soft);
+  color:var(--coach-tag);border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle;}
+.gcal-stub button{margin-top:10px;background:transparent;border:1.5px solid var(--line);color:var(--ink);
+  border-radius:10px;padding:9px 13px;font-weight:700;font-size:13px;cursor:pointer;}
+
+/* ---- Status tags + booking detail ---- */
+.status-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.3px;
+  border-radius:999px;padding:3px 9px;vertical-align:middle;white-space:nowrap;}
+.book-card .row-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.bk-detail{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;}
+.bk-detail h2{margin:0 0 4px;font-size:20px;}
+.bk-detail .when{color:var(--ink-soft);font-size:14px;margin-bottom:12px;}
+.bk-detail .r{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:14px;}
+.bk-detail .r b{color:var(--ink-soft);font-weight:600;}
+.status-picker{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px;}
+.status-picker button{border:1.5px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer;min-height:40px;}
+.status-picker button.sel{border-color:transparent;}
+.bk-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
+.bk-actions a,.bk-actions button{flex:1 1 auto;text-align:center;text-decoration:none;border-radius:11px;
+  padding:12px 14px;font-weight:800;font-size:14px;cursor:pointer;min-height:46px;display:inline-flex;
+  align-items:center;justify-content:center;gap:6px;}
+.bk-actions .gcal{background:var(--gold,#f2b43a);color:#1c1c1e;border:none;}
+.bk-actions .edit{background:transparent;border:1.5px solid var(--line);color:var(--ink);}
+.bk-actions .del{background:transparent;border:1.5px solid rgba(200,50,60,.4);color:#e0707a;flex:0 0 auto;}
+/* VIN row + ignition picker */
+.vin-row{display:flex;gap:8px;align-items:flex-end;}
+.vin-row input{flex:1;}
+.vin-row button{flex:0 0 auto;border:1.5px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:11px;padding:12px 14px;font-weight:700;font-size:13px;cursor:pointer;min-height:46px;}
+.vin-or{text-align:center;font-size:12px;color:var(--ink-soft);font-weight:700;margin:10px 0 4px;letter-spacing:.5px;}
+.ign-pick{display:flex;gap:10px;margin-top:6px;}
+.ign-pick button{flex:1;border:1.5px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:11px;padding:12px;font-weight:700;font-size:14px;cursor:pointer;min-height:46px;}
+.ign-pick button.sel{border-color:var(--gold,#f2b43a);background:var(--gold-soft,rgba(242,180,58,.14));}
+.vin-msg{font-size:13px;margin-top:6px;color:var(--ink-soft);min-height:1px;}
+.vin-msg.bad{color:#e0707a;}
+/* Job-photo slots — built but DORMANT (no photos yet). */
+.job-photos{display:none;}            /* flip to grid when real photos exist */
+.job-photos.has-photos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+
+/* ---- Accessibility + mobile polish ---- */
+:focus-visible{outline:3px solid var(--gold,#f2b43a);outline-offset:2px;border-radius:8px;}
+.daybar .navd{min-width:44px;min-height:44px;}
+.slot .addbtn{min-height:40px;}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;transition-duration:.001ms!important;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="dot"></span>Scheduler</div>
+  <div class="hdr-right">
+    <div class="lang-toggle" id="langToggle">
+      <button data-lang="en" class="active">EN</button>
+      <button data-lang="es">ES</button>
+    </div>
+    <button class="theme-btn" id="themeBtn" aria-label="Toggle dark mode">🌙</button>
+  </div>
+</header>
+
+<div class="wrap" id="app"></div>
+
+<div class="nav" id="nav" style="display:none">
+  <div class="nav-inner">
+    <button class="btn ghost" id="backBtn">Back</button>
+    <button class="btn primary" id="nextBtn">Next</button>
+  </div>
+</div>
+
+<!-- Shared data layer (localStorage today; cloud-swap point inside). The
+     scheduler now reads/writes bookings + customers THROUGH TKS so it shares
+     one deduped list with the Customers tile and the contact form. The Supabase
+     client + config let it auto-connect to the cloud when a staff member is
+     signed in (same session as the staff app), exactly like index.html. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app/cloud-config.js"></script>
+<script src="app/store.js"></script>
+<script src="app/access.js"></script>
+<script src="app/lishi-seed.js"></script>
+<script src="app/ymm.js"></script>
+<script>
+/* =========================================================================
+   1) STORAGE HELPERS  (same pattern as Bittings: readLS / writeLS)
+   These read and write the browser's localStorage. Because this app is
+   hosted on the same turbokeysmith.github.io domain as Bittings, it sees
+   the SAME saved data — so customers added here show up in Bittings.
+   ========================================================================= */
+function readLS(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function writeLS(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); }
+  catch(e){ console.warn('save failed', e); }
+}
+
+/* Shared keys (must match Bittings). >>> VERIFY against app_template_v2.html <<< */
+const K_CUSTOMERS = 'tks_customers';   // shared customer database (read + write)
+const K_SHOPS     = 'tks_shops';       // Bittings stores BUSINESS customers here
+const K_SETTINGS  = 'tks_settings';    // shared settings (read only here)
+const K_BOOKINGS  = 'tks_bookings';    // NEW key created by this app for scheduled jobs
+const K_LANG      = 'tks_sched_lang';  // remembers EN/ES choice for this app
+const K_THEME     = 'tks_sched_theme'; // remembers light/dark choice for this app
+const K_LASTLINE  = 'tks_sched_lastline'; // remembers last script variant per slot (rotation)
+
+/* =========================================================================
+   2) LANGUAGE  (English / Spanish)
+   ========================================================================= */
+let LANG = readLS(K_LANG, 'en');
+
+const UI = {
+  en:{
+    home_sub:"Book a job, step by step.", new_booking:"New booking",
+    new_booking_sub:"Walk through a call and add it to the calendar",
+    todays:"Today's jobs", all_jobs:"All bookings", view_jobs:"View jobs",
+    coaching_progress:"Your coaching so far",
+    stat_jobs:"Booked", stat_offered:"Upsells offered", stat_rate:"Offer rate",
+    back:"Back", next:"Next", save:"Save booking", done:"Done", start:"Caller's on — start",
+    say_this:"Say this", tip:"Tip — what to do",
+    existing_q:"Have we helped this customer before?", search_cust:"Search name or phone…",
+    new_cust:"➕ New customer", no_match:"No match — add as new customer",
+    name:"Customer name", phone:"Best callback number", email:"Email (optional)",
+    jobtype:"What do they need help with?",
+    auto:"Car / vehicle", res:"House / home", com:"Business / commercial",
+    subtype:"What kind of job?",
+    addr:"Service address", veh_y:"Year", veh_mk:"Make", veh_md:"Model", vin:"VIN (if they have it)",
+    where_parked:"Where is the car parked?",
+    sched:"When can we go out?", date:"Date", time:"Time", dur:"How long to block?",
+    open_cal:"Open Google Calendar", check_sched:"Check my schedule",
+    check_sched_sub:"Opens Google Calendar in a new tab",
+    bk_export:"Back up", bk_import:"Restore", bk_caption:"Save a copy of your contacts so you never lose them. Keep the file in Google Drive.",
+    bk_restored:"Restored:", bk_contacts:"new contacts", bk_bookings:"new bookings",
+    bk_badfile:"That file couldn't be read. Make sure it's a Scheduler backup.",
+    upsell_q:"Did you offer the add-on?", yes:"Yes, I offered", no:"Not this time",
+    upsell_acc:"Did they say yes to it?", acc_yes:"They said yes", acc_no:"They passed",
+    confirm:"Confirm the booking", add_cal:"Add to calendar",
+    g_cal:"Google Calendar", o_cal:"Outlook", ics:"Apple / other (.ics)",
+    notes:"Notes (anything to remember)",
+    booked:"Booked!", booked_sub:"It's saved and ready to add to your calendar.",
+    another:"Book another", home:"Home",
+    r_customer:"Customer", r_phone:"Phone", r_job:"Job", r_vehicle:"Vehicle",
+    r_address:"Address", r_when:"When", r_upsell:"Add-on offered",
+    yes_short:"Yes", no_short:"No",
+    err:"Please fill the highlighted fields.",
+    edit_booking:"Edit", add_to_sched:"Add to Schedule", del_booking:"Delete",
+    status:"Status", change_status:"Change status",
+    st_Scheduled:"Scheduled", st_InProgress:"In Progress", st_Completed:"Completed",
+    st_Rescheduled:"Rescheduled", st_Canceled:"Canceled",
+    active_jobs:"Active jobs", archived_jobs:"Past & completed", no_active:"No active jobs yet.",
+    veh_id:"Vehicle — VIN or year/make/model", ignition:"Ignition type",
+    ign_push:"Push-to-start", ign_keyed:"Keyed", decode_vin:"Decode VIN", vin_decoding:"Decoding…",
+    vin_need:"For a car job, enter a VIN or the year, make and model.",
+    vin_bad:"That VIN didn't decode — enter the year, make and model by hand.",
+    ign_need:"Choose the ignition type (push-to-start or keyed).",
+    del_confirm:"Delete this booking entirely? (To just take it off the board, mark it Completed or Canceled instead.)",
+    job_photos:"Job photos", edit_title:"Edit booking", open_booking:"Open",
+    owner_quick:"Quick form (manager)", owner_quick_sub:"PIN-protected one-off form — skips the guided steps",
+    quick_form:"Quick booking form", quick_sub:"Manager quick entry — all fields, no guided steps.",
+    owner_only:"Managers only", quick_need:"Please fill:",
+    pin_title:"Manager PIN", pin_prompt:"Enter a manager PIN to open a one-time quick form for this booking.",
+    unlock:"Unlock", cancel:"Cancel", pin_wrong:"Wrong PIN — try again.",
+    pin_unset:"No manager PIN is set yet. Add one in Setup → Access (each manager can have a PIN), or a shared fallback PIN there / in app/cloud-config.js.",
+    need_jobtype:"Pick what they need help with to continue.",
+    need_subtype:"Pick the kind of job to continue.",
+    need_upsell:"Mark whether you offered the add-on to continue.",
+    need_upsell_acc:"Mark whether they accepted to continue.",
+    owner_denied:"That's a manager-only action. You're signed in as staff, so it's locked.",
+    owner_unlocked:"Manager signed in — quick form unlocked."
+  },
+  es:{
+    home_sub:"Agenda un trabajo, paso a paso.", new_booking:"Nueva cita",
+    new_booking_sub:"Guíate por la llamada y agéndala en el calendario",
+    todays:"Trabajos de hoy", all_jobs:"Todas las citas", view_jobs:"Ver trabajos",
+    coaching_progress:"Tu progreso hasta ahora",
+    stat_jobs:"Agendados", stat_offered:"Extras ofrecidos", stat_rate:"% ofrecido",
+    back:"Atrás", next:"Siguiente", save:"Guardar cita", done:"Listo", start:"Está al teléfono — empezar",
+    say_this:"Di esto", tip:"Consejo — qué hacer",
+    existing_q:"¿Ya hemos ayudado a este cliente antes?", search_cust:"Busca nombre o teléfono…",
+    new_cust:"➕ Cliente nuevo", no_match:"Sin resultados — agregar como nuevo",
+    name:"Nombre del cliente", phone:"Mejor número de contacto", email:"Correo (opcional)",
+    jobtype:"¿En qué necesita ayuda?",
+    auto:"Carro / vehículo", res:"Casa / hogar", com:"Negocio / comercial",
+    subtype:"¿Qué tipo de trabajo?",
+    addr:"Dirección del servicio", veh_y:"Año", veh_mk:"Marca", veh_md:"Modelo", vin:"VIN (si lo tiene)",
+    where_parked:"¿Dónde está estacionado el carro?",
+    sched:"¿Cuándo podemos ir?", date:"Fecha", time:"Hora", dur:"¿Cuánto tiempo reservar?",
+    open_cal:"Abrir Google Calendar", check_sched:"Ver mi horario",
+    check_sched_sub:"Abre Google Calendar en otra pestaña",
+    bk_export:"Respaldar", bk_import:"Restaurar", bk_caption:"Guarda una copia de tus contactos para no perderlos nunca. Guarda el archivo en Google Drive.",
+    bk_restored:"Restaurado:", bk_contacts:"contactos nuevos", bk_bookings:"citas nuevas",
+    bk_badfile:"No se pudo leer el archivo. Asegúrate de que sea un respaldo de Scheduler.",
+    upsell_q:"¿Ofreciste el extra?", yes:"Sí, lo ofrecí", no:"Esta vez no",
+    upsell_acc:"¿Lo aceptó?", acc_yes:"Dijo que sí", acc_no:"No esta vez",
+    confirm:"Confirma la cita", add_cal:"Agregar al calendario",
+    g_cal:"Google Calendar", o_cal:"Outlook", ics:"Apple / otro (.ics)",
+    notes:"Notas (algo que recordar)",
+    booked:"¡Agendado!", booked_sub:"Está guardado y listo para tu calendario.",
+    another:"Agendar otro", home:"Inicio",
+    r_customer:"Cliente", r_phone:"Teléfono", r_job:"Trabajo", r_vehicle:"Vehículo",
+    r_address:"Dirección", r_when:"Cuándo", r_upsell:"Extra ofrecido",
+    yes_short:"Sí", no_short:"No",
+    err:"Por favor completa los campos marcados.",
+    edit_booking:"Editar", add_to_sched:"Agregar a la agenda", del_booking:"Eliminar",
+    status:"Estado", change_status:"Cambiar estado",
+    st_Scheduled:"Agendado", st_InProgress:"En progreso", st_Completed:"Completado",
+    st_Rescheduled:"Reagendado", st_Canceled:"Cancelado",
+    active_jobs:"Trabajos activos", archived_jobs:"Pasados y completados", no_active:"Aún no hay trabajos activos.",
+    veh_id:"Vehículo — VIN o año/marca/modelo", ignition:"Tipo de encendido",
+    ign_push:"Botón de arranque", ign_keyed:"Con llave", decode_vin:"Decodificar VIN", vin_decoding:"Decodificando…",
+    vin_need:"Para un trabajo de auto, ingresa un VIN o el año, marca y modelo.",
+    vin_bad:"Ese VIN no se pudo leer — ingresa año, marca y modelo a mano.",
+    ign_need:"Elige el tipo de encendido (botón de arranque o con llave).",
+    del_confirm:"¿Eliminar esta cita por completo? (Para solo quitarla del tablero, márcala Completado o Cancelado.)",
+    job_photos:"Fotos del trabajo", edit_title:"Editar cita", open_booking:"Abrir",
+    owner_quick:"Formulario rápido (gerente)", owner_quick_sub:"Formulario único protegido con PIN — sin los pasos guiados",
+    quick_form:"Formulario rápido de cita", quick_sub:"Entrada rápida del gerente — todos los campos, sin pasos guiados.",
+    owner_only:"Solo gerentes", quick_need:"Completa:",
+    pin_title:"PIN del gerente", pin_prompt:"Ingresa un PIN de gerente para abrir un formulario rápido para esta cita.",
+    unlock:"Desbloquear", cancel:"Cancelar", pin_wrong:"PIN incorrecto — intenta de nuevo.",
+    pin_unset:"Aún no hay PIN de gerente. Agrégalo en Configuración → Acceso (cada gerente puede tener un PIN), o un PIN compartido ahí / en app/cloud-config.js.",
+    need_jobtype:"Elige en qué necesita ayuda para continuar.",
+    need_subtype:"Elige el tipo de trabajo para continuar.",
+    need_upsell:"Indica si ofreciste el extra para continuar.",
+    need_upsell_acc:"Indica si lo aceptó para continuar.",
+    owner_denied:"Esta acción es solo para gerentes. Tu sesión es de empleado, así que está bloqueada.",
+    owner_unlocked:"Gerente con sesión — formulario rápido desbloqueado."
+  }
+};
+/* Status display + colors (shared by day view, job list, booking detail). */
+const STATUS_META = {
+  'Scheduled':   { key:'st_Scheduled',   bg:'rgba(74,163,255,.16)', fg:'#4aa3ff' },
+  'In Progress': { key:'st_InProgress',  bg:'rgba(242,180,58,.18)',  fg:'#f2b43a' },
+  'Completed':   { key:'st_Completed',   bg:'rgba(46,160,80,.18)',   fg:'#46c46a' },
+  'Rescheduled': { key:'st_Rescheduled', bg:'rgba(155,107,214,.18)', fg:'#b58be0' },
+  'Canceled':    { key:'st_Canceled',    bg:'rgba(200,50,60,.16)',   fg:'#e0707a' }
+};
+function statusLabel(s){ const m=STATUS_META[s]||STATUS_META.Scheduled; return t(m.key); }
+function statusTag(s){
+  const m = STATUS_META[s] || STATUS_META.Scheduled;
+  return `<span class="status-tag" style="background:${m.bg};color:${m.fg}">${esc(statusLabel(s))}</span>`;
+}
+function t(key){ return (UI[LANG] && UI[LANG][key]) || UI.en[key] || key; }
+
+/* =========================================================================
+   3) COACHING SCRIPT LIBRARY  (Phase 2 — the "brain")
+   Each slot now has THREE variants per language. The app rotates them so the
+   trainee never says the exact same line twice in a row — and it remembers
+   across calls, so he's not repeating yesterday's script either.
+   Want different wording? Just edit/add lines inside any array. Keep the EN
+   and ES arrays the SAME length so they stay matched up.
+   ========================================================================= */
+const SCRIPT = {
+  /* GREETING — how he answers the phone (before we know anything). */
+  greeting:{
+    en:[
+      "Thanks for calling {biz}{techClause}! What can I help you with today?",
+      "{biz}{techClause}! Thanks for calling — what do you need a hand with?",
+      "Hi, thanks for calling {biz}{techClause}! What's going on today?"
+    ],
+    es:[
+      "¡Gracias por llamar a {biz}{techClause}! ¿En qué le puedo ayudar hoy?",
+      "¡{biz}{techClause}! Gracias por llamar — ¿en qué le doy una mano?",
+      "¡Hola, gracias por llamar a {biz}{techClause}! ¿Qué se le ofrece hoy?"
+    ]
+  },
+  /* ASK INFO — gets name + number FIRST, before any small talk. */
+  ask_info:{
+    en:[
+      "I can help with that — can I start with your name and the best number to reach you?",
+      "Sure thing. First, what's your name and a good callback number in case we get cut off?",
+      "Let's get you taken care of. Can I grab your name and best phone number?"
+    ],
+    es:[
+      "Con gusto le ayudo — ¿me da su nombre y el mejor número para localizarlo?",
+      "Claro. Primero, ¿su nombre y un buen número por si se corta la llamada?",
+      "Vamos a ayudarle. ¿Me da su nombre y su mejor número de teléfono?"
+    ]
+  },
+  /* EMPATHY — ONLY shown on an emergency lockout, right after we know the job. */
+  empathy_lockout:{
+    en:[
+      "Oh no — are you somewhere safe right now? Don't worry, we'll get you taken care of.",
+      "I'm sorry that happened! Are you safe where you are? We'll get someone out to you.",
+      "That's no fun — first, are you somewhere safe? Okay good, we'll handle the rest."
+    ],
+    es:[
+      "Ay, no — ¿está en un lugar seguro ahora? No se preocupe, lo vamos a resolver.",
+      "¡Lamento que le pasara! ¿Está seguro donde está? Le mandamos a alguien.",
+      "Qué mala suerte — primero, ¿está en un lugar seguro? Bien, nosotros nos encargamos."
+    ]
+  },
+  /* SMALL TALK — calm chit-chat, ONLY for routine (non-emergency) jobs, after info. */
+  smalltalk:{
+    en:[
+      "While I write this down — how's your day going so far?",
+      "Thanks for that. Staying busy today?",
+      "Got it. How's everything going on your end today?"
+    ],
+    es:[
+      "Mientras lo anoto — ¿cómo va su día?",
+      "Gracias. ¿Con mucho ajetreo hoy?",
+      "Perfecto. ¿Cómo va todo por allá hoy?"
+    ]
+  },
+  /* DETAILS (URGENT) — replaces small talk when it's an emergency: keep it moving. */
+  details_urgent:{
+    en:[
+      "I've got your info — let me grab a couple details and we'll get someone rolling.",
+      "Okay, hang tight — just a couple details and we'll head your way.",
+      "Almost there — a few quick details and we'll get you moving fast."
+    ],
+    es:[
+      "Ya tengo sus datos — déme un par de detalles y mandamos a alguien en camino.",
+      "Listo, aguante — solo un par de detalles y vamos para allá.",
+      "Casi listo — unos detalles más y lo sacamos de apuros rápido."
+    ]
+  },
+  /* DETAILS ASK — what to actually say to collect this step's info. Shown on the
+     details step, job-aware: a car needs the vehicle + address; a house/business
+     just needs the address. (Empathy for a lockout already fired a step earlier.) */
+  details_auto:{
+    en:[
+      "Perfect — what's the year, make, and model of the vehicle, and where is it parked?",
+      "Let me get the car's year, make, and model — and the address where it's at.",
+      "Okay — year, make, and model of the vehicle, and the full address for me?"
+    ],
+    es:[
+      "Perfecto — ¿qué año, marca y modelo es el vehículo, y dónde está estacionado?",
+      "Déjeme el año, la marca y el modelo del carro — y la dirección donde está.",
+      "Bien — ¿año, marca y modelo del vehículo, y la dirección completa?"
+    ]
+  },
+  details_addr:{
+    en:[
+      "Got it — what's the full address where you need us?",
+      "Okay — what's the address, including any gate code or unit number?",
+      "Let me get the address — where should we head?"
+    ],
+    es:[
+      "Entendido — ¿cuál es la dirección completa donde nos necesita?",
+      "Bien — ¿cuál es la dirección, con código de entrada o número de unidad?",
+      "Déjeme la dirección — ¿a dónde vamos?"
+    ]
+  },
+  /* REASSURE — at the scheduling step. */
+  reassure:{
+    en:[
+      "No problem at all — let me find you the soonest time.",
+      "We can definitely help. Let me see what's open for you.",
+      "Easy fix — let's get you on the schedule right now."
+    ],
+    es:[
+      "Sin ningún problema — déjeme buscarle la hora más pronta.",
+      "Claro que le ayudamos. Déjeme ver qué tenemos disponible.",
+      "Fácil — vamos a agendarlo ahora mismo."
+    ]
+  },
+  /* CLOSING — on the confirmation screen. */
+  closing:{
+    en:[
+      "You're all set! We've got you down, and we'll text you if anything changes. Thanks again!",
+      "Perfect, you're booked. We'll see you then — call us if anything comes up!",
+      "All done! You're on the schedule. Thanks for choosing {biz}!"
+    ],
+    es:[
+      "¡Listo! Quedó agendado, y le avisamos por mensaje si algo cambia. ¡Gracias de nuevo!",
+      "Perfecto, quedó agendado. ¡Nos vemos — llámenos si surge algo!",
+      "¡Todo listo! Está en el calendario. ¡Gracias por elegir {biz}!"
+    ]
+  }
+};
+
+/* what-to-ask tips per step (coaching, not customer-facing) */
+const TIPS = {
+  customer:{ en:"Get their name and best number first. Repeat the number back to make sure it's right.",
+             es:"Primero pide su nombre y mejor número. Repite el número para confirmar que esté bien." },
+  jobtype:{  en:"Figure out if it's a car, a house, or a business — that decides everything else.",
+             es:"Averigua si es un carro, una casa o un negocio — eso decide todo lo demás." },
+  auto:{     en:"Ask if the key is lost or just locked inside. Get the year, make, and model.",
+             es:"Pregunta si la llave está perdida o solo encerrada adentro. Pide año, marca y modelo." },
+  res:{      en:"Ask if they're locked out, need new locks, or want existing locks rekeyed.",
+             es:"Pregunta si está afuera, necesita cerraduras nuevas, o reconfigurar las que tiene." },
+  com:{      en:"Ask who needs access and how many doors — bigger jobs need a quick site look.",
+             es:"Pregunta quién necesita acceso y cuántas puertas — trabajos grandes requieren visita." },
+  details_auto:{ en:"Get the vehicle: year, make & model (or scan the VIN to auto-fill), plus push-to-start vs. keyed. Then the address and exactly where it's parked.",
+                 es:"Identifica el vehículo: año, marca y modelo (o escanea el VIN para autocompletar), y si es botón de encendido o llave. Luego la dirección y dónde está estacionado." },
+  location:{ en:"Get the full service address — include any gate code, unit, or suite number.",
+             es:"Pide la dirección completa — incluye cualquier código de entrada, número de unidad o suite." },
+  schedule:{ en:"Check the calendar first so you don't double-book. Then offer the soonest open time, with a backup.",
+             es:"Revisa el calendario primero para no agendar dos cosas a la vez. Luego ofrece la hora más pronta, con una de respaldo." }
+};
+
+/* upsell lines per job type — three rotating variants each (Phase 2) */
+const UPSELL = {
+  auto:{
+    en:[
+      "Since we're already programming a key — want a spare made today? Way cheaper now than another lockout later.",
+      "While we're out there, want a backup key cut and programmed? Saves you a tow down the road.",
+      "Want me to make you a spare while I'm on site? Most folks wish they had one when they're stuck."
+    ],
+    es:[
+      "Ya que vamos a programar una llave — ¿quiere una de repuesto hoy? Sale mucho más barato que otro encierro.",
+      "Ya que estamos allá, ¿le hacemos una llave de respaldo? Le ahorra una grúa después.",
+      "¿Le hago una copia mientras estoy ahí? Muchos la desean cuando ya están atorados."
+    ]
+  },
+  res:{
+    en:[
+      "Want me to rekey your other doors to match while I'm there? One key for the whole house.",
+      "While I'm on site, want all your locks on one key? Makes life a lot simpler.",
+      "Should I match your other locks to the same key? No more juggling a keyring."
+    ],
+    es:[
+      "¿Quiere que reconfigure las otras puertas para la misma llave? Una sola para toda la casa.",
+      "Ya que estoy ahí, ¿pongo todas las cerraduras en una sola llave? Le simplifica la vida.",
+      "¿Igualo las otras cerraduras a la misma llave? Así no anda con tantas llaves."
+    ]
+  },
+  com:{
+    en:[
+      "Want a master-key setup so you control who gets into which areas? Great for staff changes.",
+      "Should we set up a master key system? Makes managing access a lot easier.",
+      "Want one master key to run the whole place? Handy when staff turns over."
+    ],
+    es:[
+      "¿Le gustaría una llave maestra para controlar quién entra a cada área? Ideal cuando cambia el personal.",
+      "¿Montamos un sistema de llave maestra? Facilita mucho el control de acceso.",
+      "¿Quiere una llave maestra para manejar todo el lugar? Útil cuando rota el personal."
+    ]
+  }
+};
+
+/* sub-types per job type: [value, emoji, English, Spanish] */
+const SUBTYPES = {
+  auto:[["lockout","🚗","Locked out","Encerrado"],["lost","🔑","Lost all keys","Perdió las llaves"],
+        ["spare","🗝️","Need a spare key","Llave de repuesto"],["ignition","🔧","Key/ignition problem","Problema de ignición"],
+        ["other","➕","Something else","Otra cosa"]],
+  res:[["lockout","🚪","Locked out","Encerrado"],["rekey","🔄","Rekey locks","Reconfigurar"],
+       ["new","🔒","New locks","Cerraduras nuevas"],["lost","🔑","Lost keys","Perdió las llaves"],
+       ["other","➕","Something else","Otra cosa"]],
+  com:[["lockout","🏢","Locked out","Encerrado"],["master","🗝️","Master key system","Llave maestra"],
+       ["rekey","🔄","Rekey","Reconfigurar"],["access","💳","Access control","Control de acceso"],
+       ["other","➕","Something else","Otra cosa"]]
+};
+
+/* =========================================================================
+   3b) SCRIPT ROTATION ENGINE
+   Picks a variant for each slot, avoiding the one used last time so lines
+   don't repeat back-to-back. The choice is locked per booking (stable if he
+   taps Back), and the "last used" is saved so the next call differs too.
+   We store the INDEX (not the text), so toggling EN/ES keeps the same line.
+   ========================================================================= */
+let lastLineIdx = readLS(K_LASTLINE, {});   // { slot: lastIndexUsed }
+
+function pickIdx(slot, len){
+  if(booking.lineIdx && booking.lineIdx[slot]!=null) return booking.lineIdx[slot]; // stable within this call
+  let i = Math.floor(Math.random()*len);
+  if(len>1 && i===lastLineIdx[slot]) i=(i+1)%len;   // never repeat the previous one
+  booking.lineIdx[slot]=i;
+  lastLineIdx[slot]=i; writeLS(K_LASTLINE, lastLineIdx);
+  return i;
+}
+/* returns the chosen line text for a slot, in the current language,
+   with {biz}/{techClause}/{tech} personalized from the Setup config */
+function line(slot, variants){
+  const arr = variants[LANG] || variants.en;
+  return personalize(arr[pickIdx(slot, arr.length)]);
+}
+/* ---- script personalization (single source = Setup config, no hardcoded brand) ---- */
+function bizName(){
+  try{ const n=((window.TKS&&TKS.Config)?(TKS.Config.identity().name||''):'').trim(); if(n) return n; }catch(e){}
+  return LANG==='es' ? 'nuestra cerrajería' : 'our shop';
+}
+function techFirstName(){
+  try{
+    if(!(window.TKS&&TKS.Config&&TKS.auth)) return '';
+    const email=(TKS.auth.email()||'').toLowerCase();
+    if(!email) return '';
+    const emps=(TKS.Config.access().employees)||[];
+    const me=emps.find(e=> e && String(e.email||'').toLowerCase()===email);
+    const nm=me && String(me.name||'').trim();
+    return nm ? nm.split(/\s+/)[0] : '';
+  }catch(e){ return ''; }
+}
+function personalize(str){
+  if(!str) return str;
+  const tech=techFirstName();
+  const techClause = tech ? (LANG==='es' ? `, le habla ${tech}` : `, this is ${tech}`) : '';
+  return String(str).replace(/\{biz\}/g, bizName()).replace(/\{techClause\}/g, techClause).replace(/\{tech\}/g, tech);
+}
+/* ---- shared service categories (Setup = single source of truth) ----
+   The job-type tiles + quick-form options come from TKS.ServiceCats.active()
+   (the categories the owner offers), NOT a hardcoded auto/res/com list. */
+function schedCats(){
+  try{ if(window.TKS&&TKS.ServiceCats) return TKS.ServiceCats.active(); }catch(e){}
+  // offline / TKS-absent fallback = the 3 core categories (unchanged behavior)
+  return [{key:'automotive',code:'auto',emoji:'🚗'},{key:'residential',code:'res',emoji:'🏠'},{key:'commercial',code:'com',emoji:'🏢'}];
+}
+function catLabelSched(c){
+  // keep the scheduler's own localized core labels (Car/House/Business);
+  // new categories use the shared ServiceCats label.
+  if(c.code==='auto') return t('auto');
+  if(c.code==='res')  return t('res');
+  if(c.code==='com')  return t('com');
+  try{ if(window.TKS&&TKS.ServiceCats) return TKS.ServiceCats.label(c.key, LANG); }catch(e){}
+  return c.key;
+}
+/* only the 3 core categories have step-by-step coaching (subtypes + tailored upsell) */
+function hasSub(code){ return !!SUBTYPES[code]; }
+/* emergency jobs get reassurance instead of cheerful small talk */
+function isUrgent(){
+  return booking.subType==='lockout' || (booking.jobType==='auto' && booking.subType==='lost');
+}
+
+/* =========================================================================
+   4) APP STATE — one booking being built
+   ========================================================================= */
+let stepIndex = 0;
+let booking = freshBooking();
+function freshBooking(){
+  return { id:null, customerId:null, createdAt:null,
+    lineIdx:{},   // which script variant was chosen for each slot this call
+    customer:{ name:"", phone:"", email:"" },
+    jobType:"", subType:"",
+    serviceCategory:"", serviceLabel:"",
+    addr:{ street:"", city:"", state:"", zip:"" },   // structured address (each its own field)
+    address:"", parked:"",                            // address = composed string (calendar/display/back-compat)
+    technician:"", technicianId:"",                   // assigned tech (picked from the team, never typed)
+    vehicle:{ year:"", make:"", model:"", vin:"", ignition:"" },
+    date:"", time:"", duration:60,
+    status:"Scheduled",
+    images:[],            // job photos — built but dormant until real photos exist
+    notes:"",
+    upsell:{ offered:null, accepted:null, item:"" },
+    bookedBy:"trainee"
+  };
+}
+
+/* ---- structured address (Street / City / State / ZIP) ----
+   We keep booking.address as the composed one-line string so everything that
+   already reads it (the calendar location, the day card, receipts) keeps working
+   and the tech can tap it to navigate. */
+function composeAddress(a){
+  if(!a) return '';
+  const l1 = (a.street||'').trim();
+  const cs = [ (a.city||'').trim(), [ (a.state||'').trim(), (a.zip||'').trim() ].filter(Boolean).join(' ') ].filter(Boolean).join(', ');
+  return [l1, cs].filter(Boolean).join(', ');
+}
+function setAddr(field, val){
+  if(!booking.addr) booking.addr = { street:"", city:"", state:"", zip:"" };
+  booking.addr[field] = (field==='state') ? (val||'').toUpperCase() : val;
+  booking.address = composeAddress(booking.addr);
+}
+// One reusable Street/City/State/ZIP block (each on its own line).
+function addrFieldsHTML(a){
+  a = a || { street:"", city:"", state:"", zip:"" };
+  const L = (en,es)=> LANG==='es'?es:en;
+  return `<label>${L('Street address','Calle y número')}</label>
+      <input id="f_street" value="${esc(a.street||'')}" oninput="setAddr('street',this.value)" placeholder="123 Main St" autocomplete="off">
+    <label>${L('City','Ciudad')}</label>
+      <input id="f_city" value="${esc(a.city||'')}" oninput="setAddr('city',this.value)" placeholder="${L('Oklahoma City','Ciudad de Oklahoma')}" autocomplete="off">
+    <div class="row2">
+      <div><label>${L('State','Estado')}</label><input id="f_state" value="${esc(a.state||'')}" oninput="setAddr('state',this.value)" placeholder="OK" maxlength="2" style="text-transform:uppercase" autocomplete="off"></div>
+      <div><label>${L('ZIP','Código postal')}</label><input id="f_zip" value="${esc(a.zip||'')}" oninput="setAddr('zip',this.value)" placeholder="73101" inputmode="numeric" autocomplete="off"></div>
+    </div>`;
+}
+// Make sure booking.addr exists (migrate an old one-line address into Street).
+function ensureAddr(){
+  if(!booking.addr) booking.addr = { street:"", city:"", state:"", zip:"" };
+  const a = booking.addr;
+  if(!(a.street||a.city||a.state||a.zip) && (booking.address||'').trim()){ a.street = booking.address.trim(); }
+  return a;
+}
+
+/* ---- technician roster (a DROPDOWN, never typed) ----
+   Sourced from the CLOUD STAFF table when signed in (the authoritative team, with
+   roles + stable ids), falling back to Settings → Access employees when offline. */
+let _schedStaff = null;   // cache of [{user_id,name,role,active}]; null = not loaded yet
+function loadSchedStaff(cb){
+  if(_schedStaff!==null){ if(cb) cb(); return; }
+  _schedStaff = [];
+  try{
+    if(window.TKS && TKS.auth && TKS.auth.isSignedIn() && TKS.Fleet && TKS.Fleet.staff){
+      TKS.Fleet.staff().then(res=>{ _schedStaff = (res && res.data) || []; if(cb) cb(); }).catch(()=>{ if(cb) cb(); });
+      return;
+    }
+  }catch(e){}
+  if(cb) cb();
+}
+function roleShort(r){ return ({owner:'Owner',manager:'Manager',front_desk:'Front Desk',technician:'Tech'})[r] || ''; }
+// Unified roster [{id,name,role}] — cloud staff first, else Settings employees.
+function teamMembers(){
+  if(_schedStaff && _schedStaff.length){
+    return _schedStaff.filter(s=>s.active!==false).map(s=>({ id:s.user_id, name:(s.name||'').trim()||roleShort(s.role), role:s.role }));
+  }
+  try{ return ((TKS.Config.access().employees)||[]).filter(e=>e&&(e.name||'').trim()).map(e=>({ id:'', name:e.name.trim(), role:e.owner?'manager':'' })); }catch(e){ return []; }
+}
+// <select> value = the staff user_id (reliable) or "name:<n>" offline. We store
+// BOTH booking.technicianId (for matching) and booking.technician (name, for display/reports).
+function techSelectHTML(selId, selName, onchangeAttr){
+  const team = teamMembers();
+  if(!team.length){ return `<div class="bk-caption" style="margin:2px 0 8px">${LANG==='es'?'Agrega tu equipo en Configuración → Acceso para asignar un técnico.':'Add your team in Settings → Access to assign a tech.'}</div>`; }
+  const none = LANG==='es'?'— Sin asignar —':'— Unassigned —';
+  return `<select ${onchangeAttr||''}><option value="">${none}</option>`+
+    team.map(m=>{ const val = m.id || ('name:'+m.name);
+      const sel = (m.id && selId && selId===m.id) || ((!m.id || !selId) && selName && selName===m.name);
+      return `<option value="${esc(val)}" ${sel?'selected':''}>${esc(m.name + (m.role?(' — '+roleShort(m.role)):''))}</option>`; }).join('')+`</select>`;
+}
+function resolveTech(val){
+  if(!val) return { id:'', name:'' };
+  if(String(val).indexOf('name:')===0) return { id:'', name:String(val).slice(5) };
+  const m = teamMembers().find(x=>x.id===val);
+  return { id:val, name:(m&&m.name)||'' };
+}
+function pickTech(val){ const r=resolveTech(val); booking.technicianId=r.id; booking.technician=r.name; }   // flow confirm + quick form
+// Assign a tech to an EXISTING booking straight from the detail view (saves now).
+function assignTechToBooking(id, val){
+  let bk=null; try{ bk = TKS.Bookings.get(id); }catch(e){}
+  if(!bk) bk = allBookings().find(x=>x.id===id);
+  if(!bk) return;
+  const r=resolveTech(val); bk.technicianId=r.id; bk.technician=r.name;
+  try{ TKS.Bookings.save(bk); }
+  catch(e){ const arr=readLS(K_BOOKINGS,[]); const i=arr.findIndex(x=>x.id===id); if(i!==-1){ arr[i]=bk; writeLS(K_BOOKINGS,arr); } }
+}
+
+/* ---- technician self-scope: a tech only SEES + TOUCHES their own assigned jobs ---- */
+function isTechRole(){ try{ return !!(TKS.auth && TKS.auth.staffRole && TKS.auth.staffRole()==='technician'); }catch(e){ return false; } }
+function isOwnerRole(){ try{ return !!(TKS.auth && ((TKS.auth.staffRole&&TKS.auth.staffRole()==='owner') || (TKS.auth.isOwner&&TKS.auth.isOwner()))); }catch(e){ return false; } }
+function myStaffName(){
+  let uid=''; try{ const u=TKS.auth.user&&TKS.auth.user(); uid=u?u.id:''; }catch(e){}
+  if(uid && _schedStaff){ const s=_schedStaff.find(x=>x.user_id===uid); if(s) return String(s.name||'').trim(); }
+  try{ const email=((TKS.auth&&TKS.auth.email&&TKS.auth.email())||'').toLowerCase(); const emps=(TKS.Config.access().employees)||[]; const me=emps.find(e=>String(e.email||'').toLowerCase()===email); return me?String(me.name||'').trim():''; }catch(e){ return ''; }
+}
+function isOwnBooking(b){
+  if(!isTechRole()) return true;
+  let uid=''; try{ const u=TKS.auth.user&&TKS.auth.user(); uid=u?u.id:''; }catch(e){}
+  if(uid && b && b.technicianId) return b.technicianId===uid;        // reliable id match
+  const me=(myStaffName()||'').toLowerCase();
+  return !!(me && String((b&&b.technician)||'').trim().toLowerCase()===me);
+}
+function ownJobsOnly(list){ if(!isTechRole()) return list||[]; return (list||[]).filter(isOwnBooking); }
+function canEditBooking(){ return !isTechRole(); }    // techs can't edit appointments (own or others)
+
+/* the ordered flow */
+const STEPS = ["greeting","customer","jobtype","subtype","details","schedule","upsell","confirm"];
+
+/* =========================================================================
+   5) RENDERING
+   ========================================================================= */
+const app  = document.getElementById('app');
+const nav  = document.getElementById('nav');
+const backBtn = document.getElementById('backBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+let VIEW = 'home'; // 'home' | 'flow' | 'jobs' | 'done'
+
+function render(){
+  // Load the cloud staff roster once (for the tech dropdown + own-job matching),
+  // then re-render so names/roles + filtering use the real team.
+  if(_schedStaff===null){ loadSchedStaff(function(){ render(); }); }
+  document.querySelectorAll('#langToggle button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.lang===LANG);
+  });
+  if(VIEW==='home')    return renderHome();
+  if(VIEW==='day')     return renderDay();
+  if(VIEW==='jobs')    return renderJobs();
+  if(VIEW==='booking') return renderBooking();
+  if(VIEW==='pin')     return renderPin();
+  if(VIEW==='quickform') return renderQuickForm();
+  if(VIEW==='done')    return renderDone();
+  if(VIEW==='flow')    return renderFlow();
+}
+
+/* All bookings, via TKS (shared, deduped). Falls back to localStorage if the
+   data layer didn't load for any reason. */
+function allBookings(){ try{ return TKS.Bookings.all(); }catch(e){ return readLS(K_BOOKINGS, []); } }
+
+/* ---------- HOME ---------- */
+function renderHome(){
+  nav.style.display='none';
+  const bookings = allBookings();
+  const offered = bookings.filter(b=>b.upsell && b.upsell.offered).length;
+  const rate = bookings.length ? Math.round(offered/bookings.length*100) : 0;
+  app.innerHTML = `
+    <a href="index.html" style="display:inline-block;margin-bottom:12px;color:var(--ink-soft);font-weight:700;font-size:14px;text-decoration:none">‹ ${LANG==='es'?'Aplicaciones':'All apps'}</a>
+    <div class="hero">
+      <h1>Scheduler</h1>
+      <p>${t('home_sub')}</p>
+    </div>
+    <button class="tile" onclick="startFlow()">
+      <span class="big">📅</span>
+      <span><h3>${t('new_booking')}</h3><p>${t('new_booking_sub')}</p></span>
+    </button>
+    <button class="tile" onclick="VIEW='jobs';render()">
+      <span class="big">📋</span>
+      <span><h3>${t('view_jobs')}</h3><p>${bookings.length} ${t('all_jobs').toLowerCase()}</p></span>
+    </button>
+    <button class="tile" onclick="VIEW='day';render()">
+      <span class="big">📆</span>
+      <span><h3>${LANG==='es'?'Vista del día':'Day view'}</h3><p>${LANG==='es'?'Mira los trabajos y los horarios libres':"See a day's jobs and open time slots"}</p></span>
+    </button>
+    <button class="tile" onclick="ownerQuickForm()" style="opacity:.92">
+      <span class="big">🔒</span>
+      <span><h3>${t('owner_quick')}</h3><p>${t('owner_quick_sub')}</p></span>
+    </button>
+    <div class="section-h">${t('coaching_progress')}</div>
+    <div class="stats">
+      <div class="stat"><div class="n">${bookings.length}</div><div class="l">${t('stat_jobs')}</div></div>
+      <div class="stat"><div class="n">${offered}</div><div class="l">${t('stat_offered')}</div></div>
+      <div class="stat"><div class="n">${rate}%</div><div class="l">${t('stat_rate')}</div></div>
+    </div>
+    <div class="backup-row">
+      <button class="mini" onclick="exportData()">⬇ ${t('bk_export')}</button>
+      <button class="mini" onclick="document.getElementById('importFile').click()">⬆ ${t('bk_import')}</button>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none"
+           onchange="if(this.files[0]){importData(this.files[0]);} this.value='';">
+    <p class="bk-caption">${t('bk_caption')}</p>`;
+}
+
+/* ---------- JOBS LIST ---------- */
+/* =========================================================================
+   Day view — in-app calendar for the front desk.
+   Reads the SAME local bookings (tks_bookings) the intake flow writes, shows
+   them on an hour-by-hour grid, and lets you tap an open slot to start a new
+   booking pre-filled with that date + time. No Google account required.
+   ========================================================================= */
+const DAY_START = 7, DAY_END = 20;            // 7 AM … 8 PM rows
+function todayISO(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+function addDaysISO(iso,n){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+let DAY = todayISO();
+function shiftDay(n){ DAY = addDaysISO(DAY,n); render(); }
+function setDay(v){ if(v){ DAY=v; render(); } }
+
+function renderDay(){
+  if(nav) nav.style.display='none';
+  const all = ownJobsOnly(allBookings().filter(b=>(b.date||'')===DAY))
+                .sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  let rows='';
+  for(let h=DAY_START; h<=DAY_END; h++){
+    const hh = String(h).padStart(2,'0');
+    const inSlot = all.filter(b=>{ const t=(b.time||''); const bh=parseInt(t.slice(0,2),10); return bh===h; });
+    const label = fmt12(hh+':00');
+    let cell='';
+    if(inSlot.length){
+      cell = inSlot.map(b=>{
+        const nm = (b.customer && b.customer.name) ? b.customer.name : (b.customer && b.customer.customer) || '—';
+        const job = subLabel ? subLabel(b.jobType, b.subType) : (b.jobType||'');
+        const urgent = (typeof isUrgent==='function' && isUrgent(b)) ? ' urgent' : '';
+        return `<div class="book-card${urgent}" onclick="openBooking('${b.id}')">
+          <div class="row-top"><b>${esc(fmt12(b.time))} · ${esc(nm)}</b>${statusTag(b.status||'Scheduled')}</div>
+          <div class="m">${esc(job||'')}${b.address?' · '+esc(b.address):''}</div></div>`;
+      }).join('');
+    }
+    // Day view is read-only: it shows jobs and lets you open them. Starting a
+    // booking must go through the forced guided flow (Home → New booking), so
+    // there is intentionally no "+ Book" shortcut here.
+    rows += `<div class="slot ${inSlot.length?'busy':'free'}"><div class="hr">${esc(label)}</div><div class="cell">${cell || ''}</div></div>`;
+  }
+  const count = all.length;
+  app.innerHTML = `
+    <button class="btn ghost" style="margin-bottom:14px" onclick="VIEW='home';render()">← ${t('home')}</button>
+    <div class="daybar">
+      <button class="navd" onclick="shiftDay(-1)" aria-label="Previous day">‹</button>
+      <input type="date" value="${DAY}" onchange="setDay(this.value)">
+      <button class="navd" onclick="shiftDay(1)" aria-label="Next day">›</button>
+    </div>
+    <div class="daysum">${esc(prettyDate(DAY))} · ${count} ${count===1?(LANG==='es'?'trabajo':'job'):(LANG==='es'?'trabajos':'jobs')} ${LANG==='es'?'agendados':'booked'}</div>
+    ${rows}
+    <div class="gcal-stub">
+      <b>${LANG==='es'?'Google Calendar':'Google Calendar'}</b><span class="tagph">${LANG==='es'?'NO CONECTADO':'NOT CONNECTED'}</span><br>
+      ${LANG==='es'
+        ? 'La sincronización en dos sentidos con Google Calendar aún no está conectada. Por ahora puedes abrir Google Calendar en otra pestaña. Conectar la cuenta real es una decisión pendiente.'
+        : 'Two-way sync with Google Calendar isn’t wired up yet. For now you can open Google Calendar in a new tab. Connecting the real account is a pending decision (needs credentials).'}
+      <br><button onclick="openCalendar()">📅 ${LANG==='es'?'Abrir Google Calendar':'Open Google Calendar'}</button>
+    </div>`;
+}
+
+function jobRow(b){
+  const when = b.date ? `${b.date} ${fmt12(b.time)}` : '';
+  const veh = b.vehicle && b.vehicle.make ? `${b.vehicle.year} ${b.vehicle.make} ${b.vehicle.model}`.trim() : '';
+  const sub = subLabel(b.jobType, b.subType);
+  return `<div class="job" style="cursor:pointer" onclick="openBooking('${b.id}')">
+    <div class="top"><span>${esc(when)}</span>${statusTag(b.status||'Scheduled')}</div>
+    <h3>${esc((b.customer&&b.customer.name)||'—')}</h3>
+    <div class="meta">${esc(sub)}${veh?' · '+esc(veh):''}${b.address?' · '+esc(b.address):''}</div>
+    <div class="meta">${esc((b.customer&&b.customer.phone)||'')}</div>
+  </div>`;
+}
+function renderJobs(){
+  nav.style.display='none';
+  let active=[], archived=[];
+  try{ active = ownJobsOnly(TKS.Bookings.active()); archived = ownJobsOnly(TKS.Bookings.archived()); }
+  catch(e){ active = ownJobsOnly(allBookings()); }
+  // newest-first
+  const sortNew = (a,b)=>String((b.date||'')+(b.time||'')).localeCompare(String((a.date||'')+(a.time||'')));
+  active.sort(sortNew); archived.sort(sortNew);
+  const activeRows = active.length ? active.map(jobRow).join('') : `<div class="empty">${t('no_active')}</div>`;
+  const archBlock = archived.length
+    ? `<div class="section-h" style="margin-top:22px">${t('archived_jobs')} (${archived.length})</div>${archived.map(jobRow).join('')}`
+    : '';
+  app.innerHTML = `
+    <button class="btn ghost" style="margin-bottom:16px" onclick="VIEW='home';render()">← ${t('home')}</button>
+    <div class="section-h">${t('active_jobs')}</div>${activeRows}${archBlock}`;
+}
+
+/* ---------- BOOKING DETAIL (view / status / edit / add-to-schedule) ---------- */
+let currentBookingId = null;
+function openBooking(id){ currentBookingId = id; VIEW='booking'; render(); }
+
+function renderBooking(){
+  nav.style.display='none';
+  const b = (function(){ try{ return TKS.Bookings.get(currentBookingId); }catch(e){ return null; } })()
+            || allBookings().find(x=>x.id===currentBookingId);
+  if(!b){ VIEW='jobs'; return render(); }
+  // A technician can only open their OWN assigned jobs.
+  if(!isOwnBooking(b)){ try{ TKS_ACCESS.toast("That isn't one of your assigned jobs."); }catch(e){} VIEW='jobs'; return render(); }
+  const veh = b.vehicle && (b.vehicle.make||b.vehicle.vin)
+    ? `${b.vehicle.year||''} ${b.vehicle.make||''} ${b.vehicle.model||''}`.trim() + (b.vehicle.vin?` · VIN ${esc(b.vehicle.vin)}`:'') : '';
+  const ign = b.vehicle && b.vehicle.ignition ? (b.vehicle.ignition==='push'?t('ign_push'):t('ign_keyed')) : '';
+  const when = b.date ? `${prettyDate(b.date)} · ${fmt12(b.time)}` : '—';
+  // load THIS booking into the global so the calendar links build correctly
+  booking = JSON.parse(JSON.stringify(b)); if(!booking.lineIdx) booking.lineIdx={};
+  const rows = [
+    [t('r_customer'), (b.customer&&b.customer.name)||'—'],
+    [t('r_phone'), (b.customer&&b.customer.phone)||'—'],
+    [t('r_job'), subLabel(b.jobType,b.subType)],
+    veh?[t('r_vehicle'), veh + (ign?` · ${ign}`:'')]:null,
+    [t('r_address'), b.address || b.parked || '—'],
+    [t('r_when'), when]
+  ].filter(Boolean).map(([k,v])=>`<div class="r"><b>${k}</b><span>${esc(v)}</span></div>`).join('');
+  const picker = TKS.Bookings.STATUSES.map(s=>{
+    const m = STATUS_META[s]; const sel = (b.status||'Scheduled')===s;
+    const style = sel ? `style="background:${m.bg};color:${m.fg};border-color:${m.fg}"` : '';
+    return `<button class="${sel?'sel':''}" data-cap="jobStatus" ${style} onclick="setBookingStatus('${b.id}','${s}')">${esc(statusLabel(s))}</button>`;
+  }).join('');
+  // Job photos: built but DORMANT — only renders if real photos exist.
+  const imgs = (b.images&&b.images.length)
+    ? `<div class="section-h" style="margin-top:14px">${t('job_photos')}</div>
+       <div class="job-photos has-photos">${b.images.map(src=>`<img src="${esc(src)}" alt="" style="width:100%;border-radius:10px">`).join('')}</div>`
+    : '';
+  app.innerHTML = `
+    <button class="btn ghost" style="margin-bottom:14px" onclick="VIEW='jobs';render()">← ${t('all_jobs')}</button>
+    <div class="bk-detail">
+      <div class="row-top"><h2>${esc((b.customer&&b.customer.name)||'—')}</h2>${statusTag(b.status||'Scheduled')}</div>
+      <div class="when">${esc(subLabel(b.jobType,b.subType))} · ${esc(when)}</div>
+      ${rows}
+      <div class="section-h" style="margin-top:14px">${t('change_status')}</div>
+      <div class="status-picker" id="statusPicker">${picker}</div>
+      <div class="section-h" style="margin-top:14px">${LANG==='es'?'Técnico asignado':'Assigned technician'}</div>
+      <div class="tech-assign">${ canEditBooking()
+          ? techSelectHTML(b.technicianId, b.technician, `onchange="assignTechToBooking('${b.id}', this.value)"`)
+          : `<div style="font-size:14px;padding:2px 0">${esc(b.technician || (LANG==='es'?'Sin asignar':'Unassigned'))}</div>` }</div>
+      <div id="jobAccount"></div>
+      ${imgs}
+      <div class="bk-actions">
+        <a class="gcal" href="${googleUrl()}" target="_blank" rel="noopener">📆 ${t('add_to_sched')}</a>
+        ${canEditBooking() ? `<button class="edit" onclick="editBooking('${b.id}')">✏️ ${t('edit_booking')}</button>` : ''}
+        <button class="del" data-cap="hardDelete" onclick="deleteBooking('${b.id}')">🗑</button>
+      </div>
+    </div>`;
+  if(window.TKS_ACCESS) TKS_ACCESS.applyGates(app);
+  loadJobAccount(b.id);
+}
+
+// Local→cloud status map (the cloud state machine is richer; we keep the owner's
+// familiar 5-button picker and translate). 'Canceled' is special — it must carry a
+// reason, so it routes to the cancel flow (job_cancel), never job_set_status.
+const L2C_STATUS = { 'Scheduled':'scheduled','In Progress':'in_progress','Completed':'completed','Rescheduled':'scheduled','Canceled':'canceled' };
+const CLOUD_STATUS_LABEL = { scheduled:'Scheduled', en_route:'En route', on_site:'On site', in_progress:'In progress', completed:'Completed', on_hold:'On hold', canceled:'Canceled' };
+
+function setBookingStatus(id,status){
+  // Cancel + Reschedule ALWAYS require a note + the equipment/sign-off warning
+  // (online or offline). Everything else is just moving the progress bar.
+  if(status==='Canceled'){ openStatusNote(id,'cancel'); return; }
+  if(status==='Rescheduled'){ openStatusNote(id,'reschedule'); return; }
+  // Offline / local: just set the status.
+  if(!(window.TKS && TKS.auth && TKS.auth.isSignedIn())){ try{ TKS.Bookings.setStatus(id,status); }catch(e){} render(); return; }
+  // Cloud: the authoritative status is RPC-only (own-job + reconciliation gates).
+  const cloud = L2C_STATUS[status] || 'scheduled';
+  TKS.Jobs.setStatus(id, cloud).then(res=>{
+    if(res && res.error){ if(window.TKS_ACCESS) TKS_ACCESS.toast(res.error.message); else alert(res.error.message); }
+    else { try{ TKS.Bookings.setStatus(id,status); }catch(e){} }   // mirror to the local day-board view
+    render();
+  }).catch(e=>{ if(window.TKS_ACCESS) TKS_ACCESS.toast(e.message||'Status change failed.'); render(); });
+}
+function deleteBooking(id){
+  TKS_ACCESS.confirmDanger({ title:'Delete this booking?', message:t('del_confirm'), confirmLabel:'Delete' }).then(function(ok){
+    if(!ok) return;
+    try{ TKS.Bookings.remove(id); }catch(e){}
+    VIEW='jobs'; render();
+  });
+}
+/* ===================== JOB ACCOUNTABILITY (cloud, 1c) =====================
+   Appended to the booking detail when signed into the cloud. Shows the
+   authoritative (RPC-only) status + reconciliation flag, the assigned lead
+   tech, the parts checklist (reconcile used/returned; a returned cut key needs
+   a photo), the "part not on the tech's van" flag with a guided move, and
+   Cancel-with-reason. Every action calls a server RPC that re-enforces the role
+   + own-job rule, so the UI can't grant more than the database allows. */
+const CANCEL_REASONS = ['Customer no-show','Customer canceled','Rescheduled','Duplicate booking','Unable to complete (vehicle/parts)','Priced too high','Other'];
+function jobRole(){ try{ return TKS.auth.staffRole && TKS.auth.staffRole(); }catch(e){ return null; } }
+function myUid(){ try{ const u=TKS.auth.user&&TKS.auth.user(); return u?u.id:null; }catch(e){ return null; } }
+function vanName(loc, vans){ if(loc==='shop') return 'Shop'; if(String(loc).indexOf('van:')===0){ const id=String(loc).slice(4); const v=(vans||[]).find(x=>x.id===id); return v?(v.nickname||('Van '+(v.fleet_no||''))||'Van'):'Van'; } return loc; }
+function jaMsg(t,ok){ const m=document.getElementById('ja_msg'); if(m){ m.style.color=ok?'#22994a':'#c8323c'; m.textContent=t; if(ok) setTimeout(()=>{ if(m) m.textContent=''; },2400); } }
+
+function loadJobAccount(jobId){
+  const host=document.getElementById('jobAccount'); if(!host) return;
+  if(!(window.TKS && TKS.auth && TKS.auth.isSignedIn())){ host.innerHTML=''; return; }   // cloud-only feature
+  host.innerHTML='<div style="color:var(--dim);font-size:12px;padding:8px 0">Loading job accountability…</div>';
+  Promise.all([ TKS.Jobs.meta(jobId), TKS.Jobs.parts(jobId), TKS.Jobs.staffOnJob(jobId), TKS.Fleet.staff(), TKS.Fleet.list() ])
+    .then(([meta,parts,js,staff,vans])=>{
+      const M=(meta&&meta.data)||{}, P=(parts&&parts.data)||[], JS=(js&&js.data)||[], STAFF=(staff&&staff.data)||[], VANS=(vans&&vans.data)||[];
+      drawJobAccount(host, jobId, M, P, JS, STAFF, VANS);
+    }).catch(e=>{ host.innerHTML='<div style="color:#c8323c;font-size:12px;padding:8px 0">'+esc(e.message||'Couldn’t load job data.')+'</div>'; });
+}
+
+function partRowHTML(p, canReconcile){
+  const stateBadge = { pending:'<span style="color:#9a6b08">● pending</span>', used:'<span style="color:#1c7d3e">✓ used</span>', returned:'<span style="color:#1c7d3e">↩ returned</span>' }[p.state||'pending'];
+  let acts='';
+  if((p.state||'pending')==='pending' && canReconcile){
+    acts='<div style="display:flex;gap:6px;margin-top:5px">'+
+      '<button class="btn ghost" data-used="'+esc(p.id)+'" style="padding:6px 12px;font-size:12px">Used</button>'+
+      '<button class="btn ghost" data-ret="'+esc(p.id)+'" data-cut="'+(p.is_cut_key?'1':'')+'" style="padding:6px 12px;font-size:12px">Returned'+(p.is_cut_key?' 📷':'')+'</button></div>';
+  }
+  return '<div class="ja-part" data-pid="'+esc(p.id)+'" style="border-top:1px solid var(--line);padding:7px 0">'+
+    '<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span>'+esc(p.description||p.item_id||'Part')+
+      (p.qty>1?(' ×'+p.qty):'')+(p.is_cut_key?' <span style="font-size:10px;background:rgba(74,163,255,.14);color:#2b6cb0;padding:1px 6px;border-radius:999px">cut key</span>':'')+'</span>'+
+      '<span style="font-size:12px;white-space:nowrap">'+stateBadge+'</span></div>'+
+      '<div class="ja-vanflag" style="font-size:11.5px;margin-top:2px"></div>'+acts+'</div>';
+}
+
+function drawJobAccount(host, jobId, M, parts, jobStaff, staff, vans){
+  const role=jobRole(), uid=myUid();
+  const lead=jobStaff.find(x=>x.job_role==='lead');
+  const ownJob = !!(uid && jobStaff.some(x=>x.user_id===uid));
+  const canStatus = role!=='front_desk' && !(role==='technician' && !ownJob);
+  const canReconcile = role==='owner'||role==='manager' || (role==='technician' && ownJob);
+  const leadStaff = lead ? staff.find(s=>s.user_id===lead.user_id) : null;
+  const leadName = leadStaff ? (leadStaff.name||'Tech') : (lead?'Tech':'Unassigned');
+  const leadVan = leadStaff ? leadStaff.home_van_id : null;
+
+  // Read-only the simple picker when this user can't change THIS job's status.
+  const sp=document.getElementById('statusPicker');
+  if(sp){ if(!canStatus){ sp.style.opacity='.45'; sp.style.pointerEvents='none'; } else { sp.style.opacity=''; sp.style.pointerEvents=''; } }
+
+  let html='<div class="section-h" style="margin-top:18px">Job accountability</div>'+
+    '<div style="font-size:12.5px;color:var(--dim);margin-bottom:8px">Accountable status: <b style="color:var(--ink)">'+esc(CLOUD_STATUS_LABEL[M.status]||M.status||'—')+'</b>'+
+      (M.reconciliation_pending?' · <b style="color:#c8323c">⚠ Reconciliation pending</b>':'')+'</div>';
+  if(M.status==='canceled' && M.cancel_reason){ html+='<div style="font-size:12px;color:var(--dim);margin:-4px 0 8px">Reason: '+esc(M.cancel_reason)+(M.cancel_detail?(' — '+esc(M.cancel_detail)):'')+'</div>'; }
+  if(role==='technician' && !ownJob){ html+='<div style="background:rgba(242,180,58,.12);border:1px solid rgba(242,180,58,.4);border-radius:9px;padding:8px 10px;font-size:12px;margin-bottom:8px">This isn’t your assigned job — status &amp; parts are read-only for you.</div>'; }
+
+  // Lead assignment (manager+ sets it).
+  html+='<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--dim);display:block;margin-bottom:3px">Lead tech</label>';
+  if(role==='owner'||role==='manager'){
+    const opts='<option value="">— unassigned —</option>'+staff.filter(s=>s.active!==false).map(s=>'<option value="'+esc(s.user_id)+'"'+(lead&&lead.user_id===s.user_id?' selected':'')+'>'+esc(s.name||s.role)+'</option>').join('');
+    html+='<select id="ja_lead" style="width:100%">'+opts+'</select>';
+  } else { html+='<div style="font-size:13px">'+esc(leadName)+'</div>'; }
+  html+='</div>';
+
+  // Parts checklist.
+  html+='<div class="section-h" style="margin-top:8px">Parts &amp; reconciliation</div>';
+  html+= parts.length ? '<div id="ja_parts">'+parts.map(p=>partRowHTML(p,canReconcile)).join('')+'</div>'
+                      : '<div style="font-size:12px;color:var(--dim)">No parts logged for this job.</div>';
+  html+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center"><input id="ja_pdesc" placeholder="Add a part used on this job" style="flex:1;min-width:150px">'+
+    '<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--dim)"><input type="checkbox" id="ja_pcut" style="width:auto">cut key</label>'+
+    '<button class="btn ghost" id="ja_padd" style="padding:8px 12px">+ Add</button></div>';
+
+  // Cancel-with-reason.
+  const canCancel = role==='owner'||role==='manager' || (role==='technician'&&ownJob) || (role==='front_desk' && M.status==='scheduled');
+  if(canCancel && M.status!=='canceled'){
+    html+='<button class="btn ghost" id="ja_cancel" style="margin-top:12px;color:#c8323c;border-color:rgba(200,50,60,.4);width:100%">⊘ Cancel this job…</button>';
+  }
+  html+='<div id="ja_msg" style="font-size:12px;min-height:15px;margin-top:8px"></div>';
+  host.innerHTML=html;
+
+  // ---- wire ----
+  const leadSel=document.getElementById('ja_lead');
+  if(leadSel) leadSel.onchange=function(){
+    const newUid=leadSel.value;
+    const step = TKS.Jobs.unassignRole(jobId,'lead');     // clear any existing lead first
+    step.then(()=> newUid ? TKS.Jobs.assign(jobId,newUid,'lead') : {error:null})
+      .then(res=>{ jaMsg(res&&res.error?res.error.message:(newUid?'Lead assigned.':'Lead cleared.'), !(res&&res.error)); loadJobAccount(jobId); })
+      .catch(e=> jaMsg(e.message||'Couldn’t assign.',false));
+  };
+  host.querySelectorAll('[data-used]').forEach(b=> b.onclick=()=> jaReconcile(jobId, b.getAttribute('data-used'),'used',false));
+  host.querySelectorAll('[data-ret]').forEach(b=> b.onclick=()=> jaReconcile(jobId, b.getAttribute('data-ret'),'returned', b.getAttribute('data-cut')==='1'));
+  const padd=document.getElementById('ja_padd');
+  if(padd) padd.onclick=function(){
+    const d=document.getElementById('ja_pdesc').value.trim(), cut=document.getElementById('ja_pcut').checked;
+    if(!d){ jaMsg('Type what the part was.',false); return; }
+    jaMsg('Adding…',true);
+    TKS.Jobs.addPart(jobId,d,cut).then(res=>{ if(res&&res.error){ jaMsg(res.error.message,false);} else { jaMsg('Part added.',true); loadJobAccount(jobId);} }).catch(e=> jaMsg(e.message||'Add failed.',false));
+  };
+  const cb=document.getElementById('ja_cancel');
+  if(cb) cb.onclick=()=> openCancelJob(jobId);
+
+  // "Part not on the tech's van" flag + guided move (async enrichment).
+  if(leadVan){ jaCheckVanStock(jobId, parts, leadVan, leadName, role, ownJob); }
+}
+
+function jaReconcile(jobId, partId, state, isCut){
+  if(state==='returned' && isCut){
+    const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.capture='environment';
+    inp.onchange=function(){ const f=inp.files&&inp.files[0]; if(!f) return; jaMsg('Uploading photo…',true);
+      TKS.Jobs.uploadProof(jobId,f).then(path=> TKS.Jobs.reconcilePart(partId,'returned',path))
+        .then(res=>{ if(res&&res.error){ jaMsg(res.error.message,false);} else { jaMsg('Returned — photo saved.',true); loadJobAccount(jobId);} })
+        .catch(e=> jaMsg(e.message||'Upload failed.',false)); };
+    inp.click(); return;
+  }
+  jaMsg('Saving…',true);
+  TKS.Jobs.reconcilePart(partId,state,'').then(res=>{ if(res&&res.error){ jaMsg(res.error.message,false);} else { jaMsg('Marked '+state+'.',true); loadJobAccount(jobId);} }).catch(e=> jaMsg(e.message||'Failed.',false));
+}
+
+// For each part tied to an inventory item, check the lead tech's home van. If the
+// item isn't on that van, flag it and (for someone who can move stock) offer a
+// one-tap guided move from the shop to the van — the reassignment helper.
+function jaCheckVanStock(jobId, parts, leadVan, leadName, role, ownJob){
+  const canMove = role==='owner'||role==='manager' || (role==='technician' && ownJob);
+  parts.forEach(p=>{
+    if(!p.item_id) return;
+    const row=document.querySelector('.ja-part[data-pid="'+p.id+'"] .ja-vanflag'); if(!row) return;
+    TKS.InvOps.locations(p.item_id).then(res=>{
+      const locs=(res&&res.data)||[]; const onVan=locs.find(l=>l.location==='van:'+leadVan);
+      if(onVan && (parseInt(onVan.qty,10)||0)>0) return;     // it's on the van — nothing to flag
+      const atShop=locs.find(l=>l.location==='shop'); const shopQty=atShop?(parseInt(atShop.qty,10)||0):0;
+      row.innerHTML='<span style="color:#c8323c">⚠ Not on '+esc(leadName)+'’s van.</span>'+
+        (canMove && shopQty>0 ? ' <button class="btn ghost" data-mv="'+esc(p.item_id)+'" style="padding:3px 9px;font-size:11px">Move 1 → van</button>'
+          : (shopQty<=0?' <span style="color:var(--dim)">(none at shop)</span>':''));
+      const mv=row.querySelector('[data-mv]');
+      if(mv) mv.onclick=function(){ jaMsg('Moving to van…',true);
+        TKS.InvOps.move(p.item_id,'shop','van:'+leadVan,1).then(r=>{ if(r&&r.error){ jaMsg(r.error.message,false);} else { jaMsg('Moved 1 to the van.',true); loadJobAccount(jobId);} }).catch(e=> jaMsg(e.message||'Move failed.',false)); };
+    }).catch(()=>{});
+  });
+}
+
+// Append a timestamped note to a booking + flag that a manager must sign off
+// (confirm any equipment is unused/returned before stock is restored).
+function tagBookingNote(id, label, note){
+  let bk=null; try{ bk=TKS.Bookings.get(id); }catch(e){} if(!bk) bk=allBookings().find(x=>x.id===id); if(!bk) return;
+  let stamp=''; try{ stamp=' '+new Date().toLocaleString(); }catch(e){}
+  bk.notes = ((bk.notes||'').trim() ? (bk.notes.trim()+'\n') : '') + '['+label+stamp+'] '+(note||'');
+  bk.needsManagerSignoff = true; bk.signoffReason = label;   // manager confirms equipment unused/returned
+  try{ TKS.Bookings.save(bk); }catch(e){ const arr=readLS(K_BOOKINGS,[]); const i=arr.findIndex(x=>x.id===id); if(i!==-1){ arr[i]=bk; writeLS(K_BOOKINGS,arr);} }
+}
+
+// Cancel / Reschedule modal — a NOTE is required, and it warns that equipment
+// must be confirmed UNUSED and a MANAGER must sign off. Centered + theme-matched.
+// Cancel routes to job_cancel (server re-checks role/own-job); reschedule keeps
+// the cloud status 'scheduled' but flags it locally as Rescheduled + needs sign-off.
+function openStatusNote(jobId, kind){
+  const isCancel = kind==='cancel';
+  const noteReq = !isOwnerRole();   // owner can cancel/reschedule without a note; everyone else must
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML='<div style="background:var(--card,#fff);color:var(--ink);width:100%;max-width:520px;border-radius:16px;padding:16px;max-height:88vh;overflow:auto">'+
+    '<h2 style="margin:0 0 8px;font-size:17px">'+(isCancel?'Cancel this job':'Reschedule this job')+'</h2>'+
+    '<div style="background:rgba(200,50,60,.10);border:1px solid rgba(200,50,60,.4);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45;margin-bottom:10px">'+
+      '⚠ Confirm every part, key, or piece of equipment taken for this job is <b>unused</b> and returned to stock. '+
+      '<b>A manager must sign off</b> before any of it goes back into inventory.</div>'+
+    (isCancel ? '<label style="font-size:12px;color:var(--dim)">Reason</label><select id="sn_reason" style="width:100%">'+CANCEL_REASONS.map(r=>'<option value="'+esc(r)+'">'+esc(r)+'</option>').join('')+'</select>' : '')+
+    '<label style="font-size:12px;color:var(--dim);margin-top:8px;display:block">'+(isCancel?'Note':'Why reschedule, and new timing?')+(noteReq?' (required)':' (optional)')+'</label>'+
+    '<textarea id="sn_note" rows="3" style="width:100%" placeholder="'+(isCancel?'What happened — and the state of any equipment taken…':'Reason + new timing — and the state of any equipment taken…')+'"></textarea>'+
+    '<div id="sn_msg" style="font-size:12px;min-height:15px;margin-top:6px"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn ghost" id="sn_back" style="flex:1">Keep job</button>'+
+      '<button class="btn" id="sn_go" style="flex:2;background:#c8323c;color:#fff">'+(isCancel?'Cancel job':'Mark rescheduled')+'</button></div></div>';
+  document.body.appendChild(ov);
+  function close(){ ov.remove(); }
+  ov.addEventListener('mousedown', e=>{ if(e.target===ov) close(); });
+  document.getElementById('sn_back').onclick=close;
+  document.getElementById('sn_go').onclick=function(){
+    const note=document.getElementById('sn_note').value.trim();
+    const reason=isCancel ? document.getElementById('sn_reason').value : 'Rescheduled';
+    const m=document.getElementById('sn_msg');
+    if(noteReq && !note){ m.style.color='#c8323c'; m.textContent='A note is required.'; return; }
+    m.style.color='var(--dim)'; m.textContent=isCancel?'Canceling…':'Saving…';
+    tagBookingNote(jobId, isCancel?('Canceled — '+reason):'Rescheduled', note);
+    const signedIn=!!(window.TKS && TKS.auth && TKS.auth.isSignedIn());
+    if(signedIn){
+      const p = isCancel ? TKS.Jobs.cancel(jobId, reason, note) : TKS.Jobs.setStatus(jobId,'scheduled');
+      p.then(res=>{ if(res&&res.error){ m.style.color='#c8323c'; m.textContent=res.error.message; }
+        else { try{ TKS.Bookings.setStatus(jobId, isCancel?'Canceled':'Rescheduled'); }catch(e){} close(); render(); } })
+       .catch(e=>{ m.style.color='#c8323c'; m.textContent=e.message||'Failed.'; });
+    } else { try{ TKS.Bookings.setStatus(jobId, isCancel?'Canceled':'Rescheduled'); }catch(e){} close(); render(); }
+  };
+}
+function openCancelJob(jobId){ openStatusNote(jobId,'cancel'); }   // alias (used by the job accountability panel)
+
+function editBooking(id){
+  if(!canEditBooking()){ try{ TKS_ACCESS.toast("Technicians can't edit appointments — move the status, or reschedule/cancel with a note."); }catch(e){} return; }
+  const b = (function(){ try{ return TKS.Bookings.get(id); }catch(e){ return null; } })()
+            || allBookings().find(x=>x.id===id);
+  if(!b) return;
+  booking = JSON.parse(JSON.stringify(b));
+  if(!booking.lineIdx) booking.lineIdx={};
+  if(!booking.vehicle) booking.vehicle={year:"",make:"",model:"",vin:"",ignition:""};
+  if(!booking.images) booking.images=[];
+  stepIndex = 0; VIEW='flow'; render();
+}
+
+/* =========================================================================
+   OWNER QUICK-FORM BYPASS  (single, SWAPPABLE control point)
+   The per-booking "Quick form" skips the guided steps for ONE booking. Access
+   runs through requestOwnerAccess() — the ONLY gate. TODAY it checks a PIN from
+   app/cloud-config.js (window.TKS_OWNER.QUICK_FORM_PIN). LATER, when a real
+   owner login gates the app, replace ONLY the body of requestOwnerAccess() with
+   a role check, e.g.:
+       function requestOwnerAccess(onGranted){
+         if (window.TKS && TKS.currentUserIsOwner && TKS.currentUserIsOwner()) onGranted();
+         else { alert('Owners only'); VIEW='home'; render(); }
+       }
+   Nothing else changes — every caller just calls requestOwnerAccess(grantFn).
+   ========================================================================= */
+let _ownerGrant = null, pinError = '';
+function ownerPinConfigured(){
+  if(window.TKS && TKS.auth && TKS.auth.hasManagerPin) return TKS.auth.hasManagerPin();
+  return !!String((window.TKS && TKS.Config ? TKS.Config.ownerPin() : (window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN)) || '').length;
+}
+function requestOwnerAccess(onGranted){
+  const grant = (typeof onGranted==='function') ? onGranted : function(){};
+  // 1) Signed in as the OWNER → unlock immediately, no PIN.
+  try{
+    if(window.TKS && TKS.auth && TKS.auth.isSignedIn()){
+      if(TKS.auth.can && TKS.auth.can('setup')){ grant(); return; }   // manager+ unlocks (real role)
+      // Signed in as a non-manager → their login can't unlock manager-only things.
+      alert(t('owner_denied')); VIEW='home'; render(); return;
+    }
+  }catch(e){}
+  // 2) Nobody signed in → fall back to the owner PIN (if one is configured).
+  if(!ownerPinConfigured()){ alert(t('pin_unset')); VIEW='home'; render(); return; }
+  _ownerGrant = grant; pinError=''; VIEW='pin'; render();
+}
+function submitOwnerPin(){
+  const el = document.getElementById('pinInput');
+  const entered = el ? el.value : '';
+  const match = (window.TKS && TKS.auth && TKS.auth.managerByPin) ? TKS.auth.managerByPin(entered)
+    : (entered && entered === String((window.TKS && TKS.Config ? TKS.Config.ownerPin() : (window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN)) || '') ? {name:'Manager'} : null);
+  if(match){
+    const g = _ownerGrant; _ownerGrant = null; pinError = '';
+    if(g) g();
+  } else {
+    pinError = t('pin_wrong'); render();
+  }
+}
+function renderPin(){
+  if(nav) nav.style.display='none';
+  app.innerHTML = `
+    <button class="btn ghost" style="margin-bottom:14px" onclick="VIEW='home';render()">← ${t('home')}</button>
+    <div class="bk-detail">
+      <div class="row-top"><h2>🔒 ${t('pin_title')}</h2></div>
+      <p class="when">${t('pin_prompt')}</p>
+      <input id="pinInput" type="password" inputmode="numeric" autocomplete="off"
+             placeholder="••••" style="font-size:20px;letter-spacing:4px;text-align:center"
+             onkeydown="if(event.key==='Enter')submitOwnerPin()">
+      ${pinError?`<div class="vin-msg bad" style="margin-top:8px">${esc(pinError)}</div>`:''}
+      <div class="bk-actions">
+        <button class="gcal" onclick="submitOwnerPin()">${t('unlock')}</button>
+        <button class="edit" onclick="VIEW='home';render()">${t('cancel')}</button>
+      </div>
+    </div>`;
+  const i = document.getElementById('pinInput'); if(i) i.focus();
+}
+function ownerQuickForm(){
+  // Single gate: owner-login unlocks instantly; PIN is the no-login fallback.
+  requestOwnerAccess(startQuickForm);
+}
+function startQuickForm(){ booking = freshBooking(); VIEW='quickform'; render(); }
+
+function renderQuickForm(){
+  if(nav) nav.style.display='none';
+  const b = booking;
+  const isAuto = b.jobType==='auto';
+  const subOpts = (SUBTYPES[b.jobType]||[]).map(([v,emo,en,es])=>
+    `<option value="${v}" ${b.subType===v?'selected':''}>${LANG==='es'?es:en}</option>`).join('');
+  app.innerHTML = `
+    <button class="btn ghost" style="margin-bottom:12px" onclick="VIEW='home';render()">← ${t('home')}</button>
+    <div class="bk-detail">
+      <div class="row-top"><h2>⚡ ${t('quick_form')}</h2>
+        <span class="status-tag" style="background:var(--gold-soft,rgba(242,180,58,.16));color:var(--gold,#f2b43a)">${t('owner_only')}</span></div>
+      <p class="when">${t('quick_sub')}</p>
+      <label>${t('name')} *</label><input data-bind="customer.name" value="${esc(b.customer.name)}">
+      <label>${t('phone')} *</label><input data-bind="customer.phone" type="tel" value="${esc(b.customer.phone)}">
+      <label>${t('email')}</label><input data-bind="customer.email" type="email" value="${esc(b.customer.email)}">
+      <label>${t('jobtype')}</label>
+      <select onchange="setQuickJob(this.value)">
+        <option value="" ${!b.jobType?'selected':''}>—</option>
+        ${schedCats().map(c=>`<option value="${c.code}" ${b.jobType===c.code?'selected':''}>${esc(catLabelSched(c))}</option>`).join('')}
+      </select>
+      ${(b.jobType && (SUBTYPES[b.jobType]||[]).length)?`<label>${t('subtype')}</label>
+        <select onchange="setPath('subType',this.value)"><option value="">—</option>${subOpts}</select>`:''}
+      ${isAuto?`
+        <label>${t('veh_id')}</label>
+        <div class="vin-row">
+          <input data-bind="vehicle.vin" value="${esc(b.vehicle.vin)}" placeholder="VIN" autocapitalize="characters" autocomplete="off">
+          <button type="button" onclick="decodeVinNow()">🔎 ${t('decode_vin')}</button>
+        </div>
+        <div class="vin-msg" id="vinMsg"></div>
+        <div class="row2">
+          <div><label>${t('veh_y')}</label><select onchange="setVeh('year',this.value)">${TKS_YMM.yearOptionsHTML(b.vehicle.year)}</select></div>
+          <div><label>${t('veh_mk')}</label><select onchange="setVeh('make',this.value)">${TKS_YMM.makeOptionsHTML(b.vehicle.make)}</select></div>
+        </div>
+        <label>${t('veh_md')}</label><select onchange="setVeh('model',this.value)">${TKS_YMM.modelOptionsHTML(b.vehicle.make, b.vehicle.year, b.vehicle.model)}</select>
+        <label>${t('ignition')}</label>
+        <div class="ign-pick" id="ignPick">
+          <button type="button" class="${b.vehicle.ignition==='push'?'sel':''}" onclick="setIgnition('push')">🔘 ${t('ign_push')}</button>
+          <button type="button" class="${b.vehicle.ignition==='keyed'?'sel':''}" onclick="setIgnition('keyed')">🔑 ${t('ign_keyed')}</button>
+        </div>`:''}
+      ${addrFieldsHTML(ensureAddr())}
+      <label>${LANG==='es'?'Técnico asignado':'Assigned technician'}</label>${techSelectHTML(b.technicianId, b.technician, `onchange="pickTech(this.value)"`)}
+      <div class="row2">
+        <div><label>${t('date')} *</label><input data-bind="date" type="date" value="${esc(b.date)}"></div>
+        <div><label>${t('time')} *</label><input data-bind="time" type="time" value="${esc(b.time)}"></div>
+      </div>
+      <label>${t('dur')}</label>
+      <select data-bind="duration">
+        <option value="30" ${b.duration==30?'selected':''}>30 min</option>
+        <option value="60" ${b.duration==60?'selected':''}>1 hr</option>
+        <option value="90" ${b.duration==90?'selected':''}>1.5 hr</option>
+        <option value="120" ${b.duration==120?'selected':''}>2 hr</option>
+      </select>
+      <label>${t('status')}</label>
+      <select data-bind="status">${TKS.Bookings.STATUSES.map(s=>`<option value="${s}" ${b.status===s?'selected':''}>${esc(statusLabel(s))}</option>`).join('')}</select>
+      <label>${t('notes')}</label><textarea data-bind="notes">${esc(b.notes)}</textarea>
+      <div class="vin-msg bad" id="qfErr"></div>
+      <div class="bk-actions">
+        <button class="gcal" onclick="saveQuick()">${t('save')}</button>
+        <button class="edit" onclick="VIEW='home';render()">${t('cancel')}</button>
+      </div>
+    </div>`;
+  bindInputs();
+}
+function setQuickJob(v){ booking.jobType=v; booking.subType=''; render(); }
+function saveQuick(){
+  const b = booking, err = document.getElementById('qfErr');
+  const miss = [];
+  if(!b.customer.name.trim()) miss.push(t('name'));
+  if(!b.customer.phone.trim()) miss.push(t('phone'));
+  if(!b.date) miss.push(t('date'));
+  if(!b.time) miss.push(t('time'));
+  if(miss.length){ if(err) err.textContent = t('quick_need')+' '+miss.join(', '); return; }
+  saveBooking();   // same TKS save: upserts customer (phone dedupe) + derives serviceCategory
+}
+
+/* ---------- DONE ---------- */
+function renderDone(){
+  nav.style.display='none';
+  app.innerHTML = `
+    <div class="done-check">✅</div>
+    <div class="hero"><h1>${t('booked')}</h1><p>${t('booked_sub')}</p></div>
+    <div class="coach"><span class="tag">📞 ${t('say_this')}</span>
+      <div class="line">${line('closing', SCRIPT.closing)}</div></div>
+    <a class="btn primary" style="width:100%;margin-bottom:10px;display:flex;align-items:center;justify-content:center;text-decoration:none"
+       href="${googleUrl()}" target="_blank" rel="noopener">📆 ${t('add_to_sched')}</a>
+    <button class="btn ghost" style="width:100%;margin-bottom:10px" onclick="startFlow()">${t('another')}</button>
+    <button class="btn ghost" style="width:100%" onclick="VIEW='home';render()">${t('home')}</button>`;
+}
+
+/* ---------- FLOW (the wizard) ---------- */
+function startFlow(){ booking = freshBooking(); stepIndex = 0; VIEW='flow'; render(); }
+
+function renderFlow(){
+  nav.style.display='block';
+  const step = STEPS[stepIndex];
+  const pct = Math.round((stepIndex)/(STEPS.length-1)*100);
+  let html = `<div class="progress"><i style="width:${pct}%"></i></div>
+    <div id="stepMsg" class="vin-msg bad" style="margin-bottom:8px"></div>`;
+
+  if(step==='greeting') html += stepGreeting();
+  if(step==='customer') html += stepCustomer();
+  if(step==='jobtype')  html += stepJobType();
+  if(step==='subtype')  html += stepSubType();
+  if(step==='details')  html += stepDetails();
+  if(step==='schedule') html += stepSchedule();
+  if(step==='upsell')   html += stepUpsell();
+  if(step==='confirm')  html += stepConfirm();
+
+  app.innerHTML = html;
+  bindInputs();
+  backBtn.textContent = t('back');
+  nextBtn.textContent = (step==='confirm') ? t('save') : (step==='greeting' ? t('start') : t('next'));
+  backBtn.onclick = goBack;
+  nextBtn.onclick = goNext;
+}
+/* attach two-way binding for any [data-bind] inputs in the current view */
+function bindInputs(){
+  app.querySelectorAll('[data-bind]').forEach(el=>{
+    el.addEventListener('input',()=>setPath(el.dataset.bind, el.value));
+  });
+}
+function stepMsgSet(txt){ const e=document.getElementById('stepMsg'); if(e) e.textContent = txt||''; }
+
+function coachCard(text){return `<div class="coach"><span class="tag">📞 ${t('say_this')}</span><div class="line">${text}</div></div>`;}
+function tipCard(text){return `<div class="coach tip"><span class="tag">💡 ${t('tip')}</span><div class="line">${text}</div></div>`;}
+
+function stepGreeting(){
+  return coachCard(line('greeting', SCRIPT.greeting)) +
+    `<p class="step-title">${LANG==='es'?'Cuando el cliente conteste, toca empezar.':'When the caller answers, tap start.'}</p>`;
+}
+
+function stepCustomer(){
+  const custs = readLS(K_CUSTOMERS, []);
+  return coachCard(line('ask_info', SCRIPT.ask_info)) +
+    tipCard(TIPS.customer[LANG]) +
+    `<label>${t('name')}</label><input data-bind="customer.name" id="f_name" value="${esc(booking.customer.name)}" placeholder="${t('name')}">
+     <label>${t('phone')}</label><input data-bind="customer.phone" id="f_phone" type="tel" value="${esc(booking.customer.phone)}" placeholder="(405) 555-0199">
+     <label>${t('email')}</label><input data-bind="customer.email" type="email" value="${esc(booking.customer.email)}" placeholder="${t('email')}">
+     ${custs.length? `<label>${t('existing_q')}</label><input id="custSearch" placeholder="${t('search_cust')}" oninput="searchCust(this.value)"><div id="custHits"></div>`:''}`;
+}
+
+function stepJobType(){
+  // tiles come from the owner's offered categories (Setup → Service types)
+  const tiles = schedCats().map(c=>jobChoice(c.code, c.emoji, catLabelSched(c))).join('');
+  return tipCard(TIPS.jobtype[LANG]) +
+    `<p class="step-title">${t('jobtype')}</p><div class="choices">
+      ${tiles}
+    </div>`;
+}
+function jobChoice(v,emo,label){
+  const sel = booking.jobType===v?'sel':'';
+  return `<button class="choice ${sel}" onclick="pickJobType('${v}')"><span class="emo">${emo}</span>${label}</button>`;
+}
+
+function stepSubType(){
+  const tipKey = booking.jobType==='auto'?'auto':booking.jobType==='res'?'res':'com';
+  const list = SUBTYPES[booking.jobType]||[];
+  const items = list.map(([v,emo,en,es])=>{
+    const sel = booking.subType===v?'sel':'';
+    const label = LANG==='es'?es:en;
+    return `<button class="choice ${sel}" onclick="pickSub('${v}')"><span class="emo">${emo}</span>${label}</button>`;
+  }).join('');
+  const empathy = (booking.subType==='lockout') ? coachCard(line('empathy', SCRIPT.empathy_lockout)) : '';
+  return tipCard(TIPS[tipKey][LANG]) + empathy +
+    `<p class="step-title">${t('subtype')}</p><div class="choices">${items}</div>`;
+}
+
+function stepDetails(){
+  // Tone-matched: cheerful small talk for routine jobs, but keep-it-moving for emergencies.
+  // Say-this ASKS for exactly what this step collects (job-aware): a car needs the
+  // vehicle + address; a house/business just needs the address. The lockout empathy
+  // already fired on the previous step, so here we keep it practical, not chit-chat.
+  const msg = line('details', booking.jobType==='auto' ? SCRIPT.details_auto : SCRIPT.details_addr);
+  let html = coachCard(msg);
+  html += tipCard((booking.jobType==='auto' ? TIPS.details_auto : TIPS.location)[LANG]);
+  if(booking.jobType==='auto'){
+    // A car job needs vehicle ID: a VIN (auto-fills year/make/model) OR
+    // year+make+model typed in. Ignition type is also required.
+    html += `<label>${t('veh_id')}</label>
+      <div class="vin-row">
+        <input data-bind="vehicle.vin" id="f_vin" value="${esc(booking.vehicle.vin)}" placeholder="VIN — 17 characters" autocapitalize="characters" autocomplete="off">
+        <button type="button" onclick="decodeVinNow()">🔎 ${t('decode_vin')}</button>
+      </div>
+      <div class="vin-msg" id="vinMsg"></div>
+      <div class="vin-or">— ${LANG==='es'?'O':'OR'} —</div>
+      <div class="row2">
+        <div><label>${t('veh_y')}</label><select id="f_vy" onchange="setVeh('year',this.value)">${TKS_YMM.yearOptionsHTML(booking.vehicle.year)}</select></div>
+        <div><label>${t('veh_mk')}</label><select id="f_vmk" onchange="setVeh('make',this.value)">${TKS_YMM.makeOptionsHTML(booking.vehicle.make)}</select></div>
+      </div>
+      <label>${t('veh_md')}</label><select id="f_vmd" onchange="setVeh('model',this.value)">${TKS_YMM.modelOptionsHTML(booking.vehicle.make, booking.vehicle.year, booking.vehicle.model)}</select>
+      <label>${t('ignition')}</label>
+      <div class="ign-pick" id="ignPick">
+        <button type="button" class="${booking.vehicle.ignition==='push'?'sel':''}" onclick="setIgnition('push')">🔘 ${t('ign_push')}</button>
+        <button type="button" class="${booking.vehicle.ignition==='keyed'?'sel':''}" onclick="setIgnition('keyed')">🔑 ${t('ign_keyed')}</button>
+      </div>`;
+  }
+  // One address, split into Street / City / State / ZIP (each its own line); it
+  // composes booking.address, which the calendar uses so the tech can tap to drive.
+  html += addrFieldsHTML(ensureAddr());
+  return html;
+}
+
+function stepSchedule(){
+  return tipCard(TIPS.schedule[LANG]) +
+    `<button class="opencal" onclick="openCalendar()">📅 ${t('open_cal')}</button>` +
+    coachCard(line('reassure', SCRIPT.reassure)) +
+    `<label>${t('date')}</label><input data-bind="date" id="f_date" type="date" value="${esc(booking.date)}">
+     <div class="row2">
+       <div><label>${t('time')}</label><input data-bind="time" id="f_time" type="time" value="${esc(booking.time)}"></div>
+       <div><label>${t('dur')}</label>
+         <select data-bind="duration">
+           <option value="30" ${booking.duration==30?'selected':''}>30 min</option>
+           <option value="60" ${booking.duration==60?'selected':''}>1 hr</option>
+           <option value="90" ${booking.duration==90?'selected':''}>1.5 hr</option>
+           <option value="120" ${booking.duration==120?'selected':''}>2 hr</option>
+         </select></div>
+     </div>`;
+}
+
+function stepUpsell(){
+  const up = line('upsell', UPSELL[booking.jobType] || UPSELL.auto);
+  const oY = booking.upsell.offered===true?'sel':'', oN = booking.upsell.offered===false?'sel':'';
+  const accBlock = booking.upsell.offered===true ? `
+    <p class="step-title" style="margin-top:18px">${t('upsell_acc')}</p>
+    <div class="yn">
+      <button class="yes ${booking.upsell.accepted===true?'sel':''}" onclick="setUpsell('accepted',true)">✓ ${t('acc_yes')}</button>
+      <button class="no ${booking.upsell.accepted===false?'sel':''}" onclick="setUpsell('accepted',false)">✕ ${t('acc_no')}</button>
+    </div>` : '';
+  return coachCard(up) +
+    `<p class="step-title">${t('upsell_q')}</p>
+     <div class="yn">
+       <button class="yes ${oY}" onclick="setUpsell('offered',true)">✓ ${t('yes')}</button>
+       <button class="no ${oN}" onclick="setUpsell('offered',false)">✕ ${t('no')}</button>
+     </div>${accBlock}`;
+}
+
+function stepConfirm(){
+  const veh = booking.vehicle.make ? `${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model}`.trim() : '';
+  const when = booking.date ? `${prettyDate(booking.date)} · ${fmt12(booking.time)}` : '—';
+  const rows = [
+    [t('r_customer'), booking.customer.name],
+    [t('r_phone'), booking.customer.phone],
+    [t('r_job'), subLabel(booking.jobType, booking.subType)],
+    veh?[t('r_vehicle'), veh]:null,
+    [t('r_address'), booking.address || booking.parked || '—'],
+    [t('r_when'), when],
+    [LANG==='es'?'Técnico':'Technician', booking.technician || (LANG==='es'?'Sin asignar':'Unassigned')],
+    [t('r_upsell'), booking.upsell.offered ? (booking.upsell.accepted?t('yes_short')+' ✓':t('yes_short')) : t('no_short')]
+  ].filter(Boolean).map(([k,v])=>`<div class="r"><b>${k}</b><span>${esc(v||'—')}</span></div>`).join('');
+
+  return tipCard(LANG==='es'?'Repite los detalles al cliente antes de colgar.':'Read the details back to the customer before hanging up.') +
+    `<p class="step-title">${t('confirm')}</p>
+     <div class="summary">${rows}</div>
+     <label>${LANG==='es'?'Asignar técnico':'Assign technician'}</label>${techSelectHTML(booking.technicianId, booking.technician, `onchange="pickTech(this.value)"`)}
+     <div class="section-h">${t('add_cal')}</div>
+     <div class="cal">
+       <a href="${googleUrl()}" target="_blank" rel="noopener">📆 ${t('g_cal')}</a>
+       <a href="${outlookUrl()}" target="_blank" rel="noopener">📆 ${t('o_cal')}</a>
+       <button onclick="downloadICS()">📆 ${t('ics')}</button>
+     </div>
+     <label>${t('notes')}</label><textarea data-bind="notes">${esc(booking.notes)}</textarea>`;
+}
+
+/* =========================================================================
+   6) FLOW ACTIONS
+   ========================================================================= */
+function setPath(path,val){
+  const parts = path.split('.'); let o = booking;
+  for(let i=0;i<parts.length-1;i++) o=o[parts[i]];
+  o[parts[parts.length-1]] = val;
+}
+function pickJobType(v){ booking.jobType=v; booking.subType=''; render(); }
+function pickSub(v){ booking.subType=v; render(); }
+function setIgnition(v){ booking.vehicle.ignition=v; render(); }
+// Year/Make/Model cascade (model-driven, matches Start-a-Job): Year resets Make+Model; Make resets Model.
+// VIN decode sets booking.vehicle.* then render() — the selects re-fill with those values (injected if not in catalog).
+function setVeh(field,val){
+  booking.vehicle[field]=val;
+  if(field==='year'){ booking.vehicle.make=''; booking.vehicle.model=''; }
+  else if(field==='make'){ booking.vehicle.model=''; }
+  render();
+}
+function detailMsg(key, isBad){
+  const m=document.getElementById('vinMsg');
+  if(m){ m.className='vin-msg'+(isBad?' bad':''); m.textContent=key?t(key):''; }
+}
+/* Decode a VIN via the shared NHTSA helper and auto-fill year/make/model. */
+function decodeVinNow(){
+  const vin=(booking.vehicle.vin||'').trim();
+  detailMsg('vin_decoding', false);
+  if(!window.TKS || !TKS.decodeVin){ detailMsg('vin_bad', true); return; }
+  TKS.decodeVin(vin).then(r=>{
+    booking.vehicle.year=r.year||''; booking.vehicle.make=r.make||'';
+    booking.vehicle.model=r.model||''; booking.vehicle.vin=r.vin||vin;
+    render();
+    const m=document.getElementById('vinMsg');
+    if(m){ m.className='vin-msg'; m.textContent=`✓ ${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model}`.trim(); }
+  }).catch(()=>detailMsg('vin_bad', true));
+}
+function setUpsell(field,val){
+  booking.upsell[field]=val;
+  if(field==='offered' && val===false) booking.upsell.accepted=null;
+  render();
+}
+
+function searchCust(q){
+  const hits = document.getElementById('custHits'); if(!hits) return;
+  q=(q||'').toLowerCase().trim();
+  if(!q){ hits.innerHTML=''; return; }
+  // search BOTH individual customers and business shops, via TKS (shared list)
+  let all;
+  try{ all = TKS.list('customers').concat(TKS.list('shops')); }
+  catch(e){ all = readLS(K_CUSTOMERS, []).concat(readLS(K_SHOPS, [])); }
+  const found = all.filter(c=>{
+    const n=(c.customer||'').toLowerCase();   // Bittings stores the name under "customer"
+    const p=(c.phone||'').toLowerCase();
+    return n.includes(q)||p.includes(q);
+  }).slice(0,5);
+  hits.innerHTML = found.length
+    ? found.map(c=>`<div class="cust-hit" onclick='useCust(${JSON.stringify(c).replace(/'/g,"&#39;")})'>
+        <b>${esc(c.customer||'')}</b><span>${esc(c.phone||'')}</span></div>`).join('')
+    : `<div class="cust-hit" style="cursor:default"><span>${t('no_match')}</span></div>`;
+}
+function useCust(c){
+  booking.customer.name  = c.customer || '';   // "customer" holds the name in Bittings
+  booking.customer.phone = c.phone || '';
+  booking.customer.email = c.email || '';
+  if(c.address) booking.address = c.address;
+  render();
+}
+
+/* Non-core categories (Safe & Vault, Emergency, Access control, Other) are booked
+   "not in detail" — no SUBTYPES and no tailored upsell — so skip those two steps. */
+function shouldSkipStep(step){
+  return (step==='subtype' || step==='upsell') && !hasSub(booking.jobType);
+}
+function goBack(){
+  if(stepIndex===0){ VIEW='home'; render(); return; }
+  stepIndex--;
+  while(stepIndex>0 && shouldSkipStep(STEPS[stepIndex])) stepIndex--;
+  render();
+}
+function goNext(){
+  const step = STEPS[stepIndex];
+  if(!validateStep(step)) return;
+  if(step==='confirm'){ saveBooking(); return; }
+  stepIndex++;
+  while(stepIndex < STEPS.length-1 && shouldSkipStep(STEPS[stepIndex])) stepIndex++;
+  render();
+}
+
+/* required-field validation with red highlight (matches Bittings behavior) */
+function validateStep(step){
+  let ok=true;
+  stepMsgSet('');
+  function bad(id){ const el=document.getElementById(id); if(el){el.classList.add('field-err'); ok=false;} }
+  if(step==='customer'){
+    if(!booking.customer.name.trim()) bad('f_name');
+    if(!booking.customer.phone.trim()) bad('f_phone');
+  }
+  if(step==='jobtype' && !booking.jobType){ ok=false; stepMsgSet(t('need_jobtype')); }
+  // subtype + upsell are only required for the core categories that have them
+  if(step==='subtype' && hasSub(booking.jobType) && !booking.subType){ ok=false; stepMsgSet(t('need_subtype')); }
+  if(step==='upsell' && hasSub(booking.jobType)){
+    if(booking.upsell.offered===null){ ok=false; stepMsgSet(t('need_upsell')); }
+    else if(booking.upsell.offered===true && booking.upsell.accepted===null){ ok=false; stepMsgSet(t('need_upsell_acc')); }
+  }
+  if(step==='details'){
+    if(!(booking.addr && (booking.addr.street||'').trim())) bad('f_street');   // street is the minimum for a usable address
+    if(booking.jobType==='auto'){
+      const v = booking.vehicle;
+      const hasVin = /^[A-HJ-NPR-Z0-9]{17}$/.test((v.vin||'').toUpperCase());
+      const hasYMM = (''+(v.year||'')).trim() && (v.make||'').trim() && (v.model||'').trim();
+      if(!hasVin && !hasYMM){ bad('f_vin'); bad('f_vy'); bad('f_vmk'); bad('f_vmd'); detailMsg('vin_need', true); }
+      else if(!v.ignition){ ok=false; detailMsg('ign_need', true);
+        const ip=document.getElementById('ignPick'); if(ip){ ip.style.outline='2px solid #e0707a'; ip.style.borderRadius='12px'; } }
+    }
+  }
+  if(step==='schedule'){
+    if(!booking.date) bad('f_date');
+    if(!booking.time) bad('f_time');
+  }
+  if(!ok){
+    document.querySelectorAll('.field-err').forEach(el=>el.addEventListener('input',()=>el.classList.remove('field-err'),{once:true}));
+  }
+  return ok;
+}
+
+function saveBooking(){
+  // 1) Upsert the customer through TKS (deduped by PHONE, then name) and grab
+  //    the id so the booking is linked to a real customer record.
+  let cust = null;
+  const name = (booking.customer.name||'').trim();
+  try{
+    if(name) cust = TKS.Customers.upsert({
+      customer: name,
+      phone: (booking.customer.phone||'').trim(),
+      email: (booking.customer.email||'').trim(),
+      address: (booking.address||'').trim(),
+      customerType: (booking.jobType==='com') ? 'business' : 'individual',
+      source: 'scheduler'
+    });
+  }catch(e){ /* fall through to local save below */ }
+  if(cust && cust.id) booking.customerId = cust.id;
+
+  // 2) Auto-derive the canonical service category from the coaching tiles
+  //    (no double entry for the trainee).
+  try{ const sv = TKS.Services.fromJob(booking.jobType, booking.subType);
+       booking.serviceCategory = sv.cat; booking.serviceLabel = sv.value; }catch(e){}
+  if(!booking.status) booking.status = 'Scheduled';
+
+  // 3) Save the booking through TKS (inserts new, or updates when editing).
+  try{ TKS.Bookings.save(booking); }
+  catch(e){
+    const bookings = readLS(K_BOOKINGS, []);
+    if(!booking.id) booking.id = 'bk_'+Date.now();
+    const i = bookings.findIndex(x=>x.id===booking.id);
+    if(i!==-1) bookings[i]=JSON.parse(JSON.stringify(booking)); else bookings.push(JSON.parse(JSON.stringify(booking)));
+    writeLS(K_BOOKINGS, bookings);
+  }
+  VIEW='done'; render();
+}
+
+/* -------------------------------------------------------------------------
+   SAVE CUSTOMER TO SHARED DATABASE  — matches Bittings exactly.
+   Verified against bittings.html: a customer record is
+     { customer, contact, phone, email, address, customerType, lastUsed }
+   where the NAME is stored under "customer". Bittings finds an existing
+   record by NAME (case-insensitive) and updates it; otherwise adds a new one
+   and stamps lastUsed (the picker sorts by lastUsed). We mirror that so the
+   scheduler and Bittings agree on what counts as the same customer.
+   Business (commercial) jobs are tagged customerType "business"; everything
+   else "individual".
+   ------------------------------------------------------------------------- */
+function saveCustomerToSharedDB(){
+  const name = (booking.customer.name||'').trim();
+  if(!name) return;
+  const list = getCustomers();
+  const custData = {
+    customer: name,
+    contact: '',
+    phone: (booking.customer.phone||'').trim(),
+    email: (booking.customer.email||'').trim(),
+    address: (booking.address||'').trim(),
+    customerType: (booking.jobType==='com') ? 'business' : 'individual'
+  };
+  const existing = list.find(c => (c.customer||'').toLowerCase() === name.toLowerCase());
+  if(existing){ Object.assign(existing, custData); existing.lastUsed = Date.now(); }
+  else{ list.push(Object.assign({}, custData, {lastUsed: Date.now()})); }
+  saveCustomers(list);
+}
+/* tiny Bittings-compatible helpers (same keys/behaviour as bittings.html) */
+function getCustomers(){ return readLS(K_CUSTOMERS, []); }
+function saveCustomers(arr){ writeLS(K_CUSTOMERS, arr); }
+
+/* =========================================================================
+   7) CALENDAR LINKS  (one-tap add — free, no login)
+   ========================================================================= */
+function eventTimes(){
+  const [y,m,d] = booking.date.split('-').map(Number);
+  const [hh,mm] = (booking.time||'09:00').split(':').map(Number);
+  const start = new Date(y, m-1, d, hh, mm);
+  const end   = new Date(start.getTime() + (booking.duration*60000));
+  return {start,end};
+}
+function eventTitle(){
+  const sub = subLabel(booking.jobType, booking.subType);
+  return `${sub} — ${booking.customer.name||'Customer'}`;
+}
+function eventDetails(){
+  const veh = booking.vehicle.make ? `\nVehicle: ${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model} ${booking.vehicle.vin}` : '';
+  return `Customer: ${booking.customer.name}\nPhone: ${booking.customer.phone}${veh}\n${booking.notes||''}`.trim();
+}
+function eventLocation(){ return booking.address || booking.parked || ''; }
+
+/* Open Google Calendar so he can see what's already booked before picking a time.
+   If a date is already chosen, jump straight to that day's view. */
+function calendarViewUrl(){
+  const base='https://calendar.google.com/calendar/r';
+  if(booking.date){
+    const [y,m,d]=booking.date.split('-').map(Number);
+    return `${base}/day/${y}/${m}/${d}`;
+  }
+  return base;
+}
+function openCalendar(){ window.open(calendarViewUrl(), '_blank', 'noopener'); }
+
+/* =========================================================================
+   7b) BACKUP & RESTORE  (free, no cloud)
+   Export saves all contacts + bookings to a file. Import MERGES a file back
+   in — it only ADDS what's missing (matched by phone / booking id) and never
+   deletes what's already there, so it's safe to run anytime.
+   ========================================================================= */
+function exportData(){
+  const data = {
+    _app:'turbo-scheduler', _version:1, _exported:new Date().toISOString(),
+    customers: readLS(K_CUSTOMERS, []),
+    shops:     readLS(K_SHOPS, []),
+    bookings:  readLS(K_BOOKINGS, [])
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='turbo-scheduler-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+/* merge a list of {customer,...} records by name (case-insensitive), Bittings-style */
+function mergeByName(key, incoming){
+  const list = readLS(key, []);
+  const have = new Set(list.map(c=>(c.customer||'').toLowerCase()).filter(Boolean));
+  let added=0;
+  (incoming||[]).forEach(c=>{
+    const n=(c.customer||'').toLowerCase();
+    if(n && have.has(n)) return;
+    list.push(c); if(n) have.add(n); added++;
+  });
+  writeLS(key, list); return added;
+}
+function importData(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const data=JSON.parse(r.result);
+      let addedC = mergeByName(K_CUSTOMERS, data.customers);
+      addedC    += mergeByName(K_SHOPS, data.shops);
+      // merge bookings by id
+      const bks=readLS(K_BOOKINGS,[]);
+      const haveB=new Set(bks.map(b=>b.id).filter(Boolean));
+      let addedB=0;
+      (data.bookings||[]).forEach(b=>{
+        if(b.id && haveB.has(b.id)) return;
+        bks.push(b); if(b.id) haveB.add(b.id); addedB++;
+      });
+      writeLS(K_BOOKINGS, bks);
+      alert(`${t('bk_restored')} ${addedC} ${t('bk_contacts')}, ${addedB} ${t('bk_bookings')}.`);
+      render();
+    }catch(e){ alert(t('bk_badfile')); }
+  };
+  r.readAsText(file);
+}
+
+function pad(n){return String(n).padStart(2,'0');}
+function fmtCompact(dt){ return `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`; }
+function fmtOutlook(dt){ return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:00`; }
+function googleUrl(){
+  if(!booking.date||!booking.time) return '#';
+  const {start,end}=eventTimes();
+  const p = new URLSearchParams({
+    action:'TEMPLATE', text:eventTitle(),
+    dates:`${fmtCompact(start)}/${fmtCompact(end)}`,
+    details:eventDetails(), location:eventLocation(),
+    ctz:'America/Chicago',
+    add:'turbokeysmith@gmail.com'   // business calendar is invited as guest / system of record
+  });
+  return 'https://calendar.google.com/calendar/render?'+p.toString();
+}
+function outlookUrl(){
+  if(!booking.date||!booking.time) return '#';
+  const {start,end}=eventTimes();
+  const p = new URLSearchParams({
+    path:'/calendar/action/compose', rru:'addevent',
+    subject:eventTitle(), startdt:fmtOutlook(start), enddt:fmtOutlook(end),
+    body:eventDetails(), location:eventLocation()
+  });
+  return 'https://outlook.live.com/calendar/0/deeplink/compose?'+p.toString();
+}
+function downloadICS(){
+  if(!booking.date||!booking.time){ alert(t('err')); return; }
+  const {start,end}=eventTimes();
+  const ics = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//'+(bizName().replace(/[^\x20-\x7E]/g,'')||'Locksmith')+'//Scheduler//EN','BEGIN:VEVENT',
+    'UID:'+(booking.id||Date.now())+'@turbokeysmith',
+    'DTSTAMP:'+fmtCompact(new Date()),
+    'DTSTART:'+fmtCompact(start),
+    'DTEND:'+fmtCompact(end),
+    'SUMMARY:'+icsEsc(eventTitle()),
+    'DESCRIPTION:'+icsEsc(eventDetails()),
+    'LOCATION:'+icsEsc(eventLocation()),
+    'END:VEVENT','END:VCALENDAR'
+  ].join('\r\n');
+  const blob = new Blob([ics],{type:'text/calendar'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'turbokeysmith-booking.ics';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function icsEsc(s){return String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');}
+
+/* =========================================================================
+   8) SMALL HELPERS
+   ========================================================================= */
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function subLabel(type,sub){
+  const list = SUBTYPES[type]||[]; const row = list.find(r=>r[0]===sub);
+  if(!row){
+    // no-detail category (or unknown sub): fall back to the shared category label
+    try{ if(window.TKS&&TKS.ServiceCats){ return TKS.ServiceCats.label(TKS.ServiceCats.codeToKey(type), LANG); } }catch(e){}
+    return type||'';
+  }
+  return LANG==='es'?row[3]:row[2];
+}
+function fmt12(t24){
+  if(!t24) return '';
+  let [h,m]=t24.split(':').map(Number); const ap=h>=12?'PM':'AM'; h=h%12||12;
+  return `${h}:${pad(m)} ${ap}`;
+}
+function prettyDate(iso){
+  if(!iso) return ''; const [y,m,d]=iso.split('-').map(Number);
+  const dt=new Date(y,m-1,d);
+  return dt.toLocaleDateString(LANG==='es'?'es-US':'en-US',{weekday:'short',month:'short',day:'numeric'});
+}
+
+/* =========================================================================
+   9) BOOT
+   ========================================================================= */
+document.getElementById('langToggle').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  LANG=b.dataset.lang; writeLS(K_LANG, LANG); render();
+});
+
+/* ---- dark mode ----
+   The theme is already set on <html> by the small script in the <head>
+   (so there's no white flash). Here we just sync the button icon and
+   handle taps. Sun = currently dark (tap to go light); moon = the reverse. */
+function syncThemeIcon(){
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  document.getElementById('themeBtn').textContent = dark ? '☀️' : '🌙';
+}
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  const next = dark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  writeLS(K_THEME, next);
+  syncThemeIcon();
+});
+syncThemeIcon();
+
+/* Cloud bootstrap — connect to Supabase ONLY if a staff member is already
+   signed in (session shared with the staff app via cloud-test.html). Otherwise
+   stay on localStorage. Re-render when the cloud finishes hydrating. */
+if(window.TKS && TKS.onChange) TKS.onChange(function(){ render(); });
+(function schedCloudBootstrap(){
+  var cfg = window.TKS_CLOUD;
+  if(!cfg || !cfg.AUTO_CONNECT) return;
+  if(!window.supabase || !window.supabase.createClient) return;   // library blocked/offline
+  var probe;
+  try{ probe = window.supabase.createClient(cfg.url, cfg.anonKey); }catch(e){ return; }
+  probe.auth.getSession().then(function(res){
+    if(!res || !res.data || !res.data.session) return;            // not signed in -> stay local
+    TKS.connectCloud({ url:cfg.url, anonKey:cfg.anonKey }).then(function(){ render(); }).catch(function(){});
+  }).catch(function(){});
+})();
+
+render();
+</script>
+<script src="app/ui/appnav.js"></script>
+</body>
+</html>

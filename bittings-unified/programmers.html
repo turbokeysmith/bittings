@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<title>Key Programmer Coverage — Bittings</title>
+<link rel="icon" href="app/tks_mark.png">
+<!-- Follow the global Light/Dark toggle (shared with the dashboard via localStorage). -->
+<script>try{if(localStorage.getItem('bt_theme')==='dark')document.documentElement.setAttribute('data-bt-theme','dark');}catch(e){}</script>
+<link rel="stylesheet" href="app/ui/legacy-dark.css">
+<style>
+  :root{
+    --bg:#f6f7f9; --bg2:#eef0f3; --card:#ffffff; --edge:#e3e6ea; --ink:#14171b; --dim:#5a616c;
+    --amber:#ffb000; --red:#b82334; --green:#22994a; --off:#9aa1ac;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:linear-gradient(180deg,var(--bg),var(--bg2));color:var(--ink);min-height:100vh;padding-bottom:40px;}
+  a{color:var(--amber);text-decoration:none;}
+  .wrap{max-width:1000px;margin:0 auto;padding:14px;}
+  .top{display:flex;align-items:center;gap:12px;margin:4px 0 14px;}
+  .top h1{font-size:19px;margin:0;font-weight:800;}
+  .back{background:var(--card);border:1px solid var(--edge);color:var(--ink);border-radius:10px;padding:9px 12px;font-weight:700;font-size:14px;}
+  .seg{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .seg button{flex:1 1 auto;min-width:96px;background:var(--card);border:1px solid var(--edge);color:var(--dim);
+    border-radius:11px;padding:11px 10px;font-weight:800;font-size:14px;cursor:pointer;}
+  .seg button.on{background:var(--amber);color:#1a1300;border-color:var(--amber);}
+  .panel{display:none;}
+  .panel.on{display:block;}
+  input,select,textarea,button{font-family:inherit;}
+  .in{width:100%;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:12px 13px;color:var(--ink);font-size:16px;outline:none;}
+  textarea.in{min-height:80px;resize:vertical;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;}
+  .row > *{flex:1 1 140px;}
+  .btn{background:var(--card);border:1px solid var(--edge);color:var(--ink);border-radius:11px;padding:11px 14px;font-weight:800;font-size:14px;cursor:pointer;}
+  .btn.amber{background:var(--amber);color:#1a1300;border-color:var(--amber);}
+  .btn.red{background:var(--red);color:#fff;border-color:var(--red);}
+  .btn.sm{padding:7px 10px;font-size:12.5px;border-radius:9px;}
+  .muted{color:var(--dim);font-size:13px;}
+  .hint{color:var(--dim);font-size:12.5px;margin:6px 2px;}
+  .notice{background:rgba(255,176,0,.10);border:1px solid rgba(255,176,0,.4);border-radius:11px;padding:10px 12px;font-size:12.5px;color:#e9d6a8;margin-bottom:12px;}
+  /* reference card */
+  .card{background:var(--card);border:1px solid var(--edge);border-radius:16px;padding:16px;margin-top:14px;}
+  .card h2{margin:0 0 2px;font-size:19px;color:var(--amber);}
+  .card .veh{color:var(--dim);font-size:13px;margin-bottom:10px;}
+  .kv{display:grid;grid-template-columns:128px 1fr;gap:8px 12px;font-size:14.5px;}
+  .kv .k{color:var(--dim);font-weight:700;}
+  .kv .v{font-weight:700;}
+  .pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:800;}
+  .pill.ok{background:rgba(34,153,74,.18);color:#5fd389;}
+  .pill.no{background:rgba(184,35,52,.18);color:#ef8b96;}
+  .pill.warn{background:rgba(255,176,0,.16);color:var(--amber);}
+  .pill.na{background:rgba(255,255,255,.08);color:#9aa3ad;}
+  /* tables */
+  .tbl{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;}
+  .tbl th,.tbl td{border-bottom:1px solid var(--edge);padding:8px 7px;text-align:left;vertical-align:top;}
+  .tbl th{color:var(--dim);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;background:var(--bg2);}
+  .tbl tr:hover td{background:rgba(255,255,255,.02);}
+  .notein{width:100%;min-width:120px;background:#f3f4f6;border:1px solid var(--edge);border-radius:8px;color:var(--ink);font-size:12.5px;padding:6px 8px;}
+  .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--edge);border-radius:12px;}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0;}
+  .toolbar .in{flex:1 1 200px;}
+  .src{color:var(--off);font-size:10.5px;}
+  /* modal */
+  .ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:40;padding:16px;}
+  .ov.on{display:flex;}
+  .sheet{background:var(--bg2);border:1px solid var(--edge);border-radius:16px;width:100%;max-width:680px;max-height:92vh;overflow:auto;padding:16px;}
+  .sheet h3{margin:0 0 10px;font-size:17px;}
+  .fld{margin-bottom:9px;}
+  .fld label{display:block;font-size:12px;color:var(--dim);font-weight:700;margin-bottom:4px;}
+  .devblk{border:1px solid var(--edge);border-radius:11px;padding:10px;margin-bottom:9px;}
+  .devblk h4{margin:0 0 7px;font-size:13.5px;color:var(--amber);}
+  .devgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+  .corr{background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:11px 12px;margin-bottom:9px;font-size:14px;}
+  .corr .when{color:var(--off);font-size:11.5px;}
+  @media(max-width:560px){ .kv{grid-template-columns:108px 1fr;} .ov{align-items:stretch;} .sheet{border-radius:0;max-height:100vh;} .devgrid{grid-template-columns:1fr;} }
+
+  /* ===== Studio light theme — accent contrast tuned for white surfaces ===== */
+  .card h2{color:#14171b;}
+  .pill.ok{color:#1f8f43;} .pill.no{color:#b3242f;} .pill.warn{color:#9a6a00;} .pill.na{color:#5a616c;}
+  .notice{color:#6b5310;} .devblk h4{color:#9a6a00;}
+  /* Dark-mode fixes for this page's hardcoded light surfaces (palette vars from legacy-dark.css;
+     html[...] specificity beats the page's own :root). */
+  html[data-bt-theme="dark"] .notein{background:#2c313a;color:var(--ink);}
+  html[data-bt-theme="dark"] .card h2{color:var(--ink);}
+  html[data-bt-theme="dark"] .pill.ok{color:#5fd389;} html[data-bt-theme="dark"] .pill.no{color:#e0636f;}
+  html[data-bt-theme="dark"] .pill.warn{color:#f2b43a;}
+  html[data-bt-theme="dark"] .notice{color:#d8b25a;} html[data-bt-theme="dark"] .devblk h4{color:#f2b43a;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="index.html">‹ Apps</a>
+    <h1>🖥️ Key Programmer Coverage</h1>
+  </div>
+
+  <div class="seg" id="seg">
+    <button data-p="lookup" class="on">🔎 Lookup</button>
+    <button data-p="devices">🧰 My tools</button>
+    <button data-p="coverage">📋 Coverage</button>
+  </div>
+
+  <!-- LOOKUP -->
+  <div class="panel on" id="p-lookup">
+    <div class="notice">Coverage is organized by <b>immobilizer platform</b>, and it <b>drifts with each firmware/software update and by region</b>.
+      Treat every row as <b>“listed ≠ guaranteed — verify on the tool.”</b> The most reliable rows are the ones you confirm on a real job
+      (flag anything wrong with <b>“Something wrong?”</b> on the Start-a-job result).</div>
+    <div class="row" style="margin-bottom:8px">
+      <input class="in" id="vinIn" placeholder="Paste 17-char VIN…" maxlength="17" style="flex:2 1 220px;text-transform:uppercase">
+      <button class="btn amber" id="vinBtn" style="flex:0 0 auto">Decode VIN</button>
+    </div>
+    <div class="hint">…or pick the vehicle:</div>
+    <div class="row">
+      <select class="in" id="fYear"><option value="">Year (any)</option></select>
+      <select class="in" id="fMake"><option value="">Make…</option></select>
+    </div>
+    <div id="lookMsg" class="hint"></div>
+    <div id="cards"></div>
+  </div>
+
+  <!-- DEVICES -->
+  <div class="panel" id="p-devices">
+    <div class="hint"><b>Check the programmers your shop owns</b> — only checked tools appear in the Lookup matrix. The catalog includes variants (AutoProPad <b>G2 / G2 Turbo / G3</b>, Lonsdor <b>K518 / Pro / ISE</b>, Autel IM508/IM508S, Key Tool Max/Plus) so you can pick your exact model. Edit modules/notes to match your kit.</div>
+    <div class="toolbar">
+      <input class="in" id="dSearch" placeholder="Filter tools…">
+      <button class="btn amber sm" id="dAdd">+ Add tool</button>
+      <button class="btn sm" id="dExport">⇩ CSV</button>
+      <button class="btn sm" id="dImport">⇧ Import</button>
+      <input type="file" id="dFile" accept=".csv" hidden>
+    </div>
+    <div class="muted" id="dCount"></div>
+    <div class="tblwrap"><table class="tbl" id="dTbl"></table></div>
+  </div>
+
+  <!-- COVERAGE -->
+  <div class="panel" id="p-coverage">
+    <div class="hint">Every platform row + the per-tool capability behind it. Add/edit rows as you confirm jobs, or export/import the whole table as CSV.</div>
+    <div class="toolbar">
+      <input class="in" id="cSearch" placeholder="Filter coverage…">
+      <button class="btn amber sm" id="cAdd">+ Add coverage</button>
+      <button class="btn sm" id="cExport">⇩ CSV</button>
+      <button class="btn sm" id="cImport">⇧ Import</button>
+      <input type="file" id="cFile" accept=".csv" hidden>
+    </div>
+    <div class="muted" id="cCount"></div>
+    <div class="tblwrap"><table class="tbl" id="cTbl"></table></div>
+  </div>
+
+</div>
+
+<!-- editor modal -->
+<div class="ov" id="ov"><div class="sheet">
+  <h3 id="ovTitle">Edit</h3>
+  <div id="ovFields"></div>
+  <div class="row" style="margin-top:12px">
+    <button class="btn amber" id="ovSave">Save</button>
+    <button class="btn" id="ovCancel">Cancel</button>
+  </div>
+</div></div>
+
+<script src="app/cloud-config.js"></script>
+<script src="app/store.js"></script>
+<script src="app/access.js"></script>
+<script>
+/* ============================================================================
+   Key Programmer Coverage  (local-first; tks_ keys; readLS/writeLS)
+   Stores: tks_prog_devices, tks_prog_coverage, tks_prog_corrections, tks_vin_cache
+   Coverage is organized by immobilizer PLATFORM (the real way programmer coverage
+   clusters). Seed values are drawn from each vendor's published coverage
+   (Autel OTOFIX, Xhorse, Advanced Diagnostics, XTool/AutoProPad, Lonsdor) plus
+   general aftermarket consensus, and are flagged "verify on device" — they are NOT
+   a guarantee. The Corrections loop turns real jobs into the shop's own ground truth.
+   ============================================================================ */
+function readLS(k,f){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):f; }catch(e){ return f; } }
+function writeLS(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function uid(p){ return (p||'id')+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+const K_DEV='tks_prog_devices', K_COV='tks_prog_coverage', K_CORR='tks_prog_corrections', K_VIN='tks_vin_cache';
+
+/* ---- field schemas ---- */
+const DEV_FIELDS=[
+  ['name','Tool name'],['brand','Brand'],['tier','Tier / role'],['modules','Modules / add-ons'],
+  ['license','License / tokens'],['coverage_src','Coverage source'],
+  ['covkey','Coverage family (im608 / im508 / km100 / ktmax / smartpro / apropad / lonsdor — or blank)'],['notes','Notes']
+];
+const COV_TOP=[
+  ['make','Make'],['system','System / platform'],['model_hint','Models (hint)'],
+  ['year_start','Year start'],['year_end','Year end'],['region','Region'],
+  ['notes','Notes'],['confidence','Confidence'],['source','Source']
+];
+const CAP_FIELDS=[['add','Add key'],['akl','All keys lost'],['rem','Remote'],['method','Method'],['needs','Needs / notes']];
+
+/* ============================== SEED: DEVICES ============================== */
+const SEED_DEVS=[
+  // --- the 7 you told me you own (owned:true). covkey = which coverage column the row reads. ---
+  {key:'im608', covkey:'im608', owned:true, name:'Autel IM608 Pro 2', brand:'Autel', tier:'Flagship IMMO + diagnostics',
+   modules:'XP400 Pro, G-Box3, APB112', license:'Free updates ~1 yr, then subscription',
+   coverage_src:'OTOFIX vehicle-coverage checker → select IM2 (otofixtech.com/vehicle-coverage/coverage2)', notes:''},
+  {key:'im508', covkey:'im508', owned:true, name:'Autel IM508', brand:'Autel', tier:'Mid-tier IMMO',
+   modules:'Needs XP400 Pro for advanced (VAG MQB, BMW CAS/FEM, MB, MC9S12, IR keys)', license:'Free updates ~1 yr',
+   coverage_src:'OTOFIX vehicle-coverage checker → select IM1', notes:''},
+  {key:'km100', covkey:'km100', owned:true, name:'Autel KM100', brand:'Autel', tier:'Entry IMMO (IKEY universal keys)',
+   modules:'OBD-oriented; AKL restricted on some makes (e.g. some Ford)', license:'Lifetime online updates',
+   coverage_src:'Autel KM100 IMMO Function List (distributor PDF)', notes:''},
+  {key:'ktmax', covkey:'ktmax', owned:true, name:'Xhorse VVDI Key Tool Max', brand:'Xhorse', tier:'Remote / chip generator',
+   modules:'IMMO needs a companion: Mini OBD Tool, Key Tool Max Pro (built-in OBD), or Key Tool Plus',
+   license:'Tokens / points for some calculations',
+   coverage_src:'Xhorse app database + blog.xhorsetool.com update posts', notes:'Standalone = remotes/chips/clone; companion OBD needed to write keys to the car'},
+  {key:'smartpro', covkey:'smartpro', owned:true, name:'SmartPro (Advanced Diagnostics)', brand:'Advanced Diagnostics', tier:'Per-make software tester',
+   modules:'ADS software card per make; or token / 24h UTP; Smart Dongle for some PIN reads',
+   license:'ADS card (owned) or tokens/UTP',
+   coverage_src:'Info Quest (on device) + advanced-diagnostics.com/ad-products/softwares', notes:'Use the US (North America) software set'},
+  {key:'apropad', covkey:'apropad', owned:true, name:'AutoProPad G2 (XTool)', brand:'XTool / Lock Labs', tier:'All-in-one key tool',
+   modules:'Base G2', license:'1-yr subscription (updates + server); $150 reactivation if lapsed >30 days',
+   coverage_src:'autopropad.com/supportedvehicles → supportedvehicles.com', notes:'US-market coverage'},
+  {key:'lonsdor', covkey:'lonsdor', owned:true, name:'Lonsdor K518', brand:'Lonsdor', tier:'IMMO + Toyota/Lexus AKL specialist',
+   modules:'KH100+ for remotes; ADP / LKE / bypass adapters', license:'License activations + points; Toyota/Lexus AKL = annual license + online calculation',
+   coverage_src:'center.lonsdor.com / lonsdor.org car lists', notes:'K518USA = North-America-tuned coverage'},
+
+  // --- selectable catalog: variants / related tools (owned:false until you check them). ---
+  //     Each shares a base coverage column via covkey, but shows its own name + variant note.
+  {key:'apropad_turbo', covkey:'apropad', owned:false, name:'AutoProPad G2 Turbo (XTool)', brand:'XTool / Lock Labs', tier:'All-in-one (faster + a bit more than base G2)',
+   modules:'Turbo CPU', license:'1-yr subscription', coverage_src:'autopropad.com/supportedvehicles', notes:'Shares the AutoProPad coverage column; Turbo adds speed + some extra AKL — verify per job'},
+  {key:'apropad_g3', covkey:'apropad', owned:false, name:'AutoProPad G3 (XTool)', brand:'XTool / Lock Labs', tier:'Newest AutoProPad',
+   modules:'', license:'1-yr subscription', coverage_src:'autopropad.com/supportedvehicles', notes:'Shares the AutoProPad coverage column; newest models — verify per job'},
+  {key:'im608_orig', covkey:'im608', owned:false, name:'Autel IM608 (original)', brand:'Autel', tier:'Flagship (pre Pro II)',
+   modules:'XP400 (not Pro), G-Box2', license:'Subscription after 1 yr', coverage_src:'OTOFIX → IM2', notes:'Slightly behind IM608 Pro II on the newest models — verify'},
+  {key:'im508s', covkey:'im508', owned:false, name:'Autel IM508S', brand:'Autel', tier:'Mid-tier IMMO (updated 508)',
+   modules:'Needs XP400 Pro for advanced', license:'Free updates ~1 yr', coverage_src:'OTOFIX → IM1', notes:'Shares the IM508 coverage column'},
+  {key:'lonsdor_pro', covkey:'lonsdor', owned:false, name:'Lonsdor K518 Pro', brand:'Lonsdor', tier:'Newest K518 (CAN-FD, more coverage)',
+   modules:'KH100+ / adapters', license:'License + points', coverage_src:'center.lonsdor.com (menulistinfo/197)', notes:'Shares the Lonsdor coverage column; Pro adds CAN-FD + newer models'},
+  {key:'lonsdor_ise', covkey:'lonsdor', owned:false, name:'Lonsdor K518ISE', brand:'Lonsdor', tier:'Original K518',
+   modules:'KH100+ / adapters', license:'License + points', coverage_src:'center.lonsdor.com (menulistinfo/5)', notes:'Shares the Lonsdor coverage column'},
+  {key:'ktplus', covkey:'ktmax', owned:false, name:'Xhorse VVDI Key Tool Plus', brand:'Xhorse', tier:'All-in-one (more IMMO-capable than Max)',
+   modules:'Built-in OBD + bench; deeper module work (BMW, Porsche, etc.)', license:'Tokens for some calcs', coverage_src:'Xhorse app database', notes:'More capable on IMMO/bench than Key Tool Max + Mini OBD — verify'},
+  {key:'ktmaxpro', covkey:'ktmax', owned:false, name:'Xhorse VVDI Key Tool Max Pro', brand:'Xhorse', tier:'Key Tool Max + built-in OBD + CAN FD',
+   modules:'Built-in OBD + CAN FD module (no separate Mini OBD needed)', license:'Tokens for some calcs',
+   coverage_src:'xhorsetool.com/wholesale/vvdi-key-tool-max-pro.html + Xhorse app DB + remote list (blog.xhorsevvdi.com/xhorse-vvdi-key-tool-remote-support-list)',
+   notes:'Max Pro = Key Tool Max with built-in OBD + CAN FD: adds GM 2020+ (CAN FD), Toyota 8A/4D (partial), BMW CAS3/3+, broad Euro/Asian. Does IMMO/OBD without the Mini OBD companion. Shares the Key Tool Max coverage column — verify on device (no single official chart; coverage lives in the device app).'},
+
+  // --- Older Advanced Diagnostics programmers (named across the Ilco/Keyline refs as TCP/MVPP/TKO; share Smart Pro coverage) ---
+  {key:'tcodepro', covkey:'smartpro', owned:false, name:'T-Code Pro (TCP)', brand:'Advanced Diagnostics', tier:'Older AD programmer (pre Smart Pro)',
+   modules:'AD software cards / tokens', license:'ADS card or tokens/UTP', coverage_src:'advanced-diagnostics.com', notes:'Predecessor to Smart Pro (tradeable toward it). Shown as "TCP" throughout the Ilco reference. Shares the Smart Pro coverage column — verify per make.'},
+  {key:'mvppro', covkey:'smartpro', owned:false, name:'MVP Pro (MVPP)', brand:'Advanced Diagnostics', tier:'Older AD programmer (pre Smart Pro)',
+   modules:'AD software cards / tokens', license:'ADS card or tokens/UTP', coverage_src:'advanced-diagnostics.com', notes:'Older AD tester ("MVPP" in the Ilco reference). Shares the Smart Pro coverage column — verify.'},
+  {key:'adtko', covkey:'smartpro', owned:false, name:'TKO (Advanced Diagnostics)', brand:'Advanced Diagnostics', tier:'Older AD device',
+   modules:'', license:'ADS card or tokens', coverage_src:'advanced-diagnostics.com', notes:'Listed as "TKO" across the Ilco reference (AD ecosystem). Shares the Smart Pro coverage column — verify.'},
+
+  // --- Transponder CLONING machines (duplicate clonable chips; not IMMO/OBD programming, so no per-make coverage) ---
+  {key:'silca_rw5', covkey:'clone', owned:false, name:'Silca RW5 (Bianchi)', brand:'Silca', tier:'Transponder cloning machine',
+   modules:'', license:'', coverage_src:'silca.biz', notes:'Clones clonable transponders ("RW5" in the Ilco reference). Cloning works by chip type, not per-make programming — no coverage grid.'},
+  {key:'silca_rw4plus', covkey:'clone', owned:false, name:'Silca RW4 Plus', brand:'Silca', tier:'Transponder cloning machine',
+   modules:'', license:'', coverage_src:'silca.biz', notes:'Older cloning device ("RW4 Plus" in the reference).'},
+  {key:'ilco_ezclone', covkey:'clone', owned:false, name:'Ilco EZ-Clone Plus', brand:'Ilco', tier:'Transponder cloning machine',
+   modules:'', license:'', coverage_src:'ilco.us', notes:'Ilco-branded cloning device ("EZ Clone Plus" in the reference).'},
+  {key:'silca_plusbox', covkey:'clone', owned:false, name:'Silca Plus Box', brand:'Silca', tier:'Cloning add-on (Philips/crypto)',
+   modules:'', license:'', coverage_src:'silca.biz', notes:'Snoop/calc add-on for cloning crypto chips ("Plus Box" in the reference).'},
+  {key:'silca_mbox', covkey:'clone', owned:false, name:'Silca M-Box', brand:'Silca', tier:'Cloning add-on (Megamos)',
+   modules:'', license:'', coverage_src:'silca.biz', notes:'Megamos-crypto cloning module ("M-Box" in the reference).'}
+];
+
+/* ============================== SEED: COVERAGE ============================== */
+/* per-device capability: add / akl / rem(ote) / method / needs.  Defaults: add Yes, rem Yes, method OBD. */
+function d(add,akl,method,needs,rem){ return {add:add||'Yes',akl:akl||'Verify',rem:rem||'Yes',method:method||'OBD',needs:needs||''}; }
+
+const M_GM={
+  im608:d('Yes','Yes','OBD','Add easy; AKL ~10–30 min relearn'), im508:d('Yes','Yes','OBD','AKL relearn'),
+  km100:d('Yes','Yes','OBD','Add easy; AKL relearn'), ktmax:d('Yes','Yes','OBD','via Mini OBD / Max Pro'),
+  smartpro:d('Yes','Yes','OBD','ADS GM software'), apropad:d('Yes','Yes','OBD',''), lonsdor:d('Yes','Yes','OBD','')
+};
+const M_FORD={
+  im608:d('Yes','Yes','OBD','AKL: timed (2×10 min) or incoming PATS code'), im508:d('Yes','Yes','OBD','AKL timed'),
+  km100:d('Yes','Restricted','OBD','AKL restricted on some Ford — verify'), ktmax:d('Yes','Yes','OBD','via Mini OBD / Max Pro'),
+  smartpro:d('Yes','Yes','OBD','ADS Ford'), apropad:d('Yes','Yes','OBD',''), lonsdor:d('Yes','Yes','OBD','')
+};
+const M_TOYG={
+  im608:d('Yes','Yes','OBD','G-chip AKL via OBD'), im508:d('Yes','Verify','OBD','AKL — verify / may need XP400'),
+  km100:d('Yes','No','OBD','Add only; AKL not supported'), ktmax:d('Yes','Yes','OBD','via Mini OBD'),
+  smartpro:d('Yes','Yes','OBD','ADS Toyota; emulator for AKL'), apropad:d('Yes','Yes','OBD','Toyota strong'),
+  lonsdor:d('Yes','Yes','OBD','AKL via license')
+};
+const M_TOYH={
+  im608:d('Yes','Yes','OBD','H / 4A AKL via OBD/online; some need 8A cable'), im508:d('Verify','Verify','OBD','newer H/4A — verify'),
+  km100:d('Verify','No','OBD','Add maybe; AKL no'), ktmax:d('Yes','Verify','OBD','via Mini OBD; AKL verify'),
+  smartpro:d('Yes','Verify','OBD','ADS Toyota; AKL may need license'), apropad:d('Yes','Yes','OBD','needs current subscription'),
+  lonsdor:d('Yes','Yes','OBD','Field favorite: AKL = annual license + points (online calc)')
+};
+const M_HONDA={
+  im608:d('Yes','Yes','OBD',''), im508:d('Yes','Yes','OBD',''), km100:d('Yes','Yes','OBD','2022+ may need online — verify'),
+  ktmax:d('Yes','Yes','OBD','via Mini OBD / Max Pro'), smartpro:d('Yes','Yes','OBD','ADS Honda'),
+  apropad:d('Yes','Yes','OBD',''), lonsdor:d('Yes','Yes','OBD','')
+};
+const M_CHRY={
+  im608:d('Yes','PIN','OBD','PIN from BCM; 2018+ Security Gateway (SGW) bypass cable'), im508:d('Yes','PIN','OBD','PIN + SGW bypass (2018+)'),
+  km100:d('Yes','PIN','OBD','PIN required'), ktmax:d('Yes','PIN','OBD','via Mini OBD; PIN'),
+  smartpro:d('Yes','PIN','OBD','ADS Chrysler; PIN'), apropad:d('Yes','PIN','OBD','PIN; SGW bypass'), lonsdor:d('Yes','PIN','OBD','PIN')
+};
+const M_NISS={
+  im608:d('Yes','PIN','OBD','BCM PIN via ~20-min online calc'), im508:d('Yes','PIN','OBD','BCM PIN (online)'),
+  km100:d('Yes','PIN','OBD','PIN (online)'), ktmax:d('Yes','PIN','OBD','via Mini OBD; PIN'),
+  smartpro:d('Yes','PIN','OBD','ADS Nissan; PIN'), apropad:d('Yes','PIN','OBD','PIN'), lonsdor:d('Yes','PIN','OBD','PIN')
+};
+const M_HK={
+  im608:d('Yes','Yes','OBD','newer smart may need PIN/online'), im508:d('Yes','Verify','OBD',''),
+  km100:d('Yes','Verify','OBD',''), ktmax:d('Yes','Yes','OBD','via Mini OBD'),
+  smartpro:d('Yes','Yes','OBD','ADS Hyundai/Kia; Smart Dongle for some PIN'), apropad:d('Yes','Yes','OBD',''), lonsdor:d('Yes','Yes','OBD','')
+};
+const M_VAGOBD={
+  im608:d('Yes','Yes','OBD','pre-MQB ID48 via OBD'), im508:d('Yes','Yes','OBD',''),
+  km100:d('Yes','Verify','OBD',''), ktmax:d('Yes','Yes','OBD','via Mini OBD'),
+  smartpro:d('Yes','Yes','OBD','ADS VAG'), apropad:d('Yes','Yes','OBD',''), lonsdor:d('Yes','Yes','OBD','')
+};
+const M_VAGMQB={
+  im608:d('Yes','Bench','Bench','MQB needs IMMO data on bench (XP400 Pro / G-Box3)'), im508:d('Verify','Bench','Bench','MQB needs XP400 Pro'),
+  km100:d('No','No','—','Not supported'), ktmax:d('Verify','Verify','Bench','MQB via Key Tool Plus (bench)'),
+  smartpro:d('Verify','Dealer','—','MQB limited — verify'), apropad:d('Verify','Verify','—','MQB — verify / subscription'),
+  lonsdor:d('Verify','Verify','—','MQB — verify')
+};
+const M_MAZDA={
+  im608:d('Yes','Yes','OBD',''), im508:d('Yes','Yes','OBD',''), km100:d('Yes','Verify','OBD',''),
+  ktmax:d('Yes','Yes','OBD','via Mini OBD'), smartpro:d('Yes','Yes','OBD','ADS Mazda'), apropad:d('Yes','Yes','OBD',''), lonsdor:d('Yes','Yes','OBD','')
+};
+const M_SUB={
+  im608:d('Yes','Yes','OBD','some need PIN'), im508:d('Yes','Verify','OBD',''), km100:d('Yes','Verify','OBD',''),
+  ktmax:d('Yes','Yes','OBD','via Mini OBD'), smartpro:d('Yes','Yes','OBD','ADS Subaru'), apropad:d('Yes','Yes','OBD',''), lonsdor:d('Yes','Yes','OBD','')
+};
+const M_MITS={
+  im608:d('Yes','Yes','OBD',''), im508:d('Yes','Yes','OBD',''), km100:d('Yes','Verify','OBD',''),
+  ktmax:d('Yes','Yes','OBD','via Mini OBD'), smartpro:d('Yes','Yes','OBD','ADS Mitsubishi'), apropad:d('Yes','Yes','OBD',''), lonsdor:d('Yes','Yes','OBD','')
+};
+const M_BMW={
+  im608:d('Yes','Bench','Bench','CAS3/4 + FEM/BDC on bench (G-Box3)'), im508:d('Verify','Bench','Bench','Needs XP400 Pro; bench'),
+  km100:d('No','No','—','Not supported'), ktmax:d('Verify','Bench','Bench','via Key Tool Plus (bench)'),
+  smartpro:d('Verify','Dealer','—','Limited — verify'), apropad:d('Verify','Verify','—','Verify'), lonsdor:d('Verify','Verify','—','Verify')
+};
+const M_MB={
+  im608:d('Yes','Bench','Bench','FBS3 via bench (EIS + password calc); FBS4 = dealer'), im508:d('Verify','Dealer','—','FBS3 needs XP400 Pro; FBS4 dealer'),
+  km100:d('No','No','—','Not supported'), ktmax:d('Verify','Bench','Bench','FBS3 via Key Tool Plus; FBS4 dealer'),
+  smartpro:d('Verify','Dealer','—','Limited'), apropad:d('Verify','Dealer','—','Verify'), lonsdor:d('Verify','Dealer','—','Verify')
+};
+
+/* older / additional eras */
+const M_OLD_DOM={  // older domestic, onboard/OBD relearn (GM PK3, Ford PATS, older Toyota/Honda/Hyundai/Kia)
+  im608:d('Yes','Yes','OBD/onboard','older relearn; some need a 2nd working key'), im508:d('Yes','Yes','OBD/onboard',''),
+  km100:d('Yes','Verify','OBD/onboard',''), ktmax:d('Yes','Yes','OBD','via Mini OBD'),
+  smartpro:d('Yes','Yes','OBD','ADS by make'), apropad:d('Yes','Yes','OBD',''), lonsdor:d('Yes','Yes','OBD','')
+};
+const M_OLD_PIN={  // older needing a PIN / Sentry code (older Chrysler, older Nissan)
+  im608:d('Yes','PIN','OBD','PIN / Sentry code'), im508:d('Yes','PIN','OBD','PIN'), km100:d('Yes','PIN','OBD','PIN'),
+  ktmax:d('Yes','PIN','OBD','via Mini OBD; PIN'), smartpro:d('Yes','PIN','OBD','ADS; PIN'),
+  apropad:d('Yes','PIN','OBD','PIN'), lonsdor:d('Yes','PIN','OBD','PIN')
+};
+const M_EURO_ADV={  // Volvo / Jaguar–Land Rover — mostly advanced/dealer, thin aftermarket
+  im608:d('Verify','Dealer','—','advanced/dealer — limited aftermarket'), im508:d('Verify','Dealer','—','limited'),
+  km100:d('No','No','—','Not supported'), ktmax:d('Verify','Dealer','—','via Key Tool Plus — verify'),
+  smartpro:d('Verify','Dealer','—','limited'), apropad:d('Verify','Dealer','—','verify'), lonsdor:d('Verify','Dealer','—','verify')
+};
+
+const SRC='Vendor coverage (Autel OTOFIX, Xhorse, Adv. Diagnostics, XTool, Lonsdor) + aftermarket consensus — verify on device (2026-06-15)';
+function cov(make,sys,hint,ys,ye,m,notes){
+  return {make,system:sys,model_hint:hint||'',year_start:String(ys),year_end:String(ye),region:'US',
+    cov:m,notes:notes||'',confidence:'By platform — verify on device',source:SRC};
+}
+const SEED_COV=[
+  cov('Ford','Ford PATS / 128-bit','F-150, Explorer, Escape, Fusion, Mustang…',2011,2025,M_FORD,'Add-key easy via OBD; AKL is timed or needs an incoming PATS code.'),
+  cov('Lincoln','Ford PATS / 128-bit','Navigator, MKZ, Aviator, Nautilus…',2011,2025,M_FORD,''),
+  cov('Chevrolet','GM Hitag2 (8-cut / prox)','Silverado, Malibu, Equinox, Tahoe, Cruze…',2010,2025,M_GM,'AKL = on-vehicle relearn (~10–30 min). Push-to-start = no cylinder.'),
+  cov('GMC','GM Hitag2 (8-cut / prox)','Sierra, Acadia, Terrain, Yukon…',2010,2025,M_GM,''),
+  cov('Buick','GM Hitag2 (8-cut / prox)','Enclave, Encore, Envision, LaCrosse…',2010,2025,M_GM,''),
+  cov('Cadillac','GM Hitag2 (8-cut / prox)','Escalade, XT5, CT5, ATS, CTS…',2010,2025,M_GM,''),
+  cov('Toyota','Toyota G (DST80)','Camry, Corolla, RAV4, Tacoma, Tundra…',2010,2017,M_TOYG,'G-chip era — AKL widely supported via OBD.'),
+  cov('Toyota','Toyota H / 4A (DST-AES)','Camry, Corolla, RAV4, Tundra, Tacoma…',2018,2025,M_TOYH,'H / 4A AKL is the hard one — Lonsdor (license + points) is the field favorite; IM608 does many via OBD/online.'),
+  cov('Lexus','Toyota G (smart)','ES, RX, GX, IS…',2010,2017,M_TOYG,'Mostly smart-key.'),
+  cov('Lexus','Toyota 4A (smart)','ES, RX, NX, RZ…',2018,2025,M_TOYH,''),
+  cov('Scion','Toyota G (DST80)','tC, xB, FR-S…',2008,2016,M_TOYG,''),
+  cov('Honda','Honda G / ID47','Civic, Accord, CR-V, Pilot, Odyssey…',2013,2025,M_HONDA,'OBD add + AKL on most; verify 2022+ online needs.'),
+  cov('Acura','Honda G / ID47','MDX, RDX, TLX, ILX…',2013,2025,M_HONDA,''),
+  cov('Dodge','FCA 4A (PIN)','Charger, Durango, Challenger…',2011,2025,M_CHRY,'PIN read from BCM; 2018+ Security Gateway (SGW) bypass cable needed.'),
+  cov('Chrysler','FCA 4A (PIN)','300, Pacifica…',2011,2025,M_CHRY,''),
+  cov('Jeep','FCA 4A (PIN)','Wrangler, Grand Cherokee, Compass…',2011,2025,M_CHRY,''),
+  cov('Ram','FCA 4A (PIN)','1500, 2500/3500, ProMaster…',2011,2025,M_CHRY,''),
+  cov('Nissan','Nissan Hitag2 (BCM PIN)','Altima, Sentra, Rogue, Pathfinder…',2010,2025,M_NISS,'BCM PIN via ~20-min online calculation.'),
+  cov('Infiniti','Nissan Hitag2 (BCM PIN)','Q50, QX60, QX80…',2010,2025,M_NISS,''),
+  cov('Hyundai','Hyundai 8A / DST80','Elantra, Sonata, Tucson, Santa Fe…',2012,2025,M_HK,'Newer smart may need PIN/online.'),
+  cov('Kia','Kia 8A / DST80','Optima/K5, Sportage, Sorento, Forte…',2012,2025,M_HK,''),
+  cov('Volkswagen','VAG Megamos ID48 (pre-MQB)','Jetta, Passat, Tiguan (older)…',2006,2015,M_VAGOBD,'OBD add/AKL on ID48.'),
+  cov('Volkswagen','VAG MQB','Golf, Tiguan, Atlas, Jetta (MQB)…',2015,2025,M_VAGMQB,'MQB needs IMMO data on bench / advanced — much harder than pre-MQB.'),
+  cov('Audi','VAG Megamos ID48 (pre-MQB)','A4, A6, Q5 (older)…',2006,2015,M_VAGOBD,''),
+  cov('Audi','VAG MQB','A3, Q3, Q5 (MQB)…',2015,2025,M_VAGMQB,''),
+  cov('Mazda','Mazda (4D / G)','Mazda3, CX-5, CX-30, CX-9…',2014,2025,M_MAZDA,''),
+  cov('Subaru','Subaru G','Outback, Forester, Crosstrek, Impreza…',2015,2025,M_SUB,'Some need PIN.'),
+  cov('Mitsubishi','Mitsubishi 8A','Outlander, Eclipse Cross, Mirage…',2008,2025,M_MITS,''),
+  cov('BMW','BMW CAS3/4 · FEM/BDC','3/5 Series, X3, X5…',2006,2025,M_BMW,'Mostly bench/advanced (IM608 + G-Box3). Not an entry-tool platform.'),
+  cov('Mercedes-Benz','MB FBS3 / FBS4','C/E/S-Class, GLC, GLE…',2008,2025,M_MB,'FBS3 = bench/advanced; FBS4 (newer) = dealer.'),
+
+  // ---- older / additional platforms (broader coverage) ----
+  cov('Chevrolet','GM PK3 / VATS (pre-2010)','Impala, Malibu, Silverado, Cobalt…',2000,2009,M_OLD_DOM,'Older GM — onboard/OBD relearn; some need a 2nd working key.'),
+  cov('GMC','GM PK3 (pre-2010)','Sierra, Yukon, Envoy (older)…',2000,2009,M_OLD_DOM,''),
+  cov('Pontiac','GM PK3 / VATS','G6, Grand Prix, G8, Vibe…',2000,2009,M_OLD_DOM,''),
+  cov('Saturn','GM PK3','Ion, Vue, Aura, Outlook…',2000,2009,M_OLD_DOM,''),
+  cov('Ford','Ford PATS (40/80-bit, older)','Crown Victoria, F-150, Focus, Escape (older)…',1998,2010,M_OLD_DOM,'Older PATS — onboard 2-key add; AKL needs a PATS incode/code.'),
+  cov('Mercury','Ford PATS (older)','Grand Marquis, Milan, Mariner…',1998,2011,M_OLD_DOM,''),
+  cov('Toyota','Toyota 4C / 4D (older)','Camry, Corolla, Tacoma, Sienna (older)…',2000,2009,M_OLD_DOM,'Older transponder — onboard/OBD.'),
+  cov('Lexus','Toyota 4C / 4D (older)','ES, RX, IS (older)…',2000,2009,M_OLD_DOM,''),
+  cov('Honda','Honda ID13 / ID46 (older)','Civic, Accord, CR-V, Odyssey (older)…',2001,2012,M_OLD_DOM,'Older Honda — onboard/OBD.'),
+  cov('Acura','Honda ID46 (older)','TL, TSX, MDX (older)…',2001,2012,M_OLD_DOM,''),
+  cov('Dodge','Chrysler Sentry Key (older)','Charger, Ram, Caravan (older)…',1998,2010,M_OLD_PIN,'Older — Sentry Key PIN.'),
+  cov('Chrysler','Chrysler Sentry Key (older)','300, Town & Country, Sebring…',1998,2010,M_OLD_PIN,''),
+  cov('Jeep','Chrysler Sentry Key (older)','Wrangler, Grand Cherokee, Liberty…',1998,2010,M_OLD_PIN,''),
+  cov('Nissan','Nissan ID4D / 60 (older)','Altima, Sentra, Maxima (older)…',2002,2009,M_OLD_PIN,'Older — BCM / PIN.'),
+  cov('Infiniti','Nissan (older)','G35, FX35 (older)…',2003,2009,M_OLD_PIN,''),
+  cov('Hyundai','Hyundai 4D60 (older)','Sonata, Elantra, Santa Fe (older)…',2006,2011,M_OLD_DOM,''),
+  cov('Kia','Kia 4D60 (older)','Optima, Sorento, Sportage (older)…',2006,2011,M_OLD_DOM,''),
+  cov('Volvo','Volvo CEM','XC90, XC60, S60, S90…',2005,2025,M_EURO_ADV,'Mostly advanced/dealer; thin aftermarket.'),
+  cov('Land Rover','JLR KVM / smart','Range Rover, Discovery, Evoque…',2006,2025,M_EURO_ADV,'Advanced/dealer.'),
+  cov('Jaguar','JLR KVM / smart','XF, XE, F-Pace…',2006,2025,M_EURO_ADV,''),
+  cov('MINI','BMW CAS · FEM/BDC','Cooper, Clubman, Countryman…',2007,2025,M_BMW,'BMW immobilizer — bench/advanced.'),
+  cov('Genesis','Hyundai smart (8A / 4A)','G70, G80, GV70, GV80…',2017,2025,M_HK,'Hyundai luxury — like Hyundai/Kia smart.'),
+  cov('Fiat','Fiat (Megamos / Hitag)','500, 500X, 500L…',2012,2020,M_OLD_DOM,''),
+  cov('Suzuki','Suzuki (older)','SX4, Grand Vitara, Kizashi…',2005,2013,M_OLD_DOM,'')
+];
+
+const DEVKEYS=SEED_DEVS.map(x=>x.key);   // canonical device order
+const SEEDVER=4;   // v4: + AD older programmers (TCP/MVPP/TKO) and Silca/Ilco cloning machines from the Ilco/Keyline refs
+
+/* ---- seed once if empty; on version bump, MERGE new rows (never clobbers edits) ---- */
+function ensureSeed(){
+  if(!readLS('tks_prog_seeded',false)){
+    if(!(readLS(K_DEV,[])||[]).length) writeLS(K_DEV, SEED_DEVS.map(x=>Object.assign({id:uid('pd')},x)));
+    if(!(readLS(K_COV,[])||[]).length) writeLS(K_COV, SEED_COV.map(x=>Object.assign({id:uid('pc')},x)));
+    writeLS('tks_prog_seeded',true); writeLS('tks_prog_seedver',SEEDVER); return;
+  }
+  const sv=readLS('tks_prog_seedver',1)||1;
+  if(sv<SEEDVER){
+    // devices: normalize older rows (pre-owned/covkey), then add any new catalog tools by key
+    const D=readLS(K_DEV,[])||[]; const haveD=new Set(D.map(r=>r.key));
+    D.forEach(r=>{ if(r.owned===undefined) r.owned=true; if(!r.covkey) r.covkey=r.key; });
+    SEED_DEVS.forEach(s=>{ if(!haveD.has(s.key)){ D.push(Object.assign({id:uid('pd')},s)); haveD.add(s.key); } });
+    writeLS(K_DEV,D);
+    // coverage: add any missing rows (never clobbers edits)
+    const C=readLS(K_COV,[])||[]; const haveC=new Set(C.map(r=>(r.make+'|'+r.system+'|'+r.year_start).toUpperCase()));
+    SEED_COV.forEach(s=>{ const k=(s.make+'|'+s.system+'|'+s.year_start).toUpperCase(); if(!haveC.has(k)){ C.push(Object.assign({id:uid('pc')},s)); haveC.add(k); } });
+    writeLS(K_COV,C);
+  }
+  writeLS('tks_prog_seedver',SEEDVER);
+}
+ensureSeed();
+
+const devices=()=>readLS(K_DEV,[]), coverage=()=>readLS(K_COV,[]), corr=()=>readLS(K_CORR,[]);
+const saveDev=a=>writeLS(K_DEV,a), saveCov=a=>writeLS(K_COV,a), saveCorr=a=>writeLS(K_CORR,a);
+
+/* ---- helpers ---- */
+function yearMatch(r,y){ y=Number(y); if(!y) return true; const a=Number(r.year_start)||0,b=Number(r.year_end)||9999; return y>=a && y<=b; }
+function pill(val){
+  const raw=String(val==null?'':val).trim(); const s=raw.toLowerCase();
+  if(s==='yes') return '<span class="pill ok">Yes</span>';
+  if(s==='no') return '<span class="pill no">No</span>';
+  if(s===''||s==='—'||s==='n/a'||s==='na') return '<span class="pill na">'+esc(raw||'—')+'</span>';
+  return '<span class="pill warn">'+esc(raw)+'</span>';
+}
+function uniqSort(a){ return [...new Set(a.filter(Boolean))].sort((x,y)=>String(x).localeCompare(String(y),undefined,{numeric:true})); }
+
+/* ============================== REFERENCE CARD ============================== */
+// Real-world tool removals the vendor coverage pages DON'T reflect (a maker forced the tool to
+// drop functions). Mirrors the Start-a-Job lookup so both views agree. Returns 'none' or 'addonly'.
+function toolRestriction(covkey, make, year){
+  const t=String(covkey||'').toLowerCase(), mk=String(make||'').toLowerCase(), y=parseInt(year,10)||0;
+  const AUTEL=/^(im608|im508|km100)$/.test(t);
+  if(AUTEL && /^(ford|lincoln)$/.test(mk) && y>=2015) return 'none';   // Ford forced Autel to remove 2015+ Ford key/IMMO (Aug 2025)
+  if(AUTEL && /^(toyota|lexus|scion)$/.test(mk)) return 'addonly';     // Autel removed Toyota/Lexus AKL in the US — add-key only
+  return null;
+}
+function renderCards(rows){
+  const box=document.getElementById('cards');
+  const dv=devices().filter(x=>x.owned!==false);
+  if(!dv.length){ box.innerHTML='<div class="hint">No tools selected. Open <b>🧰 My tools</b> and check the programmers your shop owns — only those show here.</div>'; return; }
+  if(!rows.length){ box.innerHTML='<div class="hint">No coverage row on file for that vehicle yet. Add it under 📋 Coverage.</div>'; return; }
+  box.innerHTML=rows.slice(0,8).map(r=>{
+    const matrix=dv.map(dev=>{
+      const c=(r.cov&&r.cov[dev.covkey||dev.key])||null;
+      if(!c) return `<tr><td><b>${esc(dev.name)}</b></td><td>${pill('Verify')}</td><td>${pill('Verify')}</td><td>${pill('Verify')}</td><td>—</td><td class="muted">not recorded — verify on device</td></tr>`;
+      let add=c.add, akl=c.akl, rem=c.rem, needs=c.needs||'';
+      const restr=toolRestriction(dev.covkey||dev.key, r.make, r.year_end);
+      if(restr==='none'){          // Autel × Ford/Lincoln 2015+ — Autel lost the function entirely
+        add='Pre-2015 only'; akl='Removed';
+        needs='Autel dropped ALL 2015+ Ford key/IMMO (Aug 2025) — pre-2015 only. For 2015+ use SmartPro / AutoProPad / Lonsdor.';
+      } else if(restr==='addonly'){ // Autel × Toyota/Lexus/Scion — AKL removed in the US
+        akl='Removed';
+        needs='Autel removed Toyota/Lexus AKL in the US — add-key only. AKL: Lonsdor (license+points) or AutoProPad.';
+      }
+      return `<tr><td><b>${esc(dev.name)}</b></td><td>${pill(add)}</td><td>${pill(akl)}</td><td>${pill(rem)}</td><td>${esc(c.method||'—')}</td><td class="muted">${esc(needs)}</td></tr>`;
+    }).join('');
+    return `<div class="card">
+      <h2>${esc(r.system||r.make)}</h2>
+      <div class="veh">${esc(r.make)}${r.model_hint?(' · '+esc(r.model_hint)):''} · ${esc(r.year_start)}–${esc(r.year_end)}${r.region?(' · '+esc(r.region)):''}</div>
+      <div class="tblwrap"><table class="tbl">
+        <tr><th>Programmer</th><th>Add key</th><th>AKL</th><th>Remote</th><th>Method</th><th>Needs / notes</th></tr>
+        ${matrix}
+      </table></div>
+      ${r.notes?('<div class="kv" style="margin-top:10px"><div class="k">Notes</div><div class="v" style="font-weight:500">'+esc(r.notes)+'</div></div>'):''}
+      <div class="src" style="margin-top:10px">${esc(r.confidence||'')} · src: ${esc(r.source||'')}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================== LOOKUP ============================== */
+const fYear=document.getElementById('fYear'), fMake=document.getElementById('fMake');
+function populateMakes(){
+  const makes=uniqSort(coverage().map(r=>r.make));
+  fMake.innerHTML='<option value="">Make…</option>'+makes.map(m=>`<option>${esc(m)}</option>`).join('');
+}
+function populateYears(){
+  let opts='<option value="">Year (any)</option>';
+  for(let y=2026;y>=1998;y--) opts+=`<option>${y}</option>`;
+  fYear.innerHTML=opts;
+}
+function runLookup(){
+  const msg=document.getElementById('lookMsg'), box=document.getElementById('cards');
+  const mk=fMake.value, yr=fYear.value;
+  if(!mk){ box.innerHTML=''; msg.textContent='Pick a make (and ideally a year) to see which of your tools covers it.'; return; }
+  const rows=coverage().filter(r=> r.make.toLowerCase()===mk.toLowerCase() && yearMatch(r,yr));
+  msg.textContent=rows.length?(rows.length+' platform'+(rows.length===1?'':'s')+' for '+mk+(yr?(' '+yr):'')):'No platform row for '+mk+(yr?(' '+yr):'')+' yet.';
+  renderCards(rows);
+}
+populateMakes(); populateYears();
+fMake.addEventListener('change', runLookup);
+fYear.addEventListener('change', runLookup);
+function setSelect(sel,val){ if(!val) return false; const v=String(val).toLowerCase(); const opt=[...sel.options].find(o=>o.value.toLowerCase()===v); if(opt){ sel.value=opt.value; return true; } return false; }
+
+document.getElementById('vinBtn').onclick=()=>{
+  const vin=document.getElementById('vinIn').value.trim().toUpperCase();
+  const msg=document.getElementById('lookMsg');
+  if(!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)){ msg.textContent='Enter a full 17-character VIN.'; return; }
+  msg.textContent='Decoding…';
+  TKS.decodeVin(vin).then(res=>{
+    // Decode succeeded — show it FIRST so a coverage-data hiccup can't masquerade as a VIN failure.
+    msg.innerHTML='Decoded: <b>'+esc(res.year)+' '+esc(res.make)+' '+esc(res.model)+'</b>';
+    try{ const cache=readLS(K_VIN,[]).filter(c=>c.vin!==vin); cache.unshift({vin,make:res.make,model:res.model,year:res.year,ts:Date.now()}); writeLS(K_VIN, cache.slice(0,25)); }catch(e){}
+    try{
+      const yr=Number(res.year), mk=(res.make||'').toLowerCase();
+      setSelect(fYear,res.year); setSelect(fMake,res.make);
+      const rows=coverage().filter(r=> (r.make||'').toLowerCase()===mk && yearMatch(r,yr));   // null-safe make
+      if(!rows.length){ msg.innerHTML+=' — no platform row yet; pick a make or add it under 📋 Coverage.'; }
+      renderCards(rows);
+    }catch(e){ /* coverage lookup is best-effort; the decode itself still succeeded */ }
+  }).catch(e=>{ msg.textContent=(e&&e.message)||'Could not read that VIN — check it or enter the vehicle manually.'; });
+};
+document.getElementById('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('vinBtn').click(); });
+(function(){ const last=(readLS(K_VIN,[])||[])[0]; if(last){ document.getElementById('vinIn').value=last.vin; } })();
+
+/* ============================== DEVICES TABLE ============================== */
+function renderDevices(){
+  const f=(document.getElementById('dSearch').value||'').toLowerCase();
+  let rows=devices().filter(r=>!f || (r.name+' '+r.brand+' '+r.tier+' '+r.modules).toLowerCase().indexOf(f)>=0);
+  rows=rows.slice().sort((a,b)=>((b.owned!==false)-(a.owned!==false)) || String(a.brand).localeCompare(String(b.brand)));
+  const ownedN=devices().filter(d=>d.owned!==false).length;
+  document.getElementById('dCount').textContent=ownedN+' owned · '+devices().length+' in catalog — check the tools your shop owns (only owned tools show in the Lookup)';
+  document.getElementById('dTbl').innerHTML =
+    '<tr><th>Own?</th><th>Tool</th><th>Brand</th><th>Tier / role</th><th>Modules / add-ons</th><th>Notes (editable)</th><th></th></tr>'+
+    rows.map(r=>`<tr style="${r.owned===false?'opacity:.55':''}">
+      <td style="text-align:center"><input type="checkbox" class="ownck" data-id="${r.id}" ${r.owned!==false?'checked':''} style="width:22px;height:22px"></td>
+      <td><b>${esc(r.name)}</b></td><td>${esc(r.brand)}</td><td>${esc(r.tier)}</td>
+      <td>${esc(r.modules)}</td>
+      <td><input class="notein" data-id="${r.id}" value="${esc(r.notes)}" placeholder="field notes…"></td>
+      <td><button class="btn sm" data-edit="${r.id}">✎</button> <button class="btn sm" data-cap="editReference" data-del="${r.id}">🗑</button></td>
+    </tr>`).join('');
+  document.querySelectorAll('#dTbl .ownck').forEach(c=>c.onchange=()=>{ const a=devices(); const x=a.find(z=>z.id===c.dataset.id); if(x){ x.owned=c.checked; saveDev(a); renderDevices(); } });
+  document.querySelectorAll('#dTbl .notein').forEach(i=>i.onchange=()=>{ const a=devices(); const x=a.find(z=>z.id===i.dataset.id); if(x){ x.notes=i.value; saveDev(a); } });
+  document.querySelectorAll('#dTbl [data-edit]').forEach(b=>b.onclick=()=>openDevEditor(b.dataset.edit));
+  document.querySelectorAll('#dTbl [data-del]').forEach(b=>b.onclick=()=>{ TKS_ACCESS.confirmDanger({title:'Remove this tool from the catalog?',message:'To just stop showing it in the Lookup, uncheck Own? instead.',confirmLabel:'Remove'}).then(function(ok){ if(ok){ saveDev(devices().filter(z=>z.id!==b.dataset.del)); renderDevices(); } }); });
+}
+document.getElementById('dSearch').addEventListener('input',renderDevices);
+
+/* ============================== COVERAGE TABLE ============================== */
+function capSummary(r){
+  const dv=devices().filter(x=>x.owned!==false);
+  return dv.map(d2=>{ const c=(r.cov&&r.cov[d2.covkey||d2.key]); const tag=String(d2.key).toUpperCase().slice(0,4);
+    if(!c) return tag+':—';
+    let add=c.add||'?', akl=c.akl||'?';
+    const restr=toolRestriction(d2.covkey||d2.key, r.make, r.year_end);
+    if(restr==='none'){ add='pre15'; akl='No'; } else if(restr==='addonly'){ akl='No'; }
+    return tag+':'+add+'/'+akl; }).join('  ');
+}
+function renderCoverage(){
+  const f=(document.getElementById('cSearch').value||'').toLowerCase();
+  const rows=coverage().filter(r=>!f || (r.make+' '+r.system+' '+r.model_hint+' '+r.year_start+' '+r.year_end).toLowerCase().indexOf(f)>=0);
+  document.getElementById('cCount').textContent=rows.length+' of '+coverage().length+' platform rows  ·  cells show TOOL:addKey/AKL';
+  document.getElementById('cTbl').innerHTML =
+    '<tr><th>Make</th><th>System</th><th>Years</th><th>Per-tool (add/AKL)</th><th></th></tr>'+
+    rows.map(r=>`<tr>
+      <td><b>${esc(r.make)}</b></td><td>${esc(r.system)}</td><td>${esc(r.year_start)}–${esc(r.year_end)}</td>
+      <td class="muted" style="font-size:11.5px">${esc(capSummary(r))}</td>
+      <td><button class="btn sm" data-edit="${r.id}">✎</button> <button class="btn sm" data-cap="editReference" data-del="${r.id}">🗑</button></td>
+    </tr>`).join('');
+  document.querySelectorAll('#cTbl [data-edit]').forEach(b=>b.onclick=()=>openCovEditor(b.dataset.edit));
+  document.querySelectorAll('#cTbl [data-del]').forEach(b=>b.onclick=()=>{ TKS_ACCESS.confirmDanger({title:'Delete this coverage row?',confirmLabel:'Delete'}).then(function(ok){ if(ok){ saveCov(coverage().filter(z=>z.id!==b.dataset.del)); renderCoverage(); } }); });
+}
+document.getElementById('cSearch').addEventListener('input',renderCoverage);
+
+/* ============================== EDITORS ============================== */
+let editCtx={type:null,id:null};
+function closeOv(){ document.getElementById('ov').classList.remove('on'); }
+document.getElementById('ovCancel').onclick=closeOv;
+
+function openDevEditor(id){
+  editCtx={type:'dev',id:id||null};
+  const cur = id ? devices().find(z=>z.id===id) : {};
+  document.getElementById('ovTitle').textContent=(id?'Edit ':'Add ')+'tool';
+  document.getElementById('ovFields').innerHTML = DEV_FIELDS.map(([k,lbl])=>
+    `<div class="fld"><label>${esc(lbl)}</label><input class="in" data-k="${k}" value="${esc(cur[k]||'')}"></div>`).join('');
+  document.getElementById('ov').classList.add('on');
+}
+document.getElementById('dAdd').onclick=()=>openDevEditor(null);
+
+function openCovEditor(id){
+  editCtx={type:'cov',id:id||null};
+  const cur = id ? coverage().find(z=>z.id===id) : {region:'US',confidence:'Confirmed in field',source:'owner-added'};
+  const cv = (cur.cov)||{};
+  document.getElementById('ovTitle').textContent=(id?'Edit ':'Add ')+'coverage row';
+  let html = COV_TOP.map(([k,lbl])=>
+    `<div class="fld"><label>${esc(lbl)}</label><input class="in" data-top="${k}" value="${esc(cur[k]||'')}"></div>`).join('');
+  html += '<div class="hint" style="margin-top:6px">Per-tool capability — add / AKL / remote: <b>Yes · No · Verify · PIN · License · Bench · Dealer · Restricted</b></div>';
+  html += devices().map(dev=>{
+    const c=cv[dev.key]||{};
+    const grid=CAP_FIELDS.map(([fk,flbl])=>
+      `<div class="fld" style="margin:0"><label>${esc(flbl)}</label><input class="in" data-dev="${dev.key}" data-f="${fk}" value="${esc(c[fk]||'')}"></div>`).join('');
+    return `<div class="devblk"><h4>${esc(dev.name)}</h4><div class="devgrid">${grid}</div></div>`;
+  }).join('');
+  document.getElementById('ovFields').innerHTML=html;
+  document.getElementById('ov').classList.add('on');
+}
+document.getElementById('cAdd').onclick=()=>openCovEditor(null);
+
+document.getElementById('ovSave').onclick=()=>{
+  if(editCtx.type==='dev'){
+    const obj={}; document.querySelectorAll('#ovFields [data-k]').forEach(i=>obj[i.dataset.k]=i.value.trim());
+    if(!obj.name){ alert('Tool name is required.'); return; }
+    const arr=devices();
+    if(editCtx.id){ const x=arr.find(z=>z.id===editCtx.id); Object.assign(x,obj); }
+    else { obj.id=uid('pd'); obj.key=obj.name.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,12)||uid('k'); obj.owned=true; if(!obj.covkey) obj.covkey=obj.key; arr.push(obj); }
+    saveDev(arr); closeOv(); renderDevices(); return;
+  }
+  // coverage
+  const obj={cov:{}}; document.querySelectorAll('#ovFields [data-top]').forEach(i=>obj[i.dataset.top]=i.value.trim());
+  document.querySelectorAll('#ovFields [data-dev]').forEach(i=>{
+    const k=i.dataset.dev, f=i.dataset.f; (obj.cov[k]=obj.cov[k]||{})[f]=i.value.trim();
+  });
+  // drop fully-empty device blocks
+  Object.keys(obj.cov).forEach(k=>{ const c=obj.cov[k]; if(!Object.values(c).some(v=>String(v).trim())) delete obj.cov[k]; });
+  if(!obj.make){ alert('Make is required.'); return; }
+  const arr=coverage();
+  if(editCtx.id){ const x=arr.find(z=>z.id===editCtx.id); Object.assign(x,obj); }
+  else { obj.id=uid('pc'); if(!obj.source) obj.source='owner-added'; arr.push(obj); }
+  saveCov(arr); closeOv(); renderCoverage();
+};
+
+/* ============================== CSV import/export ============================== */
+function toCSV(rows,fields){
+  const head=fields.join(',');
+  const body=rows.map(r=>fields.map(f=>{ let s=String(r[f]==null?'':r[f]); return /[",\n]/.test(s)?('"'+s.replace(/"/g,'""')+'"'):s; }).join(',')).join('\n');
+  return head+'\n'+body;
+}
+function parseCSV(text){
+  const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.length); if(!lines.length) return [];
+  const split=l=>{ const out=[];let cur='',q=false; for(let i=0;i<l.length;i++){const c=l[i]; if(q){ if(c==='"'){ if(l[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; } else { if(c===','){out.push(cur);cur='';} else if(c==='"'){q=true;} else cur+=c; } } out.push(cur); return out; };
+  const head=split(lines[0]); return lines.slice(1).map(l=>{ const c=split(l); const o={}; head.forEach((h,i)=>o[h.trim()]=c[i]||''); return o; });
+}
+function dl(name,text,type){ const b=new Blob([text],{type:type||'text/plain'}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(u),1500); }
+
+const DKEYS=DEV_FIELDS.map(f=>f[0]).concat(['key','owned','id']);
+document.getElementById('dExport').onclick=()=>dl('tks_prog_devices.csv',toCSV(devices(),DKEYS),'text/csv');
+document.getElementById('dImport').onclick=()=>document.getElementById('dFile').click();
+document.getElementById('dFile').onchange=e=>{ if(e.target.files[0]){ const rd=new FileReader(); rd.onload=()=>{ try{
+  const inc=parseCSV(rd.result); const cur=readLS(K_DEV,[]); let a=0,u=0;
+  inc.forEach(o=>{ if(!o.id) o.id=uid('pd'); if(!o.key) o.key=(o.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,12)||uid('k'); if(!o.covkey) o.covkey=o.key; if('owned' in o) o.owned=!/^(false|0|no)$/i.test(String(o.owned).trim()); const ex=cur.find(z=>z.id===o.id); if(ex){ Object.assign(ex,o); u++; } else { cur.push(o); a++; } });
+  writeLS(K_DEV,cur); renderDevices(); alert('Imported: '+a+' added, '+u+' updated.');
+}catch(err){ alert('Could not read that CSV.'); } }; rd.readAsText(e.target.files[0]); } e.target.value=''; };
+
+// coverage CSV keeps the nested per-tool capability in a cov_json column
+const CCOLS=['id','make','system','model_hint','year_start','year_end','region','notes','confidence','source','cov_json'];
+function covToRows(){ return coverage().map(r=>Object.assign({},r,{cov_json:JSON.stringify(r.cov||{})})); }
+document.getElementById('cExport').onclick=()=>dl('tks_prog_coverage.csv',toCSV(covToRows(),CCOLS),'text/csv');
+document.getElementById('cImport').onclick=()=>document.getElementById('cFile').click();
+document.getElementById('cFile').onchange=e=>{ if(e.target.files[0]){ const rd=new FileReader(); rd.onload=()=>{ try{
+  const inc=parseCSV(rd.result); const cur=readLS(K_COV,[]); let a=0,u=0;
+  inc.forEach(o=>{ if(!o.id) o.id=uid('pc'); try{ o.cov=o.cov_json?JSON.parse(o.cov_json):{}; }catch(_){ o.cov={}; } delete o.cov_json;
+    const ex=cur.find(z=>z.id===o.id); if(ex){ Object.assign(ex,o); u++; } else { cur.push(o); a++; } });
+  writeLS(K_COV,cur); renderCoverage(); alert('Imported: '+a+' added, '+u+' updated.');
+}catch(err){ alert('Could not read that CSV.'); } }; rd.readAsText(e.target.files[0]); } e.target.value=''; };
+
+/* ============================== CORRECTIONS LOG ============================== */
+/* Corrections moved out of Programmers — they're now logged from "Something wrong?" on the
+   Start-a-job result (see app/corrections.js). */
+
+/* ============================== NAV ============================== */
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x===b));
+  const p=b.dataset.p;
+  document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('on', x.id==='p-'+p));
+  if(p==='devices') renderDevices(); if(p==='coverage') renderCoverage();
+});
+</script>
+<script src="app/ui/appnav.js"></script>
+</body>
+</html>
