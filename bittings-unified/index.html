@@ -903,7 +903,7 @@
     <div class="bt-sidefoot">
       <button class="bt-nav__item owner-soft" id="sideSettings" data-go="settings" style="display:none"><span class="bt-nav__ic">⚙</span>Settings</button>
       <div class="bt-sidestat" id="sideSignedIn">Not signed in</div>
-      <div class="bt-sidestat" id="sideSynced" title="Where your data is stored">On this device</div>
+      <div class="bt-sidestat" id="sideSynced" style="display:none"></div>
     </div>
     <div style="padding:0 16px 12px"><div class="bt-themetoggle">
       <button data-bt-set="light">☀ Light</button>
@@ -1410,7 +1410,7 @@ function openMoveReqModal(){
   function afterChange(){ load(); if(window.renderMoveReqBanner) renderMoveReqBanner(); }
   function dismiss(r){ if(r._cloud){ TKS.MoveReq.decide(r.id,false).then(afterChange).catch(afterChange); } else { mrSaveLocal(mrLocal().filter(function(x){return x.id!==r.id;})); afterChange(); } }
   function approve(r){ var m=ov.querySelector('#mrMsg');
-    if(!(TKS.InvOps&&TKS.InvOps.move)){ m.textContent='Connect to the cloud to move stock.'; return; }
+    if(!(TKS.InvOps&&TKS.InvOps.move)){ m.textContent='Sign in to move stock.'; return; }
     m.textContent='Moving…';
     TKS.InvOps.move(r.itemId, r.from, r.to, r.qty||1).then(function(res){ if(res&&res.error){ m.textContent=res.error.message; return; } m.textContent='Moved.';
       if(r._cloud){ TKS.MoveReq.decide(r.id,true).then(afterChange).catch(afterChange); } else { mrSaveLocal(mrLocal().filter(function(x){return x.id!==r.id;})); afterChange(); }
@@ -2089,7 +2089,7 @@ function locName(loc, vans){
   return loc;
 }
 function openStockPanel(p){
-  if(!(TKS.auth && TKS.auth.isSignedIn())){ uiAlert('Sign in to the cloud to manage stock by location.'); return; }
+  if(!(TKS.auth && TKS.auth.isSignedIn())){ uiAlert('Sign in to manage stock by location.'); return; }
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(6,8,11,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
   ov.innerHTML='<div id="stkCard" style="background:var(--card,#fff);width:100%;max-width:560px;border-radius:16px;padding:16px;max-height:88vh;overflow:auto;"><div class="empty" style="padding:20px;text-align:center;color:var(--dim)">Loading stock…</div></div>';
@@ -2487,7 +2487,7 @@ function posPopulateMeta(){
 }
 function renderPayments(){
   const e=chgEls();
-  e.banner.className='pay-banner'; e.banner.textContent='Register — same Stripe engine as invoices (TEST until live keys).';
+  e.banner.className='pay-banner'; e.banner.textContent='Take payment — card, cash, or check.';
   if(e.status) e.status.textContent='';
   posPopulateMeta();
   posSetJobType(posJobType);
@@ -2772,7 +2772,7 @@ function posCheckoutThen(method){
   const t=posTotals();
   if(method==='card' && t.totalCents<50){ chgSay('Card needs at least $0.50.',false); return; }
   if(method!=='cash' && (!chgCustomer || !chgCustomer.customer)){ chgSay((method==='card'?'Card':'Check')+" needs the customer's info — tap “Select / add customer”.",false); return; }
-  if(!(window.TKS && TKS.POS && TKS.auth.isSignedIn())){ chgSay('Sign in to the cloud to take a register payment.',false); return; }
+  if(!(window.TKS && TKS.POS && TKS.auth.isSignedIn())){ chgSay('Sign in to take a payment.',false); return; }
   chgSay('Building ticket…',null);
   TKS.POS.checkout(posBuildPayload()).then(res=>{
     if(res && res.error){ chgSay(res.error.message,false); return; }
@@ -3482,21 +3482,9 @@ async function renderDashboard(){
    library is missing, or a table isn't created yet, we stay on localStorage —
    nothing breaks. Uses the project + key in app/cloud-config.js. */
 function setCloudPill(state){
-  const el = document.getElementById('cloudPill');
-  const homeNote = document.getElementById('homeNote');
-  const invNote  = document.getElementById('invNote');
-  const side = document.getElementById('sideSynced');   // mirror into the sidebar footer
-  if(state==='on'){
-    if(el){ el.textContent='☁ Synced'; el.className='cloudpill on'; el.title='Signed in — saving to the shared cloud database'; }
-    if(side){ side.textContent='☁ Synced'; side.className='bt-sidestat on'; side.title='Signed in — saving to the shared cloud database'; }
-    if(homeNote) homeNote.textContent = '☁ Synced to the cloud — customers, bookings & receipts appear on every signed-in device.';
-    if(invNote)  invNote.textContent  = '☁ Synced to the cloud — stock appears on every signed-in device.';
-  } else {
-    if(el){ el.textContent='On this device'; el.className='cloudpill'; el.title='Not signed in — saving locally. Use Staff Login to sync.'; }
-    if(side){ side.textContent='On this device'; side.className='bt-sidestat'; side.title='Not signed in — saving locally. Use Staff Login to sync.'; }
-    if(homeNote) homeNote.textContent = 'Customers, bookings & receipts are shared across every tool here. Sign in (Staff Login) to sync to the cloud across devices.';
-    if(invNote)  invNote.textContent  = 'Stock is saved on this device. Sign in to sync it to the cloud.';
-  }
+  // Finished product: the data-location plumbing ("On this device" / "☁ Synced" pills + the
+  // sync info notes) is hidden — syncing is an implementation detail, not something staff see.
+  ['cloudPill','sideSynced','homeNote','invNote'].forEach(function(id){ var n=document.getElementById(id); if(n) n.style.display='none'; });
 }
 /* Staff-login bar — shows who's signed in and their role (owner vs staff). This
    is the app's "who's signed in" check. Owner is decided by the email allowlist
@@ -3538,8 +3526,8 @@ function updateAuthUI(){
     if(so) so.onclick = ()=>{ try{ a.signOut().then(()=>location.reload()); }catch(e){ location.reload(); } };
   } else {
     if(sideSignedIn) sideSignedIn.textContent = 'Not signed in';
-    bar.innerHTML = '<span>Not signed in — saving on this device.</span>'+
-      '<a href="cloud-test.html" rel="nofollow">Staff Login</a>';
+    bar.innerHTML = '<span>You’re signed out.</span>'+
+      '<a href="cloud-test.html" rel="nofollow">Sign in</a>';
   }
   renderQuickTiles();
 }
@@ -4012,7 +4000,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanne
       el.querySelectorAll('[data-edit]').forEach(b=> b.onclick=()=> openVanForm(VANS.find(v=>v.id===b.dataset.edit)));
       el.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=> delVan(VANS.find(v=>v.id===b.dataset.del)));
       if(window.TKS_ACCESS) TKS_ACCESS.applyGates(el);
-    }).catch(e=>{ el.innerHTML='<div class="empty">'+esc(e.message||'Connect to the cloud to manage vans.')+'</div>'; });
+    }).catch(e=>{ el.innerHTML='<div class="empty">'+esc(e.message||'Sign in to manage vans.')+'</div>'; });
   }
 
   function vanMsg(t,ok){ const m=document.getElementById('vanMsg'); if(m){ m.className='msg '+(ok?'ok':'err'); m.textContent=t; if(ok) setTimeout(()=>{ if(m){m.textContent='';} },2200); } }

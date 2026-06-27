@@ -407,6 +407,20 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-06-27 PM (🚀 Unified app on a public URL · dev scaffolding stripped · old demo removed)
+- **Unified Bittings is reachable from any device** for the owner's sweep via a Cloudflare **quick
+  tunnel** (`cloudflared`) to the locally-served `bittings-unified` (couldn't use Cloudflare Pages —
+  this PC isn't logged into Cloudflare; a permanent Pages deploy needs `wrangler login`). Points at the
+  **live Supabase**, so sign-in works anywhere. The tunnel URL is temporary (lives with the session).
+- **Dev scaffolding stripped** so it reads as a shipping product: the "On this device / ☁ Synced" data-
+  location pills + the cloud-sync info notes are **hidden**; the sign-in page no longer shows a
+  `127.0.0.1` address or the "Check connection" debug button; the Register's "(TEST until live keys)"
+  banner is reworded; "connect to the cloud" fallback prompts reworded to plain "Sign in to…".
+- **Old investor demo removed.** Deleted `bittings-app/START-DEMO.html` + `START-DEMO.bat` +
+  `READ-ME-FIRST (laptop demo).txt` + the desktop-shortcut scripts + `Bittings.ico`. The **unified
+  clone is the new base.** The rest of `bittings-app` is **kept as the fallback** until the device sweep
+  proves the unified app, then it gets fully retired at cutover. All recoverable from GitHub.
+
 ### 2026-06-27 (🚐 Cross-device stock-move requests · scheduler test fixes · dark-mode date label)
 - **Scheduler rebuilt as a dispatch tool** (per-tech board + Day/Week/Month, assign/reschedule/cancel,
   VIN, van flags) and then polished from your testing: **save now persists** (a duplicate-id bug fixed),
