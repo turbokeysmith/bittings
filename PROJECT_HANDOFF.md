@@ -423,12 +423,19 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   page-within-a-page header/back hidden, theme-synced — chosen for the big ones so we don't risk
   rewriting a proven 638 KB invoice screen). The proven backend was **not touched**. **Code-complete,
   pending the one device sweep.** *(Node.js was also installed — needed for the next website deploy.)*
-- **Native scheduler — built.** The clone now has a real **in-app calendar** (Month / Week / Day) that
-  reads and writes the same appointments, replacing the Google-Calendar link — the calendar itself is now
-  the source of truth. Color-coded by job status, today highlighted; tap a job to change its status,
-  **reschedule** (date/time), edit details, or delete. "+ New job" still opens the proven guided
-  intake. The booking data and the server-side job rules are unchanged. Verified rendering with a real
-  (headless) browser; **pending the owner's one device sweep**.
+- **Scheduler — rebuilt as a true dispatch tool.** (The first version was just a view-only calendar;
+  the owner asked for a real field-service scheduler, so it was scrapped and rebuilt.) The clone now has:
+  a **per-technician dispatch board** (a column for each tech + an Unassigned lane) plus **Day / Week /
+  Month** calendar views. Each job card shows the customer, time, job type, vehicle, status, address and
+  a one-tap **Navigate** link, and flags when a part **isn't on the assigned tech's van**. You can
+  **create/edit a job** (with VIN decode that fills year/make/model, and pulling a customer from your
+  existing list), **assign it to a tech**, move it through the field statuses (**Scheduled → En route →
+  On site → In progress → Completed → Cancelled**, color-coded), and **drag** a job between techs to
+  reassign or to another day to reschedule. Reschedule and cancel still ask for a **reason** (with the
+  manager-signoff/parts warning), exactly like before. Replaces the Google-Calendar link — the in-app
+  board is now the source of truth. The booking data and all the server-side job rules are unchanged.
+  Verified by rendering it in a real (headless) browser; **drag + the signed-in cloud actions are on the
+  owner's device-sweep list.**
 - **Still to do:** the single device sweep (iPhone + Android, owner + staff), then the cutover (point the
   app at the unified version, keep the old one as the fallback until confirmed).
 
