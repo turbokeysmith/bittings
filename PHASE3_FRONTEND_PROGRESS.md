@@ -110,6 +110,21 @@ Reads/writes the **existing** Supabase data (no Google dependency, no new backen
     🚩 **Pending real-device verify** (no browser/Node here): Fleet opens as a native view (no iframe
     seam), themes light/dark, owner sees crew/home-van + delete, manager doesn't; add/edit/delete van
     writes to the same Supabase rows.
+  - ✅ **Settings** (code-complete, pending device sign-off) — same recipe, plus **ID-collision
+    handling**: setup.html shares generic ids with the shell (`#backBtn`, `#panel`, `#saved`, `#f_name`…),
+    so the ported IIFE routes **every** lookup through a container-scoped `gid()`/`root.querySelectorAll`
+    (root = `#view-settings`) — it can never grab the shell's elements. All of setup's CSS scoped under
+    `#view-settings`; its bare `input`/`label`/`.panel`/`.btn` rules no longer leak globally; step-button
+    row renamed `.nav`→`.stepnav`. Nav button `data-embed="setup.html"` → `data-go="settings"`. The two
+    shell hooks that pointed at setup.html now open the native view: the **⚙ Setup** link and
+    **`maybeRedirectToSetup()`** (first-run) both `#sideSettings.click()` instead of navigating away;
+    the wizard's **Finish / Finish-later** call `goHome()` (returns to the visible hero) instead of
+    `location.href`. All 6 inline scripts in index.html pass `node vm` syntax check.
+    🚩 **Pending real-device verify:** Settings opens in-app (left rail + steps), saves each step to the
+    same cloud config, manager-gated (staff sees "Managers only"), logo upload + hours copy work.
+
+**Tooling note:** Git **and Node.js (24.18)** are now installed on this PC (both were missing). Node is
+needed for the next `npx wrangler` website deploy and is used here to syntax-check the inline scripts.
 - **3.3 Native scheduler** ⬜ — Day/Week/Month calendar over `bookings`, reschedule writes back,
   intake flow preserved, Google link demoted to optional export.
 - **3.4 Full self-verification** ⬜ — every screen native, no iframes; role gating (owner vs staff)
