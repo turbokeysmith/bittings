@@ -5088,7 +5088,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanne
     wire(body); checkVanFlags();
   }
   function toolbar(){
-    var lbl=(view==='board'||view==='day')?(DOW[cursor.getDay()]+', '+MON[cursor.getMonth()]+' '+cursor.getDate())
+    var lbl=(view==='board'||view==='day')?( iso(cursor)===todayISO() ? 'Today' : (DOW[cursor.getDay()]+' · '+MON[cursor.getMonth()].slice(0,3)+' '+cursor.getDate()) )
       :view==='week'?(function(){var s=startOfWeek(cursor),e=addDays(s,6);return MON[s.getMonth()].slice(0,3)+' '+s.getDate()+' – '+MON[e.getMonth()].slice(0,3)+' '+e.getDate();})()
       :(MON[cursor.getMonth()]+' '+cursor.getFullYear());
     return '<div class="sch-toolbar">'+
@@ -5220,16 +5220,18 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanne
     if(signedIn() && b.technicianId && TKS.Jobs && TKS.Jobs.assign){ TKS.Jobs.assign(jobId, b.technicianId, 'lead').then(function(res){ if(res&&res.error) toast(res.error.message); }).catch(function(e){ toast((e&&e.message)||'Reassign blocked'); }); }
     render();
   }
+  function shortDate(d){ d=fromISO(d); return DOW[d.getDay()]+' · '+MON[d.getMonth()].slice(0,3)+' '+d.getDate(); }
+  // Reschedule = move the job to a new day/time IMMEDIATELY, persist, and confirm visibly (toast).
+  // (Drag drops here; the date edit in the form also routes here.) Keeps status as-is.
   function reschedule(jobId, newDate, newTime){
-    reasonModal({title:'Reschedule job', reasons:false, confirm:'Reschedule'}, function(reason, note){
-      var b=TKS.Bookings.get(jobId); if(!b) return;
-      if(newDate) b.date=newDate; if(typeof newTime!=='undefined' && newTime!==null) b.time=newTime;
-      b.status='Rescheduled'; b.needsManagerSignoff=true; b.signoffReason='Rescheduled';
-      if(note) b.notes=((b.notes||'')+'\n[reschedule] '+note).trim();
-      try{ TKS.Bookings.save(b); }catch(e){}
-      if(signedIn() && TKS.Jobs && TKS.Jobs.setStatus){ TKS.Jobs.setStatus(jobId,'scheduled').catch(function(){}); }
-      render();
-    });
+    var b=TKS.Bookings.get(jobId); if(!b) return;
+    var from=b.date;
+    if(newDate) b.date=newDate;
+    if(typeof newTime!=='undefined' && newTime!==null && newTime!=='') b.time=newTime;
+    try{ TKS.Bookings.save(b); }catch(e){ toast('Reschedule failed.'); return; }
+    // cloud: the bookings adapter persists the date/time columns on flush; jsonb carries the rest.
+    render();
+    toast('Moved to '+shortDate(b.date)+(b.time?(' '+fmtTime(b.time)):'')+'.');
   }
   function banner(){ try{ if(window.renderConsolBanner) window.renderConsolBanner(); }catch(e){} }
   // CANCEL: reason note -> server job_cancel (sets reconciliation_pending if unreconciled parts) +
@@ -5330,66 +5332,66 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanne
     var ov=document.createElement('div'); ov.className='sch-modal';
     ov.innerHTML='<div class="sheet">'+
       '<h3>'+(isNew?'New job':'Edit job')+'</h3>'+
-      '<label>Job type</label><div class="seg2" id="fJt">'+JT.map(function(j){return '<button data-jt="'+j[0]+'"'+(j[0]===jt?' class="on"':'')+'>'+j[1]+'</button>';}).join('')+'</div>'+
-      '<label>Customer</label><div class="vinrow"><input id="fName" placeholder="Customer name" value="'+esc(cust.name||'')+'"><button type="button" id="fPick" title="Pull from customers">👤</button></div>'+
-      '<div class="custlist" id="fCustList" style="display:none"></div>'+
-      '<div class="row2"><div><label>Phone</label><input id="fPhone" value="'+esc(cust.phone||'')+'"></div><div><label>Service / details</label><input id="fSvc" value="'+esc(b.subType||'')+'" placeholder="lockout, AKL, rekey…"></div></div>'+
-      '<div class="row2"><div><label>Date</label><input type="date" id="fDate" value="'+esc(b.date||presetDate||'')+'"></div><div><label>Time</label><input type="time" id="fTime" value="'+esc(b.time||'')+'"></div></div>'+
-      '<label>Address</label><input id="fAddr" value="'+esc(addrStr(b))+'" placeholder="Street, City, ST ZIP">'+
-      '<div id="fVeh"'+(jt==='auto'?'':' style="display:none"')+'>'+
-        '<label>VIN</label><div class="vinrow"><input id="fVin" maxlength="17" style="text-transform:uppercase" value="'+esc(veh.vin||'')+'"><button type="button" id="fVinBtn">Decode</button></div>'+
-        '<div class="row2"><div><label>Year</label><input id="fYear" value="'+esc(veh.year||'')+'"></div><div><label>Make</label><input id="fMake" value="'+esc(veh.make||'')+'"></div></div>'+
-        '<div class="row2"><div><label>Model</label><input id="fModel" value="'+esc(veh.model||'')+'"></div><div><label>Ignition</label><select id="fIgn"><option value="">—</option><option value="push"'+(veh.ignition==='push'?' selected':'')+'>Push-to-start</option><option value="keyed"'+(veh.ignition==='keyed'?' selected':'')+'>Keyed</option></select></div></div>'+
+      '<label>Job type</label><div class="seg2" id="sjJt">'+JT.map(function(j){return '<button data-jt="'+j[0]+'"'+(j[0]===jt?' class="on"':'')+'>'+j[1]+'</button>';}).join('')+'</div>'+
+      '<label>Customer</label><div class="vinrow"><input id="sjName" placeholder="Customer name" value="'+esc(cust.name||'')+'"><button type="button" id="sjPick" title="Pull from customers">👤</button></div>'+
+      '<div class="custlist" id="sjCustList" style="display:none"></div>'+
+      '<div class="row2"><div><label>Phone</label><input id="sjPhone" value="'+esc(cust.phone||'')+'"></div><div><label>Service / details</label><input id="sjSvc" value="'+esc(b.subType||'')+'" placeholder="lockout, AKL, rekey…"></div></div>'+
+      '<div class="row2"><div><label>Date</label><input type="date" id="sjDate" value="'+esc(b.date||presetDate||'')+'"></div><div><label>Time</label><input type="time" id="sjTime" value="'+esc(b.time||'')+'"></div></div>'+
+      '<label>Address</label><input id="sjAddr" value="'+esc(addrStr(b))+'" placeholder="Street, City, ST ZIP">'+
+      '<div id="sjVeh"'+(jt==='auto'?'':' style="display:none"')+'>'+
+        '<label>VIN</label><div class="vinrow"><input id="sjVin" maxlength="17" style="text-transform:uppercase" value="'+esc(veh.vin||'')+'"><button type="button" id="sjVinBtn">Decode</button></div>'+
+        '<div class="row2"><div><label>Year</label><input id="sjYear" value="'+esc(veh.year||'')+'"></div><div><label>Make</label><input id="sjMake" value="'+esc(veh.make||'')+'"></div></div>'+
+        '<div class="row2"><div><label>Model</label><input id="sjModel" value="'+esc(veh.model||'')+'"></div><div><label>Ignition</label><select id="sjIgn"><option value="">—</option><option value="push"'+(veh.ignition==='push'?' selected':'')+'>Push-to-start</option><option value="keyed"'+(veh.ignition==='keyed'?' selected':'')+'>Keyed</option></select></div></div>'+
       '</div>'+
-      '<label>Technician</label><select id="fTech"><option value="">Unassigned</option>'+teamMembers().map(function(t){return '<option value="'+esc(t.user_id)+'"'+(techOf(b)===t.user_id?' selected':'')+'>'+esc(t.name)+(t.role?(' — '+esc(t.role)):'')+'</option>';}).join('')+'</select>'+
-      '<label>Status</label><div class="stbtns" id="fSt">'+STATUSES.map(function(s){return '<button class="'+('st-'+s.k.replace(/_/g,''))+(s.k===sel?' on':'')+'" data-s="'+s.k+'">'+esc(s.L)+'</button>';}).join('')+'</div>'+
-      '<div class="msg" id="fMsg"></div>'+
-      '<div class="acts">'+(isNew?'':'<button class="btn ghost" id="fCancelJob">Cancel job</button>')+'<button class="btn save" id="fSave">'+(isNew?'Create job':'Save changes')+'</button></div>'+
-      (isNew?'':'<div style="text-align:center;margin-top:8px"><a href="#" id="fDelete" class="nav-link" style="color:#c8323c">Delete this job</a></div>')+
+      '<label>Technician</label><select id="sjTech"><option value="">Unassigned</option>'+teamMembers().map(function(t){return '<option value="'+esc(t.user_id)+'"'+(techOf(b)===t.user_id?' selected':'')+'>'+esc(t.name)+(t.role?(' — '+esc(t.role)):'')+'</option>';}).join('')+'</select>'+
+      '<label>Status</label><div class="stbtns" id="sjSt">'+STATUSES.map(function(s){return '<button class="'+('st-'+s.k.replace(/_/g,''))+(s.k===sel?' on':'')+'" data-s="'+s.k+'">'+esc(s.L)+'</button>';}).join('')+'</div>'+
+      '<div class="msg" id="sjMsg"></div>'+
+      '<div class="acts">'+(isNew?'':'<button class="btn ghost" id="sjCancelJob">Cancel job</button>')+'<button class="btn save" id="sjSave">'+(isNew?'Create job':'Save changes')+'</button></div>'+
+      (isNew?'':'<div style="text-align:center;margin-top:8px"><a href="#" id="sjDelete" class="nav-link" style="color:#c8323c">Delete this job</a></div>')+
     '</div>';
     document.body.appendChild(ov);
     function close(){ ov.remove(); }
     function q(id){ return ov.querySelector('#'+id); }
     ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
-    ov.querySelectorAll('#fJt button').forEach(function(btn){ btn.onclick=function(){ jt=btn.dataset.jt; ov.querySelectorAll('#fJt button').forEach(function(x){x.classList.toggle('on',x===btn);}); q('fVeh').style.display=(jt==='auto'?'':'none'); }; });
-    ov.querySelectorAll('#fSt button').forEach(function(btn){ btn.onclick=function(){ sel=btn.dataset.s; ov.querySelectorAll('#fSt button').forEach(function(x){x.classList.toggle('on',x===btn);}); }; });
+    ov.querySelectorAll('#sjJt button').forEach(function(btn){ btn.onclick=function(){ jt=btn.dataset.jt; ov.querySelectorAll('#sjJt button').forEach(function(x){x.classList.toggle('on',x===btn);}); q('sjVeh').style.display=(jt==='auto'?'':'none'); }; });
+    ov.querySelectorAll('#sjSt button').forEach(function(btn){ btn.onclick=function(){ sel=btn.dataset.s; ov.querySelectorAll('#sjSt button').forEach(function(x){x.classList.toggle('on',x===btn);}); }; });
     // pull from customers
-    q('fPick').onclick=function(){ var list=q('fCustList'); if(list.style.display!=='none'){ list.style.display='none'; return; }
+    q('sjPick').onclick=function(){ var list=q('sjCustList'); if(list.style.display!=='none'){ list.style.display='none'; return; }
       var cs=[]; try{ cs=(TKS.list&&TKS.list('customers'))||[]; }catch(e){}
       list.innerHTML=cs.length?cs.slice(0,50).map(function(c,i){ return '<div data-ci="'+i+'">'+esc(c.customer||c.name||'—')+(c.phone?(' · '+esc(c.phone)):'')+'</div>'; }).join(''):'<div>No saved customers.</div>';
       list.style.display='block';
-      list.querySelectorAll('[data-ci]').forEach(function(row){ row.onclick=function(){ var c=cs[+row.dataset.ci]; q('fName').value=c.customer||c.name||''; if(c.phone)q('fPhone').value=c.phone; if(c.address)q('fAddr').value=c.address; custId=c.id||null; list.style.display='none'; }; });
+      list.querySelectorAll('[data-ci]').forEach(function(row){ row.onclick=function(){ var c=cs[+row.dataset.ci]; q('sjName').value=c.customer||c.name||''; if(c.phone)q('sjPhone').value=c.phone; if(c.address)q('sjAddr').value=c.address; custId=c.id||null; list.style.display='none'; }; });
     };
     // VIN decode
-    var vb=q('fVinBtn'); if(vb) vb.onclick=function(){ var vin=(q('fVin').value||'').trim().toUpperCase(); if(vin.length!==17){ q('fMsg').textContent='Enter a 17-character VIN.'; return; } q('fMsg').textContent='Decoding…'; try{ TKS.decodeVin(vin).then(function(r){ if(r.year)q('fYear').value=r.year; if(r.make)q('fMake').value=r.make; if(r.model)q('fModel').value=r.model; q('fMsg').textContent='Decoded: '+[r.year,r.make,r.model].filter(Boolean).join(' '); }).catch(function(e){ q('fMsg').textContent=(e&&e.message)||'Could not decode VIN.'; }); }catch(e){ q('fMsg').textContent='VIN decode unavailable.'; } };
-    var del=q('fDelete'); if(del) del.onclick=function(e){ e.preventDefault(); function go(){ try{TKS.Bookings.remove(b.id);}catch(_){ } close(); render(); } if(window.TKS_ACCESS&&TKS_ACCESS.confirmDanger){ TKS_ACCESS.confirmDanger({title:'Delete this job?',message:'Remove it from the schedule.',confirmLabel:'Delete'}).then(function(ok){if(ok)go();}); } else go(); };
-    var cj=q('fCancelJob'); if(cj) cj.onclick=function(){ close(); doCancel(b.id); };
-    q('fSave').onclick=function(){
+    var vb=q('sjVinBtn'); if(vb) vb.onclick=function(){ var vin=(q('sjVin').value||'').trim().toUpperCase(); if(vin.length!==17){ q('sjMsg').textContent='Enter a 17-character VIN.'; return; } q('sjMsg').textContent='Decoding…'; try{ TKS.decodeVin(vin).then(function(r){ if(r.year)q('sjYear').value=r.year; if(r.make)q('sjMake').value=r.make; if(r.model)q('sjModel').value=r.model; q('sjMsg').textContent='Decoded: '+[r.year,r.make,r.model].filter(Boolean).join(' '); }).catch(function(e){ q('sjMsg').textContent=(e&&e.message)||'Could not decode VIN.'; }); }catch(e){ q('sjMsg').textContent='VIN decode unavailable.'; } };
+    var del=q('sjDelete'); if(del) del.onclick=function(e){ e.preventDefault(); function go(){ try{TKS.Bookings.remove(b.id);}catch(_){ } close(); render(); } if(window.TKS_ACCESS&&TKS_ACCESS.confirmDanger){ TKS_ACCESS.confirmDanger({title:'Delete this job?',message:'Remove it from the schedule.',confirmLabel:'Delete'}).then(function(ok){if(ok)go();}); } else go(); };
+    var cj=q('sjCancelJob'); if(cj) cj.onclick=function(){ close(); doCancel(b.id); };
+    q('sjSave').onclick=function(){
       var rec=isNew?{}:(TKS.Bookings.get(b.id)||b);
       rec.jobType=jt;
-      rec.customer=rec.customer||{}; rec.customer.name=q('fName').value.trim(); rec.customer.phone=q('fPhone').value.trim();
+      rec.customer=rec.customer||{}; rec.customer.name=q('sjName').value.trim(); rec.customer.phone=q('sjPhone').value.trim();
       if(custId)rec.customerId=custId;
-      rec.subType=q('fSvc').value.trim(); rec.address=q('fAddr').value.trim();
-      if(jt==='auto'){ rec.vehicle={year:q('fYear').value.trim(),make:q('fMake').value.trim(),model:q('fModel').value.trim(),vin:(q('fVin').value||'').trim().toUpperCase(),ignition:(q('fIgn')||{}).value||''}; }
-      var tv=q('fTech').value||'';
+      rec.subType=q('sjSvc').value.trim(); rec.address=q('sjAddr').value.trim();
+      if(jt==='auto'){ rec.vehicle={year:q('sjYear').value.trim(),make:q('sjMake').value.trim(),model:q('sjModel').value.trim(),vin:(q('sjVin').value||'').trim().toUpperCase(),ignition:(q('sjIgn')||{}).value||''}; }
+      var tv=q('sjTech').value||'';
       if(tv){ var t=memberById(tv); rec.technician=t?t.name:''; rec.technicianId=(tv.indexOf('name:')===0)?null:tv; } else { rec.technician=''; rec.technicianId=null; }
-      var newDate=q('fDate').value, newTime=q('fTime').value;
-      if(!rec.customer.name && !newDate){ q('fMsg').textContent='Add at least a customer name and a date.'; return; }
-      if(isNew){ rec.date=newDate; rec.time=newTime; rec.status=stLabel(sel); }
-      else { rec.status=b.status; /* status/date changes handled below via accountable flows */ }
-      try{ TKS.Bookings.save(rec); }catch(e){ q('fMsg').textContent=(e&&e.message)||'Save failed.'; return; }
-      // cloud: assign tech (manager+, server-enforced)
-      if(signedIn() && rec.technicianId && TKS.Jobs && TKS.Jobs.assign){ TKS.Jobs.assign(rec.id||b.id, rec.technicianId, 'lead').catch(function(){}); }
+      var newDate=q('sjDate').value, newTime=q('sjTime').value;
+      if(!rec.customer.name && !newDate){ q('sjMsg').textContent='Add at least a customer name and a date.'; return; }
       var jid=rec.id||b.id;
-      if(!isNew){
-        var stChanged=(sel!==stKey(b.status));
-        var dateChanged=(newDate!==b.date)||(newTime!==b.time);
-        close();
-        if(stChanged){ doStatus(jid, sel); }            // role-enforced (cancel routes to reason)
-        if(dateChanged && sel!=='canceled'){ reschedule(jid, newDate, newTime); return; }  // reason capture
-        render(); return;
-      }
+      var stChanged = !isNew && (sel!==stKey(b.status));
+      // Cancelling from the form routes through the reason + key-consolidation flow.
+      if(stChanged && sel==='canceled'){ try{TKS.Bookings.save(rec);}catch(e){} close(); doCancel(jid); return; }
+      // Apply EVERY field directly (incl. date/time + status) and persist — no silent routing.
+      rec.date=newDate||rec.date; rec.time=newTime;
+      rec.status = stLabel(sel);
+      var saved; try{ saved=TKS.Bookings.save(rec); }catch(e){ q('sjMsg').textContent=(e&&e.message)||'Save failed.'; return; }
+      if(!saved){ q('sjMsg').textContent='Save failed — please retry.'; return; }
+      jid=saved.id||jid;
+      // cloud (server-enforced, best-effort): assign tech + push status change
+      if(signedIn() && rec.technicianId && TKS.Jobs && TKS.Jobs.assign){ TKS.Jobs.assign(jid, rec.technicianId, 'lead').then(function(res){ if(res&&res.error) toast(res.error.message); }).catch(function(){}); }
+      if(stChanged && signedIn() && TKS.Jobs && TKS.Jobs.setStatus){ TKS.Jobs.setStatus(jid, sel).then(function(res){ if(res&&res.error) toast('Saved locally; status: '+res.error.message); }).catch(function(){}); }
       close(); render();
+      toast(isNew?'Job created.':'Saved.');
     };
   }
 })();
