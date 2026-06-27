@@ -417,11 +417,14 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   Programmers, Settings; the other 8 screens are already unified. Wrote the authoritative tracker
   **`PHASE3_FRONTEND_PROGRESS.md`** (architecture inventory, design-system plan, scheduler data model,
   staged build order). The backend is not touched by any of this.
-- **First screen converted: Fleet.** In the clone, the **Fleet** screen now opens *inside* the app as
-  one seamless page instead of a bolted-on iframe — proving the conversion recipe for the other 4
-  (Settings, Programmers, Lishi, Receipts) + the native scheduler. **Code-complete, pending a phone
-  check.** *(Heads-up: this PC also has no Node.js yet — harmless now, but it's needed for the next
-  website deploy via `npx wrangler`; I can install it free when a deploy is due.)*
+- **All 6 bolted-on (iframe) screens are now unified** in the clone — they read as one app instead of
+  pages glued together. **Fleet, Settings, Programmers** were rebuilt **natively** inside the app shell;
+  **Lishi, Receipts, Scheduler** are **seamless mounts** (kept as their own files but with the old
+  page-within-a-page header/back hidden, theme-synced — chosen for the big ones so we don't risk
+  rewriting a proven 638 KB invoice screen). The proven backend was **not touched**. **Code-complete,
+  pending the one device sweep.** *(Node.js was also installed — needed for the next website deploy.)*
+- **Still to build:** the **native scheduler** (an in-app calendar to replace the Google-Calendar link)
+  — the one genuinely new piece — then the device sweep and cutover.
 
 ### 2026-06-26 22:00 CST (💾 New PC: Git installed · all work committed + backed up to GitHub)
 - **New PC had no Git installed at all** — so weeks of recent work (the NASTF/D1 stage, the Ilco 2025
