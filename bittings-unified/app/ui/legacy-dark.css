@@ -1,0 +1,21 @@
+/* ==========================================================================
+   Shared DARK palette for the pages built on the legacy variable names
+   (--bg / --bg2 / --card / --edge / --ink / --dim / --off): the index
+   dashboard, Lishi, Programmers, and Setup.
+
+   Activated by  <html data-bt-theme="dark">  which each page sets early from
+   localStorage 'bt_theme' — the global Light/Dark toggle. Because localStorage
+   is shared same-origin, an embedded tool (loaded in the dashboard's content
+   panel) automatically inherits whatever theme the dashboard is set to.
+
+   IMPORTANT — selectors use `html[data-bt-theme="dark"]` (specificity 0,1,1)
+   so they beat each page's own `:root{ --ink:#14171b }` (0,1,0) REGARDLESS of
+   stylesheet order. A plain `[data-bt-theme="dark"]` (0,1,0) would tie with
+   :root and lose when this file is linked before the page's inline <style>,
+   which left dark backgrounds with dark (invisible) text.
+   ========================================================================== */
+html[data-bt-theme="dark"]{
+  --bg:#14171b; --bg2:#1b1f25; --card:#1f232a; --edge:#2c313a;
+  --ink:#f4f5f7; --dim:#9aa1ac; --off:#7e8693;
+}
+html[data-bt-theme="dark"] body{ background:#14171b; color:var(--ink); }

@@ -1,0 +1,258 @@
+/* ==========================================================================
+   Bittings UI — drop-in reskin stylesheet (framework-agnostic)
+   --------------------------------------------------------------------------
+   One file, two themes. Default = Studio (light). Add data-bt-theme="dark"
+   to <html> for Tactical (dark/field). A toggle flips that attribute
+   (see bittings-ui.js). Everything below is plain CSS classes — no React,
+   no build step — so it drops straight into the existing vanilla app.
+
+   Apply by adding classes to existing markup; do NOT change app logic.
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* ---- constant brand + neutral ramps + scale ---------------------------- */
+:root {
+  --brand-red:#b82334; --brand-red-deep:#8f1f27; --brand-red-soft:#e0636f;
+  --brand-amber:#ffb000; --brand-amber-deep:#a9760f; --brand-amber-soft:#ffce6b;
+  --signal-green:#22994a; --signal-green-soft:#5fd389;
+  --signal-blue:#4aa3ff; --signal-blue-soft:#8ec5ff; --signal-violet:#9b6bd6;
+
+  --font-sans:'Archivo',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --fs-display:34px; --fs-h1:26px; --fs-h2:21px; --fs-h3:17px;
+  --fs-body:15px; --fs-body-sm:13.5px; --fs-caption:12.5px; --fs-micro:11px;
+  --ls-tight:-0.02em; --ls-eyebrow:0.14em;
+  --w-bold:700; --w-extra:800; --w-black:900;
+
+  --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:20px; --radius-pill:999px;
+  --tap-min:44px; --ease-out:cubic-bezier(.2,.7,.3,1); --dur-base:.22s;
+
+  --tint-amber:rgba(255,176,0,.14); --tint-red:rgba(184,35,52,.10);
+  --tint-green:rgba(34,153,74,.12); --tint-blue:rgba(74,163,255,.12); --tint-violet:rgba(155,107,214,.12);
+}
+
+/* ======================================================================
+   THEME — Studio (light) is the default semantic layer.
+   ====================================================================== */
+:root {
+  --surface-app:#f6f7f9;
+  --surface-app-grad:linear-gradient(180deg,#f8f9fb,#f1f3f6);
+  --surface-sunken:#eef0f3; --surface-card:#ffffff; --surface-card-2:#fbfcfd; --surface-raised:#ffffff;
+  --border-subtle:#e3e6ea; --border-strong:#cdd2d9;
+  --text-primary:#14171b; --text-secondary:#5a616c; --text-tertiary:#9aa1ac;
+  --text-on-accent:#ffffff; --text-on-brand:#ffffff;
+  --accent:var(--brand-red); --accent-ink:#ffffff;
+  --accent-grad:linear-gradient(180deg,#c92c3d,#b82334);
+  --brand:var(--brand-red); --brand-grad:linear-gradient(180deg,#c92c3d,#b82334);
+  --focus-ring:var(--brand-red);
+  --shadow-card:0 1px 2px rgba(20,23,27,.04),0 8px 24px rgba(20,23,27,.06);
+  --shadow-pop:0 18px 50px rgba(20,23,27,.16);
+}
+
+/* ======================================================================
+   THEME — Tactical (dark / field). Toggle: <html data-bt-theme="dark">
+   ====================================================================== */
+[data-bt-theme="dark"] {
+  --surface-app:#14171b;
+  --surface-app-grad:radial-gradient(1100px 520px at 50% -10%,#23272f 0%,rgba(35,39,47,0) 60%),linear-gradient(180deg,#14171b,#1b1f25);
+  --surface-sunken:#11141a; --surface-card:#1f232a; --surface-card-2:#1b1f25; --surface-raised:#252a32;
+  --border-subtle:#2c313a; --border-strong:#3a414c;
+  --text-primary:#f4f5f7; --text-secondary:#9aa1ac; --text-tertiary:#5a616c;
+  --text-on-accent:#1a1300; --text-on-brand:#ffffff;
+  --accent:var(--brand-amber); --accent-ink:#1a1300;
+  --accent-grad:linear-gradient(180deg,#ffc23d,#ffb000);
+  --brand:var(--brand-red); --brand-grad:linear-gradient(180deg,var(--brand-red),var(--brand-red-deep));
+  --focus-ring:var(--brand-amber);
+  --shadow-card:0 1px 0 rgba(255,255,255,.02) inset,0 8px 24px rgba(0,0,0,.35);
+  --shadow-pop:0 18px 50px rgba(0,0,0,.55);
+  --tint-amber:rgba(255,176,0,.16); --tint-red:rgba(184,35,52,.18);
+  --tint-green:rgba(34,153,74,.18); --tint-blue:rgba(74,163,255,.16); --tint-violet:rgba(155,107,214,.16);
+}
+
+/* ======================================================================
+   Base
+   ====================================================================== */
+.bt *, .bt *::before, .bt *::after { box-sizing:border-box; }
+.bt {
+  font-family:var(--font-sans); font-size:var(--fs-body); line-height:1.5;
+  color:var(--text-primary); background:var(--surface-app);
+  -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
+}
+.bt h1,.bt h2,.bt h3,.bt h4 { font-weight:var(--w-extra); line-height:1.3; letter-spacing:var(--ls-tight); margin:0; }
+.bt a { color:var(--accent); text-decoration:none; }
+.mono { font-family:var(--font-mono); font-variant-numeric:tabular-nums; letter-spacing:0; }
+.eyebrow { font-size:var(--fs-micro); font-weight:var(--w-extra); letter-spacing:var(--ls-eyebrow); text-transform:uppercase; color:var(--text-secondary); }
+.bt :focus-visible { outline:3px solid var(--focus-ring); outline-offset:2px; border-radius:var(--radius-sm); }
+.bt ::selection { background:var(--tint-amber); }
+
+/* ======================================================================
+   App shell — desktop sidebar / phone bottom-nav (auto-switch at 720px)
+   ====================================================================== */
+.bt-app { display:flex; min-height:100vh; background:var(--surface-app); }
+.bt-sidebar {
+  width:244px; flex:0 0 auto; background:var(--surface-card);
+  border-right:1px solid var(--border-subtle); display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh;
+}
+.bt-sidebar__brand { display:flex; align-items:center; gap:11px; padding:22px 22px 16px; }
+.bt-sidebar__brand img { width:34px; height:34px; border-radius:9px; }
+.bt-sidebar__name { font-weight:var(--w-black); font-size:18px; letter-spacing:var(--ls-tight); }
+/* company / workspace — a SEPARATE subheading, divided from the Bittings (app) brand */
+.bt-workspace { margin:0 16px 14px; padding:12px 14px; border-radius:var(--radius-md); background:var(--surface-sunken); border:1px solid var(--border-subtle); }
+.bt-workspace__label { font-size:8px; font-weight:var(--w-extra); letter-spacing:var(--ls-eyebrow); text-transform:uppercase; color:var(--text-tertiary); }
+.bt-workspace__name { font-size:13.5px; font-weight:var(--w-bold); color:var(--text-primary); margin-top:2px; }
+.bt-nav { flex:1; display:flex; flex-direction:column; gap:3px; padding:0 12px; overflow-y:auto; }
+.bt-nav__item {
+  -webkit-appearance:none; appearance:none;
+  display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:var(--radius-md);
+  border:none; cursor:pointer; text-align:left; background:transparent;
+  color:var(--text-secondary); font-family:var(--font-sans); font-size:14px; font-weight:600;
+  min-height:var(--tap-min);
+}
+.bt-nav__item .bt-nav__ic { font-size:17px; filter:grayscale(.4); }
+.bt-nav__item:hover { background:var(--surface-sunken); }
+.bt-nav__item.is-active { background:var(--tint-red); color:var(--brand-red); font-weight:var(--w-extra); }
+.bt-nav__item.is-active .bt-nav__ic { filter:none; }
+.bt-user { margin:12px; padding:12px 14px; border-radius:var(--radius-md); background:var(--surface-sunken); display:flex; align-items:center; gap:10px; }
+.bt-user__avatar { width:32px; height:32px; border-radius:50%; background:var(--brand-red); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:var(--w-black); font-size:13px; flex:0 0 auto; }
+.bt-main { flex:1; min-width:0; }
+.bt-pagewrap { max-width:1080px; margin:0 auto; padding:34px 40px 60px; }
+.bt-pagehead { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:22px; }
+.bt-pagehead h1 { font-size:var(--fs-h1); font-weight:var(--w-black); letter-spacing:var(--ls-tight); margin-top:4px; }
+.bt-pagehead__actions { display:flex; gap:10px; }
+
+/* bottom nav is hidden on desktop */
+.bt-bottomnav { display:none; }
+
+@media (max-width:720px) {
+  .bt-app { flex-direction:column; }
+  .bt-sidebar { display:none; }
+  .bt-main { padding-bottom:76px; }            /* room for the fixed bottom nav */
+  .bt-pagewrap { padding:18px 16px 28px; }
+  .bt-bottomnav {
+    display:flex; position:fixed; left:0; right:0; bottom:0; z-index:80;
+    border-top:1px solid var(--border-subtle); background:var(--surface-card-2);
+    padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+  }
+  .bt-bottomnav__item {
+    -webkit-appearance:none; appearance:none;
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px;
+    background:transparent; border:none; cursor:pointer; min-height:var(--tap-min);
+    font-family:var(--font-sans); font-size:10px; font-weight:var(--w-extra); color:var(--text-tertiary);
+    text-decoration:none;
+  }
+  .bt-bottomnav__item .bt-nav__ic { font-size:19px; filter:grayscale(.5) opacity(.7); }
+  .bt-bottomnav__item.is-active { color:var(--accent); }
+  .bt-bottomnav__item.is-active .bt-nav__ic { filter:none; }
+}
+
+/* ======================================================================
+   Tile home (restyle the existing tile grid)
+   ====================================================================== */
+.bt-tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+.bt-tile {
+  -webkit-appearance:none; appearance:none;
+  display:flex; flex-direction:column; gap:6px; padding:20px; text-align:left; cursor:pointer;
+  background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-xl);
+  box-shadow:var(--shadow-card); color:var(--text-primary); position:relative; overflow:hidden;
+  transition:transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.bt-tile:hover { transform:translateY(-2px); box-shadow:var(--shadow-pop); }
+.bt-tile::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--brand-grad); }
+.bt-tile .ic { font-size:26px; }
+.bt-tile h2 { font-size:var(--fs-h3); color:var(--text-primary); }
+.bt-tile p { font-size:var(--fs-body-sm); color:var(--text-secondary); margin:0; line-height:1.45; }
+
+/* ======================================================================
+   Card
+   ====================================================================== */
+.bt-card { background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); box-shadow:var(--shadow-card); padding:20px; }
+.bt-card--flush { padding:0; overflow:hidden; }
+.bt-card--spine-amber  { border-left:3px solid var(--brand-amber); }
+.bt-card--spine-blue   { border-left:3px solid var(--signal-blue); }
+.bt-card--spine-violet { border-left:3px solid var(--signal-violet); }
+.bt-card--spine-red    { border-left:3px solid var(--brand-red); }
+.bt-card--spine-green  { border-left:3px solid var(--signal-green); }
+
+/* KPI stat */
+.bt-stat__label { font-size:9.5px; font-weight:var(--w-extra); letter-spacing:var(--ls-eyebrow); text-transform:uppercase; color:var(--text-secondary); }
+.bt-stat__value { font-family:var(--font-mono); font-size:28px; font-weight:var(--w-black); color:var(--text-primary); margin-top:5px; letter-spacing:-.01em; }
+.bt-stat__sub   { font-size:12px; color:var(--text-secondary); margin-top:3px; font-weight:600; }
+.bt-stat--green .bt-stat__value { color:var(--signal-green); }
+.bt-stat--blue  .bt-stat__value { color:var(--signal-blue); }
+
+/* horizontal % bar */
+.bt-bar { height:11px; border-radius:var(--radius-pill); background:var(--surface-sunken); overflow:hidden; }
+.bt-bar__fill { height:100%; border-radius:var(--radius-pill); background:var(--accent); }
+
+/* job-type chooser (Automotive / Residential / Commercial) */
+.bt-jobtype {
+  -webkit-appearance:none; appearance:none; flex:1; min-width:150px; cursor:pointer; text-align:left;
+  display:flex; flex-direction:column; gap:4px; padding:18px;
+  background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-card); color:var(--text-primary); font-family:var(--font-sans);
+  transition:border-color var(--dur-base),transform var(--dur-base);
+}
+.bt-jobtype:hover { transform:translateY(-2px); }
+.bt-jobtype > .bt-jobtype__title { font-size:var(--fs-h3); font-weight:var(--w-extra); letter-spacing:var(--ls-tight); }
+.bt-jobtype__sub { font-size:var(--fs-caption); color:var(--text-secondary); }
+.bt-jobtype.is-active { border-color:var(--brand-red); box-shadow:0 0 0 2px var(--brand-red) inset, var(--shadow-card); }
+
+/* ======================================================================
+   Buttons
+   ====================================================================== */
+.bt-btn {
+  -webkit-appearance:none; appearance:none;   /* clear native control backplate so our bg applies */
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  font-family:var(--font-sans); font-weight:var(--w-extra); font-size:14px; line-height:1;
+  padding:11px 16px; border-radius:var(--radius-md); border:1px solid transparent; cursor:pointer;
+  min-height:var(--tap-min); transition:filter var(--dur-base),background var(--dur-base),transform var(--dur-base); white-space:nowrap;
+}
+.bt-btn:active { transform:scale(.97); }
+.bt-btn--primary   { background:var(--accent-grad); color:var(--accent-ink); }
+.bt-btn--brand     { background:var(--brand-grad); color:var(--text-on-brand); }
+.bt-btn--secondary { background:#ffffff; color:#14171b; border-color:rgba(20,23,27,.14); }
+[data-bt-theme="dark"] .bt-btn--secondary { box-shadow:0 1px 2px rgba(0,0,0,.4); }
+.bt-btn--ghost     { background:transparent; color:var(--text-secondary); }
+.bt-btn--primary:hover,.bt-btn--brand:hover { filter:brightness(1.05); }
+.bt-btn--lg { padding:14px 20px; font-size:15px; }
+.bt-btn--sm { padding:8px 12px; font-size:12.5px; min-height:0; }
+.bt-btn--full { display:flex; width:100%; }
+
+/* ======================================================================
+   Status pills
+   ====================================================================== */
+.bt-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:var(--radius-pill); font-size:11px; font-weight:var(--w-extra); letter-spacing:.01em; border:1px solid transparent; }
+.bt-pill.is-ok   { background:var(--tint-green);  color:var(--signal-green);  border-color:rgba(34,153,74,.35); }
+.bt-pill.is-warn { background:var(--tint-amber);  color:var(--brand-amber-deep); border-color:rgba(255,176,0,.4); }
+.bt-pill.is-no   { background:var(--tint-red);    color:var(--brand-red);     border-color:rgba(184,35,52,.4); }
+.bt-pill.is-info { background:var(--tint-blue);   color:var(--signal-blue);   border-color:rgba(74,163,255,.4); }
+.bt-pill--solid.is-ok   { background:var(--signal-green); color:#fff; border-color:transparent; }
+.bt-pill--solid.is-warn { background:var(--brand-amber); color:#1a1300; border-color:transparent; }
+.bt-pill--solid.is-no   { background:var(--brand-red); color:#fff; border-color:transparent; }
+.bt-pill--solid.is-info { background:var(--signal-blue); color:#fff; border-color:transparent; }
+
+/* ======================================================================
+   Inputs
+   ====================================================================== */
+.bt-field { position:relative; display:flex; align-items:center; }
+.bt-field .bt-field__icon { position:absolute; left:13px; pointer-events:none; color:var(--text-tertiary); font-size:16px; }
+.bt-input {
+  width:100%; font-family:var(--font-sans); font-size:16px; /* 16px = no iOS zoom */
+  color:var(--text-primary); background:var(--surface-card);
+  border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px 14px; min-height:var(--tap-min);
+}
+.bt-field--icon .bt-input { padding-left:38px; }
+.bt-input::placeholder { color:var(--text-tertiary); }
+.bt-input:focus { outline:none; border-color:var(--focus-ring); box-shadow:0 0 0 3px color-mix(in srgb,var(--focus-ring) 22%,transparent); }
+.bt-input--mono { font-family:var(--font-mono); letter-spacing:.02em; }
+.bt-select { appearance:none; background-image:none; cursor:pointer; }
+
+/* ======================================================================
+   Theme toggle control (place in sidebar footer or top bar)
+   ====================================================================== */
+.bt-themetoggle { display:inline-flex; background:var(--surface-sunken); border:1px solid var(--border-subtle); border-radius:var(--radius-pill); padding:3px; gap:2px; }
+.bt-themetoggle button { -webkit-appearance:none; appearance:none; border:none; cursor:pointer; border-radius:var(--radius-pill); padding:6px 12px; font-family:var(--font-sans); font-size:12px; font-weight:var(--w-extra); background:transparent; color:var(--text-tertiary); min-height:0; }
+.bt-themetoggle button.is-active { background:var(--surface-card); color:var(--text-primary); box-shadow:var(--shadow-card); }
+
+@media (prefers-reduced-motion:reduce){ .bt *,.bt *::before,.bt *::after{ animation-duration:.001ms!important; transition-duration:.001ms!important; } }
