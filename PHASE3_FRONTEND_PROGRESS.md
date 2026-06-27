@@ -122,6 +122,17 @@ Reads/writes the **existing** Supabase data (no Google dependency, no new backen
     `location.href`. All 6 inline scripts in index.html pass `node vm` syntax check.
     🚩 **Pending real-device verify:** Settings opens in-app (left rail + steps), saves each step to the
     same cloud config, manager-gated (staff sees "Managers only"), logo upload + hours copy work.
+  - ✅ **Programmers** (code-complete, pending device sign-off) — large self-contained reference tool
+    (710 lines, mostly the device + per-platform coverage seed). Same recipe; key wrinkles handled: its
+    script runs **top-level init** (ensureSeed/populate/event-wiring) and grabs DOM at load, so its
+    static markup sits in `#view-programmers` (in the DOM before the script) and the init resolves; it
+    **redefines `readLS`/`writeLS`/`esc`/`uid`**, so the whole thing is IIFE-scoped; `gid()`/`root`
+    scope every lookup and its `querySelectorAll('.panel')` so it can't toggle other views' panels. CSS
+    scoped under `#view-programmers` (its `--amber`/`--red` now inherit the shell's shades). Seed data +
+    the Autel Ford/Toyota tool-restriction logic copied verbatim. `window.renderProgrammers` refreshes
+    the Lookup on open. Local-first data (`tks_prog_*`) unchanged. All 7 inline scripts pass node syntax check.
+    🚩 **Pending real-device verify:** Lookup (VIN + make/year), My-tools checkboxes, Coverage table,
+    add/edit modal, CSV import/export — all in-app, themed, with `editReference` gating intact.
 
 **Tooling note:** Git **and Node.js (24.18)** are now installed on this PC (both were missing). Node is
 needed for the next `npx wrangler` website deploy and is used here to syntax-check the inline scripts.
