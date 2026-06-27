@@ -5030,7 +5030,8 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanne
    TKS.InvOps.locations vs the tech's home van). Drag layer sits on top of the same button actions.
    Backend untouched. */
 (function(){
-  var view='board';                 // 'board' | 'day' | 'week' | 'month'
+  // Desktop opens the dispatch board; a phone (a tech in the field) opens the Day list.
+  var view=(function(){ try{ return (window.matchMedia && window.matchMedia('(max-width:720px)').matches) ? 'day' : 'board'; }catch(e){ return 'board'; } })();
   var cursor=new Date(); cursor.setHours(0,0,0,0);
   var STAFF=null, VANS=null, loaded=false, dragId=null;
   var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];

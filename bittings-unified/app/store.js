@@ -586,7 +586,7 @@
   }
 
   var changeHandlers = [];
-  var authState = { user: null, sb: null, staffRole: null };   // current signed-in user + staff role (cloud)
+  var authState = { user: null, sb: null, staffRole: (function(){ try{ return (localStorage.getItem('tks_demo_mode')==='1' && localStorage.getItem('tks_demo_role')) || null; }catch(e){ return null; } })() };   // current signed-in user + staff role (cloud; or a seeded demo role)
   // Capability → roles allowed (mirrors the server RLS matrix). Gates destructive UI.
   var TKS_CAPS = {
     hardDelete:     ['owner'],
@@ -608,6 +608,8 @@
   // Fetch + cache the signed-in user's role from the `staff` table.
   function fetchStaffRole(sb) {
     try {
+      // DEMO: a seeded demo sets the role directly (cloud query would fail on the fake token).
+      if (_demoOn()) { var dr = null; try { dr = localStorage.getItem('tks_demo_role'); } catch (e) {} authState.staffRole = dr || authState.staffRole; return Promise.resolve(authState.staffRole); }
       if (!sb || !authState.user) { authState.staffRole = null; return Promise.resolve(null); }
       return sb.from('staff').select('role,active').eq('user_id', authState.user.id).maybeSingle()
         .then(function (res) {

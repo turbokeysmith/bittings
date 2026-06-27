@@ -40,13 +40,20 @@
   function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   var TAX = 8.625;
 
+  // DEVICE-AWARE DEMO: owner experience on a PC, technician (field) view on a phone.
+  // Open this same page on each device — desktop shows the owner dashboard, phone shows the tech view.
+  var PHONE = false;
+  try { PHONE = (window.matchMedia && window.matchMedia('(max-width:820px)').matches) || (window.innerWidth > 0 && window.innerWidth <= 820); } catch (e) {}
+  var DEMO_USER = PHONE ? { id: 'u_mike', email: 'mike@turbokeysmith.com' }
+                        : { id: 'u_samer', email: 'samer@turbokeysmith.com' };
   set('sb-gcshuhlksjznksspbigl-auth-token', {
     access_token: 'demo-pitch-token', token_type: 'bearer', expires_at: 9999999999,
-    refresh_token: 'demo', user: { id: 'demo-owner', email: 'samer@turbokeysmith.com' }
+    refresh_token: 'demo', user: DEMO_USER
   });
-  // Demo flag: lets the offline app serve seeded payment transactions to Reports /
-  // Transaction History / Closeout (which normally read the cloud). See app/pay.js.
+  // Demo flag: lets the offline app serve seeded data (Fleet / Commission / Reports / etc. normally
+  // read the cloud). tks_demo_role drives the role gating so the phone reads as a real technician view.
   try { localStorage.setItem('tks_demo_mode', '1'); } catch (e) {}
+  try { localStorage.setItem('tks_demo_role', PHONE ? 'technician' : 'owner'); } catch (e) {}
   try { localStorage.removeItem('bt_theme'); } catch (e) {}
 
   var STAFF = [
@@ -207,18 +214,22 @@
     [5, 10, 'auto', 'automotive', 'Ignition repair/replacement', 'Completed', 0, '2012 Dodge Ram 1500'],
     [6, 14, 'res', 'residential', 'Smart lock installation', 'Completed', 1, '']
   ];
+  // Tech assignment so the dispatch board fills its per-tech lanes (ids match tks_demo_staff).
+  var TECHMAP = [{ id: 'u_mike', name: 'Mike Reyes' }, { id: 'u_carlos', name: 'Carlos Vega' }, { id: 'u_tyler', name: 'Tyler Boggs' }];
   var bookings = bookSpecs.map(function (b, i) {
     var c = customers[i % customers.length];
     var v = b[7] ? b[7].split(' ') : ['', '', ''];
     var d = at(b[0], b[1]);
+    var tk = TECHMAP[b[6]] || TECHMAP[0];
     return {
       id: 'bk_demo_' + i, customerId: c.id,
       customer: { name: c.customer, phone: c.phone, email: c.email },
-      jobType: b[2], subType: '', serviceCategory: b[3], serviceLabel: b[4],
+      jobType: b[2], subType: b[4], serviceCategory: b[3], serviceLabel: b[4],
       vehicle: { year: v[0] || '', make: v[1] || '', model: v.slice(2).join(' ') || '', vin: '', ignition: null },
       address: c.address, parked: true, date: iso(d), time: String(b[1]).padStart(2, '0') + ':00',
       duration: 45, status: b[5], notes: '', images: [], upsell: '',
-      bookedBy: techNames[b[6]], createdAt: d.getTime() - DAY, updatedAt: d.getTime()
+      technician: tk.name, technicianId: tk.id,
+      bookedBy: tk.name, createdAt: d.getTime() - DAY, updatedAt: d.getTime()
     };
   });
   set('tks_bookings', bookings);
