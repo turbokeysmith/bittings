@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-26 22:10 CST (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-27 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,18 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-27 (🚐 Cross-device stock-move requests · scheduler test fixes · dark-mode date label)
+- **Scheduler rebuilt as a dispatch tool** (per-tech board + Day/Week/Month, assign/reschedule/cancel,
+  VIN, van flags) and then polished from your testing: **save now persists** (a duplicate-id bug fixed),
+  **drag actually moves + confirms with a toast**, and the day label is **contextual** ("Today" only on
+  today; "This week"/"Week of…"; the month) and **readable in dark mode** (moved into the nav).
+- **NEW database table — needs to be applied.** Added **`move_requests`** so a technician's stock-move
+  request reaches a manager on **any device** (before, it only lived on the tech's device). A manager
+  sees the request, taps **Approve**, and the stock moves (via the existing move function); owner/manager
+  still move stock directly. **Action required:** apply `bittings-app`'s new migration
+  `supabase/phase3/3a_move_requests.sql` in the Supabase SQL editor (Code couldn't apply it — no DB tool
+  on this PC). Until it's applied, requests fall back to same-device only; nothing breaks.
 
 ### 2026-06-26 22:10 CST (🏗️ Phase 3 kicked off — front-end unification on a clone)
 - Started the **front-end unification** plan (the inconsistent iframe-glued staff app → one unified,

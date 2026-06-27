@@ -1105,6 +1105,16 @@
     adjust:  function(item, loc, newQty, reason){ if(_demoOn()) return _demoOk(null); return _sb().rpc('inv_adjust', { p_item: item, p_loc: loc, p_new_qty: newQty, p_reason: reason || '' }); } // manager+
   };
 
+  // Stock-move requests (tech → manager approval) — Phase 3a. Synced cross-device via the
+  // move_requests table; the approve action still calls InvOps.move (inv_move). Cloud-only;
+  // the UI falls back to a local queue when offline.
+  global.TKS.MoveReq = {
+    create:  function(r){ if(_demoOn()) return _demoOk(null); return _sb().from('move_requests').insert({ item_id:r.itemId, item_name:r.itemName||null, from_loc:r.from, to_loc:r.to, qty:r.qty||1, job_id:r.jobId||null, note:r.note||null, requested_by_name:r.byName||null }).select(); },
+    pending: function(){ if(_demoOn()) return _demoOk([]); return _sb().from('move_requests').select('*').eq('status','pending').order('created_at',{ascending:true}); },
+    decide:  function(id, approve){ if(_demoOn()) return _demoOk(null); return _sb().from('move_requests').update({ status: approve?'approved':'denied', decided_at: new Date().toISOString() }).eq('id', id).select(); }, // manager (RLS)
+    remove:  function(id){ if(_demoOn()) return _demoOk(null); return _sb().from('move_requests').delete().eq('id', id); }
+  };
+
   // Job status + accountability — guarded RPCs (front_desk can't set status;
   // a tech only on own jobs; completion/cancel gated on parts reconciliation).
   global.TKS.Jobs = {
