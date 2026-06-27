@@ -104,7 +104,7 @@
       'padding:12px 16px;border-radius:10px;font:600 14px system-ui;box-shadow:0 12px 34px rgba(0,0,0,.5);max-width:90vw;transition:opacity .4s}'+
     '.tks-toast.out{opacity:0}'+
     '.tks-cap-hidden{display:none !important}'+
-    '#tks-role-chip{position:fixed;top:8px;right:10px;z-index:9998;background:#16191f;color:#cdd3da;border:1px solid #2a2f37;border-radius:999px;padding:3px 10px;font:700 11px system-ui,sans-serif;letter-spacing:.04em;opacity:.9;pointer-events:none}'+
+    '#tks-role-chip{position:fixed;left:8px;bottom:calc(64px + env(safe-area-inset-bottom));z-index:70;background:#16191f;color:#cdd3da;border:1px solid #2a2f37;border-radius:999px;padding:3px 9px;font:700 10.5px system-ui,sans-serif;letter-spacing:.04em;opacity:.8;pointer-events:none}'+
     '#tks-role-chip.mgr{color:#f2b43a;border-color:#5a4a1e}';
   try{ var st = document.createElement('style'); st.textContent = css; (document.head||document.documentElement).appendChild(st); }catch(e){}
 

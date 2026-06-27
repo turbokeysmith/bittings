@@ -422,22 +422,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     background:var(--bg); color:#eee; display:flex; flex-direction:column;
-    height:100vh; overflow:hidden;
+    height:100vh; height:100dvh; overflow:hidden;   /* dvh = visible height, so the bottom nav isn't hidden behind the phone browser's toolbar */
   }
+  /* Header — themed to match the rest of the app (light surface in light mode, dark in dark). */
   header{
-    background:var(--dark); padding:12px 16px; display:flex; align-items:center;
+    background:#fbfcfd; padding:12px 16px; display:flex; align-items:center;
     gap:10px; border-bottom:2px solid var(--red); flex-shrink:0;
   }
   header img{height:34px;width:auto;max-width:120px;object-fit:contain;background:transparent;}
   header .ht{flex:1;min-width:0;}
-  header h1{font-size:15px;font-weight:800;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  header h1{font-size:15px;font-weight:800;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#14171b;}
   header h1 .r{color:var(--red);}
   header .sub{font-size:10px;color:#5a616c;margin-top:1px;}
   .hdr-btn{
-    background:#444;color:#ddd;border:none;border-radius:8px;
+    background:#eef1f5;color:#28303a;border:1px solid #d7dbe0;border-radius:8px;
     padding:8px 10px;font-size:11.5px;font-weight:600;
   }
-  .hdr-btn:active{background:#555;}
+  .hdr-btn:active{background:#e0e4ea;}
 
   #chat{
     flex:1; overflow-y:auto; padding:16px 12px 8px; display:flex;
@@ -537,19 +538,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   }
   #inputbar input::placeholder{color:#5a616c;}
   /* Persistent app navigation — main + quick menu, always visible (bottom bar on phones). */
+  /* Bottom nav — themed to match the main app (light in light mode, dark in dark mode). */
   #appnav{
-    display:flex; background:#1f1f1f; border-top:1px solid #3a3a3a; flex-shrink:0;
+    display:flex; background:#fbfcfd; border-top:1px solid #e3e6ea; flex-shrink:0;
     padding-bottom:env(safe-area-inset-bottom);
   }
   #appnav a{
     flex:1; text-align:center; padding:7px 2px 6px; text-decoration:none;
-    color:#9aa1ac; font-size:10px; font-weight:600; line-height:1.25;
+    color:#5a616c; font-size:10px; font-weight:600; line-height:1.25;
     display:flex; flex-direction:column; align-items:center; gap:2px; min-width:0;
   }
   #appnav a .ic{ font-size:18px; line-height:1; }
-  #appnav a.active{ color:#fff; }
-  #appnav a.active .ic{ filter:drop-shadow(0 0 4px rgba(200,50,50,.6)); }
-  #appnav a:active{ background:#2a2a2a; }
+  #appnav a.active{ color:#c8323c; }
+  #appnav a.active .ic{ filter:drop-shadow(0 0 4px rgba(200,50,50,.5)); }
+  #appnav a:active{ background:rgba(0,0,0,.05); }
+  [data-bt-theme="dark"] #appnav{ background:#1b1f25; border-top-color:#2c313a; }
+  [data-bt-theme="dark"] #appnav a{ color:#9aa1ac; }
+  [data-bt-theme="dark"] #appnav a.active{ color:#fff; }
+  [data-bt-theme="dark"] #appnav a:active{ background:#2a2a2a; }
   #sendBtn{
     background:var(--red);border:none;width:44px;height:44px;border-radius:50%;
     color:#fff;font-size:19px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
@@ -646,6 +652,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .hist-item.invoice .hi-num{color:var(--amber);}
   .hist-item.estimate .hi-num{color:#bbb;}
   .hist-item .hi-amt{font-weight:700;}
+  .hi-warr{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;align-self:center;margin:0 8px;}
   .hist-item .hi-cust{font-size:13.5px;margin-top:3px;color:#fff;}
   .cust-type-tag{
     display:inline-block;font-size:9px;font-weight:700;
@@ -779,7 +786,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   [data-bt-theme="dark"]{ --bg:#14171b; --light:#1f232a; }
   [data-bt-theme="dark"] body{ background:#14171b; color:#f4f5f7; }
   [data-bt-theme="dark"] header,[data-bt-theme="dark"] .pp-head{ background:#1f232a; }
+  [data-bt-theme="dark"] header h1{ color:#f4f5f7; }
   [data-bt-theme="dark"] header .sub{ color:#9aa1ac; }
+  [data-bt-theme="dark"] .hdr-btn{ border-color:#3a414c; }
   [data-bt-theme="dark"] .pp-head b{ color:#f4f5f7; }
   [data-bt-theme="dark"] .hdr-btn,[data-bt-theme="dark"] #skipBtn,[data-bt-theme="dark"] #backBtn,
   [data-bt-theme="dark"] .pp-head button,[data-bt-theme="dark"] .file-btn,[data-bt-theme="dark"] .save-row .secondary,
@@ -810,6 +819,56 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   [data-bt-theme="dark"] .hist-item.estimate .hi-num{ color:#9aa1ac; }
   [data-bt-theme="dark"] .cust-type-tag.ind{ background:rgba(74,163,255,.16);color:#7fb8ff; }
   [data-bt-theme="dark"] .cust-type-tag.biz{ background:rgba(242,180,58,.16);color:#f2b43a; }
+  /* ---- Read-only Receipts mode (view/search/reprint only; no create/charge) ---- */
+  body.ro-mode #chat, body.ro-mode #inputbar, body.ro-mode header .hdr-btn[onclick*="openHist"]{ display:none !important; }
+  #roWrap{ display:none; }
+  /* fill the space between header and the bottom nav so the nav stays pinned to the bottom;
+     scroll the list inside #roWrap (body is height:100vh; overflow:hidden). */
+  body.ro-mode #roWrap{ display:block; flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; width:100%; max-width:760px; margin:0 auto; padding:14px 14px 24px; }
+  .ro-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin:4px 2px 10px; }
+  .ro-head h2{ font-size:19px; margin:0; }
+  .ro-head .ro-sub{ font-size:12px; color:#8a9099; }
+  .ro-tabs{ display:flex; gap:8px; margin-bottom:10px; }
+  .ro-tabs button{ flex:1; background:#eef1f5; border:1px solid #d7dbe0; color:#4a5563; padding:11px; border-radius:10px; font-size:14px; font-weight:800; cursor:pointer; }
+  .ro-tabs button.on{ background:#2a7de1; border-color:#2a7de1; color:#fff; }
+  .ro-search{ width:100%; box-sizing:border-box; padding:11px 12px; border:1px solid #c7ccd3; border-radius:10px; font-size:15px; margin-bottom:10px; }
+  #roList{ display:flex; flex-direction:column; gap:9px; }
+  .ro-item{ background:#fff; border:1px solid #e6e9ee; border-left:3px solid #2a7de1; border-radius:10px; padding:11px 13px; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+  .ro-item.invoice{ border-left-color:#e08a2a; } .ro-item.estimate{ border-left-color:#9098a3; }
+  .ro-item.nastf{ border-left-color:#6b8cff; }
+  .ro-top{ display:flex; justify-content:space-between; gap:10px; align-items:baseline; }
+  .ro-num{ font-weight:800; color:#14171b; } .ro-amt{ font-weight:800; color:#14171b; white-space:nowrap; }
+  .ro-cust{ font-size:13.5px; color:#222; margin-top:2px; } .ro-desc{ font-size:11.5px; color:#7a818b; margin-top:2px; }
+  .ro-badges{ margin-top:7px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .ro-actions{ display:flex; gap:6px; margin-top:9px; flex-wrap:wrap; }
+  .ro-actions button{ flex:1; min-width:84px; min-height:42px; background:#f1f3f6; border:1px solid #d7dbe0; color:#28303a; padding:9px 8px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+  .ro-actions button:active{ background:#2a7de1; color:#fff; }
+  .ro-filed{ display:flex; align-items:center; gap:8px; margin-top:9px; font-size:13.5px; font-weight:700; color:#28303a; }
+  .ro-filed input{ width:20px; height:20px; }
+  .ro-filed.locked{ color:#9098a3; }
+  .ro-empty{ text-align:center; color:#9098a3; margin-top:46px; font-size:14px; }
+  /* tap-to-view affordance on a read-only row */
+  .ro-open{ cursor:pointer; position:relative; }
+  .ro-open:hover{ opacity:.92; }
+  /* in-app PDF viewer (modal) — view default, download/print one tap away */
+  .ro-viewer{ position:fixed; inset:0; z-index:9999; background:rgba(15,18,22,.88); display:none; flex-direction:column; }
+  .ro-viewer.open{ display:flex; }
+  .ro-viewer-bar{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; background:#1a1d22; color:#fff; flex:0 0 auto; }
+  .ro-viewer-title{ font-weight:800; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ro-viewer-btns{ display:flex; gap:8px; flex:0 0 auto; }
+  .ro-viewer-btns button{ min-height:42px; padding:8px 13px; border:0; border-radius:9px; font-weight:800; font-size:14px; cursor:pointer; background:#33404e; color:#fff; }
+  #roViewerPrint{ background:#2a7de1; } #roViewerDl{ background:#1f8f43; } #roViewerClose{ background:#444b55; min-width:44px; }
+  .ro-viewer-body{ flex:1; min-height:0; background:#3a3d42; position:relative; }
+  .ro-viewer-doc{ width:100%; height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px; box-sizing:border-box; }
+  .ro-viewer-doc .receipt-card{ max-width:580px; margin:0 auto; }
+  @media (max-width:560px){ .ro-viewer-btns button{ padding:8px 11px; font-size:13px; } .ro-viewer-title{ font-size:13px; } }
+  @keyframes d1pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+  [data-bt-theme="dark"] body.ro-mode, [data-bt-theme="dark"] .ro-item{ }
+  [data-bt-theme="dark"] .ro-item{ background:#2a2f37; border-color:#3a414c; }
+  [data-bt-theme="dark"] .ro-num,[data-bt-theme="dark"] .ro-amt,[data-bt-theme="dark"] .ro-cust{ color:#f4f5f7; }
+  [data-bt-theme="dark"] .ro-tabs button{ background:#252a32; border-color:#3a414c; color:#cdd2da; }
+  [data-bt-theme="dark"] .ro-actions button{ background:#333a44; border-color:#3a414c; color:#e7e9ee; }
+  [data-bt-theme="dark"] .ro-search{ background:#2c313a; border-color:#3a414c; color:#f4f5f7; }
 </style>
 </head>
 <body>
@@ -827,6 +886,37 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
 <div id="chat"></div>
 
+<!-- Read-only Receipts surface (view/search/reprint + the NASTF D1 worklist).
+     Charging/creating happens only on the register (desktop) + Start-a-Job (mobile). -->
+<div id="roWrap">
+  <div class="ro-head">
+    <div><h2>Receipts</h2><div class="ro-sub" id="roSub">Read-only history · search &amp; reprint</div></div>
+  </div>
+  <div class="ro-tabs" id="roTabs">
+    <button type="button" data-rt="all" class="on">All</button>
+    <button type="button" data-rt="nastf">NASTF</button>
+  </div>
+  <input id="roSearch" class="ro-search" type="search" placeholder="Search receipts — number, customer, vehicle, VIN…" autocomplete="off">
+  <div id="roList"></div>
+</div>
+
+<!-- In-app invoice viewer: renders the existing PDF engine to an inline preview
+     (no auto-download). Read-only — no edit/charge path. The PDF carries sell
+     prices only (never cost/margin), so it's safe for every role. -->
+<div id="roViewer" class="ro-viewer" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Invoice viewer">
+  <div class="ro-viewer-bar">
+    <span class="ro-viewer-title" id="roViewerTitle">Invoice</span>
+    <div class="ro-viewer-btns">
+      <button type="button" id="roViewerPrint">🖨 Print</button>
+      <button type="button" id="roViewerDl">⬇ Download</button>
+      <button type="button" id="roViewerClose" aria-label="Close viewer">✕</button>
+    </div>
+  </div>
+  <div class="ro-viewer-body">
+    <div id="roViewerDoc" class="ro-viewer-doc"></div>
+  </div>
+</div>
+
 <div id="inputbar">
   <button id="backBtn" title="Go back one step">◀ Back</button>
   <input id="userInput" type="text" placeholder="Type your answer..." autocomplete="off">
@@ -837,7 +927,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 <!-- Persistent app navigation — main + quick menu, always one tap away (bottom bar on phones). -->
 <nav id="appnav">
   <a href="index.html"><span class="ic">🏠</span>Home</a>
-  <a href="bittings.html" class="active"><span class="ic">🧾</span>Receipts</a>
+  <a href="bittings.html?receipts=1" class="active"><span class="ic">🧾</span>Receipts</a>
   <a href="index.html?go=customers"><span class="ic">👤</span>Customers</a>
   <a href="scheduler.html"><span class="ic">📅</span>Scheduler</a>
   <a href="lishi.html"><span class="ic">🔑</span>Lishi</a>
@@ -1044,6 +1134,7 @@ try{ if(window.self!==window.top){
 <script src="app/access.js"></script>
 <script src="app/lishi-seed.js"></script>
 <script src="app/ymm.js"></script>
+<script src="app/d1.js"></script>
 <script>
 "use strict";
 
@@ -1144,9 +1235,19 @@ function warrantyPillHTML(r){
   const w=warrantyInfo(r); if(!w) return "";
   let bg,fg,txt;
   if(w.expired){ bg="rgba(200,50,60,.14)"; fg="#b3242f"; txt="Warranty expired"; }
-  else if(w.days<=30){ bg="rgba(217,138,0,.18)"; fg="#9a6a00"; txt=w.days+" day"+(w.days===1?"":"s")+" warranty left"; }
+  else if(w.days<=30){ bg="rgba(234,88,12,.16)"; fg="#c2410c"; txt=w.days+" day"+(w.days===1?"":"s")+" warranty left"; }   // dark orange — about to expire
   else { bg="rgba(34,153,74,.16)"; fg="#1f8f43"; txt=w.days+" days warranty left"; }
   return '<span style="display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;background:'+bg+';color:'+fg+'">🛡 '+txt+'</span>';
+}
+// Compact warranty pill for the receipt-list TILES (sits in the top row between the
+// number and the amount). Same green→amber→red countdown, shorter text.
+function warrantyPillCompactHTML(r){
+  const w=warrantyInfo(r); if(!w) return "";
+  let bg,fg,txt;
+  if(w.expired){ bg="rgba(200,50,60,.14)"; fg="#b3242f"; txt="Expired"; }
+  else if(w.days<=30){ bg="rgba(234,88,12,.16)"; fg="#c2410c"; txt=w.days+"d left"; }   // dark orange — about to expire
+  else { bg="rgba(34,153,74,.16)"; fg="#1f8f43"; txt=w.days+"d left"; }
+  return '<span class="hi-warr" style="background:'+bg+';color:'+fg+'">🛡 '+txt+'</span>';
 }
 
 // Common jobs: {desc, taxable, category, svc, useCount}
@@ -1405,6 +1506,29 @@ function appAlert(title, body){
     {label:"OK", kind:"ok", value:true}
   ]});
 }
+// Themed prompt (matches showModal). Resolves to the entered string, or null on cancel.
+function appPrompt(title, opts){
+  opts=opts||{};
+  return new Promise(function(resolve){
+    var bd=document.getElementById("modalBackdrop");
+    document.getElementById("modalTitle").textContent=title||"";
+    var body=document.getElementById("modalBody"); body.textContent="";
+    var inp=document.createElement("input");
+    inp.type=opts.type||"text"; inp.value=opts.value||""; if(opts.placeholder) inp.placeholder=opts.placeholder;
+    if(opts.inputmode) inp.setAttribute("inputmode", opts.inputmode);
+    inp.style.cssText="width:100%;box-sizing:border-box;background:#1f232a;border:1px solid #444;border-radius:8px;padding:11px 12px;color:#fff;font-size:16px;margin-top:6px";
+    body.appendChild(inp);
+    var btns=document.getElementById("modalBtns"); btns.innerHTML="";
+    var cancel=document.createElement("button"); cancel.textContent="Cancel"; cancel.className="mbtn-no";
+    var ok=document.createElement("button"); ok.textContent=opts.okText||"OK"; ok.className="mbtn-yes";
+    function done(v){ bd.classList.remove("open"); resolve(v); }
+    cancel.onclick=function(){ done(null); }; ok.onclick=function(){ done(inp.value); };
+    inp.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); done(inp.value); } });
+    btns.appendChild(cancel); btns.appendChild(ok);
+    bd.classList.add("open");
+    setTimeout(function(){ inp.focus(); try{ inp.select(); }catch(_){} }, 30);
+  });
+}
 
 /* ==========================================================
    FLOWS
@@ -1567,6 +1691,7 @@ const TAIL_FLOW_INVOICE = [
 let tailFlow = [];
 
 function startInterview(){
+  if(window.RO_RECEIPTS) return;   // read-only Receipts mode never starts the builder
   receipt={}; items=[]; step=0; phase="docType";
   tailStep=0; itemStage=null; itemDraft={};
   signatureData=null; nastfInfo=null; headFlow=[];
@@ -1935,8 +2060,8 @@ function askModelDropdown(q){
   btn.onclick=()=>{ const v=sel.value; if(!v){ appAlert("Pick a model","Choose from the list, type it, or tap Skip."); return; }
     applyAnswer("head:"+q.key); meSay(v); receipt[q.key]=v; step++; setTimeout(askHead,200); };
   const typeBtn=document.createElement("button"); typeBtn.className="opt"; typeBtn.style.marginTop="6px"; typeBtn.textContent="Type a different model";
-  typeBtn.onclick=()=>{ const t=(prompt("Type the model:")||"").trim(); if(!t) return;
-    applyAnswer("head:"+q.key); meSay(t); receipt[q.key]=t; step++; setTimeout(askHead,200); };
+  typeBtn.onclick=()=>{ appPrompt("Type the model", {placeholder:"Model"}).then(function(v){ const t=(v||"").trim(); if(!t) return;
+    applyAnswer("head:"+q.key); meSay(t); receipt[q.key]=t; step++; setTimeout(askHead,200); }); };
   const skipBtn3=document.createElement("button"); skipBtn3.className="opt"; skipBtn3.style.background="#444"; skipBtn3.style.marginTop="6px"; skipBtn3.textContent="Skip";
   skipBtn3.onclick=()=>{ applyAnswer("head:"+q.key+":skip"); meSay("skip"); receipt[q.key]=""; step++; setTimeout(askHead,200); };
   wrap.appendChild(sel); wrap.appendChild(btn); wrap.appendChild(typeBtn); wrap.appendChild(skipBtn3);
@@ -2620,6 +2745,20 @@ function isLockoutOnly(its){
     if(!/lock\s*out|unlock/.test(d)) nonLockout=true; });
   return real && !nonLockout && !partOrProg;
 }
+// NASTF D1: start the filing countdown on a fresh tag; preserve an existing deadline /
+// filed status when re-saving (filing itself is done server-side via set_d1_filed).
+function d1Days(){ try{ return (window.TKS&&TKS.Config&&TKS.Config.d1Days)?TKS.Config.d1Days():5; }catch(e){ return 5; } }
+function d1DueFrom(days){ var d=new Date(); d.setDate(d.getDate()+(parseInt(days,10)||5)); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function stampD1Nastf(info, prior){
+  if(!info || !info.type) return info || null;
+  prior = prior || {};
+  var days = (prior.d1Days!=null) ? prior.d1Days : d1Days();
+  var out = { type: info.type, d1Days: days, d1DueDate: prior.d1DueDate || d1DueFrom(days), d1Filed: !!prior.d1Filed };
+  if(prior.d1FiledAt) out.d1FiledAt = prior.d1FiledAt;
+  if(prior.d1FiledBy) out.d1FiledBy = prior.d1FiledBy;
+  if(prior.d1FiledByName) out.d1FiledByName = prior.d1FiledByName;
+  return out;
+}
 function finish(){
   inputbar.classList.add("hidden");
   clearUndo();
@@ -2647,7 +2786,7 @@ function finish(){
   })();
   receipt.totals=computeTotals(items, receipt.payment, receipt.taxRate);
   receipt.signature=signatureData;
-  receipt.nastf=nastfInfo;
+  receipt.nastf=stampD1Nastf(nastfInfo, receipt.nastf);   // start/keep the D1 filing countdown
   if(!receipt.technician) receipt.technician=currentTechnician();  // groundwork for commission
   // Save customer/shop to DB (if we have at least a name)
   if(receipt.customer){
@@ -2731,7 +2870,7 @@ function finish(){
 /* ==========================================================
    ON-SCREEN RECEIPT CARD
    ========================================================== */
-function renderReceiptCard(r){
+function buildReceiptCardHTML(r, actionsHTML){
   const t=r.totals;
   const status=r.status;
   const sColor= status==="Paid in Full"?"var(--green)"
@@ -2815,10 +2954,7 @@ function renderReceiptCard(r){
   }
   if(r.nastf) nastfBlock += '<div class="rc-line" style="color:#595959;font-style:italic;margin-top:6px;">NASTF Type: '+escapeHtml(r.nastf.type)+'</div>';
 
-  const card=document.createElement("div");
-  card.className="row bot";
-  card.innerHTML=
-   '<div class="receipt-card">'+
+  return '<div class="receipt-card">'+
      '<div class="rc-head">'+
        '<img src="'+SETTINGS.logo+'">'+
        '<div class="t"><b>'+escapeHtml(SETTINGS.name)+'</b>'+
@@ -2846,13 +2982,20 @@ function renderReceiptCard(r){
        })()+
        (r.notes?'<div class="rc-notes">Notes: '+escapeHtml(r.notes)+'</div>':'')+
      '</div>'+
-     '<div class="rc-actions">'+
+     (actionsHTML||'')+
+   '</div>';
+}
+/* Append the receipt card to the chat (with the My Copy / Customer / Español / Share buttons). */
+function renderReceiptCard(r){
+  const actions='<div class="rc-actions">'+
        '<button data-lang="en" data-copy="mine" title="Your full copy with NASTF audit fields">My Copy</button>'+
        '<button data-lang="en" data-copy="customer" title="Customer-facing copy (NASTF fields hidden)">Customer Copy</button>'+
        '<button data-lang="es" data-copy="customer" title="Customer Copy in Spanish">Español</button>'+
        '<button data-share="1" data-lang="en" data-copy="customer" title="Send via the share sheet — pick Messages, Mail, etc.; attaches the PDF">📤 Share</button>'+
-     '</div>'+
-   '</div>';
+     '</div>';
+  const card=document.createElement("div");
+  card.className="row bot";
+  card.innerHTML=buildReceiptCardHTML(r, actions);
   chat.appendChild(card);
   card.querySelectorAll(".rc-actions button").forEach(b=>{
     b.onclick=()=>{
@@ -2985,7 +3128,9 @@ function makePDF(r, lang, forCustomer){
   let yy=216;
   function bl(label, val){
     if(val===undefined||val===""||val===null) return;
-    doc.text(tr(label,lang)+": "+val, 40, yy, {maxWidth:260}); yy+=15;
+    // advance the cursor by the ACTUAL number of wrapped lines so the next field never overlaps
+    var _lines=doc.splitTextToSize(tr(label,lang)+": "+val, 260);
+    for(var _i=0;_i<_lines.length;_i++){ doc.text(_lines[_i], 40, yy); yy+=15; }
   }
   bl(isContractingP?"Shop":"Customer", r.customer);
   bl(isContractingP?"Manager":"Contact", r.contact);
@@ -3231,6 +3376,7 @@ function renderHistList(){
     actions += '<button data-cap="hardDelete" data-act="del" data-num="'+dn+'">Delete</button>';   // invoice hard-delete = owner only (hidden for others by access.js)
     div.innerHTML=
       '<div class="hi-top"><span class="hi-num">'+escapeHtml(r.number)+'</span>'+
+      warrantyPillCompactHTML(r)+
       '<span class="hi-amt">'+money(total)+'</span></div>'+
       '<div class="hi-cust">'+escapeHtml(r.customer||"(no name)")+'</div>'+
       '<div class="hi-desc">'+escapeHtml(r.date||"")+' · '+escapeHtml(descPart)+'</div>'+
@@ -3641,7 +3787,7 @@ function saveSettings(){
 function applyBranding(){
   document.getElementById("hdrLogo").src=SETTINGS.logo;
   document.getElementById("hdrName").innerHTML=escapeHtml(SETTINGS.name);
-  document.title = SETTINGS.name + " — Documents";
+  document.title = "Documents — Bittings";   // window/tab = product brand; shop name stays in the header
 }
 
 /* ==========================================================
@@ -3727,31 +3873,206 @@ function firstRunSetup(){
   applyBranding();
   openSettings();
 }
+/* ===== Read-only Receipts mode — view/search/reprint + NASTF D1 worklist.
+   Entered via ?receipts=1 (the "Receipts" nav). The builder never runs here;
+   charging/creating lives on the register (desktop) + Start-a-Job (mobile). ===== */
+var RO_RECEIPTS = /[?&](receipts|history)=1/.test(location.search);
+var roTab='all', roQuery='';
+function roVehStr(r){ try{ return vehicleString(r)||''; }catch(e){ return ''; } }
+function roDesc(r){
+  var veh=roVehStr(r), isAuto=(r.serviceType==="Automotive")||veh;
+  if(isAuto && veh) return veh;
+  if(!isAuto && r.address) return r.address;
+  var fd=(r.items&&r.items[0])?r.items[0].desc:(r.descLine||"");
+  var extra=(r.items&&r.items.length>1)?(" +"+(r.items.length-1)+" more"):"";
+  return (fd||"")+extra;
+}
+function roFindReceipt(id, num){
+  var h=getHistory();
+  return h.find(function(x){ return (id && x.id===id) || (num && x.number===num); });
+}
+function roActionsHTML(r){
+  var id=escapeHtml((r&&r.id)||''), dn=escapeHtml((r&&(r.number||r.id))||'');
+  return '<button data-ract="view" data-id="'+id+'" data-num="'+dn+'">👁 View</button>'+
+         '<button data-ract="share" data-id="'+id+'" data-num="'+dn+'">📤 Send</button>'+
+         '<button data-ract="pdfes" data-id="'+id+'" data-num="'+dn+'">PDF (ES)</button>';
+}
+function roWireActions(){
+  document.querySelectorAll('#roList .ro-actions button').forEach(function(b){
+    b.onclick=function(ev){
+      if(ev) ev.stopPropagation();
+      var r=roFindReceipt(b.dataset.id, b.dataset.num);
+      if(!r){ appAlert('Not loaded yet', 'This receipt isn’t loaded on this device yet — open the All tab and search for it.'); return; }
+      var act=b.dataset.ract;
+      if(act==='view') roOpenViewer(r);
+      else if(act==='share') shareDocument(r,'en',true);
+      else if(act==='pdfes') makePDF(r,'es');
+    };
+  });
+}
+// Tap a row's body → open the in-app viewer (the default way to look at an invoice).
+function roWireOpen(){
+  document.querySelectorAll('#roList .ro-open').forEach(function(el){
+    var go=function(){ var r=roFindReceipt(el.dataset.id, el.dataset.num);
+      if(r) roOpenViewer(r); else appAlert('Not loaded yet', 'This receipt isn’t loaded on this device yet — try the All tab.'); };
+    el.onclick=go;
+    el.onkeydown=function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } };
+  });
+}
+
+/* ---- In-app invoice viewer: shows the receipt as live HTML (renders reliably on
+   every phone, unlike a blob-PDF iframe which goes blank on mobile). Download + Print
+   build the PDF on demand from the SAME engine. The view shows sell prices only —
+   never cost/margin — so it's safe for every role. ---- */
+var roViewerReceipt=null;
+function roOpenViewer(r){
+  if(!r) return;
+  // legacy receipts may lack totals/items — rebuild them the same way the history list does
+  try{
+    if(!r.items) r.items=[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}];
+    if(!r.totals) r.totals=computeTotals(r.items, r.payment, (typeof receiptTaxRate==='function'?receiptTaxRate(r):(r.taxRate||0)));
+  }catch(e){}
+  roViewerReceipt=r;
+  var docEl=document.getElementById('roViewerDoc');
+  if(docEl){
+    try{ docEl.innerHTML=buildReceiptCardHTML(r); docEl.scrollTop=0; }
+    catch(e){ docEl.innerHTML='<div style="padding:26px;text-align:center;color:#e7e9ee">Couldn’t render this receipt — tap <b>⬇ Download</b> for the PDF.</div>'; }
+  }
+  var ttl=document.getElementById('roViewerTitle'); if(ttl) ttl.textContent=((typeof docLabel==='function'?docLabel(r.docType):'Document'))+' '+(r.number||r.id||'');
+  var v=document.getElementById('roViewer'); if(v){ v.classList.add('open'); v.setAttribute('aria-hidden','false'); }
+  document.body.style.overflow='hidden';
+}
+function roCloseViewer(){
+  var v=document.getElementById('roViewer'); if(v){ v.classList.remove('open'); v.setAttribute('aria-hidden','true'); }
+  var docEl=document.getElementById('roViewerDoc'); if(docEl) docEl.innerHTML='';
+  document.body.style.overflow=''; roViewerReceipt=null;
+}
+function roViewerDownload(){
+  if(!roViewerReceipt) return;
+  try{ makePDF(roViewerReceipt, 'en', false); }   // 3-arg → saves the PDF (download)
+  catch(e){ appAlert('Download failed', (e&&e.message)||'Could not build the PDF.'); }
+}
+function roViewerPrint(){
+  if(!roViewerReceipt) return;
+  var out; try{ out=makePDF(roViewerReceipt, 'en', false, true); }
+  catch(e){ appAlert('Print failed', (e&&e.message)||'Could not build the PDF.'); return; }
+  if(out && out.blob){
+    var url=URL.createObjectURL(out.blob);
+    var w=window.open(url, '_blank');   // open the PDF (native viewer has Print/Share)
+    if(!w){ var a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+    setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 60000);
+  }
+}
+function roOpen(){ document.body.classList.add('ro-mode'); roSetTab(roTab); }
+function roSetTab(t){
+  roTab=(t==='nastf')?'nastf':'all';
+  document.querySelectorAll('#roTabs button').forEach(function(b){ b.classList.toggle('on', b.dataset.rt===roTab); });
+  var s=document.getElementById('roSearch'); if(s) s.style.display=(roTab==='all')?'block':'none';
+  var sub=document.getElementById('roSub'); if(sub) sub.textContent=(roTab==='nastf')?'Outstanding D1 worklist · soonest-due first':'Read-only history · search & reprint';
+  if(roTab==='nastf') roRenderNastf(); else roRenderAll();
+}
+function roRenderAll(){
+  var list=document.getElementById('roList'); if(!list) return;
+  var hist=getHistory().slice(), q=(roQuery||'').trim().toLowerCase();
+  if(q){ hist=hist.filter(function(r){
+    return [r.number,r.customer,r.date,r.address,r.vin,roVehStr(r),(r.items||[]).map(function(i){return i.desc;}).join(' ')]
+      .join(' ').toLowerCase().indexOf(q)>=0; }); }
+  hist.sort(function(a,b){ return (b.savedAt||0)-(a.savedAt||0); });
+  if(!hist.length){ list.innerHTML='<div class="ro-empty">'+(q?'No receipts match “'+escapeHtml(roQuery)+'”.':'No receipts yet — charge a job on the register or Start-a-Job.')+'</div>'; return; }
+  list.innerHTML=hist.map(function(r){
+    var type=r.docType||'receipt', total=r.totals?r.totals.total:(r.amount||0);
+    var isN=!!(r.nastf&&r.nastf.type);
+    var badge=(isN&&window.TKS_D1)?TKS_D1.pillHTML(r.nastf,{showType:true,small:true}):'';
+    var warrFull=warrantyPillHTML(r);
+    var badgeRow=(warrFull||badge)?('<div class="ro-badges">'+warrFull+badge+'</div>'):'';
+    return '<div class="ro-item '+type+(isN?' nastf':'')+'">'+
+      '<div class="ro-open" data-id="'+escapeHtml(r.id||'')+'" data-num="'+escapeHtml(r.number||r.id||'')+'" role="button" tabindex="0" title="Tap to view">'+
+        '<div class="ro-top"><span class="ro-num">'+escapeHtml(r.number||r.id||'')+'</span>'+warrantyPillCompactHTML(r)+'<span class="ro-amt">'+money(total)+'</span></div>'+
+        '<div class="ro-cust">'+escapeHtml(r.customer||'(no name)')+'</div>'+
+        '<div class="ro-desc">'+escapeHtml(r.date||'')+' · '+escapeHtml(roDesc(r))+'</div>'+
+        badgeRow+
+      '</div>'+
+      '<div class="ro-actions">'+roActionsHTML(r)+'</div></div>';
+  }).join('');
+  roWireActions(); roWireOpen();
+}
+function roRenderNastf(){
+  var list=document.getElementById('roList'); if(!list) return;
+  list.innerHTML='<div class="ro-empty">Loading the D1 worklist…</div>';
+  if(!(window.TKS&&TKS.NASTF&&TKS.NASTF.worklist)){ list.innerHTML='<div class="ro-empty">Sign in to load the NASTF worklist.</div>'; return; }
+  TKS.NASTF.worklist(true).then(function(res){
+    if(res&&res.error) throw res.error;
+    var rows=(res&&res.data)||[];
+    if(!rows.length){ list.innerHTML='<div class="ro-empty">No NASTF jobs yet. Tag a job NASTF on the register or Start-a-Job to start a D1 clock.</div>'; return; }
+    list.innerHTML=rows.map(function(row){
+      var r=roFindReceipt(row.id, row.number);
+      var nastf={ type:row.nastf_type, d1Days:row.d1_days, d1DueDate:row.d1_due, d1Filed:row.d1_filed, d1FiledByName:row.d1_filed_by_name };
+      var badge=window.TKS_D1?TKS_D1.pillHTML(nastf,{showType:false}):'';
+      var canFile=!!row.can_file;
+      var filedBy=(row.d1_filed&&row.d1_filed_by_name)?(' · by '+escapeHtml(row.d1_filed_by_name)):'';
+      var note=canFile?'':' · only the staff who did this job (or a manager) can file';
+      var chk='<label class="ro-filed'+(canFile?'':' locked')+'">'+
+        '<input type="checkbox" data-d1id="'+escapeHtml(row.id)+'" '+(row.d1_filed?'checked':'')+(canFile?'':' disabled')+'>'+
+        '<span>D1 filed ✓'+filedBy+'</span></label>';
+      return '<div class="ro-item nastf">'+
+        '<div class="ro-open" data-id="'+escapeHtml(row.id||'')+'" data-num="'+escapeHtml(row.number||row.id||'')+'" role="button" tabindex="0" title="Tap to view">'+
+          '<div class="ro-top"><span class="ro-num">'+escapeHtml(row.number||row.id)+'</span><span class="ro-amt">'+escapeHtml(row.nastf_type||'')+'</span></div>'+
+          '<div class="ro-cust">'+escapeHtml(row.customer||'(no name)')+'</div>'+
+          '<div class="ro-desc">'+escapeHtml(row.doc_date||'')+note+'</div>'+
+          '<div class="ro-badges">'+badge+'</div>'+
+        '</div>'+chk+
+        '<div class="ro-actions">'+roActionsHTML(r||{id:row.id,number:row.number})+'</div></div>';
+    }).join('');
+    roWireActions(); roWireOpen();
+    list.querySelectorAll('input[data-d1id]').forEach(function(cb){
+      cb.onchange=function(){
+        var id=cb.dataset.d1id, want=cb.checked; cb.disabled=true;
+        TKS.NASTF.setFiled(id, want).then(function(res){
+          if(res&&res.error) throw res.error;
+          roRenderNastf();
+        }).catch(function(e){ cb.checked=!want; cb.disabled=false; appAlert('D1 status', (e&&e.message)||'Could not update D1 status — you may not be assigned to this job.'); });
+      };
+    });
+  }).catch(function(e){ list.innerHTML='<div class="ro-empty">Could not load the worklist'+(e&&e.message?(': '+escapeHtml(e.message)):'')+'.</div>'; });
+}
+(function(){
+  var s=document.getElementById('roSearch'); if(s) s.addEventListener('input', function(){ roQuery=s.value; roRenderAll(); });
+  document.querySelectorAll('#roTabs button').forEach(function(b){ b.onclick=function(){ roSetTab(b.dataset.rt); }; });
+  // re-render the All tab when cloud data syncs in after boot (receipts arrive async)
+  if(window.TKS && TKS.onChange) TKS.onChange(function(){ if(document.body.classList.contains('ro-mode') && roTab==='all') roRenderAll(); });
+  // in-app viewer controls
+  var vc=document.getElementById('roViewerClose'); if(vc) vc.onclick=roCloseViewer;
+  var vd=document.getElementById('roViewerDl'); if(vd) vd.onclick=roViewerDownload;
+  var vp=document.getElementById('roViewerPrint'); if(vp) vp.onclick=roViewerPrint;
+  var vbody=document.getElementById('roViewer');
+  if(vbody) vbody.addEventListener('click', function(e){ if(e.target===vbody) roCloseViewer(); });   // tap the backdrop to close
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var v=document.getElementById('roViewer'); if(v && v.classList.contains('open')) roCloseViewer(); } });
+})();
+
 function boot(){
   // Set welcome logos from the default logo (works for both branded and placeholder)
   const wLogo = document.getElementById("welcomeLogo");
   if(wLogo) wLogo.src = DEFAULT_LOGO;
   const wLogo2 = document.getElementById("welcomeLogo2");
   if(wLogo2) wLogo2.src = DEFAULT_LOGO;
+  // Business identity ALWAYS comes from the main app (TKS.Config / the Setup wizard).
+  // Bittings never shows its own welcome/setup screen — it pulls the shop's identity
+  // from the shared config and just works (blank is fine until the owner fills Setup).
   const s = getSettings();
-  if(!s){
-    document.getElementById("welcome").classList.add("open");
-    SETTINGS = Object.assign({}, DEFAULT_SETTINGS);
-  }else{
-    SETTINGS = s;
-    // Adopt the current default Turbo Keysmith logo unless the owner uploaded a custom one.
-    if(!SETTINGS.logoCustom && SETTINGS.logo!==DEFAULT_LOGO){ SETTINGS.logo=DEFAULT_LOGO; try{ saveSettingsObj(SETTINGS); }catch(e){} }
-    applyBranding();
-    startInterview();
-  }
-  // One-time: carry a pre-existing local tax rate into the new cloud-synced config
-  // (so shops that had a rate keep it). Runs only when no config has been saved yet.
+  SETTINGS = s ? Object.assign({}, DEFAULT_SETTINGS, s) : Object.assign({}, DEFAULT_SETTINGS);
+  if(!SETTINGS.logoCustom && SETTINGS.logo!==DEFAULT_LOGO){ SETTINGS.logo=DEFAULT_LOGO; }
+  hydrateIdentityFromConfig();   // pull name/address/phone/email/license/logo from TKS.Config
+  // One-time: carry a pre-existing local tax rate into the cloud config.
   try{
     if(!localStorage.getItem('tks_shop_config') && SETTINGS && Number(SETTINGS.taxRate)>0 && window.TKS && TKS.Config){
       TKS.Config.save({ taxRate: Number(SETTINGS.taxRate), taxableByCategory: {} });
     }
   }catch(e){}
-  hydrateIdentityFromConfig();   // receipts use the Setup wizard's business identity
+  try{ saveSettingsObj(SETTINGS); }catch(e){}   // cache locally so we never re-prompt
+  applyBranding();
+  if(window.RO_RECEIPTS) roOpen(); else startInterview();
+  // When the cloud config finishes loading (async), re-pull identity in case it changed.
+  try{ if(window.TKS && TKS.Config && TKS.Config.load){ TKS.Config.load().then(function(){ try{ hydrateIdentityFromConfig(); saveSettingsObj(SETTINGS); }catch(e){} }); } }catch(e){}
   syncOwnerUI();   // hide the ⚙ Settings gear for a signed-in staff member
 }
 
@@ -3759,7 +4080,7 @@ function boot(){
 const _origCloseSettings = closeSettings;
 closeSettings = function(){
   _origCloseSettings();
-  if(chat.children.length===0){ startInterview(); }
+  if(!window.RO_RECEIPTS && chat.children.length===0){ startInterview(); }
 };
 
 // boot() runs at the very end of the script (below) so the Pay Now + Quick
@@ -3812,10 +4133,10 @@ function _receiptsRefresh(){
   function status(msg,kind){ const s=modal&&modal.querySelector("#pnStatus"); if(s){ s.textContent=msg||""; s.style.color=kind==="bad"?"#f0a0a6":kind==="ok"?"#7fd49b":"#9aa3af"; } }
 
   window.openPayNow = async function(receipt){
-    if(!receipt||!receipt.id){ alert("Save the receipt first."); return; }
+    if(!receipt||!receipt.id){ appAlert("Save first", "Save the receipt first."); return; }
     const c=client(); const tok=await token();
-    if(!c||!tok){ alert("Sign in (Staff Login) to take a payment."); return; }
-    try{ await c.from("receipts").upsert({ id:receipt.id, data:receipt }); }catch(e){ alert("Couldn't sync the invoice to the cloud: "+(e.message||e)); return; }
+    if(!c||!tok){ appAlert("Sign in needed", "Sign in (Staff Login) to take a payment."); return; }
+    try{ await c.from("receipts").upsert({ id:receipt.id, data:receipt }); }catch(e){ appAlert("Sync failed", "Couldn't sync the invoice to the cloud: "+(e.message||e)); return; }
     const t=receipt.totals||{}; const baseCents=Math.round((Number(t.total||0)-Number(t.surcharge||0))*100);
     S={ receipt, baseCents, method:"reader", attempt:1, reader:localStorage.getItem("tks_pay_reader")||"" };
     render();
@@ -3943,9 +4264,9 @@ function _receiptsRefresh(){
               b.style.cssText="flex:1;min-height:44px;padding:13px;border-radius:11px;border:1px solid #e3e6ea;background:#f3f4f6;color:#14171b;font-weight:700;cursor:pointer";
               b.textContent=label; return b; };
             const dl=mkBtn("⬇ Download receipt");
-            dl.onclick=()=>{ try{ makePDF(r,"en",true); }catch(e){ alert("Couldn't build the PDF — open the receipt and use Print."); } };
+            dl.onclick=()=>{ try{ makePDF(r,"en",true); }catch(e){ appAlert("PDF unavailable", "Couldn't build the PDF — open the receipt and use Print."); } };
             const sn=mkBtn("📤 Send receipt");
-            sn.onclick=()=>{ try{ shareDocument(r,"en",true); }catch(e){ alert("Sharing isn't available on this device — open the receipt and use Share or Print."); } };
+            sn.onclick=()=>{ try{ shareDocument(r,"en",true); }catch(e){ appAlert("Share unavailable", "Sharing isn't available on this device — open the receipt and use Share or Print."); } };
             wrap.appendChild(dl); wrap.appendChild(sn); body.appendChild(wrap);
           }
         } }catch(_){}
@@ -3985,8 +4306,8 @@ function lineCost(unitCost, qty){
 /* Open a searchable Inventory picker (name / SKU / fitment / VIN — same search as
    the Inventory tile). Calls onPick(part) with the chosen part. Owner-gated. */
 function pickInventoryPart(onPick){
-  if(!_isOwnerForCosts()){ alert("Picking parts (and seeing cost) is manager-only."); return; }
-  if(!window.TKS || !TKS.Inventory){ alert("Inventory isn't available here yet."); return; }
+  if(!_isOwnerForCosts()){ appAlert("Managers only", "Picking parts (and seeing cost) is manager-only."); return; }
+  if(!window.TKS || !TKS.Inventory){ appAlert("Inventory unavailable", "Inventory isn't available here yet."); return; }
   const ov=document.createElement("div");
   ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:center;justify-content:center;overflow:auto;padding:14px";
   ov.innerHTML=`<div style="background:#ffffff;color:#14171b;width:100%;max-width:460px;border-radius:16px;padding:16px;margin:auto;max-height:92vh;overflow:auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
@@ -4076,9 +4397,10 @@ function reverseStockForReceipt(r){
     }catch(e){}
     const hasPin = (window.TKS && TKS.auth) ? TKS.auth.hasManagerPin() : !!(window.TKS_OWNER && window.TKS_OWNER.QUICK_FORM_PIN);
     if(!hasPin){ onDenied("Manager sign-in is required for the quick invoice."); return; }
-    const entered = prompt("Manager PIN to open the quick invoice form:");
-    if(entered === null){ onDenied(""); return; }
-    if(window.TKS && TKS.auth && TKS.auth.managerByPin(entered)) onGranted(); else onDenied("Wrong PIN.");
+    appPrompt("Manager PIN", {type:"password", inputmode:"numeric", placeholder:"PIN to open the quick invoice", okText:"Unlock"}).then(function(entered){
+      if(entered === null){ onDenied(""); return; }
+      if(window.TKS && TKS.auth && TKS.auth.managerByPin(entered)) onGranted(); else onDenied("Wrong PIN.");
+    });
   };
 
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
@@ -4114,6 +4436,7 @@ function reverseStockForReceipt(r){
           <label class="qiL">NASTF D1 <span style="color:#9a9a9a">(automotive key paperwork — optional)</span></label>
           <div id="qiNastf" style="display:flex;gap:6px;margin-bottom:4px;flex-wrap:wrap"><button type="button" class="qiNB" data-n="">None</button><button type="button" class="qiNB" data-n="Customer D1">Customer</button><button type="button" class="qiNB" data-n="Auction/Fleet D1">Auction/Fleet</button><button type="button" class="qiNB" data-n="Contracting D1">Contracting</button></div>
           <div id="qiNastfNote" style="font-size:12px;color:#5a616c;margin:0 0 4px;display:none"></div>
+          <div id="qiD1Badge" style="margin:2px 0 6px"></div>
           <div id="qiNastfFields"></div>
         </div>
         <label class="qiL">Customer name *</label><input id="qiName" class="qiI" list="qiCustList" placeholder="Name"><datalist id="qiCustList"></datalist>
@@ -4126,7 +4449,7 @@ function reverseStockForReceipt(r){
         <label class="qiL">Line items *</label><div id="qiItems"></div>
         <button type="button" id="qiAdd" style="background:#e3e6ea;border:none;color:#5a616c;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;margin-bottom:8px">+ Add item</button>
         <div id="qiPayWrap"><label class="qiL">Payment method</label><div id="qiPay" style="display:flex;gap:6px;margin-bottom:4px"><button type="button" class="qiPB" data-p="Cash">Cash</button><button type="button" class="qiPB" data-p="Card">Card</button><button type="button" class="qiPB" data-p="Check">Check</button></div></div>
-        <label class="qiL">Technician <span style="color:#9a9a9a">(for commission — optional)</span></label><input id="qiTech" class="qiI" placeholder="Who did the job">
+        <input type="hidden" id="qiTech"><div class="qiL" style="font-size:12.5px;color:#5a616c;margin:2px 0 6px">Credited to <b id="qiTechName">you</b> · the logged-in user</div>
         <label class="qiL">Tax rate % <span style="color:#9a9a9a">(this receipt — blank uses the shop default)</span></label><input id="qiTaxRate" class="qiI" type="number" step="0.001" inputmode="decimal" placeholder="shop default">
         <div id="qiWarrantyWrap" style="display:none;margin:8px 0 2px"><label style="display:flex;align-items:center;gap:8px;font-size:14px;color:#14171b;cursor:pointer"><input type="checkbox" id="qiWarranty" style="width:18px;height:18px"> <span id="qiWarrantyLabel">Include standard warranty</span></label></div>
         <label class="qiL">Notes</label><textarea id="qiNotes" class="qiI" style="min-height:46px"></textarea>
@@ -4149,7 +4472,8 @@ function reverseStockForReceipt(r){
     const qiInputCss="width:100%;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:9px;color:#14171b;padding:10px;font-size:15px;box-sizing:border-box";
     const qiLblCss="display:block;font-size:12px;color:#5a616c;margin:8px 0 3px";
     function paintNastfBtns(){ nastfBtns.forEach(b=>{ const on=b.dataset.n===nastfType;
-      b.style.cssText="flex:1;min-width:84px;padding:9px;border-radius:9px;border:1.5px solid "+(on?"#f2b43a":"#e3e6ea")+";background:"+(on?"rgba(242,180,58,.14)":"transparent")+";color:#14171b;font-weight:700;cursor:pointer;font-size:13px"; }); }
+      b.style.cssText="flex:1;min-width:84px;padding:9px;border-radius:9px;border:1.5px solid "+(on?"#f2b43a":"#e3e6ea")+";background:"+(on?"rgba(242,180,58,.14)":"transparent")+";color:#14171b;font-weight:700;cursor:pointer;font-size:13px"; });
+      var db=modal.querySelector("#qiD1Badge"); if(db){ db.innerHTML=(nastfType && window.TKS_D1)?TKS_D1.pillHTML({type:nastfType, d1Days:d1Days()},{showType:false}):""; } }
     function renderNastfFields(){
       nastfFieldsBox.innerHTML="";
       // Contracting D1: the "Customer name" field is the SHOP (bill-to); vehicle owner goes below.
@@ -4251,7 +4575,7 @@ function reverseStockForReceipt(r){
       vinEl.addEventListener("blur", tryDecode);
       vinEl.addEventListener("input", function(){ if((vinEl.value||"").replace(/\s/g,"").length===17) tryDecode(); });
     })();
-    try{ modal.querySelector("#qiTech").value=currentTechnician(); }catch(e){}
+    try{ var _t=currentTechnician(); modal.querySelector("#qiTech").value=_t; var _tn=modal.querySelector("#qiTechName"); if(_tn) _tn.textContent=_t||"you"; }catch(e){}
     try{ modal.querySelector("#qiTaxRate").placeholder="default "+configTaxRate()+"%"; }catch(e){}
     try{ const w=configWarranty(); if(w.months>0){
       const wrap=modal.querySelector("#qiWarrantyWrap");
@@ -4265,7 +4589,7 @@ function reverseStockForReceipt(r){
       const $q=s=>modal.querySelector(s);
       $q("#qiName").value=edit.customer||""; $q("#qiPhone").value=edit.phone||""; $q("#qiEmail").value=edit.email||"";
       $q("#qiAddr").value=edit.address||""; if(modal._qiApplyVeh) modal._qiApplyVeh(edit.vehYear, edit.vehMake, edit.vehModel);
-      $q("#qiVin").value=edit.vin||""; $q("#qiTech").value=edit.technician||"";
+      $q("#qiVin").value=edit.vin||""; $q("#qiTech").value=edit.technician||currentTechnician(); { var _tn=$q("#qiTechName"); if(_tn) _tn.textContent=(edit.technician||currentTechnician()||"you"); }
       $q("#qiTaxRate").value=(edit.taxRate!=null&&edit.taxRate!=="")?edit.taxRate:""; $q("#qiNotes").value=edit.notes||"";
       itemsBox.innerHTML="";
       (edit.items||[]).forEach(it=>{ addItem(); const row=itemsBox.lastElementChild;

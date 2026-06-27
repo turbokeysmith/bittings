@@ -771,5 +771,5 @@ function ensureSeed(){
 ensureSeed();
 applyCodeSeries();   // fill sourced code series onto matching vehicles (never clobbers edits)
 
-  try{ window.TKS_LISHI_SEED = { tools:(typeof ALL_TOOLS!=='undefined'?ALL_TOOLS:[]), veh:(typeof ALL_VEH!=='undefined'?ALL_VEH:[]), models:(typeof MODELS!=='undefined'?MODELS:{}) }; }catch(e){}
+  try{ window.TKS_LISHI_SEED = { tools:(typeof ALL_TOOLS!=='undefined'?ALL_TOOLS:[]), veh:(typeof ALL_VEH!=='undefined'?ALL_VEH:[]), models:(typeof MODELS!=='undefined'?MODELS:{}), codeSeries:(typeof CODE_SERIES_SRC!=='undefined'?CODE_SERIES_SRC:[]) }; }catch(e){}
 })();

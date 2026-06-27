@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
-<title>Lishi & Programming Reference — Bittings</title>
+<title>Lishi & Keys — Bittings</title>
 <link rel="icon" href="app/tks_mark.png">
 <!-- Follow the global Light/Dark toggle (shared with the dashboard via localStorage). -->
 <script>try{if(localStorage.getItem('bt_theme')==='dark')document.documentElement.setAttribute('data-bt-theme','dark');}catch(e){}</script>
@@ -94,7 +94,7 @@
 <div class="wrap">
   <div class="top">
     <a class="back" href="index.html">‹ Apps</a>
-    <h1>🔑 Lishi &amp; Programming Reference</h1>
+    <h1>🔑 Lishi &amp; Keys</h1>
   </div>
 
   <div class="seg" id="seg">
@@ -184,7 +184,7 @@
 <script src="app/access.js"></script>
 <script>
 /* ============================================================================
-   Lishi & Programming Reference  (local-first; tks_ keys; readLS/writeLS)
+   Lishi & Keys  (local-first; tks_ keys; readLS/writeLS)
    Stores: tks_lishi_tools, tks_vehicle_keyways, tks_lishi_corrections, tks_vin_cache
    Seed data normalized from public factual sources (Original Lishi / Classic Lishi
    tool lists, CLK Supplies, UHS Hardware, LockPickWorld). Provenance in `source`.
@@ -204,7 +204,7 @@ const TOOL_FIELDS=[
 ];
 const VEH_FIELDS=[
   ['make','Make'],['model','Model'],['year_start','Year start'],['year_end','Year end'],['keyway','Keyway'],
-  ['coded','Coded (Yes/No)'],['door_location','Door location'],['can_pick_ignition','Can pick ignition'],
+  ['coded','Coded (Yes/No)'],['door_location','Lishi picks (door / ignition / trunk — optional override)'],['can_pick_ignition','Can pick ignition'],
   ['transponder_system','Transponder system'],['programming_path','Programming path'],
   ['oem_only','OEM only (Yes/No)'],['nastf_required','NASTF required (Yes/No)'],['code_series','Code series'],['notes','Notes'],['source','Source']
 ];
@@ -992,6 +992,31 @@ function pill(val){
   if(s.indexOf('n/a')>=0||s==='na'||s==='') return '<span class="pill na">'+esc(val||'N/A')+'</span>';
   return '<span class="pill warn">'+esc(val||'—')+'</span>';
 }
+// What the recommended Lishi tool actually picks/decodes (door / ignition / trunk), from the tool's usage.
+function picksLabel(u){ if(!u) return 'Door'; var m={door:'Door',dr:'Door',ign:'Ignition',ignition:'Ignition',trunk:'Trunk',boot:'Trunk',bt:'Trunk',tr:'Trunk'};
+  return u.split(/[\/,&]/).map(function(p){ p=p.trim().toLowerCase(); return m[p]||(p?p.charAt(0).toUpperCase()+p.slice(1):''); }).filter(Boolean).join(' · ') || 'Door'; }
+// Where the blind key code is stamped on the vehicle, BY MAKE (researched 2026; blank if not documented —
+// most modern makes give the code by VIN/code-series, not stamped on the lock).
+var KEYCODE_LOC={
+  'toyota':'5-digit code stamped on the door lock cylinder — remove the cylinder to read it. Also on the original master-key tag.',
+  'lexus':'5-digit code stamped on the door lock cylinder — remove the cylinder to read it. Also on the original master-key tag.',
+  'scion':'5-digit code stamped on the door lock cylinder — remove the cylinder to read it.',
+  'honda':'Code stamped on the lock cylinders (door / ignition / trunk / glovebox) — use the last 4 digits.',
+  'acura':'Code stamped on the lock cylinders (door / ignition / trunk / glovebox) — use the last 4 digits.',
+  'ford':'On the passenger-door or ignition lock. Older Fords stamped the code on every lock.',
+  'lincoln':'On the passenger-door or ignition lock. Older models stamped it on every lock.',
+  'mercury':'On the passenger-door or ignition lock. Older models stamped it on every lock.',
+  'chevrolet':'Stamped on the lock plug on older GM; newer GM is by VIN.',
+  'gmc':'Stamped on the lock plug on older GM; newer GM is by VIN.',
+  'buick':'Stamped on the lock plug on older GM; newer GM is by VIN.',
+  'cadillac':'Stamped on the lock plug on older GM; newer GM is by VIN.',
+  'pontiac':'Stamped on the lock plug (older GM).',
+  'oldsmobile':'Stamped on the lock plug (older GM).',
+  'saturn':'Stamped on the lock plug (older GM).',
+  'bmw':'Key cut is stored in the body module (CAS / FEM-BDC) — read it over OBD: Autel IM608/IM508 → IMMO → BMW → read CAS/FEM-BDC → "Vehicle Information". Lonsdor K518 also reads BMW key info.',
+  'mini':'(BMW-based) Key cut is in the CAS / FEM-BDC module — read it over OBD with the Autel IM608/IM508 (IMMO → BMW → read module → Vehicle Information).'
+};
+function keycodeNote(make){ var k=(make||'').trim().toLowerCase(); return KEYCODE_LOC[k]||''; }
 
 /* ============================== REFERENCE CARD ============================== */
 function renderCards(rows, ctx){
@@ -1011,7 +1036,8 @@ function renderCards(rows, ctx){
         <div class="k">Recommended Lishi</div><div class="v">${tool?esc(tool.tool_designation):'<span class="pill warn">not in tool list</span>'}${tool&&tool.wafer_positions?(' <span class="muted">('+esc(tool.wafer_positions)+' pos)</span>'):''}</div>
         <div class="k">In stock?</div><div class="v">${stockPill}${tool&&tool.key_blank?(' <span class="muted">'+esc(tool.key_blank)+'</span>'):''}</div>
         <div class="k">Coded / cut</div><div class="v">${pill(r.coded)}</div>
-        <div class="k">Door location</div><div class="v">${esc(r.door_location||'—')}</div>
+        <div class="k">Lishi picks</div><div class="v">${(function(){var ov=(r.door_location||''),lo=ov.toLowerCase(); return (ov && /\b(door|ign|ignition|trunk|boot)\b/.test(lo) && !/driver|passenger|often|none/.test(lo)) ? esc(picksLabel(ov)) : (tool&&tool.usage?esc(picksLabel(tool.usage)):'Door');})()}</div>
+        ${keycodeNote(r.make)?('<div class="k">Key code location</div><div class="v" style="font-weight:500">'+esc(keycodeNote(r.make))+'</div>'):''}
         <div class="k">Ignition pickable</div><div class="v">${pill(r.can_pick_ignition)}${r.ign_caution?(' <span class="muted">'+esc(r.ign_caution)+'</span>'):''}${r.id?(' <button type="button" class="cautbtn" data-caut="'+esc(r.id)+'">⚠ caution note</button>'):''}</div>
         <div class="k">Transponder</div><div class="v">${esc(r.transponder_system||'—')}</div>
         <div class="k">Programming</div><div class="v">${esc(r.programming_path||'—')}</div>

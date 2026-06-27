@@ -14,3 +14,9 @@ build/
 .DS_Store
 Thumbs.db
 *.log
+
+# Deploy cache (Cloudflare Wrangler) — regenerated on each deploy
+.wrangler/
+
+# Regenerable demo bundle (re-zip bittings-app/ when needed)
+bittings-app.zip

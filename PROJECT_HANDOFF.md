@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-22 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-26 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,112 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-26 PM (🧰 Demo made self-contained · warranty fixes · Reports toggles · fleet/commission/NASTF in the demo)
+- **Reports metric toggles now light up when tapped.** The Total Sales / Cost / Profit pills weren't re-rendering on
+  click (their lit state drifted from the actual data) — fixed so tapping a pill updates it immediately.
+- **Warranty now actually shows on the receipt list** — the live Receipts viewer (the read-only [All | NASTF] list)
+  never had a warranty pill; it does now: a compact countdown in the top row (between the number and the amount)
+  **plus** the full pill below, on both the All and the legacy lists.
+- **Warranty colors:** green normally → **dark orange** in the last 30 days → **red** once expired (both pills).
+- **Warranty math fixed:** a job done *today* now correctly shows a fresh ~6-month warranty (the demo previously
+  used a random spread that could show "expired" on a same-day invoice). **Warranty is now 6 months** (Setup default
+  + every demo receipt) and always counts from the job's own date. **Service-only jobs (lockouts, trip/dispatch
+  fees) carry NO warranty** — only real work does.
+- **Demo data overhauled to be realistic + self-contained.** The investor demo now seeds **30 receipts/invoices
+  spread across the last 6 months** (a few today so Reports isn't empty), each with a **matching paid transaction**,
+  so Receipts, Reports, Transaction History, Closeout and Commission all tell the *same* story. **Some are tagged
+  NASTF** (Customer / Auction-Fleet D1, with the D1 countdown — a couple still outstanding, the rest filed). The
+  warranty spread naturally shows green / about-to-expire / expired.
+- **Fleet, Commission, NASTF and per-van stock now work in the offline demo.** Those screens normally read the
+  cloud (which the offline demo can't reach), so they were blank. Added demo-only local fallbacks (guarded by the
+  `tks_demo_mode` flag — inert in production): **3 work vans** (Ford Transit / Chevy Express / RAM ProMaster), the
+  **staff roster**, inventory **split across shop + the 3 vans** (each van has its own stock, visible via the 📍
+  stock-by-location panel), the **commission ledger** (computed from the seeded sales), and the **NASTF D1
+  worklist**.
+- **5 vehicles preloaded by VIN** so you can demo instantly offline (and show the Autel restriction notes on the
+  newer Ford & Toyota). Paste any of these into Start-a-Job (automotive) or Programmers:
+  - `1FTEW1EP5JFA12345` — **2018 Ford F-150** (newer Ford → Autel "2015+ removed" note)
+  - `4T1B11HK5KU123456` — **2019 Toyota Camry** (Toyota → Autel "AKL removed / add-key only" note)
+  - `1HGCV1F34JA123456` — 2018 Honda Accord
+  - `3GCUYDED5LG123456` — 2020 Chevrolet Silverado 1500
+  - `1N4AL3AP5GC123456` — 2016 Nissan Altima
+- **Status:** code-complete; carefully traced but **not yet run in a live browser from here** — re-open
+  `START-DEMO.html` (it reseeds) and eyeball Reports/Commission/Fleet/Receipts. Mobile (iPhone Safari + Android
+  Chrome) sign-off still pending for the receipt-tile pills.
+
+### 2026-06-26 (🖥️ Desktop app shortcuts · ⚙️ Settings left-rail · 🛡️ warranty on receipt tiles · demo Reports fixed)
+- **Two desktop shortcuts (frameless Chrome "app" windows).** Running `bittings-app/Create Desktop Shortcut.bat`
+  now puts **two** icons on the Desktop, both using the red Bittings logo and both opening in Chrome **app mode**
+  (no address bar, no tabs — looks like an installed program): **"Bittings"** = the real staff app
+  (`index.html`), **"Bittings Demo"** = the investor demo (`START-DEMO.html`, sample data). Each runs in its **own
+  private Chrome profile** (`--user-data-dir`) so the demo's sample shop + its fake "signed-in" token can never
+  leak into the real app (and vice-versa), and neither touches your normal Chrome. No local server needed.
+- **Settings (Setup) now has a vertical category menu on the LEFT** instead of chips across the top — styled to
+  match the main app's sidebar, with an **icon on every category** (🏪 Business identity, 💲 Sales tax, 💳 Payments,
+  👥 Access, 🔗 Quick links, 🗂 Service types, 🛠 Services, 🕒 Hours, 📦 Inventory, ✅ Review). On a phone the rail
+  stays vertical on the left but shrinks to a compact icon+label column. Pure UI; all setup logic unchanged.
+- **Warranty tracker now shows on the receipt tiles too.** In Receipts, each tile shows a compact warranty
+  countdown pill in the **top row, between the receipt number and the amount** (green → amber ≤30 days → red when
+  expired) — **in addition to** the existing full pill below the description (both kept).
+- **Demo fixes.** (1) The demo's seeded receipts now carry a **spread of warranty dates** so the new tile tracker
+  shows every state (healthy / about-to-expire / expired) instead of all reading ~12 months. (2) **Reports was
+  empty in the demo** because Reports reads the cloud `payment_transactions` table, which the offline demo can't
+  reach — the demo now **seeds ~90 days of local transactions** and the pay engine serves them when a new
+  `tks_demo_mode` flag is set (production never sets it, so it's inert there). Reports/Transaction-History/Closeout
+  now populate in the demo.
+- **Status:** code-complete; traced end-to-end but **not yet device-verified in a live browser** — pending an
+  on-screen check (desktop Chrome for the shortcuts/Settings/Reports; iPhone Safari + Android Chrome for the
+  receipt-tile warranty pill).
+
+### 2026-06-24 (🔧 Programmers page now hides Autel AKL on Ford/Toyota too)
+- **Fixed:** the **Programmers** reference page was still showing **Autel doing AKL on Ford and Toyota** — the Start-a-Job lookup already knew better, but the Programmers coverage grid was printing the raw seed. Both views now apply the same real-world removal: **Autel × Ford/Lincoln 2015+** shows **AKL "Removed" / add "Pre-2015 only"** (with the "Aug 2025 — use SmartPro/AutoProPad/Lonsdor for 2015+" note), and **Autel × Toyota/Lexus/Scion** shows **AKL "Removed" (add-key only)** with Lonsdor/AutoProPad called out. Applied in the page's display logic (`renderCards` + the compact summary), so it's live on reload — no re-seed needed, and your saved corrections still override.
+
+### 2026-06-24 (📝 Blog post #2 — "Cost to Replace a Car Key in OKC" — built + on preview, pending your two-phone check)
+- **New blog post hand-built** at `website/site/blog/car-key-replacement-cost-okc/` — "How Much Does It Cost to Replace a Car Key in Oklahoma City?" (category **Costs & Choosing a Locksmith**, by Sam The Key Man, dated June 24 2026). Real 2026 price ranges by key type ($50–$100 basic / $120–$250 transponder / $200–$450+ smart fob), why prices differ, locksmith-vs-dealer, the spare-key money-saver, the "$19 key" bait-and-switch warning, and 5 FAQs. Two **Call Now — (405) 870-5397** CTA blocks (top + bottom), the two Ford-Raptor photos, and internal links to the **Automotive**, **Financing**, and **FAQ** pages. Full schema (BlogPosting + BreadcrumbList + FAQPage, FAQ text matches the page word-for-word).
+- **Wired into the site:** post card added to the **blog index** and the **Costs & Choosing a Locksmith** category page (newest-first), plus the URL added to `search-index.json`, `sitemap.xml`, and the RSS `feed.xml`.
+- **On a PREVIEW branch only** — live + smoke-tested at **https://preview-cost-okc.turbokeysmith.pages.dev/blog/car-key-replacement-cost-okc/** (page, images, schema, and all wiring return 200). **Not on production yet** — waiting on your iPhone-Safari + Android-Chrome check before I deploy to `--branch=main` (and then delete the preview).
+
+### 2026-06-24 (🚗 Ilco 2025 imported · key-data lookup fixed · UI theme unified)
+- **Imported your Ilco 2025 reference** — extracted **1,642 vehicles** (code series + HPC card + keyway) verbatim from your `2025-auto-truck-key-blank-reference-guide.pdf`, validated against vehicles we already trusted (MKZ / Silverado / F-150 all matched). It's in `bittings-app/app/ilco-2025.js`; the Start-a-Job lookup now shows the code series **even for vehicles that had no Lishi keyway record**. Your **2009 Lincoln MKS** now returns its series (`1X-1706X`, card `612`) instead of nothing. Catalog code-series coverage jumped to **~70%** of all models, and the keyway shows from Ilco when there's no Lishi record.
+- **Lookup bug fixed** — it no longer shows a *different model's* data when a model is missing (an MKS could show MKZ's keyway); it says "verify" instead.
+- **`VEHICLE_DATA_GAPS.md`** lists what's still missing (mostly Lishi *keyway* records + some European/EV models not in the North-American Ilco guide). The extractor (`_ilco_extract.py`) re-runs if you get a newer Ilco PDF.
+- **Programmer "needs dealer software" guard (with your physical tells)** — the lookup was over-promising (told you a 2025 Silverado was doable). Now, cross-referenced against what the programmers list as doable, it shows **"⚠ verify — might be dealer software only"** with the on-the-vehicle tell instead of a false green light: **Stellantis** (older *egg* FOBIK = doable, newer *square* prox = usually dealer/rolling-PIN), **GM** (newest *shark-fin* keys = dealer; older flip = doable w/ Global-B rolling-code calc), **Ford** (door keyhole *vertical* = doable, *horizontal* = dealer). Genuinely OEM-locked makes are hard-flagged **🔒 dealer-only**: **Tesla/Rivian/Lucid/Polestar**, **Mercedes FBS4 (2015+)**, **newest BMW**. Doable makes (Toyota/Hyundai/Honda/VW-Audi MQB49) are **not** falsely scared — only the very newest year (2025+) gets a mild "confirm your tool covers it." Researched via 2026 web search; the AKL pills drop to "verify"/"dealer." **Provenance:** the underlying coverage was *compiled by me from the tool-makers' own coverage lists* (Autel OTOFIX, Xhorse, AutoProPad, Lonsdor, Advanced Diagnostics) + consensus — a hint, not gospel — so the guard routes you to log what *actually* worked in the **Corrections** box (it then shows on that vehicle next time).
+- **Tool-removal corrections (researched 2026)** — vendor coverage pages don't show when a *maker forces a tool to drop functions*. Confirmed + fixed: **Ford forced Autel to remove all 2015+ Ford key/IMMO (Aug 2025)** → Autel (IM608/IM508/KM100) no longer appears for Ford (your SmartPro/AutoProPad/Lonsdor still do); **Autel removed Toyota/Lexus AKL in the US** → Autel shows "add-key only" for Toyota, with Lonsdor/AutoProPad as the AKL tools. Handled in the lookup (`toolRestriction`), so it's immediate without re-seeding. Other makes verified still on Autel (Honda, Subaru, Hyundai/Kia, GM w/ rolling-code, VW/Audi MQB49).
+- **UI consistency** — all menus/chrome now follow one theme: the **Receipts and Scheduler headers + bottom nav** are light in light mode / dark in dark mode (were always dark); the **role tag** moved off the top-right where it covered header buttons.
+
+### 2026-06-23 (📱 Mobile fixes — Receipts setup removed, theme match, stock fits)
+From hands-on phone testing:
+- **Receipts no longer asks you to "set up your business again."** Bittings now **pulls your business identity from the main app's Setup** (name/address/phone/email/license/logo) and never shows its own welcome/setup screen. On a phone, the **Receipts** tab opens straight to the read-only list (no more "chat mode → desktop receipt" detour).
+- **Light/dark screens matched up.** The **sign-in screen** ignored your Light/Dark choice (it was always light, so it looked "merged" with a dark app) — it now follows the app theme like every other screen.
+- **Inventory/Stock fits the phone now.** The stock toolbar (Search + Import/Export/VIN/Add) was overflowing and forcing you to zoom out — it now **wraps**: the search gets its own row and the buttons flow below. The stock-by-location pop-up's From/To pickers also stack cleanly on small screens.
+- **All of today's changes verified live** on the local server (so a hard-refresh on the phone shows them). Note the **Register is desktop-only by design** — on a phone you take payment through **Start-a-Job**, so the register-specific changes (white-box ticket, "Other", NASTF tag) appear on desktop; the **Receipts viewer, NASTF worklist/D1, and themed pop-ups** all work on mobile.
+
+### 2026-06-23 (🛠 Dashboard dark-mode fix · pop-ups 100% themed in the main screens)
+- **Dashboard readability:** in **dark mode** the "Jobs" and "Avg ticket" numbers were near-black on a dark card (and the panel stayed light) — fixed so the dashboard flips properly to dark with readable numbers. Light mode is unchanged.
+- **Pop-ups, finished:** every browser pop-up in the **main app, Receipts builder, and Setup** is now the app's own centered, themed box — **zero plain browser dialogs** in those screens. (A handful of the smaller tool pages — Programmers, Lishi, Scheduler, the login helper — still use a couple of plain dialogs; those get swept the next time each is touched.)
+
+### 2026-06-23 (➕ "Other" items on the register · themed pop-ups)
+- On the **register**, the **Part** and **Service** pickers now have an **➕ Other (not listed)** row — add a one-off part or service with a price right there. **Anyone** can do it (it's setting a price for an unlisted item, not changing a set price). After you add an **Other service**, Bittings **offers to save it to your Services list** so it's there next time — with a small **"Don't ask again"** checkbox if you'd rather it stop offering. The Other-service goes under whichever tab you're on (Automotive vs Residential/Commercial).
+- **Pop-up cleanup (sweep):** the register's price / discount / custom-line / clear-ticket / manager-PIN / mark-paid / commission-hold dialogs were switched from the browser's plain gray pop-ups to the app's own **centered, themed** boxes, so pop-ups match the rest of the app. (A few rare error notices still use the simple browser alert.)
+
+### 2026-06-23 (👁 In-app invoice viewer in Receipts)
+You can now **look at an invoice without downloading it**. In **Receipts** (either tab), **tap a receipt** and it opens in a **viewer that fills the screen** showing the actual invoice — no file lands in Downloads. Inside the viewer there's a **Print** and a **Download** button for when you do want the file, plus a **✕** to close (or tap outside / press Esc). So **viewing is the default and downloading is one tap away**, instead of a download every time. Works on desktop and phone (on phone it shows inline; if a particular phone browser can't preview, the Download button is right there). It stays **read-only** — viewing never opens an edit or charge path — and the invoice **never shows cost or profit** to anyone, so a tech/front-desk viewing it sees the same customer-safe numbers as everywhere else.
+
+### 2026-06-23 (🛡️ NASTF + Receipts consolidated · D1 filing countdown)
+Rolled the old "Receipts & NASTF" into **one read-only Receipts screen with two tabs**, and added a **D1 filing deadline tracker**:
+- **Receipts is now view/search/reprint only** — one destination with **[All | NASTF]** tabs. **All** = a searchable history of every job/invoice (by number, customer, vehicle, VIN). **NASTF** = just the NASTF jobs, **sorted by urgency** (soonest D1 due first) so it reads as your outstanding-D1 worklist. There is **no way to create or charge here anymore** — charging happens **only on the register (desktop) and Start-a-Job (mobile)**, so you never have two payment paths.
+- **One NASTF tag, on both hero screens.** The old "Was NASTF used?" question is now a single **NASTF tag** captured on the **register** (desktop — it was missing there before) **and** Start-a-Job (mobile). Tagging a job starts a **D1 filing countdown**.
+- **D1 countdown badge** — default **5 days** (you can change it in **Setup → Payments → "NASTF D1 filing window"**). The badge counts down daily and **changes color as it gets urgent**: green (5–4) → yellow (3) → orange (2) → red (1) → **dark red/overdue**. It shows on the register, Start-a-Job, and the Receipts NASTF tab.
+- **"D1 filed ✓" checkbox** stops the countdown and drops the job off the urgent list (still visible, marked filed). **Who can check it:** the staff member who actually did that job, plus any manager/owner — enforced on the server, not just hidden. Someone who wasn't on the job can't check it. (You still file the real D1 on the NASTF website; Bittings just tracks the deadline.)
+
+### 2026-06-23 (🧾 Register refinements — automotive vehicle capture, one-person/one-location, white spreadsheet look)
+Owner-driven cleanup of the new Register (Payments) screen after first hands-on testing:
+- **Register is the desktop hero** — moved to the **top of the menu** and the app **opens to it on desktop**. **Hidden on phones** (no cash-register on mobile); the phone keeps **Start a job** as its default and only payment path, so there's never two payment screens on one device. **Start a job is hidden on desktop** for the same reason.
+- **Automotive vs Residential/Commercial toggle** on the Register: pick the job type so an automotive ticket isn't cluttered with residential services (and vice-versa). When **Automotive**, the Register now captures the **VIN + Year / Make / Model** (VIN auto-decodes), and that vehicle is **saved on the receipt** (server-side).
+- **One location, one person** — removed the "Sell stock from" and "Technician/sales-rep" pickers. The Register always sells from **Shop** stock (it's the shop counter) and credits the **logged-in user**. The **mobile Start-a-job** does the same: it always credits the logged-in user (the editable Technician box is gone) and uses the van by default.
+- **Readability fix** — Register line items now render as a **white "spreadsheet" with black text** (each line a white box), independent of the app theme, so nothing is dark-on-dark; the vehicle Year/Make/Model selectors are now clearly visible.
+- Unpriced catalog items can be added with a price by **anyone** (setting a missing price), but **changing a set price stays manager-only** — still enforced on the server.
 
 ### 2026-06-22 (💰 PHASE 2 BUILT — POS / Cash-Register + configurable commission engine; code-complete + server-proven, pending your numbers + phone sign-off)
 The whole Phase 2 money engine is built on branch `phase2-pos-commission` (DB live on Supabase). Detail in `PHASE2_PROGRESS.md`.
