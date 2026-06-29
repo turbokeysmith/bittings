@@ -4,8 +4,8 @@
 - Repo folder: **`turbokeysmith-main/`**. Two top-level folders: **`website/`** (the public site) and
   **`bittings-app/`** (the staff app). Shared docs live at the repo root.
 - **The public site is hand-maintained static HTML in `website/site/`** — the single source of truth. Edit those
-  files directly. **There is NO build step and NO generator.** The old page generator is **RETIRED** (archived to
-  `_archive/_build-generator-RETIRED/`); it is out of sync with the live site — **do NOT run any generator.**
+  files directly. **There is NO build step and NO generator.** The old page generator is **RETIRED and is not in
+  this repo** (archived locally, never committed); it was out of sync with the live site — **do NOT run any generator.**
 - Deploy the public site with: `npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main`
   (run from `turbokeysmith-main/`; always `--branch=main` for production).
 
