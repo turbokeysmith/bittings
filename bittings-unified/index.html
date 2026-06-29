@@ -509,6 +509,8 @@
   .qbtn.plus{border-color:rgba(34,153,74,.5);color:#7fd49b;}
   .qbtn.minus{border-color:rgba(200,50,60,.5);color:#f0a0a6;}
   .qn{min-width:30px;text-align:center;font-weight:800;font-size:17px;}
+  .qcol{display:flex;flex-direction:column;align-items:center;line-height:1;gap:2px;}
+  .qcap{font-size:8px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--dim);}
   .crow.part.islow{border-color:rgba(242,180,58,.45);}
   .crow.part .sub.reorder{color:var(--amber);font-weight:700;margin-top:2px;}
   .form textarea{width:100%;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:12px 14px;
@@ -803,6 +805,24 @@
   html[data-bt-theme="dark"] #view-customers .crow.biz .avatar{ color:#9a6a00; }
   html[data-bt-theme="dark"] #view-customers .search{ background:#ffffff; border-color:#e6e8ec; color:#14171b; }
   html[data-bt-theme="dark"] #view-customers .search::placeholder{ color:#9aa1ac; }
+  /* Inventory: same white-card/dark-text fix as #view-customers. The .crow.part rows, the qty
+     count (.qn), and the summary chips were inheriting the dark-mode LIGHT body color on the white
+     card → name/count washed out and unreadable (the "can't see the letters" bug). Pin bg+text as a
+     matched pair, and give the −/+ steppers a clear red/green on white so their job reads at a glance. */
+  html[data-bt-theme="dark"] #view-inventory .crow{ background:#ffffff; border-color:#e6e8ec; }
+  html[data-bt-theme="dark"] #view-inventory .crow .nm{ color:#14171b; }
+  html[data-bt-theme="dark"] #view-inventory .crow .sub{ color:#5a616c; }
+  html[data-bt-theme="dark"] #view-inventory .crow .qn{ color:#14171b; }
+  html[data-bt-theme="dark"] #view-inventory .crow .qcap{ color:#7a808b; }
+  html[data-bt-theme="dark"] #view-inventory .crow .tag{ color:#5a616c; border-color:#e6e8ec; }
+  html[data-bt-theme="dark"] #view-inventory .invsummary .chip{ background:#ffffff; border-color:#e6e8ec; }
+  html[data-bt-theme="dark"] #view-inventory .invsummary .chip b{ color:#14171b; }
+  html[data-bt-theme="dark"] #view-inventory .search{ background:#ffffff; border-color:#e6e8ec; color:#14171b; }
+  html[data-bt-theme="dark"] #view-inventory .search::placeholder{ color:#9aa1ac; }
+  html[data-bt-theme="dark"] #view-inventory .qbtn{ background:#f3f4f6; border-color:#d7dbe0; }
+  html[data-bt-theme="dark"] #view-inventory .qbtn.plus{ border-color:#86c79b; color:#1c7d3e; }
+  html[data-bt-theme="dark"] #view-inventory .qbtn.minus{ border-color:#e0a3a8; color:#a3252e; }
+  html[data-bt-theme="dark"] #view-inventory .moveloc{ color:#14171b; }
   [data-bt-theme="dark"] .pay-banner{color:#ffce6b;}
   [data-bt-theme="dark"] .pay-secret-note b{color:#ffce6b;}
   [data-bt-theme="dark"] .invsummary .chip.low b{color:#f2b43a;}
@@ -2042,9 +2062,9 @@ function renderInventory(){
     const sub = [ showLoc?locLabel(loc):'', p.sku, p.category, p.location ].filter(Boolean).join('  ·  ') || '—';
     row.innerHTML =
       '<div class="pq">'+
-        '<button class="qbtn minus" data-cap="inventoryWrite" aria-label="Decrease quantity of '+esc(p.name||'part')+'">−</button>'+
-        '<span class="qn" aria-label="Quantity on hand">'+(parseInt(p.qty,10)||0)+'</span>'+
-        '<button class="qbtn plus" data-cap="inventoryWrite" aria-label="Increase quantity of '+esc(p.name||'part')+'">+</button>'+
+        '<button class="qbtn minus" data-cap="inventoryWrite" title="Remove one from stock" aria-label="Decrease quantity of '+esc(p.name||'part')+'">−</button>'+
+        '<span class="qcol"><span class="qn" aria-label="Quantity on hand">'+(parseInt(p.qty,10)||0)+'</span><span class="qcap">in stock</span></span>'+
+        '<button class="qbtn plus" data-cap="inventoryWrite" title="Add one to stock" aria-label="Increase quantity of '+esc(p.name||'part')+'">+</button>'+
       '</div>'+
       '<div class="pinfo"><div class="nm">'+esc(p.name||'(unnamed part)')+
         (isLow?' <span class="lowbadge">'+((parseInt(p.qty,10)||0)===0?'OUT':'LOW')+'</span>':'')+'</div>'+
