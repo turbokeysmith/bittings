@@ -3867,7 +3867,20 @@ function rerenderActive(){
   if(document.getElementById('view-history').classList.contains('active')) renderHistory();
   if(document.getElementById('view-reports').classList.contains('active')) renderReports();
 }
-TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanner) window.renderConsolBanner(); });
+// Multi-tenant onboarding (phase5): a signed-in user with no shop gets their OWN
+// isolated shop, named from their business identity. Idempotent, once per session.
+var _shopEnsured=false;
+function maybeEnsureShop(){
+  try{
+    if(_shopEnsured) return;
+    if(localStorage.getItem('tks_demo_mode')==='1') return;
+    if(!(window.TKS && TKS.auth && TKS.auth.isSignedIn && TKS.auth.isSignedIn() && TKS.Shop)) return;
+    _shopEnsured=true;
+    var name=''; try{ name=(TKS.Config.identity && TKS.Config.identity().name)||''; }catch(e){}
+    Promise.resolve(TKS.Shop.ensure(name)).catch(function(){ _shopEnsured=false; });
+  }catch(e){}
+}
+TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(window.renderConsolBanner) window.renderConsolBanner(); });
 
 (function cloudBootstrap(){
   setCloudPill('off');
@@ -4755,6 +4768,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanne
   function gather(key){
     const g=id=>{ const el=gid(id); return el?el.value.trim():''; };
     if(key==='identity'){ cfg.identity.name=g('f_name'); cfg.identity.address=g('f_address'); cfg.identity.phone=g('f_phone'); cfg.identity.email=g('f_email'); cfg.identity.license=g('f_license'); cfg.identity.termsUrl=g('f_termsUrl');
+      try{ if(window.TKS && TKS.Shop && cfg.identity.name) TKS.Shop.ensure(cfg.identity.name).then(function(){ TKS.Shop.rename(cfg.identity.name); }); }catch(e){}   // multi-tenant: name/keep the shop
       cfg.locations=cfg.locations||{}; const lv=gid('f_locVan'), lsh=gid('f_locShop');
       if(lv||lsh){ cfg.locations.van=!!(lv&&lv.checked); cfg.locations.shop=!!(lsh&&lsh.checked); if(!cfg.locations.van&&!cfg.locations.shop) cfg.locations.van=true; } }
     else if(key==='tax'){ const r=g('f_taxRate'); cfg.taxRate=r!==''?(parseFloat(r)||0):0; root.querySelectorAll('.taxcat').forEach(cb=> cfg.taxableByCategory[cb.dataset.k]=cb.checked); }
