@@ -14,7 +14,7 @@ whole project) and **`turbo_master_task_list.md`** (status of every track).
 
 ## Deploying the public site
 The site is **hand-maintained static HTML** — there is **no build step and no generator** (the old page generator
-is retired/archived to `_archive/_build-generator-RETIRED/`; do **not** run it). To publish:
+is retired and is **not in this repo** — there is nothing to run). To publish:
 
 ```
 npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main

@@ -93,9 +93,9 @@ A big SEO expansion so the business ranks for "locksmith in <city>" across the m
 `website/site/` — that folder is the single source of truth. **Edit those files directly and
 deploy.** There is **no build step** and **no generator to run.**
 
-> ⚠️ **The old page generator is RETIRED** (archived to `_archive/_build-generator-RETIRED/`). It
-> fell out of sync with the live site — it emits emoji icons where the live pages use SVG icons, so
-> running it would regress ~220 pages. **Do NOT run it.** It is kept only as a historical reference.
+> ⚠️ **The old page generator is RETIRED and is NOT in this repo.** It fell out of sync with the live
+> site — it emitted emoji icons where the live pages use SVG icons, so running it would have regressed
+> ~220 pages. It was archived locally during cleanup and never committed here, so there is nothing to run.
 
 ---
 
@@ -369,7 +369,7 @@ site/                   The public website (115 pages)
   site/blog/            Blog "Notes from the Key Man" — index (in-page search + category filter),
                         /blog/{slug}/ posts, /blog/category/{6 slugs}/, feed.xml (RSS), search-index.json,
                         blog/assets/ (hero images). Public FAQ lives at site/faq/.
-(no _build/)            Generator RETIRED — archived to _archive/_build-generator-RETIRED/. Site is
+(no _build/)            Generator RETIRED — not in this repo (never committed). Site is
                         hand-maintained static HTML in website/site/. Do NOT run a generator.
 PROJECT_HANDOFF.md      This file
 DEPLOY_CLOUDFLARE.md    Step-by-step runbook to host on Cloudflare Pages + move DNS (deploy guide)
@@ -719,6 +719,8 @@ Logged 2026-06-22 at the owner's request so it isn't lost. **Replaces the curren
 ### 2026-06-19 PM-3 (🗄️ Generator RETIRED — site is now hand-maintained static HTML)
 - **The page generator is retired and archived.** Moved `website/_build/` →
   `_archive/_build-generator-RETIRED/` (with a `README.txt` explaining why) so it can never be run by accident.
+  *(Correction, 2026-06-28: that archive folder was local-only and was never committed — it is **not in this
+  GitHub repo**, confirmed across every branch and all history. There is no generator here to run.)*
 - **Confirmed safe first:** nothing in the deployed `website/site/` references `_build/` (0 hits) — the generator
   was build-time-only and is never shipped, so moving it cannot affect the live site. Verified `website/site/`
   (222 pages) and the live deploy are untouched after the move.

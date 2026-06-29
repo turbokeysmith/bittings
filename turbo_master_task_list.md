@@ -29,10 +29,10 @@ Last updated: 2026-06-22 (Claude Code) — 🔐 **PHASE 1 (Roles, Security & Acc
 > command now `wrangler pages deploy website/site --project-name=turbokeysmith --branch=main`.** ⚠️ **Generator
 > drift:** `website/_build/generate.mjs` no longer reproduces the live site (emoji vs the live SVG icons, from a
 > post-gen `site-emoji-pass.py` + hand-edits never folded back) — **don't run it for deploys**; `website/site/` is
-> the source of truth. ✅ **Generator RETIRED (2026-06-19)** — moved `website/_build/` →
-> `_archive/_build-generator-RETIRED/` (with a README) so it can't be run by accident; the public site is now
-> **hand-maintained static HTML in `website/site/`** (no build step, no generator). ⬜ Permanent-delete decision
-> on `_archive/` still pending.
+> the source of truth. ✅ **Generator RETIRED (2026-06-19)** — moved `website/_build/` to a **local**
+> `_archive/_build-generator-RETIRED/` that was **never committed → not in this GitHub repo** so it can't be run
+> by accident; the public site is now **hand-maintained static HTML in `website/site/`** (no build step, no
+> generator). ✅ Repo-side there is nothing to delete — the archive is local-only (confirmed 2026-06-28).
 
 > **🚀 LAUNCH + Spanish go-live (2026-06-19):** ✅ The **public website is LIVE at turbokeysmith.com** — DNS
 > moved GoDaddy→Cloudflare (GoDaddy stays registrar), served from **Cloudflare Pages** (`turbokeysmith`, prod
