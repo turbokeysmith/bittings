@@ -1,0 +1,8 @@
+{
+  "name": "turbokeysmith-dev",
+  "private": true,
+  "description": "Local dev/verification harness for the Bittings app (Puppeteer screenshots + DOM probes). Not shipped; node_modules + lockfile are gitignored.",
+  "devDependencies": {
+    "puppeteer": "^25.2.1"
+  }
+}

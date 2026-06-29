@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bittings — Sandbox</title>
+<style>
+  html,body{height:100%;margin:0}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0f1115;color:#e8eaed;
+       display:flex;align-items:center;justify-content:center;text-align:center}
+  .card{max-width:460px;padding:2rem}
+  h1{font-size:1.3rem;margin:.4rem 0}
+  .tag{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+       color:#0f1115;background:#f2b43a;border-radius:999px;padding:3px 10px;margin-bottom:.4rem}
+  p{color:#9aa1ac;line-height:1.5;font-size:.92rem}
+  .spin{width:32px;height:32px;border:3px solid #2c313a;border-top-color:#f2b43a;border-radius:50%;
+        margin:0 auto 1rem;animation:r 1s linear infinite}
+  @keyframes r{to{transform:rotate(360deg)}}
+  a.btn{display:inline-block;margin-top:1rem;padding:.6rem 1.1rem;background:#f2b43a;color:#0f1115;
+        text-decoration:none;border-radius:9px;font-weight:700;cursor:pointer;border:0}
+  button.reset{margin-top:1.1rem;background:transparent;border:1px solid #3a414c;color:#9aa1ac;
+        border-radius:9px;padding:.5rem .9rem;font-size:.8rem;cursor:pointer}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="spin"></div>
+    <span class="tag">Sandbox</span>
+    <h1>Bittings — isolated workspace</h1>
+    <p>A private, empty copy of the app for testing. Runs <b>100% offline on this device</b> — no login,
+       no cloud, it can <b>never touch the real shop's data</b>. Add and delete inventory, techs, and jobs
+       freely; what you add here <b>stays</b> until you reset.</p>
+    <p><a class="btn" id="go" href="index.html">Open the sandbox &rarr;</a></p>
+    <div><button class="reset" id="reset">Reset sandbox to empty</button></div>
+    <p style="font-size:.78rem;color:#5a616c">This is the same app code as the live build — fixes confirmed
+       here are the same fix in the app. Only the <i>data</i> is a throwaway local copy.</p>
+  </div>
+
+<!-- ============================================================================
+     SANDBOX seed. Same localStorage keys the app uses, but EMPTY (no customers,
+     inventory, jobs, receipts). Owner identity only, so the app is usable. Pure
+     local — no login, no internet, isolated by its own Chrome profile. Unlike the
+     investor demo (START-DEMO.html), this PRESERVES whatever you add across reloads;
+     use "Reset" to wipe back to empty.
+     ========================================================================= -->
+<script>
+(function () {
+  var SANDBOX_FLAG = 'tks_sandbox';
+  function set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  // The fake signed-in session + demo flags. Re-asserted every open so the app always
+  // boots as a signed-in owner without a login screen.
+  function assertSession() {
+    set('sb-gcshuhlksjznksspbigl-auth-token', {
+      access_token: 'sandbox-token', token_type: 'bearer', expires_at: 9999999999,
+      refresh_token: 'sandbox', user: { id: 'u_sandbox_owner', email: 'owner@sandbox.local' }
+    });
+    try {
+      localStorage.setItem('tks_demo_mode', '1');     // serve seeded-local data, not the cloud
+      localStorage.setItem('tks_demo_role', 'owner');  // full owner nav
+      localStorage.setItem(SANDBOX_FLAG, '1');
+    } catch (e) {}
+  }
+
+  // Empty shop: identity + tax so the app is usable, but no people/parts/jobs.
+  function seedEmpty() {
+    set('tks_shop_config', {
+      taxRate: 8.625,
+      taxableByCategory: { Labor: false, Materials: true, Travel: false, Programming: false, AfterHours: false },
+      identity: {
+        name: 'Bittings Sandbox', address: '', phone: '', email: 'owner@sandbox.local', license: '',
+        logo: '', logoCustom: false, footer: '', termsUrl: ''
+      },
+      payments: { surchargePct: 2, drawerFloatCents: 0 },
+      warranty: { months: 6, defaultOn: true },
+      locations: { van: true, shop: true },
+      nastf: { d1Days: 5 },
+      prefs: { offerSaveOtherService: true },
+      access: {
+        employees: [{ name: 'Sandbox Owner', email: 'owner@sandbox.local', owner: true, role: 'owner' }],
+        ownerEmails: ['owner@sandbox.local'], staffEmails: [],
+        quickFormPin: '0000', quickInvoiceEnabled: true, quickInvoiceDefault: true
+      },
+      services: [],
+      serviceCats: ['automotive', 'residential', 'commercial', 'safe', 'emergency'],
+      setup: { completed: true, done: { identity: 1, services: 1, access: 1, payments: 1, tax: 1 }, skipped: {} }
+    });
+    set('tks_customers', []);
+    set('tks_inventory', []);
+    set('tks_bookings', []);
+    set('tks_receipts', []);
+    set('tks_demo_txns', []);
+    set('tks_demo_vans', []);
+    set('tks_demo_staff', [
+      { user_id: 'u_sandbox_owner', name: 'Sandbox Owner', role: 'owner', active: true, home_van_id: null }
+    ]);
+    set('tks_vin_cache', {});
+    try { localStorage.removeItem('bt_theme'); } catch (e) {}
+  }
+
+  function wipeAndReseed() {
+    // Clear every app key, then lay down a fresh empty shop.
+    try {
+      Object.keys(localStorage).forEach(function (k) {
+        if (k.indexOf('tks_') === 0 || k.indexOf('sb-') === 0 || k === 'bt_theme') localStorage.removeItem(k);
+      });
+    } catch (e) {}
+    assertSession(); seedEmpty();
+  }
+
+  assertSession();
+  // First run (or after a reset/clear) → lay down the empty shop. Otherwise keep what's here.
+  if (!localStorage.getItem('tks_shop_config')) seedEmpty();
+
+  var resetBtn = document.getElementById('reset');
+  if (resetBtn) resetBtn.onclick = function () {
+    wipeAndReseed();
+    resetBtn.textContent = 'Reset ✓ — opening…';
+    setTimeout(function () { location.replace('index.html'); }, 400);
+  };
+
+  // Auto-hand off to the app.
+  setTimeout(function () { location.replace('index.html'); }, 700);
+})();
+</script>
+</body>
+</html>
