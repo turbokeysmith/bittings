@@ -97,13 +97,20 @@
   .consol-banner b{font-weight:800;}
   .consol-banner .cb-go{margin-left:auto;background:var(--red,#c8323c);color:#fff;border:none;border-radius:9px;padding:7px 12px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap;}
 
-  /* ===== De-iframed views render as WHITE content cards on the dark chrome (same as the app's
-     existing #view-customers pattern). The bug: card text inherited the dark-mode body color
-     (light) → invisible headings on the white card. Fix: pin the LIGHT palette for these views'
-     card content so the card vars (--card/--ink/--dim/--edge) are always a white-card/dark-text
-     pair, in BOTH themes. We pin the VARS (not a blanket `color`) so the page-title text on the
-     dark content background (.bt-pagehead) keeps the shell's light color. ===== */
-  #view-fleet, #view-settings, #view-programmers, #view-schedule{
+  /* ===== GLOBAL white-card palette for EVERY content view (the de-iframed #view-customers
+     pattern). Inline view internals (.crow, .rep-*, commission rows, …) draw their card bg from
+     --card and their text from --ink / inherited body color. In dark mode the shell body color is
+     LIGHT, so any card heading/primary text that wasn't pinned washed out on the white card
+     (Commission tech names + totals, Reports row titles, etc.). Pinning the LIGHT palette on
+     `.view` makes every card a white-bg / dark-ink pair — one rule, no per-screen misses, and it
+     pre-empts the same bug on any future screen.
+       Why this is safe:
+       • Page titles use the DESIGN-SYSTEM vars (.bt-pagehead h1 → --text-primary, .eyebrow →
+         --text-secondary), NOT --ink — so they keep the shell's LIGHT color on the dark content bg.
+       • Dashboard is self-contained (--ds-*), so --card/--ink changes don't touch it.
+       • Inputs are forced light separately (the dark-mode input rule below).
+       • Light mode: :root already defines this exact palette, so this is a no-op there. ===== */
+  .view{
     --card:#ffffff; --ink:#14171b; --dim:#5a616c; --off:#9aa1ac; --edge:#e3e6ea; --bg2:#eef0f3;
   }
   /* Card containers: set an explicit dark text color so headings/labels that inherit (h2, <b>, etc.)
@@ -433,7 +440,11 @@
   .seg button.on{color:#fff;border-color:var(--red);background:linear-gradient(180deg,rgba(200,50,60,.22),rgba(200,50,60,.06));}
 
   .clist{display:flex;flex-direction:column;gap:10px;}
-  .crow{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;}
+  /* A .crow is a white card (background:var(--card)) → tie its text to --ink so the heading/primary
+     text is always a matched dark pair in BOTH themes. Without this, .crow .nm and bare <b> text
+     inside inherited the shell's light body color → invisible on the white card in dark mode
+     (Reports row titles, Commission tech names + totals). .sub/.tag keep their own --dim color. */
+  .crow{background:var(--card);color:var(--ink);border:1px solid var(--edge);border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;}
   .crow:hover{border-color:#3a414c;}
   .crow .avatar{width:38px;height:38px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
     font-weight:800;background:rgba(74,163,255,.16);color:#8ec5ff;font-size:15px;}
