@@ -392,16 +392,29 @@
   #view-schedule .sch-chip.st-canceled,#view-schedule .sch-item.st-canceled .nm{text-decoration:line-through;}
   /* view toggle gets a Board option (reuse .sch-seg) */
   /* BOARD */
-  #view-schedule .sch-board{display:flex;gap:10px;overflow-x:auto;padding-bottom:10px;align-items:flex-start;}
+  /* lanes stretch to a tall column (uses the dead vertical space) and the board scrolls sideways
+     with a VISIBLE scrollbar so off-screen tech lanes are obviously reachable. */
+  #view-schedule .sch-board{display:flex;gap:10px;overflow-x:scroll;padding-bottom:12px;align-items:stretch;min-height:62vh;scrollbar-color:var(--off) rgba(0,0,0,.06);}
+  #view-schedule .sch-board::-webkit-scrollbar{height:10px;-webkit-appearance:none;}
+  #view-schedule .sch-board::-webkit-scrollbar-thumb{background:var(--off);border-radius:999px;}
+  #view-schedule .sch-board::-webkit-scrollbar-track{background:rgba(0,0,0,.06);border-radius:999px;}
   #view-schedule .sch-lane{flex:0 0 236px;width:236px;background:var(--bg2);border:1px solid var(--edge);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:8px;min-height:140px;}
-  #view-schedule .sch-lane.unassigned{background:repeating-linear-gradient(45deg,var(--bg2),var(--bg2) 10px,rgba(0,0,0,.03) 10px,rgba(0,0,0,.03) 20px);}
+  /* Unassigned = a clean dashed drop-zone (was an illegible diagonal-stripe fill). Flat bg keeps
+     the "Unassigned" header + count readable; the dashed border signals "drop a job here". */
+  #view-schedule .sch-lane.unassigned{background:var(--bg2);border-style:dashed;border-color:var(--off);}
+  #view-schedule .sch-lane.unassigned .lh{border-bottom-style:dashed;}
+  /* right-edge fade over the board = a visible "more lanes →" cue (belt-and-suspenders with the
+     persistent scrollbar above). Scoped via :has() so it only appears in Board view, not the
+     calendar. Fades to --bg (the content bg behind the lanes) in both themes. */
+  #view-schedule #schBody{position:relative;}
+  #view-schedule #schBody:has(.sch-board)::after{content:"";position:absolute;top:0;right:0;bottom:16px;width:42px;pointer-events:none;background:linear-gradient(to right,transparent,var(--bg));}
   #view-schedule .sch-lane.dragover{outline:2px dashed var(--red);outline-offset:-2px;}
   #view-schedule .sch-lane .lh{display:flex;align-items:center;gap:7px;padding:2px 4px 6px;border-bottom:1px solid var(--edge);}
   #view-schedule .sch-lane .lh .av{width:26px;height:26px;border-radius:999px;background:var(--red);color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
   #view-schedule .sch-lane .lh .nm{font-weight:800;font-size:13.5px;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #view-schedule .sch-lane .lh .ro{font-size:10.5px;color:var(--dim);text-transform:capitalize;}
   #view-schedule .sch-lane .lh .ct{font-size:11px;font-weight:800;color:var(--dim);background:var(--card);border:1px solid var(--edge);border-radius:999px;padding:1px 7px;}
-  #view-schedule .sch-lane .lempty{color:var(--dim);font-size:12px;text-align:center;padding:14px 4px;}
+  #view-schedule .sch-lane .lempty{color:var(--dim);font-size:12px;text-align:center;padding:14px 4px;margin:auto 4px;}
   /* job card (board) */
   #view-schedule .sch-card{background:var(--card);border:1px solid var(--edge);border-left:4px solid var(--stc,#888);border-radius:10px;padding:9px 10px;cursor:pointer;}
   #view-schedule .sch-card[draggable="true"]{cursor:grab;}
