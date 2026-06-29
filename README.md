@@ -5,12 +5,18 @@ This repo (`turbokeysmith-main/`) holds **two products**, split into two top-lev
 - **`website/`** — the public marketing website, **live at https://turbokeysmith.com** (hand-maintained static
   HTML in `website/site/`, served by **Cloudflare Pages**). Includes the blog at `/blog/` ("Notes from the Key
   Man"), the FAQ, 25 metro city pages, and a Spanish `/es/` mirror.
-- **`bittings-app/`** — the **Bittings staff app** (still in active development): `index.html`, `bittings.html`,
-  `scheduler.html`, `lishi.html`, `programmers.html`, `setup.html`, `cloud-test.html`, plus `app/` (the data
-  layer, UI kit, Lishi/programmer seeds) and `supabase/` (cloud sync + Stripe payment edge functions).
+- **`bittings-unified/`** — the **Bittings staff app** (the active source tree; still in active development):
+  `index.html`, `bittings.html`, `scheduler.html`, `lishi.html`, `programmers.html`, `setup.html`,
+  `cloud-test.html`, plus `app/` (the data layer, UI kit, Lishi/programmer seeds, hardware module) and
+  `supabase/` (cloud sync + Stripe payment edge functions). App-specific docs live in **`bittings-unified/docs/`**
+  and one-off dev/data/pitch tooling in **`bittings-unified/tools/`**.
 
-Shared project docs live at the repo root — start with **`PROJECT_HANDOFF.md`** (plain-language overview of the
-whole project) and **`turbo_master_task_list.md`** (status of every track).
+`_archive/` holds retired material kept for reference only — the **stale earlier app copy** (`_archive/bittings-app/`,
+superseded by `bittings-unified/`) and snapshots. Don't edit anything under `_archive/`.
+
+Shared, whole-project docs live at the repo root — start with **`PROJECT_HANDOFF.md`** (plain-language overview of
+the whole project) and **`turbo_master_task_list.md`** (status of every track). Website-specific docs
+(`DEPLOY_CLOUDFLARE.md`, `SITE_PAGES_AUDIT.md`) live in **`website/`**.
 
 ## Deploying the public site
 The site is **hand-maintained static HTML** — there is **no build step and no generator** (the old page generator

@@ -1,9 +1,10 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-27 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-29 15:40 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
-**`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
+**`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
+`bittings-app/` copy is retired under `_archive/`) — see §8. A **blog** ("Notes from the Key Man")
 and a rewritten **FAQ** are now live; the stale-CSS cache bug is fixed (see the 2026-06-19 PM-4 changelog).
 **Next session: the Bittings staff app.**
 
@@ -406,6 +407,22 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-29 (🗂️ Repo tidy: the app is now in one folder · stale copy archived · shop-PC parity backed up)
+- **Everything for the Bittings app now lives under one folder, `bittings-unified/`.** The app's
+  planning/audit docs were moved into **`bittings-unified/docs/`** and the one-off dev/data/pitch helper
+  scripts into **`bittings-unified/tools/`** — they used to be loose at the top level mixed in with the
+  website's files. Nothing about how the app runs changed; only where these support files sit.
+- **The old, out-of-date app copy was retired to `_archive/`** (`_archive/bittings-app/` + the old zip).
+  `bittings-unified/` is the one and only active app from here on. (Still recoverable from `_archive/`
+  and GitHub if ever needed.)
+- **Website-only docs** (`DEPLOY_CLOUDFLARE.md`, `SITE_PAGES_AUDIT.md`) moved in with the website
+  (`website/`). The repo root now holds only whole-project files (this handoff, the master task list,
+  the README, the developer config).
+- **This shop PC's work is backed up to GitHub.** The shop-floor **hardware** features (barcode
+  scanner, Star thermal receipt printer + cash drawer, Zebra label printer) and the **per-shop payment
+  safety** changes that were only on this machine are now committed and pushed, so nothing is at risk of
+  being lost. The shared cloud (database + payment functions) was re-checked and is fully in sync.
 
 ### 2026-06-27 PM (🚀 Unified app on a public URL · dev scaffolding stripped · old demo removed)
 - **Unified Bittings is reachable from any device** for the owner's sweep via a Cloudflare **quick

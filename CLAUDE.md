@@ -1,8 +1,11 @@
 # Assistant instructions — Turbo Keysmith repo
 
 ## 🗂️ Repo structure & how the site is maintained (read this first)
-- Repo folder: **`turbokeysmith-main/`**. Two top-level folders: **`website/`** (the public site) and
-  **`bittings-app/`** (the staff app). Shared docs live at the repo root.
+- Repo folder: **`turbokeysmith-main/`**. Two product folders: **`website/`** (the public site) and
+  **`bittings-unified/`** (the staff app — the active source tree). App-specific docs are in
+  **`bittings-unified/docs/`**, dev/data/pitch tooling in **`bittings-unified/tools/`**. Shared whole-project
+  docs live at the repo root; **`_archive/`** holds retired material (incl. the stale earlier `bittings-app/`
+  copy) — never edit anything under `_archive/`.
 - **The public site is hand-maintained static HTML in `website/site/`** — the single source of truth. Edit those
   files directly. **There is NO build step and NO generator.** The old page generator is **RETIRED and is not in
   this repo** (archived locally, never committed); it was out of sync with the live site — **do NOT run any generator.**
@@ -17,7 +20,7 @@ a separate planning assistant, so they must never go stale:
 1. **`PROJECT_HANDOFF.md`** (repo root) — the single-file, **plain-language** overview of the
    whole project (public website + staff app + cloud). This is the file the owner uploads. Keep
    it self-contained and non-technical (the owner is not a developer).
-2. **`bittings-app/app/STRUCTURE_NOTES.md`** — the deeper technical notes on the staff app + cloud wiring.
+2. **`bittings-unified/app/STRUCTURE_NOTES.md`** — the deeper technical notes on the staff app + cloud wiring.
 
 ### What counts as a "major change" (update the docs)
 - New or removed feature/page/tile/screen
@@ -35,7 +38,7 @@ a separate planning assistant, so they must never go stale:
   `date "+%Y-%m-%d %H:%M %Z"`) and add a dated bullet under the **Changelog** (section 11,
   newest first; group entries under the date heading).
 - When you finish a batch of work, end by confirming both files were updated (or say why not).
-- Keep `PROJECT_HANDOFF.md` plain-language; put technical depth in `bittings-app/app/STRUCTURE_NOTES.md`.
+- Keep `PROJECT_HANDOFF.md` plain-language; put technical depth in `bittings-unified/app/STRUCTURE_NOTES.md`.
 
 ## 📱 Mobile verification is mandatory before anything is "done"
 **Standing rule — applies to EVERY feature, change, or build, with no exceptions.** Before you mark

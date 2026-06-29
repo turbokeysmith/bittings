@@ -8,6 +8,24 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 - **Staff app** (dark): http://127.0.0.1:8088/  → Customers · Receipts · Scheduler · Payments · Inventory
 - **Public site** (light): http://127.0.0.1:8099/  → contact form `/contact/`, language toggle 🌐 in the header
 
+## 2026-06-29 — repo reorg: app consolidated under `bittings-unified/`, stale copy archived
+- **`bittings-unified/` is now the single app home.** Loose app docs that lived at the repo root moved to
+  **`bittings-unified/docs/`**; one-off dev/data/pitch tooling moved to **`bittings-unified/tools/`**
+  (`_gen_ilco.js` + `_ilco_extract.py` + `_ilco_extracted.json`, `_vehicle_audit.js`, `_devserver.py`,
+  `_pitch-seed.js`/`_pitch_moat.py`/`_pitch_shots.py`, `pitch-screenshots/`). All moved via `git mv` —
+  history preserved.
+- ⚠️ **The `tools/` scripts still hardcode the old `bittings-app/` path** (e.g. `_vehicle_audit.js` →
+  `bittings-app/app/lishi-seed.js`; the pitch scripts → `…/bittings-app`). They were already stale relative
+  to the active tree and are **not auto-fixed** — repoint them to `bittings-unified/` before re-running.
+- **The stale earlier app copy is retired to `_archive/`** (`_archive/bittings-app/` + `bittings-app.zip`).
+  Don't edit under `_archive/`. The live app (`index.html` + `app/*.js` + `supabase/`) was untouched and
+  references none of the moved files (verified) — nothing in the running app broke.
+- **Website-only docs** (`DEPLOY_CLOUDFLARE.md`, `SITE_PAGES_AUDIT.md`) moved to `website/`. The root
+  deploy wrapper `_deploy-website.sh` **stayed at root** (it resolves `$HERE/website/site` + `$HERE/.secrets`
+  relative to its own location — moving it would break those paths).
+- Shop-PC parity work (hardware module + shop-scoped payment edge functions) committed & pushed first, as a
+  separate commit, so the reorg lands as renames-only.
+
 ## 2026-06-26 22:00 CST — repo: Git installed on the new PC, full GitHub backup
 - The new PC had **no Git CLI installed** (it's at `C:\Program Files\Git\cmd\git.exe`; a fresh shell will have it
   on PATH). All recent work (NASTF/D1, Ilco import, demo, blog #2, 20+ edited files) was **uncommitted**.
