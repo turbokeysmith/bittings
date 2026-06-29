@@ -20,3 +20,4 @@ Thumbs.db
 
 # Regenerable demo bundle (re-zip bittings-app/ when needed)
 bittings-app.zip
+package-lock.json
