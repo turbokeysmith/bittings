@@ -16,16 +16,27 @@ if [ ! -f "$HERE/.secrets/cloudflare.env" ]; then
   echo "  (or run 'npx wrangler login' for OAuth instead)" >&2
   exit 1
 fi
+# Auto-export every var defined in the secrets file (token AND account id) so the
+# wrangler subprocess sees them. Pinning CLOUDFLARE_ACCOUNT_ID is required because
+# the Pages-scoped token can't enumerate accounts on its own.
+set -a
 # shellcheck disable=SC1090
 source "$HERE/.secrets/cloudflare.env"
-export CLOUDFLARE_API_TOKEN
+set +a
 
 mode="${1:-preview}"
 if [ "$mode" = "prod" ] || [ "$mode" = "main" ]; then
   branch="main"
-  echo ">> Deploying to PRODUCTION (turbokeysmith.com) ..."
+  cur="$(git -C "$HERE" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  if [ "$cur" != "main" ]; then
+    echo "REFUSING: production must deploy from the 'main' branch (its website/site is the live" >&2
+    echo "  source of truth); you are on '$cur'. Run:  git checkout main  then re-run: ./_deploy-website.sh prod" >&2
+    exit 1
+  fi
+  echo ">> Deploying to PRODUCTION (turbokeysmith.com) from main ..."
 else
-  branch="preview-$(printf '%s' "$mode" | tr -cd 'a-z0-9-')"
+  # the label IS the preview branch name (default 'preview'); sanitized
+  branch="$(printf '%s' "$mode" | tr -cd 'a-z0-9-')"; [ -n "$branch" ] || branch="preview"
   echo ">> Deploying PREVIEW ($branch) — will NOT affect the live domain ..."
 fi
 
