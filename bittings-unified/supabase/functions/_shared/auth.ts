@@ -38,12 +38,15 @@ export function corsHeaders(req: Request): Record<string, string> {
 }
 
 export type AuthError = { status: number; error: string };
-export type AuthOk = { user: { id: string; email: string }; role: string };
+// `shopId` is the caller's tenant, resolved SERVER-SIDE from shop_members (the
+// security authority — never client input). Every tenant-scoped query in a
+// payment function must be filtered by it. Fail-closed: no active membership → 403.
+export type AuthOk = { user: { id: string; email: string }; role: string; shopId: string };
 
 // Verify the JWT and resolve the caller's role from `staff`. Throws AuthError:
 //   401 = not a valid signed-in user
-//   503 = staff lookup itself failed (e.g. missing grant) — distinguishable, not a silent deny
-//   403 = signed in, but no active staff row with an allowed role
+//   503 = staff/membership lookup itself failed (e.g. missing grant) — distinguishable, not a silent deny
+//   403 = signed in, but no active staff row with an allowed role / no active shop membership
 export async function requireRole(req: Request, allowed: string[]): Promise<AuthOk> {
   const m = (req.headers.get("Authorization") ?? "").match(/^Bearer\s+(.+)$/i);
   if (!m) throw { status: 401, error: "missing bearer token" } as AuthError;
@@ -62,7 +65,23 @@ export async function requireRole(req: Request, allowed: string[]): Promise<Auth
   if (!role || !allowed.includes(role)) {
     throw { status: 403, error: `forbidden: requires role ${allowed.join(" or ")}` } as AuthError;
   }
-  return { user, role };
+
+  // Tenant context: the caller's shop is resolved from shop_members (the Phase-5
+  // security authority), NOT from any client-supplied orgId. Mirrors current_shop()
+  // (oldest active membership). Payment functions run as service_role and bypass
+  // RLS, so this is the ONLY tenant boundary on the money path — fail closed.
+  const sm = await admin.from("shop_members")
+    .select("shop_id")
+    .eq("user_id", user.id).eq("active", true)
+    .order("created_at", { ascending: true }).limit(1).maybeSingle();
+  if (sm.error) {
+    console.error("shop membership lookup failed", (sm.error as { code?: string }).code, sm.error.message);
+    throw { status: 503, error: "tenant service unavailable, try again" } as AuthError;
+  }
+  const shopId = sm.data?.shop_id ? String(sm.data.shop_id) : "";
+  if (!shopId) throw { status: 403, error: "no active shop membership" } as AuthError;
+
+  return { user, role, shopId };
 }
 
 // Convenience: any ACTIVE staff member (all four roles). "Take payment" is an
