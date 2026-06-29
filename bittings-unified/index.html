@@ -977,6 +977,57 @@ html[data-bt-theme="dark"] #view-lishi .pill.no{color:#e0636f;}
 html[data-bt-theme="dark"] #view-lishi .pill.warn{color:#f2b43a;}
 html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
 </style>
+<style id="receipts-ported">
+  #view-receipts .receipt-card{--dark:#1b1f25;--light:#f6f7f9;
+  background:#fff;color:#222;border-radius:10px;overflow:hidden;
+  margin-top:4px;max-width:92%;box-shadow:0 4px 14px rgba(0,0,0,.4);
+  }
+  #view-receipts .rc-head{background:var(--dark);padding:14px;display:flex;gap:10px;align-items:center;}
+  #view-receipts .rc-head img{width:46px;height:46px;border-radius:6px;object-fit:contain;background:transparent;}
+  #view-receipts .rc-head .t{flex:1;min-width:0;}
+  #view-receipts .rc-head .t b{color:#fff;font-size:15px;font-weight:800;}
+  #view-receipts .rc-head .t b .r{color:var(--red);}
+  #view-receipts .rc-head .t span{display:block;color:#aaa;font-size:9.5px;margin-top:2px;word-break:break-word;}
+  #view-receipts .rc-head .rt{color:var(--red);font-weight:800;font-size:13px;text-align:right;}
+  #view-receipts .rc-head .rt span{display:block;color:#aaa;font-weight:400;font-size:9px;margin-top:3px;}
+  #view-receipts .rc-body{padding:14px;}
+  #view-receipts .rc-sec{color:var(--red);font-weight:800;font-size:11px;border-bottom:1.5px solid var(--red);padding-bottom:3px;margin-bottom:7px;}
+  #view-receipts .rc-line{font-size:12.5px;margin:3px 0;color:#333;word-break:break-word;}
+  #view-receipts .rc-items{margin-top:12px;}
+  #view-receipts .rc-ihead{background:var(--dark);color:#fff;font-size:10.5px;font-weight:700;display:flex;justify-content:space-between;padding:7px 9px;}
+  #view-receipts .rc-irow{font-size:12px;display:flex;justify-content:space-between;padding:8px 9px;border:1px solid #eee;gap:8px;}
+  #view-receipts .rc-irow:nth-child(odd){background:var(--light);}
+  #view-receipts .rc-tot{margin-top:12px;}
+  #view-receipts .rc-subrow{display:flex;justify-content:space-between;font-size:11.5px;color:#777;padding:2px 0;}
+  #view-receipts .rc-totrow{display:flex;justify-content:space-between;font-size:15px;font-weight:800;color:#222;border-top:1px solid #ccc;margin-top:5px;padding-top:6px;}
+  #view-receipts .rc-pm{font-size:11px;color:#777;margin-top:5px;text-align:right;}
+  #view-receipts .rc-st{font-size:11.5px;font-weight:800;margin-top:2px;text-align:right;}
+  #view-receipts .rc-notes{font-size:11.5px;color:#555;margin-top:10px;padding-top:8px;border-top:1px dashed #ccc;font-style:italic;}
+  #view-receipts .hi-warr{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;align-self:center;margin:0 8px;}
+  #view-receipts .rc-tabs{display:flex;gap:8px;margin-bottom:12px;}
+  #view-receipts .rc-tabs button{flex:1;padding:11px;border-radius:11px;border:1px solid var(--edge);background:var(--card);color:var(--ink);font-weight:800;font-size:14px;cursor:pointer;}
+  #view-receipts .rc-tabs button.on{background:var(--red);color:#fff;border-color:var(--red);}
+  #view-receipts .rc-search{width:100%;background:var(--card);border:1px solid var(--edge);border-radius:12px;padding:12px 14px;color:var(--ink);font-size:16px;outline:none;margin-bottom:14px;box-sizing:border-box;}
+  #view-receipts .rc-list{display:flex;flex-direction:column;gap:10px;}
+  #view-receipts .ro-item{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:12px 14px;color:var(--ink);}
+  #view-receipts .ro-open{cursor:pointer;}
+  #view-receipts .ro-top{display:flex;align-items:center;gap:8px;}
+  #view-receipts .ro-num{font-weight:800;font-size:15px;}
+  #view-receipts .ro-amt{margin-left:auto;font-weight:800;font-size:15px;}
+  #view-receipts .ro-cust{font-weight:700;margin-top:3px;}
+  #view-receipts .ro-desc{font-size:12.5px;color:var(--dim);margin-top:2px;}
+  #view-receipts .ro-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  #view-receipts .rc-rowactions{display:flex;gap:8px;margin-top:10px;border-top:1px solid var(--edge);padding-top:10px;}
+  #view-receipts .rc-rowactions button{flex:1;padding:9px;border-radius:9px;border:1px solid var(--edge);background:transparent;color:var(--ink);font-weight:700;font-size:12.5px;cursor:pointer;}
+  #view-receipts .rc-empty{color:var(--dim);text-align:center;padding:40px 10px;}
+  #view-receipts .rc-viewer{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;z-index:1000;padding:20px;overflow:auto;}
+  #view-receipts .rc-viewer.open{display:flex;}
+  #view-receipts .rc-vsheet{background:var(--card);border-radius:14px;max-width:640px;width:100%;align-self:flex-start;overflow:hidden;}
+  #view-receipts .rc-vbar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--edge);color:var(--ink);font-weight:800;}
+  #view-receipts .rc-vactions{margin-left:auto;display:flex;gap:8px;}
+  #view-receipts .rc-vactions button{padding:8px 12px;border-radius:9px;border:1px solid var(--edge);background:transparent;color:var(--ink);font-weight:700;cursor:pointer;font-size:13px;}
+  #view-receipts .rc-vdoc{padding:18px;background:var(--bg2);max-height:74vh;overflow:auto;}
+</style>
 </head>
 <body class="bt">
 <script>
@@ -1019,7 +1070,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
       <button class="bt-nav__item pos-desktop-only" data-go="payments"><span class="bt-nav__ic">💳</span>Register</button>
       <button class="bt-nav__item pos-mobile-only" data-go="startjob"><span class="bt-nav__ic">🔑</span>Start a job</button>
       <button class="bt-nav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
-      <button class="bt-nav__item" data-embed="bittings.html?receipts=1"><span class="bt-nav__ic">🧾</span>Receipts</button>
+      <button class="bt-nav__item" data-go="receipts"><span class="bt-nav__ic">🧾</span>Receipts</button>
       <button class="bt-nav__item" data-go="schedule"><span class="bt-nav__ic">📅</span>Scheduler</button>
       <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Commission</button>
       <button class="bt-nav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Inventory</button>
@@ -1215,6 +1266,19 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
     <button class="btn" id="ovCancel">Cancel</button>
   </div>
 </div></div>
+  </div>
+  
+  <!-- ===== Receipts (de-iframed → native #view-receipts; renders via shared TKS_RECEIPTS engine) ===== -->
+  <div class="view" id="view-receipts">
+    <div class="bt-pagehead"><div><div class="eyebrow" id="rcSub">Read-only history &middot; search &amp; reprint</div><h1>Receipts</h1></div></div>
+    <div class="rc-tabs" id="rcTabs"><button data-rt="all" class="on">All</button><button data-rt="nastf">NASTF &middot; D1</button></div>
+    <input class="rc-search" id="rcSearch" placeholder="Search receipts — number, customer, vehicle, VIN…">
+    <div id="rcList" class="rc-list"></div>
+    <div class="rc-viewer" id="rcViewer" aria-hidden="true"><div class="rc-vsheet">
+      <div class="rc-vbar"><span id="rcViewerTitle">Document</span><div class="rc-vactions">
+        <button id="rcvPrint">🖨 Print</button><button id="rcvDownload">⬇ Download</button><button id="rcvClose" aria-label="Close">✕</button>
+      </div></div><div class="rc-vdoc" id="rcViewerDoc"></div>
+    </div></div>
   </div>
   <div class="view active" id="view-startjob">
     <div class="bt-pagehead"><div><div class="eyebrow">Start a job</div><h1>What kind of job?</h1></div></div>
@@ -1520,7 +1584,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
 
   <nav class="bt-bottomnav">
     <button class="bt-bottomnav__item" data-go="startjob"><span class="bt-nav__ic">🔑</span>Start job</button>
-    <button class="bt-bottomnav__item" data-open="bittings.html?receipts=1"><span class="bt-nav__ic">🧾</span>Receipts</button>
+    <button class="bt-bottomnav__item" data-go="receipts"><span class="bt-nav__ic">🧾</span>Receipts</button>
     <button class="bt-bottomnav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
     <button class="bt-bottomnav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Stock</button>
     <button class="bt-bottomnav__item" id="btMore"><span class="bt-nav__ic">⋯</span>More</button>
@@ -1565,7 +1629,7 @@ function saveCustomers(a){ TKS.saveList("customers", a); }
 function getShops(){ return TKS.list("shops"); }
 function saveShops(a){ TKS.saveList("shops", a); }
 
-const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','dashboard','inventory','part','fleet','settings','programmers','schedule','lishi'];
+const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','dashboard','inventory','part','fleet','settings','programmers','schedule','lishi','receipts'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
@@ -1655,7 +1719,7 @@ document.querySelectorAll('[data-go]').forEach(b=>{
     if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } if(t==='payments'){ renderPayments(); } if(t==='commission'){ renderCommission(); }
     // de-iframed views are defined in later <script> blocks; guard with window. so an early
     // auto-trigger (e.g. maybeRedirectToSetup) can't throw "renderX is not defined".
-    if(t==='fleet'){ window.renderFleet && window.renderFleet(); } if(t==='settings'){ window.renderSettings && window.renderSettings(); } if(t==='programmers'){ window.renderProgrammers && window.renderProgrammers(); } if(t==='schedule'){ window.renderSchedule && window.renderSchedule(); } if(t==='lishi'){ window.renderLishi && window.renderLishi(); }
+    if(t==='fleet'){ window.renderFleet && window.renderFleet(); } if(t==='settings'){ window.renderSettings && window.renderSettings(); } if(t==='programmers'){ window.renderProgrammers && window.renderProgrammers(); } if(t==='schedule'){ window.renderSchedule && window.renderSchedule(); } if(t==='lishi'){ window.renderLishi && window.renderLishi(); } if(t==='receipts'){ window.renderReceipts && window.renderReceipts(); }
     show(t); };
 });
 document.querySelectorAll('[data-open]').forEach(b=>{
@@ -6763,5 +6827,7 @@ gid('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') gid('vinBtn').c
   window.renderLishi = window.renderLishi || function(){};
 })();
 </script>
+<script src="app/receipts-engine.js"></script>
+<script src="app/receipts-view.js"></script>
 </body>
 </html>
