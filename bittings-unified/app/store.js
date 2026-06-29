@@ -1093,6 +1093,19 @@
     assignHomeVan: function(userId, vanId){ if(_demoOn()) return _demoOk(null); return _sb().from('staff').update({ home_van_id: vanId || null }).eq('user_id', userId); }
   };
 
+  // Multi-tenant (phase5): each business = a shop. Onboarding calls ensure() so a
+  // brand-new pilot owner gets their OWN isolated shop; current() = the caller's
+  // shop. All data is fenced to current_shop() by RLS (see 5a_multitenant.sql).
+  global.TKS.Shop = {
+    create:  function(name){ if(_demoOn()) return _demoOk('demo-shop'); return _sb().rpc('create_shop', { p_name: name || '' }); },
+    current: function(){ if(_demoOn()) return _demoOk('demo-shop'); return _sb().rpc('current_shop'); },
+    rename:  function(name){ if(_demoOn()) return _demoOk(null);
+      return _sb().rpc('current_shop').then(function(r){ var id=r&&r.data; if(!id) return { data:null }; return _sb().from('shops').update({ name: name||'' }).eq('id', id); }); },
+    // create the shop only if the signed-in user doesn't have one yet (idempotent)
+    ensure:  function(name){ var self=this; if(_demoOn()) return _demoOk('demo-shop');
+      return self.current().then(function(r){ return (r && r.data) ? r : self.create(name); }).catch(function(){ return self.create(name); }); }
+  };
+
   // Inventory location ops — all role-checked server-side.
   // location strings: 'shop' or 'van:<vanId>'.
   global.TKS.InvOps = {
