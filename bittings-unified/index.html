@@ -1028,6 +1028,30 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
   #view-receipts .rc-vactions button{padding:8px 12px;border-radius:9px;border:1px solid var(--edge);background:transparent;color:var(--ink);font-weight:700;cursor:pointer;font-size:13px;}
   #view-receipts .rc-vdoc{padding:18px;background:var(--bg2);max-height:74vh;overflow:auto;}
 </style>
+<style id="tier-css">
+  .bt-nav__item.tier-locked{opacity:.5;}
+  .bt-nav__item.tier-locked::after{content:'🔒';margin-left:auto;font-size:11px;opacity:.85;}
+  .tier-pill{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;font-size:11px;}
+  .tier-pill .tp-tier{font-weight:800;padding:2px 8px;border-radius:999px;}
+  .tier-pill .tp-lookup{background:rgba(154,161,172,.22);color:#c3c8d0;}
+  .tier-pill .tp-starter{background:rgba(74,163,255,.2);color:#9cc8ff;}
+  .tier-pill .tp-pro{background:rgba(242,180,58,.2);color:#f2c969;}
+  .tier-pill .tp-seats{color:var(--dim);}
+  .tier-pill .tp-up{margin-left:auto;background:var(--red);color:#fff;border:0;border-radius:999px;padding:3px 10px;font-weight:800;font-size:11px;cursor:pointer;}
+  .tier-up-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:2000;padding:20px;}
+  .tier-up-ov.open{display:flex;}
+  .tier-up{background:var(--card);color:var(--ink);border-radius:16px;max-width:540px;width:100%;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,.5);}
+  .tier-up .tu-h{font-size:18px;font-weight:800;margin-bottom:8px;}
+  .tier-up .tu-b{font-size:14px;line-height:1.5;}
+  .tier-up .tu-grid{display:grid;gap:8px;margin:14px 0;}
+  .tier-up .tu-col{border:1px solid var(--edge);border-radius:11px;padding:10px 12px;}
+  .tier-up .tu-col.cur{border-color:var(--red);background:rgba(200,50,60,.07);}
+  .tier-up .tu-col b{display:block;font-size:13px;}
+  .tier-up .tu-col span{font-size:12px;color:var(--dim);}
+  .tier-up .tu-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px;}
+  .tier-up .tu-cancel{background:transparent;border:1px solid var(--edge);color:var(--ink);border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer;}
+  .tier-up .tu-go{background:var(--red);color:#fff;border:0;border-radius:10px;padding:9px 16px;font-weight:800;cursor:pointer;}
+</style>
 </head>
 <body class="bt">
 <script>
@@ -3819,6 +3843,7 @@ function updateAuthUI(){
       '<a href="cloud-test.html" rel="nofollow">Sign in</a>';
   }
   renderQuickTiles();
+  if(window.TKS_TIER) TKS_TIER.load();   // re-resolve subscription tier + re-apply feature locks
 }
 // "⚙ Setup" relaunch link — owner, or signed-out/first-run (soft). Hidden for staff.
 function setupLinkHTML(){ return ownerSoft() ? '<a href="#" onclick="var b=document.getElementById(\'sideSettings\');if(b)b.click();return false;" style="background:rgba(20,23,27,.05);border:1px solid var(--edge);color:var(--dim)">⚙ Setup</a>' : ''; }
@@ -6829,5 +6854,6 @@ gid('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') gid('vinBtn').c
 </script>
 <script src="app/receipts-engine.js"></script>
 <script src="app/receipts-view.js"></script>
+<script src="app/tier.js"></script>
 </body>
 </html>
