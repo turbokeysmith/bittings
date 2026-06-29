@@ -1052,6 +1052,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
   .tier-up .tu-cancel{background:transparent;border:1px solid var(--edge);color:var(--ink);border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer;}
   .tier-up .tu-go{background:var(--red);color:#fff;border:0;border-radius:10px;padding:9px 16px;font-weight:800;cursor:pointer;}
 </style>
+<style>#view-programmers .cbl{font-size:11px;color:#1f6fd0;margin-top:3px;line-height:1.35}#view-programmers .cbl i{color:#9a6a00;font-style:normal}</style>
 </head>
 <body class="bt">
 <script>
@@ -1640,6 +1641,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
 <script src="app/ilco-2025.js"></script>
 <!-- Shared Pay Now engine (Payments tile "New Charge"; invoice flow has its own) -->
 <script src="app/pay.js"></script>
+<script src="app/prog-cables.js"></script>
 <!-- Shared inventory importer (Inventory tile + Setup wizard); SheetJS for .xlsx -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="app/inventory-import.js"></script>
@@ -4860,7 +4862,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanne
     ['year_start','Year start'],['year_end','Year end'],['region','Region'],
     ['notes','Notes'],['confidence','Confidence'],['source','Source']
   ];
-  const CAP_FIELDS=[['add','Add key'],['akl','All keys lost'],['rem','Remote'],['method','Method'],['needs','Needs / notes']];
+  const CAP_FIELDS=[['add','Add key'],['akl','All keys lost'],['rem','Remote'],['method','Method'],['cable','Cable / adapter (AKL)'],['needs','Needs / notes']];
 
   const SEED_DEVS=[
     {key:'im608', covkey:'im608', owned:true, name:'Autel IM608 Pro 2', brand:'Autel', tier:'Flagship IMMO + diagnostics',
@@ -4919,7 +4921,25 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanne
     {key:'silca_plusbox', covkey:'clone', owned:false, name:'Silca Plus Box', brand:'Silca', tier:'Cloning add-on (Philips/crypto)',
      modules:'', license:'', coverage_src:'silca.biz', notes:'Snoop/calc add-on for cloning crypto chips ("Plus Box" in the reference).'},
     {key:'silca_mbox', covkey:'clone', owned:false, name:'Silca M-Box', brand:'Silca', tier:'Cloning add-on (Megamos)',
-     modules:'', license:'', coverage_src:'silca.biz', notes:'Megamos-crypto cloning module ("M-Box" in the reference).'}
+     modules:'', license:'', coverage_src:'silca.biz', notes:'Megamos-crypto cloning module ("M-Box" in the reference).'},
+    // ---- added 2026-06 (researched, sourced; unconfirmed coverage flagged "Verify" per-row) ----
+    {key:'obdstar', covkey:'obdstar', owned:false, name:'OBDStar X300 DP Plus / Pro4 (Key Master)', brand:'OBDStar', tier:'Mid/high IMMO tablet family (DP Plus = full shop; Pro4/Key Master = locksmith IMMO)',
+     modules:'P001 (EEPROM/RFID/renew); Key SIM 5-in-1 (smart AKL); CAN FD adapter (GM/Ford/FCA 2020+); FCA 12+8 (SGW 2018+); Toyota-8A / Toyota-30 cable; Nissan-40 BCM; Ford 2016-2020 AKL cable; RH850/V850 + VW4-AKL (VAG); Benz FBS3 kit', license:'Online activation; Pro4 ~1yr free then ~$249/yr, not bricked on lapse',
+     coverage_src:'obdstar.com/Products_266.html (+ obdstarstore / obdii365 how-to + adapter pages)', notes:'Variants: X300 DP Plus (A/B/C configs), Pro4, Key Master 5, X300 Classic G3 (adds VAG MQB AKL calc + Benz FBS3). Many NA AKL / 2020+ CAN FD jobs REQUIRE the paid adapters above — verify the adapter per job.'},
+    {key:'cgdi', covkey:'cgdi', owned:false, name:'CGDI (Prog MB / Prog BMW / CG Pro / A2)', brand:'CGDI / CG', tier:'Brand specialist — best-in-class BMW + Mercedes; A2 (2025+) reaches broader multi-brand OBD',
+     modules:'CGDI Prog MB (Benz EIS/ELV + password calc, IR) + ELV sim; CGDI Prog BMW (CAS1-4+/FEM/BDC + ISN); CG Pro 9S12 (bench EIS/CAS/EEPROM); CG100 (airbag/ECU); AT200/FC200 (ISN OBD); CGDI A2 (wireless multi-brand OBD IMMO, BDC2)', license:'Per product: Prog MB token-based; Prog BMW one-time + lifetime updates; A2 no annual sub, Benz auth extra',
+     coverage_src:'cgdishop.com / cgdiprog.com product + coverage pages', notes:'TRUE strengths = BMW (CGDI Prog BMW) and Mercedes (CGDI Prog MB, up to FBS3). GM/Ford/Toyota/Honda/Nissan/Hyundai-Kia/VAG depend on the newer CGDI A2 whose per-brand coverage is mostly UNCONFIRMED — verify. FCA & Subaru appear out of scope.'},
+    {key:'keydiy', covkey:'keydiy', owned:false, name:'KeyDIY KD-X2 / KD-MAX (+ KD-MATE)', brand:'KeyDIY', tier:'Remote generator + chip clone/generate; OBD immo only via KD-MATE add-on',
+     modules:'KD-X2 / KD-MAX (remote + chip); KD-MATE OBD adapter (Toyota/Lexus 4A/8A/4D + VAG MQB, must pair with X2/MAX); KD-Mini Prog (ABK-5173, MQB AKL); Toyota 30-pin cable (2020+)', license:'KD app; free updates; remote-gen + ID48-96bit clone use tokens',
+     coverage_src:'keydiy.eu / obdii365 KD-MATE coverage page', notes:'Core = universal remote generation + transponder clone/generate (confirmed all brands). OBD immo add/AKL ONLY via KD-MATE and CONFIRMED only for Toyota/Lexus (4A/8A/4D, pincode-free, no simulator) and VAG (4th-immo/MQB). Other brands "recently added" to KD-MATE with NO function detail — Verify; generating a remote/chip does NOT bind it (use a separate immo programmer). BMW/MB out of scope (newer KD-X4).'},
+    // reference-only (known pro tools; no per-platform coverage column — listed for completeness)
+    {key:'yanhua_acdp', covkey:'', owned:false, name:'Yanhua Mini ACDP / ACDP-2', brand:'Yanhua', tier:'Solder-free bench/OBD/ICP — BMW/VAG/JLR/Porsche/MB IMMO + mileage + ECU/TCU clone (per-vehicle modules)', modules:'Per-vehicle add-on modules', license:'Per module', coverage_src:'yanhuaacdp.com', notes:'Modular; coverage = sum of purchased modules. Reference only — verify per module.'},
+    {key:'abrites_avdi', covkey:'', owned:false, name:'Abrites AVDI', brand:'Abrites', tier:'Dealer-level: advanced key/ECU programming, PIN read, cluster calibration across 40+ brands', modules:'Per-brand special-function sets', license:'Per-brand licenses', coverage_src:'abrites.com/products/pkg-avdi', notes:'High-end interface; coverage = purchased brand licenses. Reference only.'},
+    {key:'tango', covkey:'', owned:false, name:'Tango (Scorpio-LK)', brand:'Scorpio-LK', tier:'Transponder maker — read/write/generate immobilizer transponders + AKL solutions', modules:'Software maker images', license:'Per maker', coverage_src:'scorpio-lk.com', notes:'Transponder-focused. Reference only.'},
+    {key:'zedfull', covkey:'', owned:false, name:'Zed-Full (IEA)', brand:'IEA', tier:'All-in-one OBD key & remote programmer + key clone + EEPROM', modules:'Tokens / per-function', license:'Tokens', coverage_src:'istanbulanahtar.com/en/zed-full', notes:'Reference only — verify per function.'},
+    {key:'orange5', covkey:'', owned:false, name:'Orange-5 (Scorpio-LK)', brand:'Scorpio-LK', tier:'Universal EEPROM/MCU programmer (immobilizer/airbag chip work)', modules:'Plugins', license:'Per plugin', coverage_src:'scorpio-lk.com/orange5.html', notes:'Bench EEPROM/MCU. Reference only.'},
+    {key:'launch_immo', covkey:'', owned:false, name:'Launch X431 IMMO Plus', brand:'Launch', tier:'Android all-in-one: IMMO/key (X-PROG3) + ECU clone + full diagnostics', modules:'X-PROG3 adapter', license:'1-yr subscription', coverage_src:'cnlaunch.com', notes:'Reference only — verify per make.'},
+    {key:'xhorse_ktplus2', covkey:'ktmax', owned:false, name:'Xhorse Key Tool Plus (VVDI ecosystem)', brand:'Xhorse', tier:'All-in-one combining VVDI2 + VVDI MB + Key Tool Max + VVDI Prog (deep IMMO/bench)', modules:'Built-in OBD + bench', license:'Tokens for some calcs', coverage_src:'xhorsevvdi.com (authorized dealer)', notes:'Most capable Xhorse unit; shares the Key Tool Max coverage column here — Plus adds deep BMW/MB/Porsche bench. Verify on device.'}
   ];
 
   function d(add,akl,method,needs,rem){ return {add:add||'Yes',akl:akl||'Verify',rem:rem||'Yes',method:method||'OBD',needs:needs||''}; }
@@ -5018,6 +5038,68 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanne
     return {make,system:sys,model_hint:hint||'',year_start:String(ys),year_end:String(ye),region:'US',
       cov:m,notes:notes||'',confidence:'By platform — verify on device',source:SRC};
   }
+
+  // ===== Added tool coverage columns (obdstar / cgdi / keydiy) — researched + sourced; "Verify" = unconfirmed.
+  // Merged onto the platform maps (const objects are mutable). See coverage_src on each device. =====
+  var _NT={
+    GM:{obdstar:d('Yes','Yes','OBD','Native pre-2020; 2020-21 prox needs OBDStar CAN FD adapter; verify 2022+',''),
+        cgdi:d('Verify','Verify','OBD','CGDI A2 only ("password-free CANFD"); scope/years unclear — verify','Verify'),
+        keydiy:d('Verify','No','Clone/Gen + KD-MATE','Remote/chip gen confirmed; immo add/AKL via KD-MATE undocumented — use a separate immo tool','Yes')},
+    Ford:{obdstar:d('Yes','Yes','OBD','Mostly password-free add; 2016+ prox AKL needs Ford 2016-2020 AKL cable / P002; verify 2021+',''),
+        cgdi:d('Yes','Yes','OBD','CGDI A2 only, late models (EcoSport 17+, Focus 18+, Escape 20+, Lincoln Corsair…); verify exact NA year','Yes'),
+        keydiy:d('Verify','No','Clone/Gen + KD-MATE','Remote/chip gen confirmed; Ford on KD-MATE undocumented — separate immo tool','Yes')},
+    Toyota:{obdstar:d('Yes','Yes','OBD','Older G / 4D add + AKL via OBD (confirmed)',''),
+        cgdi:d('Verify','Verify','OBD','Older G/H not clearly listed for A2 (focus is 4A/8A) — verify','Verify'),
+        keydiy:d('Yes','Yes','OBD via KD-MATE','4D smart spare + AKL pincode-free, no simulator (needs X2/MAX + KD-MATE)','Yes')},
+    'Toyota-8A':{obdstar:d('Yes','Restricted','OBD + Key SIM','8A-H smart AKL supported but REGION-limited + needs Key SIM / Toyota-8A/30 adapter; excludes some US 8A-H — verify VIN',''),
+        cgdi:d('Yes','Yes','OBD','CGDI A2: full 8A/4A smart replacement incl. 4A-BA AKL; verify NA models','Yes'),
+        keydiy:d('Yes','Yes','OBD via KD-MATE','8A (+4A 2018+) smart spare + AKL, pincode-free, no simulator; 2020+ needs Toyota 30-pin','Yes')},
+    Honda:{obdstar:d('Yes','Yes','OBD','Add + prox AKL via OBD incl. 2019+ ID47, 2020+ Civic/Accord; verify 2022+',''),
+        cgdi:d('Yes','Verify','OBD','CGDI A2: 2021+ smart support; AKL + older transponder unconfirmed','Yes'),
+        keydiy:d('Verify','Verify','Clone/Gen + KD-MATE','Remote gen confirmed; Honda on KD-MATE undocumented — verify','Yes')},
+    Nissan:{obdstar:d('Yes','Yes','OBD','Add + AKL via 20-digit PIN (often free read); newer (Rogue T33/Pathfinder) need Nissan-40 BCM cable',''),
+        cgdi:d('Yes','Yes','OBD','CGDI A2: 28-digit password-free + AKL harnesses (16/32/40-pin); verify Infiniti','Yes'),
+        keydiy:d('Verify','Verify','Clone/Gen + KD-MATE','Remote gen confirmed; Nissan on KD-MATE undocumented — verify','Yes')},
+    FCA:{obdstar:d('Yes','Restricted','OBD','Read-PIN + make-start incl. 2018-21 CDJR; 2018+ SGW needs FCA 12+8 adapter; AKL varies — verify VIN',''),
+        cgdi:d('Verify','Verify','OBD','CDJR absent from CGDI A2 specs — likely out of scope; verify','Verify'),
+        keydiy:d('Verify','No','Clone/Gen + KD-MATE','Remote/chip gen confirmed; immo via KD-MATE undocumented — separate tool','Yes')},
+    'Hyundai-Kia':{obdstar:d('Yes','Yes','OBD + Key SIM','Add via OBD; smart-key AKL needs Key SIM 5-in-1 (46 PIN); updated ~2023; verify newest',''),
+        cgdi:d('Verify','Verify','OBD','A2 package has H/K OBD adapters but no explicit add/AKL list — verify','Verify'),
+        keydiy:d('Verify','Verify','Clone/Gen + KD-MATE','Remote gen confirmed; H/K on KD-MATE undocumented — verify','Yes')},
+    VAG:{obdstar:d('Yes','Restricted','OBD / Bench','Older VAG add/AKL OBD/bench; MQB48 / IMMO IV AKL needs RH850/V850 + VW4-AKL (or X300 Classic G3) — verify',''),
+        cgdi:d('Yes','Verify','OBD','CGDI A2: MQB (incl. NEC95320 4.5-gen) + BDC2 matching; AKL per model unconfirmed','Yes'),
+        keydiy:d('Yes','Restricted','OBD via KD-MATE','4th-immo + MQB key programming via KD-MATE; MQB AKL needs KD-Mini Prog (ABK-5173)','Yes')},
+    BMW:{obdstar:d('Yes','Restricted','OBD / Bench','CAS1-4 + FEM/BDC; FEM/BDC needs preprocessing; CAS4 NOT over-OBD for add; AKL generation-dependent (often bench); strongest F-series — verify G',''),
+        cgdi:d('Yes','Yes','OBD + Bench','CGDI Prog BMW: CAS1-4+/FEM/BDC add + AKL + ISN; pair AT200/FC200 (OBD ISN) / CG Pro 9S12 (bench); A2 adds BDC2 (G-series)','Yes'),
+        keydiy:d('No','No','n/a (X2/MAX/MATE)','BMW immo out of scope for X2/MAX/MATE (newer KD-X4 handles BDC); some universal remotes — verify','Verify')},
+    Mercedes:{obdstar:d('Verify','Restricted','Bench (FBS3 kit)','Base DP Plus does NOT do MB standalone; with Benz FBS3 kit (tied to X300 Classic G3): add/AKL/ISM (FBS3 era, bench). FBS4 unconfirmed — verify','Verify'),
+        cgdi:d('Yes','Yes','OBD + IR + Bench','CGDI Prog MB (token password calc): EIS/EZS add + AKL up to FBS3 + ELV repair; CG Pro 9S12 for EIS bench. FBS4 = mileage/data only','Yes'),
+        keydiy:d('No','No','n/a (X2/MAX/MATE)','MB immo out of scope for KeyDIY X2/MAX/MATE line','Verify')},
+    Subaru:{obdstar:d('Yes','Yes','OBD + Key SIM','V30.47 IMMO: add + AKL incl. 72G-blade + 8A-H blade (needs Key SIM 5-in-1); some 2023+ reported issues — verify',''),
+        cgdi:d('Verify','Verify','OBD','Subaru immo not documented for CGDI (only mileage via CG Pro 9S12) — likely out of scope; verify','Verify'),
+        keydiy:d('Verify','Verify','OBD via KD-MATE','Conflicting sources (Toyota-derived smart); KeyDIY FAQ omits Subaru — verify','Yes')}
+  };
+  // map platform-map objects to research keys, then merge the new columns on
+  [[M_GM,'GM'],[M_FORD,'Ford'],[M_TOYG,'Toyota'],[M_TOYH,'Toyota-8A'],[M_HONDA,'Honda'],[M_CHRY,'FCA'],[M_NISS,'Nissan'],[M_HK,'Hyundai-Kia'],[M_VAGOBD,'VAG'],[M_VAGMQB,'VAG'],[M_SUB,'Subaru'],[M_BMW,'BMW'],[M_MB,'Mercedes']].forEach(function(p){
+    var src=_NT[p[1]]; if(!src) return;
+    ['obdstar','cgdi','keydiy'].forEach(function(k){ if(src[k]) p[0][k]=src[k]; });
+  });
+  // platforms with no tool-specific research → explicit Verify so the column still appears
+  [M_MAZDA,M_MITS,M_OLD_DOM,M_OLD_PIN,M_EURO_ADV,M_VAGOBD,M_VAGMQB].forEach(function(m){
+    ['obdstar','cgdi','keydiy'].forEach(function(k){ if(!m[k]) m[k]=d('Verify','Verify','OBD','No tool-specific data sourced for this platform — verify on the device.','Verify'); });
+  });
+
+
+  // ===== required CABLE / ADAPTER per tool — merged onto each cap from app/prog-cables.js =====
+  [[M_GM,'GM'],[M_FORD,'Ford'],[M_TOYG,'Toyota-G'],[M_TOYH,'Toyota-8A'],[M_HONDA,'Honda'],[M_CHRY,'Chrysler/FCA'],[M_NISS,'Nissan'],[M_HK,'Hyundai/Kia'],[M_VAGOBD,'VAG'],[M_VAGMQB,'VAG'],[M_SUB,'Subaru'],[M_BMW,'BMW'],[M_MB,'Mercedes']].forEach(function(p){
+    var m=p[0], plat=p[1];
+    Object.keys(m).forEach(function(covkey){
+      var cap=m[covkey]; if(!cap||typeof cap!=='object') return;
+      var rec = (window.TKS_CABLE) ? window.TKS_CABLE(covkey, plat) : null;
+      if(rec){ cap.cable=rec.akl; cap.cableBench=rec.bench; cap.cableConf=rec.conf; cap.cableSrc=rec.src; }
+    });
+  });
+
   const SEED_COV=[
     cov('Ford','Ford PATS / 128-bit','F-150, Explorer, Escape, Fusion, Mustang…',2011,2025,M_FORD,'Add-key easy via OBD; AKL is timed or needs an incoming PATS code.'),
     cov('Lincoln','Ford PATS / 128-bit','Navigator, MKZ, Aviator, Nautilus…',2011,2025,M_FORD,''),
@@ -5134,7 +5216,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); if(window.renderConsolBanne
           akl='Removed';
           needs='Autel removed Toyota/Lexus AKL in the US — add-key only. AKL: Lonsdor (license+points) or AutoProPad.';
         }
-        return `<tr><td><b>${esc(dev.name)}</b></td><td>${pill(add)}</td><td>${pill(akl)}</td><td>${pill(rem)}</td><td>${esc(c.method||'—')}</td><td class="muted">${esc(needs)}</td></tr>`;
+        return `<tr><td><b>${esc(dev.name)}</b></td><td>${pill(add)}</td><td>${pill(akl)}</td><td>${pill(rem)}</td><td>${esc(c.method||'—')}</td><td class="muted">${esc(needs)}${c.cable?('<div class="cbl">🔌 '+esc(c.cable)+(c.cableConf==='Verify'?' <i>(verify)</i>':'')+'</div>'):''}</td></tr>`;
       }).join('');
       return `<div class="card">
         <h2>${esc(r.system||r.make)}</h2>
