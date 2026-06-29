@@ -2461,8 +2461,12 @@ function posRender(){
   const bd=document.getElementById('chgBreakdown');
   if(bd) bd.innerHTML = empty ? '' : ('<div class="pos-totline">Subtotal<span>'+money2(t.subtotalCents)+'</span></div><div class="pos-totline">Tax<span>'+money2(t.taxCents)+'</span></div><div class="pos-totline pos-grand">Total<span>'+money2(t.totalCents)+'</span></div><div class="pos-totnote">card +2% on credit only</div>');
   posRenderProfit();
-  [e.card,e.cash,e.check].forEach(b=>{ if(b) b.disabled=empty; });
-  if(e.card) e.card.textContent = empty ? '💳 Card — add a line' : ('💳 Card — Pay '+money2(t.totalCents));
+  [e.card,e.cash,e.check].forEach(b=>{ if(b){ b.disabled=empty; b.title = empty ? 'Add a part or service to the ticket first' : ''; } });
+  if(e.card)  e.card.textContent  = empty ? '💳 Card — add a line'  : ('💳 Card — Pay '+money2(t.totalCents));
+  if(e.cash)  e.cash.textContent  = empty ? '💵 Cash — add a line'  : '💵 Cash';
+  if(e.check) e.check.textContent = empty ? '🧾 Check — add a line' : '🧾 Check';
+  // Hide the totals card entirely when the ticket is empty, so it isn't a stray blank white box on the rail.
+  if(bd && bd.parentElement) bd.parentElement.style.display = empty ? 'none' : '';
   if(window.TKS_ACCESS) TKS_ACCESS.applyGates(document.getElementById('chgForm'));
 }
 // Manager-only Profit / Cost / Margin (cost is visible to managers).
