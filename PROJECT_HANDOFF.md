@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-29 15:40 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-06-30 12:22 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -407,6 +407,15 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-06-30 (📖 Added EVERYTHING.md — the "read this first" orientation file · nested repo removed)
+- **New `EVERYTHING.md` at the repo root** — a master orientation file for any fresh Code session
+  or new machine: what Bittings + Turbo Keysmith are, the two codebases, the systems
+  (GitHub/Supabase/Cloudflare/Stripe), what's built & proven (through multi-tenancy + payment
+  isolation + hardware), how we work, and what's next (Stripe test → live → 5-shop pilot).
+- **The stray nested git repo inside `bittings-unified/` was removed** — it had quietly caught a
+  commit on the wrong history. It's now **one clean repo** that reliably pushes to GitHub; every
+  file is tracked by the root repo (verified).
 
 ### 2026-06-29 (🗂️ Repo tidy: the app is now in one folder · stale copy archived · shop-PC parity backed up)
 - **Everything for the Bittings app now lives under one folder, `bittings-unified/`.** The app's
