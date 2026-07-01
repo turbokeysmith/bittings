@@ -3170,21 +3170,27 @@ async function renderHistory(){
   const res=await TKPay.dayTransactions(start.toISOString(), end.toISOString());
   if(res.error){ list.innerHTML='<div class="empty">'+esc2(res.error)+'</div>'; setCloseoutAndDrawer(date,0); return; }
   const rows=res.rows||[]; const money=c=>'$'+((c||0)/100).toFixed(2);
-  let collected=0,sur=0,tax=0,refunds=0; const byM={card:0,cash:0,check:0};
-  rows.forEach(t=>{ if(t.status==='completed'){ const amt=t.captured_cents||0; collected+=amt; if(t.surcharge_applied) sur+=(t.surcharge_cents||0); tax+=(t.tax_cents||0);
-      byM[t.method==='cash'?'cash':t.method==='check'?'check':'card']+=amt; } if(t.status==='refunded') refunds++; });
+  let collected=0,sur=0,tax=0,refunds=0,refundAmt=0; const byM={card:0,cash:0,check:0};
+  rows.forEach(t=>{
+    if(t.status==='completed' || t.status==='partially_refunded'){
+      const cap=t.captured_cents||0, ref=t.refunded_cents||0, net=Math.max(0,cap-ref);   // net-collected = captured − refunded
+      collected+=net; if(t.surcharge_applied) sur+=(t.surcharge_cents||0); tax+=(t.tax_cents||0);
+      byM[t.method==='cash'?'cash':t.method==='check'?'check':'card']+=net;
+      if(ref>0){ refunds++; refundAmt+=ref; }
+    } else if(t.status==='refunded'){ refunds++; refundAmt+=(t.refunded_cents||t.captured_cents||0); }
+  });
   sum.innerHTML='<div class="chip"><b>'+money(collected)+'</b>collected</div>'+
     '<div class="chip"><b>'+rows.filter(t=>t.status==='completed').length+'</b>charges</div>'+
     '<div class="chip"><b>'+money(byM.card)+'</b>card</div><div class="chip"><b>'+money(byM.cash)+'</b>cash</div>'+
     '<div class="chip"><b>'+money(byM.check)+'</b>check</div><div class="chip"><b>'+money(sur)+'</b>surcharge</div>'+
     '<div class="chip"><b>'+money(tax)+'</b>sales tax</div>'+
-    (refunds?'<div class="chip low"><b>'+refunds+'</b>refunded</div>':'');
+    (refunds?'<div class="chip low"><b>'+refunds+'</b>refunded · '+money(refundAmt)+'</div>':'');
   setCloseoutAndDrawer(date, byM.cash);   // expected cash = today's recorded cash sales
   if(!rows.length){ list.innerHTML='<div class="empty">No transactions on this day.</div>'; return; }
   list.innerHTML=rows.map(t=>{
     const time=new Date(t.created_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
     const ml=t.method==='cash'?'Cash':t.method==='check'?'Check':t.method==='reader'?'Card · reader':'Card · typed';
-    const col=t.status==='completed'?'#7fd49b':t.status==='refunded'?'#f2b43a':t.status==='pending'?'#9aa3af':'#f0a0a6';
+    const col=t.status==='completed'?'#7fd49b':(t.status==='refunded'||t.status==='partially_refunded')?'#f2b43a':t.status==='pending'?'#9aa3af':'#f0a0a6';
     return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
       '<div class="sub">'+time+' · '+ml+(t.card_funding?(' · '+t.card_funding):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
       '<span class="tag" style="color:'+col+'">'+money(t.captured_cents||t.base_cents)+'</span></div>';
@@ -3633,11 +3639,13 @@ async function renderReports(){
   const gran=repGran(v.period), buckets=repBuckets(start,end,gran);
   const agg={}; buckets.forEach(b=> agg[b.key]={sales:0,cost:0,profit:0,jobs:0});
   const tot={sales:0,cost:0,profit:0,jobs:0,tax:0}; const byMethod={card:0,cash:0,check:0};
-  rows.forEach(t=>{ if(t.status!=='completed') return;
+  rows.forEach(t=>{ if(t.status!=='completed' && t.status!=='partially_refunded') return;
     // Sales/Profit = goods+labor revenue only. Tax is pass-through (excluded), and
-    // base_cents already excludes the card surcharge. sales = base - tax.
-    const tax=t.tax_cents||0, cost=t.cost_cents||0;
-    const sales=Math.max(0,(t.base_cents||0)-tax), profit=sales-cost;
+    // base_cents already excludes the card surcharge. sales = base - tax - refunded.
+    // A partial refund reduces net sales; a fully refunded sale is status='refunded'
+    // (skipped above → net zero).
+    const tax=t.tax_cents||0, cost=t.cost_cents||0, ref=t.refunded_cents||0;
+    const sales=Math.max(0,(t.base_cents||0)-tax-ref), profit=sales-cost;
     tot.sales+=sales; tot.cost+=cost; tot.profit+=profit; tot.jobs+=1; tot.tax+=tax;
     byMethod[t.method==='cash'?'cash':t.method==='check'?'check':'card']+=sales;
     const k=repBucketKey(new Date(t.created_at), gran); if(agg[k]){ agg[k].sales+=sales; agg[k].cost+=cost; agg[k].profit+=profit; agg[k].jobs+=1; }
@@ -3655,8 +3663,8 @@ async function renderReports(){
     const dt=new Date(t.created_at);
     const when=(v.period==='today') ? dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : dt.toLocaleDateString([], {month:'short',day:'numeric'})+' '+dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
     const ml=t.method==='cash'?'Cash':t.method==='check'?'Check':t.method==='reader'?'Card · reader':'Card · typed';
-    const col=t.status==='completed'?'#7fd49b':t.status==='refunded'?'#f2b43a':t.status==='pending'?'#9aa3af':'#f0a0a6';
-    const refund = t.status==='completed' ?
+    const col=t.status==='completed'?'#7fd49b':(t.status==='refunded'||t.status==='partially_refunded')?'#f2b43a':t.status==='pending'?'#9aa3af':'#f0a0a6';
+    const refund = (t.status==='completed'||t.status==='partially_refunded') ?
       '<button class="repRefund" data-cap="refundVoid" data-id="'+esc2(t.id)+'" data-pi="'+esc2(t.stripe_payment_intent_id||'')+'" data-method="'+esc2(t.method)+'" data-inv="'+esc2(t.invoice_id||'')+'" style="'+refBtn+'">↩︎ Refund</button>' : '';
     return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
       '<div class="sub">'+when+' · '+ml+(t.technician?(' · '+esc2(t.technician)):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+

@@ -22,8 +22,9 @@ create table if not exists public.payment_transactions (
   card_brand               text,
   reader_id                text,
   stripe_payment_intent_id text unique,
-  stripe_refund_id         text,
-  status                   text not null default 'pending', -- pending|authorized|completed|failed|canceled|refunded
+  stripe_refund_id         text,                         -- last refund id (see refunded_cents for the running total)
+  refunded_cents           integer not null default 0,   -- running total actually refunded (partial-refund aware; see phase5/5d)
+  status                   text not null default 'pending', -- pending|authorized|completed|partially_refunded|failed|canceled|refunded
   failure_reason           text,
   idempotency_key          text,                         -- inv_<id>_attempt_<n> (card) | inv_<id>_<method> (cash/check)
   description              text,                         -- human label for the day-closeout history

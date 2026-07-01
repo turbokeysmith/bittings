@@ -422,9 +422,11 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   because no card payment had ever been run through the live system before this test. **Fixed** with a
   one-line database permission (tracked as migration `5c`) — safe, exposes nothing new. **This is
   exactly the kind of thing that would have bitten you on your first real charge.**
-- **🟡 One reporting bug still to fix (next):** a **partial** refund currently shows as a **full**
-  refund in Transaction History / Closeout (the money side is correct in Stripe — only the on-screen
-  record is wrong). Fix is queued.
+- **🟡→✅ Reporting bug fixed:** a **partial** refund used to show as a **full** refund in
+  Transaction History / Closeout (the money side was always correct in Stripe — only the on-screen
+  record was wrong). Now the app tracks the exact refunded amount, shows a sale as *partially
+  refunded*, and reports the correct net-collected. Verified in the test shop with a real partial
+  refund (tracked as migration `5d`).
 - **Test shop left in place on purpose** so you can do your own phone sweep (including typing a card
   in the app — the one thing that needs a real phone). Logins: `qa-owner@bittings-qa.test` etc.,
   password `QaTest!2026`. Tell me when to delete it.

@@ -26,7 +26,9 @@ Deno.serve(async (req) => {
     if (!t) return json(404, { error: "transaction not found" });
     if (t.method !== "cash" && t.method !== "check") return json(400, { error: "only cash/check can be voided here — use a refund for card" });
     if (t.status !== "completed") return json(400, { error: "only a completed transaction can be voided (status: " + t.status + ")" });
-    const u = await supa.from("payment_transactions").update({ status: "refunded" }).eq("id", transactionId).eq("shop_id", auth.shopId);
+    // Cash/check void is always a FULL void — stamp refunded_cents so Closeout /
+    // Transaction History net-collected (captured − refunded) stays consistent.
+    const u = await supa.from("payment_transactions").update({ status: "refunded", refunded_cents: Number(t.captured_cents ?? 0) }).eq("id", transactionId).eq("shop_id", auth.shopId);
     if (u.error) return json(500, { error: "void failed: " + u.error.message });
     // NOTE: full audit_log write (who/what/when) is wired in Stage 1a once the
     // audit_log table exists. acting user = auth.user.id / role = auth.role.

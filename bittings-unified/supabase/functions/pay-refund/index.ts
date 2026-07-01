@@ -23,14 +23,27 @@ Deno.serve(async (req) => {
     const q = await supa.from("payment_transactions").select("*").eq("stripe_payment_intent_id", paymentIntentId).eq("shop_id", auth.shopId).limit(1);
     const t = q.data?.[0];
     if (!t) return json(404, { error: "transaction not found" });
-    if (t.status !== "completed") return json(400, { error: "only completed transactions can be refunded (status: " + t.status + ")" });
+    // A completed sale — or one already PARTIALLY refunded — can be (further) refunded.
+    if (t.status !== "completed" && t.status !== "partially_refunded") return json(400, { error: "only completed transactions can be refunded (status: " + t.status + ")" });
+    // Partial-refund aware: track the running refunded total; never refund past what
+    // was captured. amountCents omitted = refund the remaining balance (full refund).
+    const captured = Number(t.captured_cents ?? 0);
+    const already = Number(t.refunded_cents ?? 0);
+    const remaining = Math.max(0, captured - already);
+    if (remaining <= 0) return json(400, { error: "transaction is already fully refunded" });
+    const reqAmt = amountCents ? Math.round(Number(amountCents)) : remaining;
+    if (reqAmt <= 0) return json(400, { error: "refund amount must be positive" });
+    if (reqAmt > remaining) return json(400, { error: `refund exceeds refundable balance (${remaining} cents remaining)` });
     const opts: Stripe.RequestOptions | undefined = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined;
-    const params: Stripe.RefundCreateParams = { payment_intent: paymentIntentId, reason: "requested_by_customer" };
-    if (amountCents) params.amount = Math.round(Number(amountCents));
+    const params: Stripe.RefundCreateParams = { payment_intent: paymentIntentId, reason: "requested_by_customer", amount: reqAmt };
     const refund = await stripe.refunds.create(params, opts);
-    await supa.from("payment_transactions").update({ status: "refunded", stripe_refund_id: refund.id }).eq("stripe_payment_intent_id", paymentIntentId).eq("shop_id", auth.shopId);
+    const newRefunded = already + Number(refund.amount ?? reqAmt);
+    const fully = newRefunded >= captured;
+    await supa.from("payment_transactions")
+      .update({ status: fully ? "refunded" : "partially_refunded", refunded_cents: newRefunded, stripe_refund_id: refund.id })
+      .eq("stripe_payment_intent_id", paymentIntentId).eq("shop_id", auth.shopId);
     // NOTE: full audit_log write (who/what/when) is wired in Stage 1a once the
     // audit_log table exists. acting user = auth.user.id / role = auth.role.
-    return json(200, { ok: true, refund_id: refund.id, amount: refund.amount, status: refund.status });
+    return json(200, { ok: true, refund_id: refund.id, amount: refund.amount, refunded_total_cents: newRefunded, captured_cents: captured, fully_refunded: fully, status: refund.status });
   } catch (e) { return json(400, { error: String((e as any)?.message ?? e) }); }
 });

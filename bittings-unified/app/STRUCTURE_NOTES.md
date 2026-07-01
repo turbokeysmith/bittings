@@ -29,11 +29,15 @@ mode, Teal Jumper account `acct_1SDsyb6E7RKZhKYS`), run against an **isolated QA
   `amount_capturable_updated` (funding read = `credit` → surcharge applied; `card_funding`/`card_brand`
   stamped) → `succeeded`. `pay-refund` full (5100) and partial (1000) both `succeeded`; `pay-record`
   cash/check (Stripe-free) → `pay-void` flips to `refunded`. Refund/void role-gated to manager/owner.
-- **🟡 Open finding (fix queued) — partial refund mis-records.** `pay-refund` sets
-  `status='refunded'` regardless of amount, and there is no `refunded_cents` column — so a **partial**
-  refund reads as **fully refunded** in Transaction History / Closeout, and net-collected is wrong.
-  Being fixed next (add `refunded_cents`, add a `partially_refunded` status, only mark `refunded` when
-  fully refunded; update TH/Closeout net math). Logged in `docs/QA_AUDIT_2026-06-30.md`.
+- **🟡→✅ FIXED — partial refund mis-recorded (`phase5/5d`).** `pay-refund` used to set
+  `status='refunded'` for any amount with no per-txn refunded total, so a **partial** refund read as
+  **fully refunded** and net-collected was wrong. Fix: new `refunded_cents` column (migration
+  `phase5_5d_partial_refund_tracking`); `pay-refund` now accumulates it, blocks over-refund past
+  `captured_cents`, allows re-refunding a `partially_refunded` row, and only marks `refunded` when
+  fully refunded (else `partially_refunded`); `pay-void` stamps `refunded_cents = captured_cents`;
+  `index.html` Closeout + Transaction History net math reads `captured − refunded` and shows partials.
+  Verified in the test shop: $40 charge → $15 partial (→`partially_refunded`, refunded 1500, over-refund
+  blocked) → remainder (→`refunded`, refunded 4080). pay-refund v10 / pay-void v8 redeployed.
 - **Harness:** roles signed in via `signInWithPassword` (real JWTs); write-paths driven through the
   same RPCs `store.js` calls. Test shop + QA logins are **left in place** for the owner's device sweep
   (card-entry UX on a real phone) — tear down only on the owner's say-so.
