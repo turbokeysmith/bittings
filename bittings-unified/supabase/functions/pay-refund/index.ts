@@ -34,9 +34,14 @@ Deno.serve(async (req) => {
     const reqAmt = amountCents ? Math.round(Number(amountCents)) : remaining;
     if (reqAmt <= 0) return json(400, { error: "refund amount must be positive" });
     if (reqAmt > remaining) return json(400, { error: `refund exceeds refundable balance (${remaining} cents remaining)` });
-    const opts: Stripe.RequestOptions | undefined = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined;
+    // Connect (destination charge): the refund is issued on the PLATFORM account;
+    // reverse_transfer pulls the money back from the shop's balance and
+    // refund_application_fee returns Bittings' platform fee proportionally. For a
+    // non-Connect charge these are simply omitted. Client connectedAccountId ignored.
+    const isConnect = !!t.connected_account_id;
     const params: Stripe.RefundCreateParams = { payment_intent: paymentIntentId, reason: "requested_by_customer", amount: reqAmt };
-    const refund = await stripe.refunds.create(params, opts);
+    if (isConnect) { params.reverse_transfer = true; params.refund_application_fee = true; }
+    const refund = await stripe.refunds.create(params);
     const newRefunded = already + Number(refund.amount ?? reqAmt);
     const fully = newRefunded >= captured;
     await supa.from("payment_transactions")

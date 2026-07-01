@@ -2806,6 +2806,33 @@ function posPopulateMeta(){
     const el=document.getElementById('posSelfName'); if(el){ const me=posSelfTech(); el.textContent=me.name||'you'; }
   }).catch(()=>{}); }catch(e){}
 }
+/* ---- Stripe Connect payouts: status + owner-only connect action (Settings→Payments) ---- */
+function TKS_isOwner(){
+  try{ if(window.TKS_ACCESS && TKS_ACCESS.isOwner) return !!TKS_ACCESS.isOwner(); }catch(e){}
+  try{ if(window.TKS && TKS.auth && TKS.auth.role) return String(TKS.auth.role()).toLowerCase()==='owner'; }catch(e){}
+  return true; /* fall back to visible — connect-onboard is owner-gated server-side anyway */
+}
+function TKS_CONNECT_START(){ if(window.TKS_BILLING && TKS_BILLING.connectOnboard) TKS_BILLING.connectOnboard(); }
+async function TKS_refreshPayoutStatus(){
+  var el=document.getElementById('payoutConnectStatus'), btn=document.getElementById('payoutConnectBtn');
+  if(!el) return;
+  var owner=TKS_isOwner();
+  var sb=null; try{ sb=window.TKS && TKS._sb && TKS._sb(); }catch(e){}
+  if(!sb){ el.textContent='Sign in to the cloud to set up card payouts.'; if(btn) btn.style.display='none'; return; }
+  try{
+    var r=await sb.from('shops').select('stripe_connect_id,connect_charges_enabled').limit(1).maybeSingle();
+    var s=(r&&r.data)||{};
+    var connected = !!s.stripe_connect_id && !!s.connect_charges_enabled;
+    var started   = !!s.stripe_connect_id && !s.connect_charges_enabled;
+    if(connected){ el.innerHTML='<b style="color:#7fd49b">✓ Connected</b> — card charges deposit into your Stripe account (Bittings fee 1%).'; if(btn) btn.textContent='Re-check / manage'; }
+    else if(started){ el.innerHTML='<b style="color:#f2b43a">Setup incomplete</b> — Stripe still needs a few details before you can take card payments.'; if(btn) btn.textContent='Finish Stripe setup'; }
+    else { el.innerHTML='<b style="color:#f0a0a6">Not connected</b> — card payments are off until you connect a payout account. Cash &amp; check still work.'; if(btn) btn.textContent='Connect your Stripe account'; }
+    if(btn){
+      if(owner){ btn.style.display=''; btn.onclick=TKS_CONNECT_START; }
+      else { btn.style.display='none'; el.innerHTML += ' <span class="hint">(Only the owner can set this up.)</span>'; }
+    }
+  }catch(e){ el.textContent='Could not load payout status: '+((e&&e.message)||e); if(btn) btn.style.display='none'; }
+}
 function renderPayments(){
   const e=chgEls();
   e.banner.className='pay-banner'; e.banner.textContent='Take payment — card, cash, or check.';
@@ -4612,7 +4639,14 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
         (function(){ var n=cfg.nastf||{d1Days:5}; return ''+
           '<label>NASTF D1 filing window (days)</label><input id="f_d1Days" type="number" min="1" step="1" inputmode="numeric" value="'+(n.d1Days!=null?n.d1Days:5)+'" placeholder="5">'+
           '<div class="hint">When a job is tagged <b>NASTF</b> (on the register or Start-a-Job) Bittings starts a D1-filing countdown and shows a color-degrading badge (green → yellow → orange → red → overdue). Default <b>5 days</b>. You still file the actual D1 on the NASTF website — this only tracks the deadline.</div>'; })()+
-        '<div class="note"><b>Stripe keys — never typed into this page.</b> Your <b>secret key</b> lives only as a Supabase Edge Function secret (<code>STRIPE_SECRET_KEY</code>) — set it in the Supabase dashboard, never here. Your <b>publishable key</b> (<code>pk_…</code>) is entered once on the Pay screen when you take a typed-card payment. This keeps you PCI-safe (no card data or secret ever touches the app).</div>';
+        '<div class="note"><b>Stripe keys — never typed into this page.</b> Your <b>secret key</b> lives only as a Supabase Edge Function secret (<code>STRIPE_SECRET_KEY</code>) — set it in the Supabase dashboard, never here. Your <b>publishable key</b> (<code>pk_…</code>) is entered once on the Pay screen when you take a typed-card payment. This keeps you PCI-safe (no card data or secret ever touches the app).</div>'+
+        '<div class="card" id="payoutConnectCard" style="margin-top:14px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:12px">'+
+          '<label style="margin:0">Card payouts — your Stripe account</label>'+
+          '<div id="payoutConnectStatus" class="sub" style="margin:8px 0">Checking payout connection…</div>'+
+          '<button type="button" class="btn" id="payoutConnectBtn" style="display:none"></button>'+
+          '<div class="hint">Card charges deposit straight into your own bank via Stripe Connect. Bittings takes a <b>1%</b> platform fee; Stripe’s standard processing fee applies. Cash &amp; check don’t need a connected account.</div>'+
+        '</div>';
+      setTimeout(TKS_refreshPayoutStatus, 0);
     }
     else if(key==='access'){
       p.innerHTML = '<h2>Access &amp; managers</h2><div class="sub">Your team. Tick <b>Manager</b> for anyone who should see manager-only tools (Closeout, Transaction History, taking payments, Setup); everyone else gets the everyday tools. Give each manager their <b>own PIN</b> — it unlocks those tools on a signed-out/offline device.</div>'+

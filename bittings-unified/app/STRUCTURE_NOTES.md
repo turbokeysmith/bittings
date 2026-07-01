@@ -42,6 +42,41 @@ mode, Teal Jumper account `acct_1SDsyb6E7RKZhKYS`), run against an **isolated QA
   same RPCs `store.js` calls. Test shop + QA logins are **left in place** for the owner's device sweep
   (card-entry UX on a real phone) — tear down only on the owner's say-so.
 
+## 2026-07-01 (b) — Stripe Connect: per-shop payouts + 1% platform fee (TEST, verified)
+
+Each shop now connects its OWN Stripe (Express) account and gets paid directly; customer card
+charges are **destination charges** on the platform with a **1% application fee** to Bittings and the
+**shop as merchant of record** (`on_behalf_of` → the shop bears Stripe's processing fee). Decisions
+(owner): connected shop pays Stripe fees; status stored on `shops`; build server-first.
+
+- **DB `phase5/5e`:** `shops` gains `stripe_connect_id`, `connect_charges_enabled`,
+  `connect_payouts_enabled`, `connect_onboarded_at`. Column-level grant: owners may UPDATE only
+  `name` — the connect_* flags are **service_role-only** (can't be spoofed to enable card charges).
+- **`connect-onboard` (rewritten, deployed v1):** owner-gated + **shop-scoped** via `_shared/auth.ts`
+  (replaces the old mis-scoped "latest subscription" version); creates/retrieves the shop's Express
+  account, stores it on `shops`, caches live `charges/payouts_enabled`, returns the hosted onboarding
+  link. Verified: creates a real Express account + link.
+- **`stripe-webhook` (v6):** new `account.updated` handler caches the shop's connect flags.
+- **`pay-create-intent` (v11):** resolves the shop's connected account SERVER-SIDE (ignores client
+  input); **blocks card with 409 `connect_required`** when the shop isn't charge-enabled (cash/check
+  still work via pay-record); on a connected shop creates a destination charge with
+  `application_fee_amount` (1% of base, tier-based: 0 for a `*flat` tier), `transfer_data.destination`,
+  and `on_behalf_of`. Stores `connected_account_id` on the txn.
+- **`pay-refund` (v11):** for Connect (destination) charges, refunds on the platform with
+  `reverse_transfer` + `refund_application_fee` (pulls money back from the shop + returns our fee).
+- **UI (`index.html`, Settings → Payments):** "Card payouts — your Stripe account" card with a live
+  status (✓ Connected / Setup incomplete / Not connected) + an owner-only Connect button
+  (`TKS_refreshPayoutStatus` reads `shops`; `TKS_BILLING.connectOnboard`). **Code-complete; on-screen
+  render pending the device sweep** (headless app-shell cloud-connect couldn't be driven here).
+- **Verified end-to-end in Stripe (test) + DB:** onboard → create Express acct + link; card blocked
+  while not enabled (409); then (test shop pointed at Stripe's pre-enabled test connected account)
+  $60 charge → PI `application_fee_amount=60`, real `application_fee` + `transfer` to the connected
+  account, `on_behalf_of` (shop bore the $2.07 Stripe fee), credit surcharge applied → full refund
+  reversed the transfer + fee. `livemode:false`.
+- **Env note:** `connect-onboard` uses `APP_URL` for the onboarding return links (defaults to
+  `app.turbokeysmith.com`); set it + add `account.updated` to the webhook events for production.
+  The old repo-only `stripe_connect_id` on `subscriptions` (phase4/4b) is superseded by `shops`.
+
 ## 2026-06-29 — repo reorg: app consolidated under `bittings-unified/`, stale copy archived
 - **`bittings-unified/` is now the single app home.** Loose app docs that lived at the repo root moved to
   **`bittings-unified/docs/`**; one-off dev/data/pitch tooling moved to **`bittings-unified/tools/`**

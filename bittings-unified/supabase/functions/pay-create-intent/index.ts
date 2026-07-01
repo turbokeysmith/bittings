@@ -78,7 +78,9 @@ Deno.serve(async (req) => {
     const readerId = body.readerId ? String(body.readerId) : null;
     const attempt = parseInt(String(body.attempt ?? "1"), 10) || 1;
     const orgId = body.orgId ?? null;                       // future multi-tenant (null = single-shop)
-    const connectedAccountId = body.connectedAccountId ?? null; // future Connect (null = single-account)
+    // Connect: the destination account is resolved SERVER-SIDE from the caller's
+    // shop — never from client input (a client must not be able to pick where the
+    // money goes). body.connectedAccountId is ignored.
     if (!invoiceId) return json(400, { error: "invoiceId required" });
     if (method === "reader" && !readerId) return json(400, { error: "readerId required for reader method" });
 
@@ -103,20 +105,38 @@ Deno.serve(async (req) => {
     const surcharge_cents = Math.round(base_cents * SURCHARGE_PCT);
     const authorized_cents = base_cents + surcharge_cents;
 
+    // ---- CONNECT: the shop must have a connected, charge-enabled Stripe account.
+    // Card money routes to THAT account (destination charge); the shop is the
+    // merchant of record (on_behalf_of) so it bears Stripe's processing fee, and
+    // Bittings takes a small platform fee (tier-based). No account → card blocked
+    // (cash/check still work through pay-record).
+    const shopRow = await supa.from("shops").select("stripe_connect_id, connect_charges_enabled").eq("id", auth.shopId).limit(1);
+    const shopConnectId = shopRow.data?.[0]?.stripe_connect_id as string | undefined;
+    if (!shopConnectId || !shopRow.data?.[0]?.connect_charges_enabled) {
+      return json(409, { error: "This shop hasn't finished connecting Stripe yet — connect a payout account in Settings → Payments to take card payments. (Cash and check still work.)", code: "connect_required" });
+    }
+    // Platform fee: 1% (100 bps) for Pro; 0 for a flat/zero-fee tier.
+    const subRow = await supa.from("subscriptions").select("tier").eq("shop_id", auth.shopId).limit(1);
+    const tier = String(subRow.data?.[0]?.tier ?? "").toLowerCase();
+    const feeBps = tier.includes("flat") ? 0 : 100;         // pilot shops are Pro → 1%
+    const fee_cents = Math.round(base_cents * feeBps / 10000);
+
     const reqOpts: Stripe.RequestOptions = { idempotencyKey: idempotency_key };
-    if (connectedAccountId) reqOpts.stripeAccount = connectedAccountId;
     const piParams: Stripe.PaymentIntentCreateParams = {
       amount: authorized_cents, currency: "usd", capture_method: "manual",
       description: `Invoice ${invoiceId}`,
-      metadata: { invoice_id: invoiceId, base_cents: String(base_cents), surcharge_cents: String(surcharge_cents), surcharge_policy: "credit_only_2pct", method, created_by: auth.user.id },
+      on_behalf_of: shopConnectId,                          // shop is merchant of record → bears Stripe fees
+      transfer_data: { destination: shopConnectId },        // funds settle to the shop's account
+      metadata: { invoice_id: invoiceId, base_cents: String(base_cents), surcharge_cents: String(surcharge_cents), platform_fee_cents: String(fee_cents), surcharge_policy: "credit_only_2pct", method, created_by: auth.user.id, shop_id: auth.shopId },
     };
+    if (fee_cents > 0) piParams.application_fee_amount = fee_cents;  // Bittings' 1% platform fee
     if (method === "reader") piParams.payment_method_types = ["card_present"];
     else piParams.automatic_payment_methods = { enabled: true };
 
     const pi = await stripe.paymentIntents.create(piParams, reqOpts);
 
     await supa.from("payment_transactions").insert({
-      invoice_id: invoiceId, org_id: orgId, connected_account_id: connectedAccountId,
+      invoice_id: invoiceId, org_id: orgId, connected_account_id: shopConnectId,
       method, currency: "usd", base_cents, surcharge_cents, authorized_cents,
       reader_id: readerId, stripe_payment_intent_id: pi.id, status: "pending",
       description: descOf((rec as any).data), cost_cents: costCentsOf((rec as any).data),
@@ -125,8 +145,7 @@ Deno.serve(async (req) => {
     });
 
     if (method === "reader") {
-      const po: Stripe.RequestOptions | undefined = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined;
-      await stripe.terminal.readers.processPaymentIntent(readerId!, { payment_intent: pi.id }, po);
+      await stripe.terminal.readers.processPaymentIntent(readerId!, { payment_intent: pi.id });
     }
 
     return json(200, { ok: true, paymentIntentId: pi.id, clientSecret: method === "keyed" ? pi.client_secret : undefined, base_cents, surcharge_cents, authorized_cents, disclosure: "A 2% surcharge applies to CREDIT cards only (debit/prepaid are not surcharged)." });

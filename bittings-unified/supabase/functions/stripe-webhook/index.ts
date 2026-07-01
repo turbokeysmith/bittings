@@ -62,6 +62,15 @@ Deno.serve(async (req) => {
       const reader = event.data.object as any;
       const pid = reader.action?.process_payment_intent?.payment_intent;
       if (pid) await setTxn(pid, { status: "failed", failure_reason: reader.action?.failure_message ?? "reader action failed" });
+    } else if (event.type === "account.updated") {
+      // Connect: a shop's connected account changed (onboarding progress / capability
+      // toggle). Cache the authoritative charges/payouts flags on the shop so the
+      // charge path can gate on them. Bound by stripe_connect_id (set at onboarding).
+      const acct = event.data.object as Stripe.Account;
+      await supa.from("shops").update({
+        connect_charges_enabled: !!acct.charges_enabled,
+        connect_payouts_enabled: !!acct.payouts_enabled,
+      }).eq("stripe_connect_id", acct.id);
     }
   } catch (_e) {
     // Swallow processing errors (event is recorded for reconcile); never 500 a verified event back to Stripe.

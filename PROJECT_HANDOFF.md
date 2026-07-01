@@ -408,6 +408,26 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-07-01 (🏦 Stripe Connect built — each shop gets paid directly, 1% platform fee · TEST)
+- **Each shop can now connect its own Stripe account and get paid directly.** Before, all card money
+  would have pooled into one account; now, when a shop connects, card charges deposit straight into
+  **that shop's** bank. **Bittings automatically takes a 1% fee**; the shop pays the normal Stripe
+  processing fee. Cash and check don't need any of this.
+- **How a shop connects:** in **Settings → Payments** there's now a **"Card payouts — your Stripe
+  account"** card. The owner taps **Connect your Stripe account**, Stripe collects their business
+  info, bank, and ID (we never see or store banking data), and the card then shows **✓ Connected**.
+  Until that's done, the app shows **"Not connected — card payments are off"** and card charges are
+  blocked (cash/check still work).
+- **Proven in test mode, end-to-end:** created a real connected account + onboarding link; confirmed
+  card is blocked before connecting; then ran a **$60 test card charge** and verified in Stripe that
+  the **1% ($0.60) platform fee** and the **transfer to the connected account** both applied, the shop
+  bore Stripe's processing fee, and a **full refund** pulled the money back correctly. No real money.
+- **Status:** server side is built, deployed, and verified. The **on-screen Connect card** is
+  code-complete but its look/feel is **pending your device sweep** (couldn't render the signed-in app
+  headless here). The **real Express onboarding** (entering business/bank/ID) is a phone step for you.
+- *For the pilot:* every shop — including yours — connects its own account. I set up the test using a
+  Stripe test connected account so the money mechanics are proven now.
+
 ### 2026-07-01 (💳 Payments proven end-to-end in TEST mode · fixed a hidden go-live blocker)
 - **We ran real test payments all the way through for the first time — and they work.** In a
   safe, walled-off **test shop** (fake staff logins, no real customers, Stripe in **test mode** on the
