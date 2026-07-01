@@ -1,0 +1,28 @@
+-- ============================================================================
+-- Phase 5 · 5c — restore the SELECT grant the payment edge functions assume
+-- ----------------------------------------------------------------------------
+-- WHY THIS EXISTS
+--   Phase 5a created `shops` + `shop_members` and granted SELECT on them to
+--   `authenticated` ONLY. But the payment/edge functions run as `service_role`
+--   and resolve the caller's tenant SERVER-SIDE by reading `shop_members` in
+--   `functions/_shared/auth.ts` (requireRole → the shop_members lookup that
+--   backs `AuthOk.shopId`). service_role was never granted SELECT on those two
+--   tables, so that lookup raised "permission denied" and every pay-* function
+--   returned **503 "tenant service unavailable"** BEFORE reaching Stripe.
+--
+--   This was latent: the Phase-5 isolation test exercises RLS via SQL directly
+--   (not through the functions' service_role path), and no card charge had ever
+--   run through the live edge functions (both prior transactions were cash), so
+--   nothing had exercised this path until the 2026-07-01 live payment QA pass.
+--
+-- IMPACT / SAFETY
+--   Unblocks pay-create-intent / pay-record / pay-refund / pay-void / pay-status
+--   / pay-terminal (all call requireStaff/requireRole). service_role already
+--   bypasses RLS on every other shop-owned table and is the trusted server-side
+--   key — this grant exposes NOTHING new to anon or authenticated clients.
+--
+-- Applied live via mcp apply_migration (phase5_5c_service_role_tenant_grant),
+-- 2026-07-01. Idempotent. Depends on: phase5/5a_multitenant.sql.
+-- ============================================================================
+
+grant select on public.shops, public.shop_members to service_role;

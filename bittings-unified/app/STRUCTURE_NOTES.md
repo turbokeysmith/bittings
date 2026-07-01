@@ -8,6 +8,36 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 - **Staff app** (dark): http://127.0.0.1:8088/  → Customers · Receipts · Scheduler · Payments · Inventory
 - **Public site** (light): http://127.0.0.1:8099/  → contact form `/contact/`, language toggle 🌐 in the header
 
+## 2026-07-01 — live payment verification (TEST mode) + Phase 5c fix (`service_role` tenant grant)
+
+First true end-to-end exercise of the Stripe payment path through the **live edge functions** (test
+mode, Teal Jumper account `acct_1SDsyb6E7RKZhKYS`), run against an **isolated QA test shop**
+(`shop_id dddddddd-…-dddddddddddd`, users `qa-owner/manager/tech/frontdesk@bittings-qa.test`).
+
+- **🔴 Blocker found + fixed — `phase5/5c_service_role_tenant_grant.sql`.** Every `pay-*` function
+  returned **503 "tenant service unavailable"**. Root cause: `_shared/auth.ts` `requireRole()`
+  resolves the caller's tenant as `service_role` via `admin.from("shop_members").select("shop_id")`,
+  but Phase 5a granted SELECT on `shops`/`shop_members` to **`authenticated` only** — never
+  `service_role`. Proven via `has_table_privilege('service_role','public.shop_members','SELECT') =
+  false`. Fix = `grant select on public.shops, public.shop_members to service_role;` (applied live as
+  migration `phase5_5c_service_role_tenant_grant`; exposes nothing new to clients — service_role
+  already bypasses RLS everywhere else). Latent because the isolation test hits RLS via SQL (not the
+  functions' service_role path) and no card charge had ever run through the live functions.
+- **Verified (Stripe test ledger via MCP + `payment_transactions`/`payment_events`):**
+  `pay-create-intent` (manual-capture PI, base+2% credit surcharge computed server-side) → card
+  confirm (`tok_visa`/4242, publishable key, client-side like Stripe.js) → **webhook** captures on
+  `amount_capturable_updated` (funding read = `credit` → surcharge applied; `card_funding`/`card_brand`
+  stamped) → `succeeded`. `pay-refund` full (5100) and partial (1000) both `succeeded`; `pay-record`
+  cash/check (Stripe-free) → `pay-void` flips to `refunded`. Refund/void role-gated to manager/owner.
+- **🟡 Open finding (fix queued) — partial refund mis-records.** `pay-refund` sets
+  `status='refunded'` regardless of amount, and there is no `refunded_cents` column — so a **partial**
+  refund reads as **fully refunded** in Transaction History / Closeout, and net-collected is wrong.
+  Being fixed next (add `refunded_cents`, add a `partially_refunded` status, only mark `refunded` when
+  fully refunded; update TH/Closeout net math). Logged in `docs/QA_AUDIT_2026-06-30.md`.
+- **Harness:** roles signed in via `signInWithPassword` (real JWTs); write-paths driven through the
+  same RPCs `store.js` calls. Test shop + QA logins are **left in place** for the owner's device sweep
+  (card-entry UX on a real phone) — tear down only on the owner's say-so.
+
 ## 2026-06-29 — repo reorg: app consolidated under `bittings-unified/`, stale copy archived
 - **`bittings-unified/` is now the single app home.** Loose app docs that lived at the repo root moved to
   **`bittings-unified/docs/`**; one-off dev/data/pitch tooling moved to **`bittings-unified/tools/`**

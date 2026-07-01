@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-30 12:22 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-07-01 05:36 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -407,6 +407,30 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-07-01 (💳 Payments proven end-to-end in TEST mode · fixed a hidden go-live blocker)
+- **We ran real test payments all the way through for the first time — and they work.** In a
+  safe, walled-off **test shop** (fake staff logins, no real customers, Stripe in **test mode** on the
+  "Teal Jumper" account — no real money), a card charge with test card `4242…` went through:
+  charge → the 2% credit-card surcharge applied correctly → **full refund** and a **partial refund**
+  both worked → and **cash and check** sales recorded and **voided** correctly. Each step was checked
+  in **both** Stripe's test dashboard and our own database, and they matched.
+- **🔴 Found and fixed a hidden bug that would have blocked go-live.** Every payment (card, cash,
+  refund, void) was actually **failing with a "tenant service unavailable" error** before reaching
+  Stripe. Cause: when we added multi-shop separation (Phase 5), the payment system was never given
+  permission to look up *which shop* the person taking payment belongs to. It had never surfaced
+  because no card payment had ever been run through the live system before this test. **Fixed** with a
+  one-line database permission (tracked as migration `5c`) — safe, exposes nothing new. **This is
+  exactly the kind of thing that would have bitten you on your first real charge.**
+- **🟡 One reporting bug still to fix (next):** a **partial** refund currently shows as a **full**
+  refund in Transaction History / Closeout (the money side is correct in Stripe — only the on-screen
+  record is wrong). Fix is queued.
+- **Test shop left in place on purpose** so you can do your own phone sweep (including typing a card
+  in the app — the one thing that needs a real phone). Logins: `qa-owner@bittings-qa.test` etc.,
+  password `QaTest!2026`. Tell me when to delete it.
+- *(Also completed just before this: a full 27-check pass of the non-payment cloud actions —
+  inventory moves, scheduler, D1 filing, customer add/edit/delete, and per-shop data separation — all
+  passed. See `bittings-unified/docs/QA_AUDIT_2026-06-30.md`.)*
 
 ### 2026-06-30 (📖 Added EVERYTHING.md — the "read this first" orientation file · nested repo removed)
 - **New `EVERYTHING.md` at the repo root** — a master orientation file for any fresh Code session
