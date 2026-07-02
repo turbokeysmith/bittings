@@ -104,6 +104,11 @@ insert into receipts(id,shop_id) values ('rcptA','${A}'),('rcptB','${B}');
 insert into payment_transactions(invoice_id,stripe_payment_intent_id,method,status,base_cents,captured_cents)
   values ('rcptA','pi_A','reader','completed',10000,10000),
          ('rcptB','pi_B','reader','completed',20000,20000);
+
+-- (5f) EXECUTE hygiene, mirrored from production: trigger fns need no caller
+-- EXECUTE (checked at CREATE TRIGGER, not at fire time). Proven by the probe below.
+revoke execute on function payment_txn_stamp_shop()   from public, authenticated;
+revoke execute on function payment_event_stamp_shop() from public, authenticated;
 `;
 
 (async () => {
@@ -214,7 +219,13 @@ insert into payment_transactions(invoice_id,stripe_payment_intent_id,method,stat
   row = (await c.query("select shop_id from payment_events where id='evt_B'")).rows[0];
   check('webhook: payment_event auto-stamped to its transaction\'s shop (B)', row.shop_id === B, 'shop=' + row.shop_id);
 
-  // (8) RLS defense-in-depth: as authenticated A-owner, only shop A payments are visible.
+  // (8) 5f EXECUTE hygiene: the stamp trigger STILL fires for an authenticated
+  // session even though EXECUTE on the trigger fn was revoked (checked at
+  // CREATE TRIGGER, not at fire time) — proves the production 5f revoke is safe.
+  r = await tryUser(uA1, "insert into payment_transactions(invoice_id,stripe_payment_intent_id,method,status,base_cents) values ('rcptA','pi_5f','reader','pending',500) returning shop_id");
+  check('5f: stamp trigger fires under authenticated AFTER EXECUTE revoke (shop derived)', r.rows && r.rows[0].shop_id === A, r.rows ? 'shop=' + r.rows[0].shop_id : r.err);
+
+  // (9) RLS defense-in-depth: as authenticated A-owner, only shop A payments are visible.
   r = await tryUser(uA1, 'select count(*)::int n, count(*) filter (where shop_id=$1)::int own from payment_transactions', [A]);
   check('RLS: A-owner sees ONLY shop A payment_transactions', r.rows && r.rows[0].n === 1 && r.rows[0].own === 1, r.rows && JSON.stringify(r.rows[0]));
 
