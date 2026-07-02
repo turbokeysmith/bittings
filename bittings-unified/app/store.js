@@ -697,6 +697,11 @@
     locations: { van: true, shop: false },
     // NASTF D1 filing window (days) — manager-set in Setup; drives the D1 countdown badge.
     nastf: { d1Days: 5 },
+    // Shift/time-clock + screen-lock (phase 7). OFF by default — the owner turns
+    // it on in Settings → Time clock when ready to test. idleMin = minutes before
+    // the workstation locks. (Per-device "this is a workstation" flag is a local
+    // setting, not shop config — see app/timeclock.js.)
+    timeclock: { enabled: false, idleMin: 5 },
     // misc UI preferences (e.g. suppress the "save this Other service?" offer). Shop-wide, cloud-synced.
     prefs: { offerSaveOtherService: true },
     // employees: [{name,email,owner}]; ownerEmails is derived from owner=true rows.
@@ -758,6 +763,7 @@
       payments: Object.assign({}, d.payments, c.payments || {}),
       locations: Object.assign({}, d.locations, c.locations || {}),
       nastf: Object.assign({}, d.nastf, c.nastf || {}),
+      timeclock: Object.assign({}, d.timeclock, c.timeclock || {}),
       prefs: Object.assign({}, d.prefs, c.prefs || {}),
       access: Object.assign({}, d.access, c.access || {}),
       quickLinks: normalizeQuickLinks(c.quickLinks, c.vendors),

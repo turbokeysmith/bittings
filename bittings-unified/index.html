@@ -1138,6 +1138,8 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
       <div id="quickTiles"></div>
     </nav>
     <div class="bt-sidefoot">
+      <button class="bt-nav__item" data-go="timesheets" id="navTimesheets" style="display:none"><span class="bt-nav__ic">⏱</span>Timesheets</button>
+      <button class="bt-nav__item" id="sideLockNow" style="display:none"><span class="bt-nav__ic">🔒</span>Lock now</button>
       <button class="bt-nav__item owner-soft" id="sideSettings" data-go="settings" style="display:none"><span class="bt-nav__ic">⚙</span>Settings</button>
       <div class="bt-sidestat" id="sideSignedIn">Not signed in</div>
       <div class="bt-sidestat" id="sideSynced" style="display:none"></div>
@@ -2991,6 +2993,7 @@ window.addEventListener('tks-scan', function(e){
   TKS_HW.thermal.printReceipt(posThermalReceipt()).then(()=>chgSay('Receipt printed.',true)).catch(err=>chgSay(err.message||String(err),false));
 }; }
 { const hw=document.getElementById('invHardware'); if(hw) hw.onclick=function(){ if(window.TKS_HW) TKS_HW.openSettings(); }; }
+{ const lk=document.getElementById('sideLockNow'); if(lk) lk.onclick=function(){ if(window.TKS_CLOCK) TKS_CLOCK.lockNow(); }; }
 document.getElementById('posDiscountBtn').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Discounts are manager-only.',false); return; } posDiscountPrompt(); };
 document.getElementById('posClearBtn').onclick=function(){ if(posTicket.length||posDiscountCents>0){ uiConfirm({ title:'Clear ticket?', message:'Remove all lines and any discount from this ticket?', okText:'Clear', danger:true }).then(ok=>{ if(ok) posClear(); }); } };
 document.querySelectorAll('#posJobType button').forEach(b=> b.onclick=()=> posSetJobType(b.dataset.jt));
@@ -4067,6 +4070,10 @@ function syncOwnerTiles(){
   // Activity (C-#17): strictly the OWNER (not managers) — it shows everyone's actions.
   const isOwnerRole = (fr==='owner') || (!fr && ownerHard());
   document.querySelectorAll('[data-go="activity"]').forEach(el=>{ el.style.display = isOwnerRole ? '' : 'none'; });
+  // Timesheets (shifts): visible to any signed-in staff (they see their own; managers see all).
+  document.querySelectorAll('[data-go="timesheets"]').forEach(el=>{ el.style.display = (window.TKS&&TKS.auth&&TKS.auth.isSignedIn()) ? '' : 'none'; });
+  // Lock now (shifts): only when the time-clock is actually armed on this workstation.
+  const lk=document.getElementById('sideLockNow'); if(lk) lk.style.display = (window.TKS_CLOCK && TKS_CLOCK.isActive && TKS_CLOCK.isActive()) ? '' : 'none';
 }
 function updateAuthUI(){
   syncOwnerTiles();
@@ -4142,6 +4149,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       setCloudPill('on');
       rerenderActive();
       updateAuthUI();
+      try{ if(window.TKS_CLOCK) TKS_CLOCK.init(); }catch(e){}   // arm the shift/lock system (no-op unless enabled)
     }).catch(()=>{ /* stay local */ });
   }).catch(()=>{ /* stay local */ });
 })();
@@ -4685,6 +4693,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     {key:'servicetypes', title:'Service types',        ic:'🗂'},
     {key:'services',     title:'Services',             ic:'🛠'},
     {key:'hours',        title:'Hours & footer',       ic:'🕒'},
+    {key:'timeclock',    title:'Time clock & lock',    ic:'⏱'},
     {key:'inventory',    title:'Inventory (optional)', ic:'📦'},
     {key:'review',       title:'Review & finish',      ic:'✅'}
   ];
@@ -4862,6 +4871,21 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
         '<label style="margin-top:14px">Receipt footer line (optional)</label><input id="f_footer" value="'+esc(id.footer||'')+'" placeholder="Insured &amp; Bonded · Thank you!">';
       renderHoursEditor('hoursEd','hours');
       renderHoursEditor('svcHoursEd','serviceHours');
+    }
+    else if(key==='timeclock'){
+      var tc=(cfg.timeclock||{});
+      var devOn=(function(){ try{ return localStorage.getItem('tks_tc_device')==='1'; }catch(e){ return false; } })();
+      p.innerHTML='<h2>Time clock &amp; screen lock</h2>'+
+        '<div class="sub">Ties “using the machine” to “being on the clock.” When on, a <b>full login</b> (username + password) clocks the person in for the day; the screen <b>locks after idle</b> and a <b>PIN</b> unlocks it (4-digit staff · 6-digit manager); a different PIN switches the active user so their work credits to them; <b>Clock out</b> (Lunch / Personal / End of day) logs out. <b>Off by default</b> — turn it on when you\'re ready to test.</div>'+
+        '<label class="toggle" style="margin-top:10px"><input type="checkbox" id="f_tcEnabled" '+(tc.enabled?'checked':'')+'> <b>Enable the time clock &amp; lock for this shop</b></label>'+
+        '<div class="hint">Master switch for your whole shop. Nothing locks or clocks until this is on <b>and</b> a device below is marked a workstation.</div>'+
+        '<label style="margin-top:12px">Lock the screen after this many idle minutes</label>'+
+        '<input id="f_tcIdle" type="number" min="1" max="120" step="1" value="'+(parseInt(tc.idleMin,10)||5)+'" placeholder="5">'+
+        '<div class="hint">Default 5. Applies to workstations (below). Stepping away locks the screen; a PIN gets you right back in — you stay clocked in (locking is not a clock-out).</div>'+
+        '<label class="toggle" style="margin-top:14px"><input type="checkbox" id="f_tcDevice" '+(devOn?'checked':'')+'> <b>This device is a shop workstation</b> (lock &amp; clock here)</label>'+
+        '<div class="hint">Set this on the <b>shop PC</b> only. Leave it OFF on phones/tablets your techs use in the field — those keep working normally (no lock, no auto clock-in). This choice is remembered on this device.</div>'+
+        '<div class="hint" style="margin-top:8px">Each person sets their own PIN under <b>Access &amp; managers</b> (or on their own device). PINs are unique within your shop.</div>';
+      gid('f_tcDevice').onchange=function(){ try{ if(window.TKS_CLOCK) TKS_CLOCK.setDeviceEnabled(this.checked); else localStorage.setItem('tks_tc_device', this.checked?'1':'0'); }catch(e){} };
     }
     else if(key==='inventory'){
       p.innerHTML='<h2>Inventory (optional)</h2><div class="sub">Already have a parts list in a spreadsheet? Import it now — upload an .xlsx or .csv, match your columns to the app\'s fields, preview, and import. Duplicates are skipped.</div>'+
@@ -5111,6 +5135,9 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     else if(key==='services'){ cfg.services=cfg.services.filter(s=>(s.value||'').trim()).map(s=>({ value:s.value.trim(), en:(s.value||'').trim(), es:s.es||'', cat:s.cat||'other', price:(s.price!=null?String(s.price).trim():'') })); }
     else if(key==='inventory'){ /* import is its own modal */ }
     else if(key==='hours'){ cfg.identity.footer=g('f_footer'); }
+    else if(key==='timeclock'){ cfg.timeclock=Object.assign({}, cfg.timeclock, { enabled:!!(gid('f_tcEnabled')&&gid('f_tcEnabled').checked), idleMin:Math.max(1, Math.min(120, parseInt(g('f_tcIdle'),10)||5)) });
+      /* device flag is per-device localStorage, handled by its own onchange */
+      try{ if(window.TKS_CLOCK) setTimeout(function(){ TKS_CLOCK.init(); },0); }catch(e){} }
   }
   function persist(extraSetup){
     const setup = Object.assign({}, cfg.setup, extraSetup||{});
@@ -7277,6 +7304,7 @@ gid('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') gid('vinBtn').c
 <script src="app/hardware.js"></script>
 <!-- Inventory traceability screens (reconcile / returns / dashboard cards) on the phase6 engine -->
 <script src="app/inventory-traceability.js"></script>
+<script src="app/timeclock.js"></script>
 <!-- Star Web SDK (download from github.com/star-micronics/starwebprnt-sdk and drop the
      files in app/vendor/) — uncomment once installed to enable real thermal printing:
 <script src="app/vendor/StarWebPrintBuilder.js"></script>
