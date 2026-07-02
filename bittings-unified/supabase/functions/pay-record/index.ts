@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { requireStaff } from "../_shared/auth.ts";
+import { corsHeaders, requireStaff } from "../_shared/auth.ts";
 const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+// CORS: shared origin allow-list (B-#9) — extend via ALLOWED_ORIGINS env.
 
 function uidFromJwt(req: Request): string | null {
   const m = (req.headers.get("authorization") || "").match(/^Bearer (.+)$/i);
@@ -57,6 +57,7 @@ function authoritativeTotals(data: any): { base_cents: number; tax_cents: number
 // surcharge is card-only). Reads the authoritative total from the receipt; the
 // client never sends an amount.
 Deno.serve(async (req) => {
+  const cors = corsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const json = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "content-type": "application/json" } });
   // Auth: any ACTIVE staff may take a payment (owner decision); reject anon/expired.

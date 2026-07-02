@@ -1,12 +1,13 @@
 import Stripe from "npm:stripe@16";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { requireStaff } from "../_shared/auth.ts";
+import { corsHeaders, requireStaff } from "../_shared/auth.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20", httpClient: Stripe.createFetchHttpClient() });
 const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
 const SURCHARGE_PCT = 0.02; // 2% Oklahoma SB 677 cap — CREDIT ONLY (enforced at capture in the webhook)
-const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+// CORS: shared origin allow-list (B-#9) — extend via the ALLOWED_ORIGINS env
+// secret when the app moves to its production domain (applies at runtime).
 
 function uidFromJwt(req: Request): string | null {
   const m = (req.headers.get("authorization") || "").match(/^Bearer (.+)$/i);
@@ -65,6 +66,7 @@ function authoritativeTotals(data: any): { base_cents: number; tax_cents: number
 }
 
 Deno.serve(async (req) => {
+  const cors = corsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const json = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "content-type": "application/json" } });
   // Auth: any ACTIVE staff may start a card charge (owner decision); reject anon/expired.
