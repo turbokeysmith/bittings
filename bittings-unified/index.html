@@ -2242,10 +2242,11 @@ document.getElementById('fSave').onclick = ()=>{
     Object.assign(list[editIndex], data);
     if(!list[editIndex].id) list[editIndex].id = TKS.uid('cust');
     list[editIndex].lastUsed = Date.now();
+    list[editIndex].updatedAt = Date.now();   // QA 2026-06-30: edits must bump updatedAt (cloud trigger does; local now matches)
   } else {
     const existing = list.find(c=>(c.customer||'').toLowerCase()===name.toLowerCase());
-    if(existing){ Object.assign(existing, data); if(!existing.id) existing.id = TKS.uid('cust'); existing.lastUsed = Date.now(); }
-    else { list.push(Object.assign({}, data, {id: TKS.uid('cust'), lastUsed: Date.now()})); }
+    if(existing){ Object.assign(existing, data); if(!existing.id) existing.id = TKS.uid('cust'); existing.lastUsed = Date.now(); existing.updatedAt = Date.now(); }
+    else { list.push(Object.assign({}, data, {id: TKS.uid('cust'), lastUsed: Date.now(), createdAt: Date.now(), updatedAt: Date.now()})); }
   }
   saveCurrent(list);
   renderCustomers();
