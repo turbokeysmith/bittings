@@ -44,6 +44,7 @@
       width: 48,            // columns (Font A: 80mm≈48, 58mm≈32)
       drawerKick: true,
       printLogo: false,     // off until verified on the real printer
+      autoPrint: false,     // C-#14: print the customer receipt automatically on every sale
       copies: 1
     },
     labels: {
@@ -540,6 +541,7 @@
       + '</div>'
       + '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px"><input type="checkbox" id="hwThKick"' + (th.drawerKick ? ' checked' : '') + '> Kick cash drawer on print</label>'
       + '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px"><input type="checkbox" id="hwThLogo"' + (th.printLogo ? ' checked' : '') + '> Print shop logo (verify on hardware first)</label>'
+      + '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px"><input type="checkbox" id="hwThAuto"' + (th.autoPrint ? ' checked' : '') + '> Auto-print the receipt on every sale (a printer problem never blocks the sale)</label>'
       + '<div>' + btn('Preview', 'hwThPrev') + btn('Test print', 'hwThTest', 'go') + '</div>'
       + '</div>'
 
@@ -577,6 +579,7 @@
       prefs.thermal.copies = Math.max(1, Math.min(3, parseInt($('hwThCopies').value, 10) || 1));
       prefs.thermal.drawerKick = $('hwThKick').checked;
       prefs.thermal.printLogo = $('hwThLogo').checked;
+      prefs.thermal.autoPrint = $('hwThAuto').checked;
       prefs.labels.enabled = $('hwLbEn').checked;
       prefs.labels.deviceUid = $('hwLbDev').value;
       prefs.labels.dpi = parseInt($('hwLbDpi').value, 10) || 203;

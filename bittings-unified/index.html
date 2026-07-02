@@ -3268,7 +3268,17 @@ function posCheckoutThen(method){
     const rid = res && res.data; if(!rid){ chgSay('Checkout failed.',false); return; }
     const cust=chgCustomer||{};
     const stub={ id:rid, number:rid, customer:cust.customer||'', email:cust.email||'', totals:{ total:t.totalCents/100, surcharge:0 } };
-    const done=()=>{ TKS.POS.decrementStock(rid).catch(()=>{}); posClear();
+    const done=()=>{
+      // C-#14: auto-print the customer receipt on the completed sale. The
+      // receipt is captured BEFORE the ticket clears, and the print is fire-
+      // and-forget — a printer problem can never block a completed charge.
+      try{
+        if(window.TKS_HW && TKS_HW.prefs().thermal.enabled && TKS_HW.prefs().thermal.autoPrint){
+          const _rcpt=posThermalReceipt();
+          TKS_HW.thermal.printReceipt(_rcpt).then(()=>{}, ()=>{});
+        }
+      }catch(_){/* never block the sale */}
+      TKS.POS.decrementStock(rid).catch(()=>{}); posClear();
       chgSay('✓ '+(method==='card'?'Card charge complete.':((method==='cash'?'Cash':'Check')+' recorded.')),true);
       showChgSend({ id:rid, email:cust.email, items:[{desc:'Register sale'}], totals:{ total:t.totalCents/100 } }); };
     if(method==='card'){ if(!TKPay.openForReceipt){ chgSay('Payment engine not loaded.',false); return; }
