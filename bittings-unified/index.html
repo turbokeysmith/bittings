@@ -693,6 +693,15 @@
     .rep-controls{flex-wrap:wrap;row-gap:8px;}
     #view-inventory .crow{flex-wrap:wrap;}
     #view-inventory .crow .tag{flex-shrink:1;min-width:0;}
+    /* Category sections in the inventory list — always-visible headers, not a dropdown */
+    #view-inventory .invcat-top{font-weight:800;font-size:15px;color:var(--ink,#14171b);margin:18px 0 8px;padding-bottom:5px;border-bottom:2px solid var(--red,#c8323c);display:flex;align-items:center;gap:8px;}
+    #view-inventory .invcat-top:first-child{margin-top:2px;}
+    #view-inventory .invcat-top .cc{margin-left:auto;font-weight:700;font-size:12px;color:var(--dim,#5a616c);}
+    #view-inventory .invcat-sub{font-weight:700;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim,#5a616c);margin:12px 0 6px 2px;display:flex;align-items:center;gap:6px;}
+    #view-inventory .invcat-sub .cc{font-weight:600;color:var(--off,#9aa1ac);}
+    html[data-bt-theme="dark"] #view-inventory .invcat-top{color:#f4f5f7;}
+    html[data-bt-theme="dark"] #view-inventory .invcat-sub{color:#c4c9d2;}
+    #view-inventory .invsubtabs,#view-reconcile .invsubtabs{margin-bottom:12px;}
     .setupBody input, .setupBody select, .setupBody textarea{max-width:100%;box-sizing:border-box;}
   }
   .rep-select{flex:1;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:11px 12px;
@@ -1125,7 +1134,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
       <button class="bt-nav__item" data-go="schedule"><span class="bt-nav__ic">📅</span>Scheduler</button>
       <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Commission</button>
       <button class="bt-nav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Inventory</button>
-      <button class="bt-nav__item" data-go="reconcile"><span class="bt-nav__ic">🔢</span>Reconcile</button>
+      <button class="bt-nav__item" data-go="reconcile" style="display:none"><span class="bt-nav__ic">🔢</span>Reconcile</button><!-- moved under the Inventory screen (Stock | Reconcile sub-tabs) -->
       <button class="bt-nav__item" data-go="returns"><span class="bt-nav__ic">↩</span>Returns</button>
       <button class="bt-nav__item owner-soft" data-go="fleet" style="display:none"><span class="bt-nav__ic">🚐</span>Fleet</button>
       <button class="bt-nav__item" data-go="lishi"><span class="bt-nav__ic">📇</span>Lishi &amp; Keys</button>
@@ -1591,6 +1600,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
   </div>
 
   <div class="view" id="view-inventory">
+    <div class="seg invsubtabs"><button type="button" data-invtab="inventory" class="on">🏪 Stock</button><button type="button" data-invtab="reconcile" data-cap="inventoryAdjust">🔢 Reconcile</button></div>
     <div class="bar">
       <input class="search" id="invSearch" type="text" placeholder="Search part, SKU, fitment, VIN…">
       <button class="add" id="invImport" data-cap="inventoryWrite" title="Import from a spreadsheet (.xlsx/.csv)" style="background:#e7e9ee;color:#14171b">📥 Import</button>
@@ -1607,6 +1617,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
   </div>
 
   <div class="view" id="view-reconcile">
+    <div class="seg invsubtabs"><button type="button" data-invtab="inventory">🏪 Stock</button><button type="button" data-invtab="reconcile" class="on">🔢 Reconcile</button></div>
     <div class="bar">
       <select id="rcLoc" class="search" style="max-width:180px"></select>
       <select id="rcAssign" class="search" style="max-width:200px;display:none"></select>
@@ -1744,6 +1755,8 @@ function show(name){
   back.style.display = (name==='startjob') ? 'none' : 'block';
   back.dataset.to = (name==='form') ? 'customers' : (name==='part' ? 'inventory' : 'startjob');
   document.querySelectorAll('.bt-nav__item,.bt-bottomnav__item').forEach(el=>el.classList.toggle('is-active', el.dataset.go===name));
+  // sub-screens keep their parent nav item highlighted (Reconcile lives under Inventory)
+  if(name==='reconcile'){ document.querySelectorAll('[data-go="inventory"]').forEach(el=>el.classList.add('is-active')); }
   if(window.renderConsolBanner) window.renderConsolBanner();
   if(window.renderMoveReqBanner) window.renderMoveReqBanner();
   window.scrollTo(0,0);
@@ -1833,6 +1846,13 @@ document.querySelectorAll('[data-go]').forEach(b=>{
 });
 document.querySelectorAll('[data-open]').forEach(b=>{
   b.onclick = ()=>{ location.href = b.dataset.open; };
+});
+// Reconcile lives UNDER Inventory: the Stock | Reconcile sub-tabs switch between the two views.
+document.querySelectorAll('[data-invtab]').forEach(b=>{
+  b.onclick = ()=>{ const t=b.dataset.invtab;
+    if(t==='reconcile'){ window.renderReconcile && window.renderReconcile(); }
+    else { renderInventory(); window.renderInvDash && window.renderInvDash(); }
+    show(t); };
 });
 /* Embedded tools: on DESKTOP, the sub-tools (Receipts, Scheduler, Lishi, Programmers, Settings)
    open INSIDE the content panel so the left menu never leaves. On a PHONE they open as their own
@@ -2399,15 +2419,36 @@ function defaultLoc(){ var l=locCfg(); return (l.shop&&!l.van)?'shop':'van'; }
 function partLoc(p){ if(p&&(p.loc==='van'||p.loc==='shop')) return p.loc; return defaultLoc(); }
 function locLabel(loc){ return loc==='shop'?'🏪 Shop':'🚐 Van'; }
 let invLocFilter='all';
+// ---- inventory category grouping (Keys / Accessories → sub-categories) ----
+const INV_TOP_ORDER = { 'Keys':0, 'Accessories':1 };
+const INV_TOP_LABEL = { 'Keys':'🔑 Keys', 'Accessories':'🧷 Accessories' };
+const INV_SUB_ORDER = {
+  // Keys
+  'Smart Key':0,'Remote / Fob':1,'Remote Head / Flip':2,'Transponder':3,'Key Shell':4,'Mechanical':5,
+  // Accessories
+  'Key Rings & Clips':10,'Tags & Labels':11,'Lanyards & Coils':12,'Key Hiders & Safes':13,
+  'Retractors & Reels':14,'Skins & Covers':15,'Lights':16,'Locks & Padlocks':17,'Misc / Tools':18
+};
+function catParts(p){ const s=String(p&&p.category||''); const i=s.indexOf('/'); if(i<0) return {top:s.trim()||'Other', sub:''}; return {top:s.slice(0,i).trim()||'Other', sub:s.slice(i+1).trim()}; }  // split on FIRST '/' only — sub names may contain '/' (e.g. "Remote / Fob")
+function catTopLabel(t){ return INV_TOP_LABEL[t] || t; }
+function invGroupSort(a,b){
+  const ca=catParts(a), cb=catParts(b);
+  const ta=(INV_TOP_ORDER[ca.top]!==undefined?INV_TOP_ORDER[ca.top]:9);
+  const tb=(INV_TOP_ORDER[cb.top]!==undefined?INV_TOP_ORDER[cb.top]:9);
+  if(ta!==tb) return ta-tb;
+  if(ca.top!==cb.top) return ca.top.localeCompare(cb.top);
+  const sa=(INV_SUB_ORDER[ca.sub]!==undefined?INV_SUB_ORDER[ca.sub]:99);
+  const sb=(INV_SUB_ORDER[cb.sub]!==undefined?INV_SUB_ORDER[cb.sub]:99);
+  if(sa!==sb) return sa-sb;
+  if(ca.sub!==cb.sub) return ca.sub.localeCompare(cb.sub);
+  const la = TKS.Inventory.isLow(a)?0:1, lb = TKS.Inventory.isLow(b)?0:1;
+  if(la!==lb) return la-lb;
+  return (a.name||'').toLowerCase().localeCompare((b.name||'').toLowerCase());
+}
 function renderInventory(){
   const q = invSearchEl.value.trim();
   const all = TKS.Inventory.all();
-  let list = TKS.Inventory.search(q).slice().sort((a,b)=>{
-    // low-stock first, then name
-    const la = TKS.Inventory.isLow(a)?0:1, lb = TKS.Inventory.isLow(b)?0:1;
-    if(la!==lb) return la-lb;
-    return (a.name||'').toLowerCase().localeCompare((b.name||'').toLowerCase());
-  });
+  let list = TKS.Inventory.search(q).slice().sort(invGroupSort);
   // location filter (only when the shop uses both van + shop)
   const seg=document.getElementById('invLocSeg'), showLoc=bothLoc();
   if(showLoc && seg){
@@ -2435,12 +2476,20 @@ function renderInventory(){
     return;
   }
   wrap.innerHTML = '';
+  // group counts for the section headers
+  const topCounts={}, subCounts={};
+  list.forEach(p=>{ const c=catParts(p); topCounts[c.top]=(topCounts[c.top]||0)+1; subCounts[c.top+'/'+c.sub]=(subCounts[c.top+'/'+c.sub]||0)+1; });
+  let _lastTop=null,_lastSub=null;
   list.forEach(p=>{
+    // insert always-visible category / sub-category headers as the group changes
+    const _cp=catParts(p);
+    if(_cp.top!==_lastTop){ const h=document.createElement('div'); h.className='invcat-top'; h.innerHTML='<span>'+esc(catTopLabel(_cp.top))+'</span><span class="cc">'+(topCounts[_cp.top]||0)+' item'+((topCounts[_cp.top]||0)===1?'':'s')+'</span>'; wrap.appendChild(h); _lastTop=_cp.top; _lastSub=null; }
+    if(_cp.sub!==_lastSub){ const hs=document.createElement('div'); hs.className='invcat-sub'; hs.innerHTML='<span>'+esc(_cp.sub||'Uncategorized')+'</span><span class="cc">'+(subCounts[_cp.top+'/'+_cp.sub]||0)+'</span>'; wrap.appendChild(hs); _lastSub=_cp.sub; }
     const isLow = TKS.Inventory.isLow(p);
     const loc = partLoc(p);
     const row = document.createElement('div');
     row.className = 'crow part' + (isLow?' islow':'');
-    const sub = [ showLoc?locLabel(loc):'', p.sku, p.category, p.location ].filter(Boolean).join('  ·  ') || '—';
+    const sub = [ showLoc?locLabel(loc):'', p.sku, p.location ].filter(Boolean).join('  ·  ') || '—';
     row.innerHTML =
       '<div class="pq">'+
         '<button class="qbtn minus" data-cap="inventoryWrite" title="Remove one from stock" aria-label="Decrease quantity of '+esc(p.name||'part')+'">−</button>'+
