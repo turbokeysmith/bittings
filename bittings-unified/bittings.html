@@ -4136,6 +4136,14 @@ function _receiptsRefresh(){
     if(!receipt||!receipt.id){ appAlert("Save first", "Save the receipt first."); return; }
     const c=client(); const tok=await token();
     if(!c||!tok){ appAlert("Sign in needed", "Sign in (Staff Login) to take a payment."); return; }
+    // Card requires this shop's Stripe Connect account to be connected + charge-enabled.
+    // (Cash/check don't go through Pay Now.) Blocks the card modal with a clear prompt
+    // instead of letting the charge fail on tap.
+    try{
+      const cs=await c.from("shops").select("connect_charges_enabled,stripe_connect_id").limit(1).maybeSingle();
+      const ok = cs && cs.data && cs.data.stripe_connect_id && cs.data.connect_charges_enabled;
+      if(!ok){ appAlert("Connect Stripe to take card", "This shop hasn’t connected its Stripe account yet, so card payments are off. An owner can connect it in Settings → Payments. Cash and check still work."); return; }
+    }catch(e){}
     try{ await c.from("receipts").upsert({ id:receipt.id, data:receipt }); }catch(e){ appAlert("Sync failed", "Couldn't sync the invoice to the cloud: "+(e.message||e)); return; }
     const t=receipt.totals||{}; const baseCents=Math.round((Number(t.total||0)-Number(t.surcharge||0))*100);
     S={ receipt, baseCents, method:"reader", attempt:1, reader:localStorage.getItem("tks_pay_reader")||"" };

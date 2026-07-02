@@ -2733,10 +2733,22 @@ function posRender(){
   const bd=document.getElementById('chgBreakdown');
   if(bd) bd.innerHTML = empty ? '' : ('<div class="pos-totline">Subtotal<span>'+money2(t.subtotalCents)+'</span></div><div class="pos-totline">Tax<span>'+money2(t.taxCents)+'</span></div><div class="pos-totline pos-grand">Total<span>'+money2(t.totalCents)+'</span></div><div class="pos-totnote">card +2% on credit only</div>');
   posRenderProfit();
-  [e.card,e.cash,e.check].forEach(b=>{ if(b){ b.disabled=empty; b.title = empty ? 'Add a part or service to the ticket first' : ''; } });
-  if(e.card)  e.card.textContent  = empty ? '💳 Card — add a line'  : ('💳 Card — Pay '+money2(t.totalCents));
+  // Cash/check are always available. Card requires this shop's Stripe Connect account
+  // to be connected + charge-enabled (posCardConnected===false → not connected yet).
+  [e.cash,e.check].forEach(b=>{ if(b){ b.disabled=empty; b.title = empty ? 'Add a part or service to the ticket first' : ''; } });
   if(e.cash)  e.cash.textContent  = empty ? '💵 Cash — add a line'  : '💵 Cash';
   if(e.check) e.check.textContent = empty ? '🧾 Check — add a line' : '🧾 Check';
+  if(e.card){
+    if(posCardConnected===false){
+      e.card.disabled = true;
+      e.card.textContent = '💳 Connect Stripe to take card';
+      e.card.title = 'Connect this shop’s Stripe account in Settings → Payments to accept cards. Cash and check still work.';
+    } else {
+      e.card.disabled = empty;
+      e.card.title = empty ? 'Add a part or service to the ticket first' : '';
+      e.card.textContent = empty ? '💳 Card — add a line' : ('💳 Card — Pay '+money2(t.totalCents));
+    }
+  }
   // Hide the totals card entirely when the ticket is empty, so it isn't a stray blank white box on the rail.
   if(bd && bd.parentElement) bd.parentElement.style.display = empty ? 'none' : '';
   if(window.TKS_ACCESS) TKS_ACCESS.applyGates(document.getElementById('chgForm'));
@@ -2806,6 +2818,19 @@ function posPopulateMeta(){
     const el=document.getElementById('posSelfName'); if(el){ const me=posSelfTech(); el.textContent=me.name||'you'; }
   }).catch(()=>{}); }catch(e){}
 }
+/* ---- Register card gate: is this shop's Stripe connected + charge-enabled? ----
+   null = unknown (local/offline or not yet loaded → card shown normally); false =
+   known-not-connected → the Register hides the Card button behind a connect prompt. */
+var posCardConnected = null;
+async function posLoadCardConnected(){
+  try{
+    var sb = window.TKS && TKS._sb && TKS._sb();
+    if(!sb){ posCardConnected = null; return; }
+    var r = await sb.from('shops').select('connect_charges_enabled,stripe_connect_id').limit(1).maybeSingle();
+    posCardConnected = !!(r && r.data && r.data.stripe_connect_id && r.data.connect_charges_enabled);
+  }catch(e){ posCardConnected = null; }
+  try{ if(typeof posRender==='function') posRender(); }catch(e){}   // refresh the buttons once known
+}
 /* ---- Stripe Connect payouts: status + owner-only connect action (Settings→Payments) ---- */
 function TKS_isOwner(){
   try{ if(window.TKS_ACCESS && TKS_ACCESS.isOwner) return !!TKS_ACCESS.isOwner(); }catch(e){}
@@ -2835,6 +2860,7 @@ async function TKS_refreshPayoutStatus(){
 }
 function renderPayments(){
   const e=chgEls();
+  posLoadCardConnected();   // resolve whether this shop can take card (Connect), then refresh the buttons
   e.banner.className='pay-banner'; e.banner.textContent='Take payment — card, cash, or check.';
   if(e.status) e.status.textContent='';
   posPopulateMeta();

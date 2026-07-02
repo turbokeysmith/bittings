@@ -66,8 +66,14 @@ charges are **destination charges** on the platform with a **1% application fee*
   `reverse_transfer` + `refund_application_fee` (pulls money back from the shop + returns our fee).
 - **UI (`index.html`, Settings → Payments):** "Card payouts — your Stripe account" card with a live
   status (✓ Connected / Setup incomplete / Not connected) + an owner-only Connect button
-  (`TKS_refreshPayoutStatus` reads `shops`; `TKS_BILLING.connectOnboard`). **Code-complete; on-screen
-  render pending the device sweep** (headless app-shell cloud-connect couldn't be driven here).
+  (`TKS_refreshPayoutStatus` reads `shops`; `TKS_BILLING.connectOnboard`). The full Settings card's
+  on-screen render is pending the device sweep (headless app-shell cloud-connect couldn't be driven).
+- **Card button gated when not connected (both pay surfaces):** the **Register** (`index.html`
+  `posLoadCardConnected`/`posRender`, `#chgCard`) shows a disabled **"💳 Connect Stripe to take card"**
+  instead of erroring on tap; the invoice **Pay Now** (`bittings.html` `openPayNow`) blocks with a
+  "Connect Stripe to take card" alert. Cash/check unaffected. `posCardConnected===null` (local/offline
+  or unknown) leaves card shown — the gate only fires on a known-not-connected cloud shop. Register
+  gate render **verified headless** (not-connected → disabled connect label; connected → normal).
 - **Verified end-to-end in Stripe (test) + DB:** onboard → create Express acct + link; card blocked
   while not enabled (409); then (test shop pointed at Stripe's pre-enabled test connected account)
   $60 charge → PI `application_fee_amount=60`, real `application_fee` + `transfer` to the connected
