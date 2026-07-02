@@ -266,4 +266,38 @@
       afterChange(); setTimeout(m.close, 1100);
     };
   };
+
+  // =========================== RECEIVE UNITS (serialize) =====================
+  // C-#16: the front door of the phase-6 traceability engine. Receiving units
+  // flips the item to serialized (server: unit_ensure_serialized inside
+  // unit_receive) and records supplier / batch / per-unit cost for each unit.
+  window.invReceiveUnits = async function (itemId, itemName) {
+    var s = sb(); if (!s) { alert('Sign in to the cloud first.'); return; }
+    var m = modal('📦 Receive units (serial-tracked)',
+      '<div class="sub" style="margin-bottom:8px">' + E(itemName) + ' — records each unit individually (supplier, batch, cost), so every key can be traced from receiving to sale, warranty or return. Receiving this way turns on per-unit tracking for this item.</div>' +
+      '<label>Into location</label><select id="ruLoc" style="' + INP + '">' + (await locOptions(s)) + '</select>' +
+      '<label>How many</label><input id="ruQty" type="number" inputmode="numeric" min="1" value="1" style="' + INP + '">' +
+      '<label>Supplier (optional)</label><input id="ruSup" placeholder="e.g. American Key Supply" style="' + INP + '">' +
+      '<label>Batch / order # (optional)</label><input id="ruBatch" placeholder="e.g. PO-1042" style="' + INP + '">' +
+      '<label>Cost per unit $ (optional — falls back to the item’s cost)</label><input id="ruCost" type="number" inputmode="decimal" step="0.01" min="0" placeholder="e.g. 12.50" style="' + INP + '">' +
+      '<button id="ruGo" style="' + BTN + '">Receive into stock</button>' +
+      '<div id="ruMsg" class="sub" style="margin-top:8px"></div>');
+    m.body.querySelector('#ruGo').onclick = async function () {
+      var btn = m.body.querySelector('#ruGo'), msg = m.body.querySelector('#ruMsg');
+      var qty = parseInt(m.body.querySelector('#ruQty').value, 10) || 0;
+      if (qty < 1) { msg.textContent = 'Quantity must be at least 1.'; return; }
+      var costRaw = (m.body.querySelector('#ruCost').value || '').trim();
+      var costCents = costRaw === '' ? null : Math.round(parseFloat(costRaw) * 100);
+      if (costCents !== null && (isNaN(costCents) || costCents < 0)) { msg.textContent = 'Cost must be a positive amount (or blank).'; return; }
+      btn.disabled = true; msg.textContent = 'Receiving…';
+      var r = await s.rpc('unit_receive', {
+        p_item: itemId, p_location: m.body.querySelector('#ruLoc').value, p_qty: qty,
+        p_supplier: m.body.querySelector('#ruSup').value || '', p_batch: m.body.querySelector('#ruBatch').value || '',
+        p_unit_cost_cents: costCents
+      });
+      if (r.error) { msg.textContent = r.error.message; btn.disabled = false; return; }
+      msg.textContent = '✓ Received ' + ((r.data && r.data.length) || qty) + ' unit(s) — each is now individually tracked.';
+      afterChange(); setTimeout(m.close, 1100);
+    };
+  };
 })();
