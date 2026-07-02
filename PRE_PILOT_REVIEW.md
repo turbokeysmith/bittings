@@ -20,14 +20,14 @@ Each is one commit. To undo any single one: `git revert <hash>`.
 
 | Commit | What | Why it was safe |
 |---|---|---|
-| `95bf49e` | Checked in the QA harness (`tools/qa/`) + the QA fix-list note in EVERYTHING.md that were sitting uncommitted; pushed the 10 unpushed commits as a backup **before** touching anything. | Housekeeping only. |
-| `86f1b7d` | Made the isolation test run on ANY PC (it was hardcoded to the old shop PC's paths). | Test harness only. Re-ran it: 24/24 PASS baseline. |
-| `c67ef8c` | **Security (the 🔴 from the QA audit): revoked anon/PUBLIC EXECUTE on all 15 exposed database functions** — incl. `create_shop` (spam vector), `current_subscription` (leaked Stripe customer/subscription IDs to *anyone with no login*), `inv_on_hand` (leaked stock counts), and the payment trigger fns. Also deleted `_sweep_1b`, a leftover QA test function in prod. Applied live as migration `phase5_5f_…`. | Followed the exact revoke pattern phases 1/2/6 already use. Verified 4 ways: isolation test **25/25** (new probe proves payment triggers still fire post-revoke), live anon calls now get *permission denied*, live QA-owner session still runs every app RPC (`current_shop`, `shop_tier`, `seat_usage`, cost-masked receipts), and a live edit still bumps `updated_at`. **The Supabase security linter now shows zero anon-executable functions.** |
-| `ff74e5e` | **Customer edit now bumps `updatedAt`** (+ stamps `createdAt` on new customers) — the QA audit's data-integrity 🟡. | 3 lines; verified with Puppeteer (add → edit → timestamp changes; both themes; zero console errors). |
-| `329673a` | Fixed a stale code comment claiming cost/profit "isn't wired" — it IS wired and was verified 2026-07-01. Comment-only. | Prevents future-you (or future-me) rebuilding something that exists. |
-| `123c5d5` | Added `favicon.ico` — clears the 404 console noise on every page. | Copy of the existing `Bittings.ico`. |
-| `246d9ee` | Removed `acorn`/`acorn-walk` from package.json — installed but used by nothing. | Dev manifest only; harness re-verified after. |
-| `bba9e92` | **Reconcile screen: added the "✕ Discard count" button.** The count screen could start/save/finish but an abandoned count was stuck open forever (and staff auto-resume any open count assigned to them). The server function for this (`cycle_cancel`) existed with zero callers. | Pure addition wired to a proven, manager-gated server RPC. Verified live on the QA shop (start → discard → status `canceled`) + UI in both themes, zero console errors. |
+| `0b60ea4` | Checked in the QA harness (`tools/qa/`) + the QA fix-list note in EVERYTHING.md that were sitting uncommitted; pushed the 10 unpushed commits as a backup **before** touching anything. | Housekeeping only. |
+| `d9e14ab` | Made the isolation test run on ANY PC (it was hardcoded to the old shop PC's paths). | Test harness only. Re-ran it: 24/24 PASS baseline. |
+| `8599816` | **Security (the 🔴 from the QA audit): revoked anon/PUBLIC EXECUTE on all 15 exposed database functions** — incl. `create_shop` (spam vector), `current_subscription` (leaked Stripe customer/subscription IDs to *anyone with no login*), `inv_on_hand` (leaked stock counts), and the payment trigger fns. Also deleted `_sweep_1b`, a leftover QA test function in prod. Applied live as migration `phase5_5f_…`. | Followed the exact revoke pattern phases 1/2/6 already use. Verified 4 ways: isolation test **25/25** (new probe proves payment triggers still fire post-revoke), live anon calls now get *permission denied*, live QA-owner session still runs every app RPC (`current_shop`, `shop_tier`, `seat_usage`, cost-masked receipts), and a live edit still bumps `updated_at`. **The Supabase security linter now shows zero anon-executable functions.** |
+| `e089cf4` | **Customer edit now bumps `updatedAt`** (+ stamps `createdAt` on new customers) — the QA audit's data-integrity 🟡. | 3 lines; verified with Puppeteer (add → edit → timestamp changes; both themes; zero console errors). |
+| `569f496` | Fixed a stale code comment claiming cost/profit "isn't wired" — it IS wired and was verified 2026-07-01. Comment-only. | Prevents future-you (or future-me) rebuilding something that exists. |
+| `a069e33` | Added `favicon.ico` — clears the 404 console noise on every page. | Copy of the existing `Bittings.ico`. |
+| `96c84af` | Removed `acorn`/`acorn-walk` from package.json — installed but used by nothing. | Dev manifest only; harness re-verified after. |
+| `b12b95c` | **Reconcile screen: added the "✕ Discard count" button.** The count screen could start/save/finish but an abandoned count was stuck open forever (and staff auto-resume any open count assigned to them). The server function for this (`cycle_cancel`) existed with zero callers. | Pure addition wired to a proven, manager-gated server RPC. Verified live on the QA shop (start → discard → status `canceled`) + UI in both themes, zero console errors. |
 
 **Good news found while verifying (things the QA audit worried about that are actually fine):**
 - The customer **delete control exists** (it's on the edit form — "Remove", soft-delete, recoverable, server-enforced).
@@ -95,7 +95,7 @@ Each is one commit. To undo any single one: `git revert <hash>`.
    the day the app moves to its real domain** — add the domain to `ALLOWED_ORIGINS` or
    refunds/voids will break in the browser.
 10. **`current_subscription`/`shop_tier`/`seat_usage` aren't shop-scoped internally** — they
-    read the *globally newest* subscription row. I closed the anon leak (commit `c67ef8c`), but
+    read the *globally newest* subscription row. I closed the anon leak (commit `8599816`), but
     with 2+ shops the tier display could show the wrong shop's plan. Fix = add
     `where shop_id = current_shop()` inside them — do it together with #2.
 11. **Leaked-password protection is off** (Supabase auth option, checks against HaveIBeenPwned).
