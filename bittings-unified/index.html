@@ -4713,6 +4713,10 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       if(!cfg.access.employees || !cfg.access.employees.length){ cfg.access.employees = (cfg.access.employees&&cfg.access.employees.length)?cfg.access.employees:[{name:'',email:'',owner:true}]; }
       renderEmployees();
       gid('empAdd').onclick=()=>{ cfg.access.employees.push({name:'',email:'',owner:false}); renderEmployees(); };
+      // Cloud team (real sign-ins) — owner-only Add-teammate via the staff-invite
+      // edge function. The list above is display/PIN config; THIS creates logins.
+      p.insertAdjacentHTML('beforeend', '<div id="cloudTeam" style="margin-top:18px"></div>');
+      renderCloudTeam();
     }
     else if(key==='quicklinks'){
       p.innerHTML = '<h2>Quick links</h2><div class="sub">Optional bookmark groups for the Home screen, organized by category. Empty groups are hidden — add a link to a group and its tile appears.</div>'+
@@ -4850,6 +4854,62 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     el.querySelectorAll('.e_owner').forEach(x=> x.onchange=()=>{ cfg.access.employees[+x.dataset.i].owner=x.checked; renderEmployees(); });
     el.querySelectorAll('.e_pin').forEach(x=> x.oninput=()=> cfg.access.employees[+x.dataset.i].pin=x.value.trim());
     el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.access.employees.splice(+b.dataset.i,1); renderEmployees(); });
+  }
+  /* Cloud team — REAL sign-ins from the staff table (owner-only Add teammate).
+     Calls the staff-invite edge function: creates the login with a temp password
+     the owner hands over; the server inserts the staff row for THIS shop only. */
+  function renderCloudTeam(){
+    const box=gid('cloudTeam'); if(!box) return;
+    let sb=null; try{ sb = TKS._sb && TKS._sb(); }catch(_){}
+    const role = (TKS.auth && TKS.auth.staffRole) ? TKS.auth.staffRole() : null;
+    if(!sb || !role){ box.innerHTML='<div class="hint">Sign in to the cloud to manage real team logins.</div>'; return; }
+    box.innerHTML = '<h2 style="margin-top:6px">Team logins (cloud)</h2>'+
+      '<div class="sub">These are the REAL sign-ins for this shop — what the app checks for roles, payments and refunds.</div>'+
+      '<div id="ctList" class="hint">Loading…</div>'+
+      (role==='owner' ? (
+        '<label style="margin-top:10px">Add a teammate</label>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:8px">'+
+          '<input id="ctName" class="tx" placeholder="Name" style="flex:1;min-width:120px">'+
+          '<input id="ctEmail" class="tx" type="email" placeholder="name@example.com" style="flex:1.4;min-width:160px">'+
+          '<select id="ctRole" class="search" style="flex:0 0 auto;min-width:130px"><option value="technician">Technician</option><option value="front_desk">Front desk</option><option value="manager">Manager</option></select>'+
+        '</div>'+
+        '<button type="button" class="btn save" id="ctInvite" style="margin-top:8px;width:100%">➕ Add teammate</button>'+
+        '<div id="ctMsg" class="hint"></div>'
+      ) : '<div class="hint">Only the shop owner can add teammates.</div>');
+    sb.from('staff').select('user_id,name,role,active').order('role').then(function(r){
+      const el=gid('ctList'); if(!el) return;
+      const rows=(r&&r.data)||[];
+      el.innerHTML = rows.length ? rows.map(function(s){
+        return '<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--edge)">'+
+          '<b style="flex:1">'+esc(s.name||'(no name)')+'</b><span>'+esc(s.role)+'</span>'+
+          (s.active?'<span style="color:var(--ok,#2c9)">active</span>':'<span style="color:var(--dim)">inactive</span>')+'</div>';
+      }).join('') : 'No staff rows yet.';
+    }, function(){ const el=gid('ctList'); if(el) el.textContent='Could not load the team list.'; });
+    const btn=gid('ctInvite');
+    if(btn) btn.onclick=function(){
+      const name=(gid('ctName').value||'').trim(), email=(gid('ctEmail').value||'').trim(), r=gid('ctRole').value;
+      const msg=gid('ctMsg');
+      if(!name || !email){ msg.textContent='Name and email are required.'; return; }
+      // readable temp password the owner hands to the teammate
+      const temp='Key-'+Math.random().toString(36).slice(2,8)+'-'+Math.floor(100+Math.random()*900);
+      btn.disabled=true; msg.textContent='Creating the login…';
+      sb.auth.getSession().then(function(s){
+        const tok=s&&s.data&&s.data.session&&s.data.session.access_token;
+        return fetch((window.TKS_CLOUD&&TKS_CLOUD.url)+'/functions/v1/staff-invite',{
+          method:'POST',
+          headers:{ 'apikey':(window.TKS_CLOUD&&TKS_CLOUD.anonKey)||'', 'Authorization':'Bearer '+tok, 'Content-Type':'application/json' },
+          body: JSON.stringify({ email:email, name:name, role:r, password:temp })
+        });
+      }).then(function(res){ return res.json().then(function(j){ return {ok:res.ok, j:j}; }); })
+      .then(function(out){
+        btn.disabled=false;
+        if(!out.ok){ msg.textContent='⚠ '+(out.j&&out.j.error||'invite failed'); return; }
+        msg.innerHTML='✅ <b>'+esc(name)+'</b> can now sign in.<br>Email: <b>'+esc(email)+'</b><br>Temp password: <b>'+esc(temp)+'</b><br><span class="hint">Hand these over — they should change the password after first sign-in.</span>';
+        gid('ctName').value=''; gid('ctEmail').value='';
+        renderCloudTeam();
+      })
+      .catch(function(e){ btn.disabled=false; msg.textContent='⚠ '+(e&&e.message||e); });
+    };
   }
   const HOURS_DAYS=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri'],['sat','Sat'],['sun','Sun']];
   function timeOpts(sel){ let o=''; for(let h=0;h<24;h++){ for(const m of [0,30]){ const v=(h<10?'0':'')+h+':'+(m<10?'0':'')+m; const ap=h<12?'AM':'PM'; const hh=h%12||12; o+='<option value="'+v+'"'+(sel===v?' selected':'')+'>'+hh+':'+(m<10?'0':'')+m+' '+ap+'</option>'; } } return o; }
