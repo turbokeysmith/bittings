@@ -25,11 +25,12 @@
     var s = sb();
     var status = document.getElementById('rcStatus'), list = document.getElementById('rcList'), sum = document.getElementById('rcSummary');
     var startBtn = document.getElementById('rcStart'), finishBtn = document.getElementById('rcFinish');
+    var cancelBtn = document.getElementById('rcCancel');
     var locSel = document.getElementById('rcLoc'), assignSel = document.getElementById('rcAssign');
     if (!status) return;
     sum.innerHTML = '';
     if (!s) { status.textContent = 'Sign in to the cloud to run a stock count.'; list.innerHTML = '';
-      [startBtn, finishBtn, locSel, assignSel].forEach(function (el){ if (el) el.style.display = 'none'; }); return; }
+      [startBtn, finishBtn, cancelBtn, locSel, assignSel].forEach(function (el){ if (el) el.style.display = 'none'; }); return; }
     rc.role = await role(s);
     var mgr = isMgr(rc.role);
     // locations: shop + vans
@@ -46,6 +47,7 @@
         return '<option value="' + p.user_id + '">' + E(p.name || p.role) + '</option>'; }).join('');
       startBtn.style.display = rc.countId ? 'none' : '';
       finishBtn.style.display = rc.countId ? '' : 'none';
+      cancelBtn.style.display = rc.countId ? '' : 'none';
       status.textContent = rc.countId ? ('Counting ' + locLabel() + ' — changes save automatically.')
         : 'Pick a location, optionally assign someone, then Start count.';
       if (rc.countId) rcItems(); else list.innerHTML = '';
@@ -54,7 +56,7 @@
         var r = await s.rpc('cycle_start', { p_assigned: assignSel.value || null, p_note: '' });
         startBtn.disabled = false;
         if (r.error) { status.textContent = 'Could not start: ' + r.error.message; return; }
-        rc.countId = r.data; startBtn.style.display = 'none'; finishBtn.style.display = '';
+        rc.countId = r.data; startBtn.style.display = 'none'; finishBtn.style.display = ''; cancelBtn.style.display = '';
         status.textContent = 'Counting ' + locLabel() + ' — changes save automatically.'; rcItems();
       };
       finishBtn.onclick = async function (){
@@ -62,11 +64,23 @@
         var r = await s.rpc('cycle_complete', { p_count: rc.countId });
         finishBtn.disabled = false;
         if (r.error) { status.textContent = 'Could not finish: ' + r.error.message; return; }
-        rcSummary(r.data); rc.countId = null; finishBtn.style.display = 'none'; startBtn.style.display = ''; list.innerHTML = '';
+        rcSummary(r.data); rc.countId = null; finishBtn.style.display = 'none'; cancelBtn.style.display = 'none'; startBtn.style.display = ''; list.innerHTML = '';
+      };
+      // Discard an open count without applying it (server: cycle_cancel, manager+).
+      cancelBtn.onclick = async function (){
+        var ok = true;
+        try { if (window.TKS_ACCESS && TKS_ACCESS.confirmDanger) ok = await TKS_ACCESS.confirmDanger({ title: 'Discard this count?', message: 'Nothing will be applied to stock. The count sheet is thrown away.', confirmLabel: 'Discard' }); else ok = confirm('Discard this count? Nothing will be applied.'); } catch (e) { ok = confirm('Discard this count? Nothing will be applied.'); }
+        if (!ok) return;
+        cancelBtn.disabled = true;
+        var r = await s.rpc('cycle_cancel', { p_count: rc.countId });
+        cancelBtn.disabled = false;
+        if (r.error) { status.textContent = 'Could not discard: ' + r.error.message; return; }
+        rc.countId = null; cancelBtn.style.display = 'none'; finishBtn.style.display = 'none'; startBtn.style.display = ''; list.innerHTML = '';
+        status.textContent = 'Count discarded — nothing was applied. Start another anytime.';
       };
     } else {
       // assigned-staff view: resume an open count assigned to me
-      startBtn.style.display = 'none'; assignSel.style.display = 'none'; finishBtn.style.display = 'none';
+      startBtn.style.display = 'none'; assignSel.style.display = 'none'; finishBtn.style.display = 'none'; cancelBtn.style.display = 'none';
       var me = null; try { me = (await s.auth.getUser()).data.user.id; } catch (e) {}
       var open = []; try { open = ((await s.from('cycle_counts').select('id').eq('status','open').eq('assigned_to', me).order('created_at',{ascending:false}).limit(1)).data) || []; } catch (e) {}
       if (open && open[0]) { rc.countId = open[0].id;
