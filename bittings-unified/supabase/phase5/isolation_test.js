@@ -109,6 +109,18 @@ insert into payment_transactions(invoice_id,stripe_payment_intent_id,method,stat
 -- EXECUTE (checked at CREATE TRIGGER, not at fire time). Proven by the probe below.
 revoke execute on function payment_txn_stamp_shop()   from public, authenticated;
 revoke execute on function payment_event_stamp_shop() from public, authenticated;
+
+-- (5g) shop_config: one row PER SHOP (id surrogate + unique shop_id), mirroring prod.
+create table shop_config(id serial primary key, data jsonb,
+  shop_id uuid not null default current_shop(), unique(shop_id));
+alter table shop_config enable row level security;
+create policy sc_sel on shop_config for select to authenticated using (is_staff());
+create policy sc_ins on shop_config for insert to authenticated with check (is_manager());
+create policy sc_upd on shop_config for update to authenticated using (is_manager()) with check (is_manager());
+create policy sc_tenant on shop_config as restrictive for all to authenticated
+  using (shop_id=current_shop()) with check (shop_id=current_shop());
+grant select,insert,update on shop_config to authenticated;
+grant usage, select on sequence shop_config_id_seq to authenticated;
 `;
 
 (async () => {
@@ -224,6 +236,20 @@ revoke execute on function payment_event_stamp_shop() from public, authenticated
   // CREATE TRIGGER, not at fire time) — proves the production 5f revoke is safe.
   r = await tryUser(uA1, "insert into payment_transactions(invoice_id,stripe_payment_intent_id,method,status,base_cents) values ('rcptA','pi_5f','reader','pending',500) returning shop_id");
   check('5f: stamp trigger fires under authenticated AFTER EXECUTE revoke (shop derived)', r.rows && r.rows[0].shop_id === A, r.rows ? 'shop=' + r.rows[0].shop_id : r.err);
+
+  // ===================== SHOP CONFIG PER-SHOP (5g) =====================
+  // Each shop saves its OWN Settings row (the old prod schema physically blocked shop #2).
+  r = await tryUser(uA1, `insert into shop_config(data) values ('{"name":"A cfg"}') on conflict (shop_id) do update set data=excluded.data returning shop_id`);
+  check('5g: shop A owner saves shop A settings (upsert on shop_id)', r.rows && r.rows[0].shop_id === A, r.rows ? 'shop=' + r.rows[0].shop_id : r.err);
+  await c.query(`insert into shop_config(data, shop_id) values ('{"name":"A cfg"}', $1) on conflict (shop_id) do update set data=excluded.data`, [A]);
+  r = await tryUser(uB1, `insert into shop_config(data) values ('{"name":"B cfg"}') on conflict (shop_id) do update set data=excluded.data returning shop_id`);
+  check('5g: a SECOND shop can save its own settings row', r.rows && r.rows[0].shop_id === B, r.rows ? 'shop=' + r.rows[0].shop_id : r.err);
+  await c.query(`insert into shop_config(data, shop_id) values ('{"name":"B cfg"}', $1) on conflict (shop_id) do update set data=excluded.data`, [B]);
+  r = await tryUser(uA1, 'select count(*)::int n from shop_config');
+  check('5g: shop A sees ONLY its own config row', r.rows && r.rows[0].n === 1, r.rows && r.rows[0].n);
+  r = await tryUser(uA1, `update shop_config set data='{"name":"HACK"}' where shop_id=$1`, [B]);
+  const bCfg = (await c.query('select data->>\'name\' nm from shop_config where shop_id=$1', [B])).rows[0];
+  check('5g: shop A cannot overwrite shop B settings', bCfg && bCfg.nm === 'B cfg', 'B name=' + (bCfg && bCfg.nm));
 
   // (9) RLS defense-in-depth: as authenticated A-owner, only shop A payments are visible.
   r = await tryUser(uA1, 'select count(*)::int n, count(*) filter (where shop_id=$1)::int own from payment_transactions', [A]);

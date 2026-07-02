@@ -894,7 +894,7 @@
      *  Config — cloud-synced owner config (sales tax today).            *
      *  get() returns { taxRate, taxableByCategory }. taxableDefault(cat) *
      *  is the per-category default for a new line. save() writes local  *
-     *  + upserts shop_config (id=1). load() pulls from the cloud.        *
+     *  + upserts shop_config (one row PER SHOP, keyed by shop_id — 5g).  *
      * ---------------------------------------------------------------- */
     Config: {
       get: function () { return getConfig(); },
@@ -938,11 +938,13 @@
         write(CONFIG_LSKEY, configCache);
         if (authState.sb) {
           try {
+            // Per-shop config (5g): one row per shop, keyed by shop_id (the DB
+            // defaults shop_id to current_shop(), so we never send it).
             authState.sb.from('shop_config').upsert({
-              id: 1, data: configCache,
+              data: configCache,
               tax_rate: configCache.taxRate, taxable_categories: configCache.taxableByCategory,
               updated_by: (authState.user ? authState.user.id : null), updated_at: new Date().toISOString()
-            }).then(function () {}, function () {});
+            }, { onConflict: 'shop_id' }).then(function () {}, function () {});
           } catch (e) {}
         }
         changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
@@ -951,7 +953,8 @@
       load: function () {
         if (!authState.sb) return Promise.resolve(getConfig());
         try {
-          return authState.sb.from('shop_config').select('*').eq('id', 1).limit(1).then(function (res) {
+          // Per-shop config (5g): the RLS tenant fence returns only OUR shop's row.
+          return authState.sb.from('shop_config').select('*').limit(1).then(function (res) {
             var row = res && res.data && res.data[0];
             if (row) {
               var src = (row.data && Object.keys(row.data).length) ? row.data
