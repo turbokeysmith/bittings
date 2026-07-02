@@ -1184,6 +1184,23 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
     <p class="note">The audit trail is append-only and written by the server — every stock move, sale, refund/void, sign-off, warranty and count lands here automatically.</p>
   </div>
 
+  <!-- Shifts: Timesheets. Staff see their OWN; owner/manager see all staff and can
+       correct entries (fix missed clock-outs). Every edit is written to the audit log. -->
+  <div class="view" id="view-timesheets">
+    <div class="rep-controls">
+      <select id="tsPeriod" class="rep-select" aria-label="Period">
+        <option value="week" selected>This week</option><option value="today">Today</option>
+        <option value="month">This month</option><option value="prevweek">Last week</option>
+      </select>
+      <select id="tsWho" class="rep-select" data-cap="viewAudit" aria-label="Staff"><option value="">All staff</option></select>
+      <button class="add" id="tsReload" title="Refresh" style="background:#e7e9ee;color:#14171b">↻</button>
+    </div>
+    <div class="rep-cards" id="tsCards"></div>
+    <div class="clist" id="tsList"><div class="empty">Loading…</div></div>
+    <div id="tsTravelWrap" style="margin-top:18px"></div>
+    <p class="note" id="tsNote"></p>
+  </div>
+
   <div class="view" id="view-schedule">
     <div class="bt-pagehead"><div><div class="eyebrow">Scheduler</div><h1>Calendar</h1></div></div>
     <div id="schBody"><div class="sch-empty">Loading…</div></div>
@@ -1810,7 +1827,7 @@ document.querySelectorAll('[data-go]').forEach(b=>{
     if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); window.renderInvDash && window.renderInvDash(); } if(t==='payments'){ renderPayments(); } if(t==='commission'){ renderCommission(); }
     // de-iframed views are defined in later <script> blocks; guard with window. so an early
     // auto-trigger (e.g. maybeRedirectToSetup) can't throw "renderX is not defined".
-    if(t==='fleet'){ window.renderFleet && window.renderFleet(); } if(t==='settings'){ window.renderSettings && window.renderSettings(); } if(t==='programmers'){ window.renderProgrammers && window.renderProgrammers(); } if(t==='schedule'){ window.renderSchedule && window.renderSchedule(); } if(t==='lishi'){ window.renderLishi && window.renderLishi(); } if(t==='receipts'){ window.renderReceipts && window.renderReceipts(); } if(t==='activity'){ window.renderActivity && window.renderActivity(); }
+    if(t==='fleet'){ window.renderFleet && window.renderFleet(); } if(t==='settings'){ window.renderSettings && window.renderSettings(); } if(t==='programmers'){ window.renderProgrammers && window.renderProgrammers(); } if(t==='schedule'){ window.renderSchedule && window.renderSchedule(); } if(t==='lishi'){ window.renderLishi && window.renderLishi(); } if(t==='receipts'){ window.renderReceipts && window.renderReceipts(); } if(t==='activity'){ window.renderActivity && window.renderActivity(); } if(t==='timesheets'){ window.renderTimesheets && window.renderTimesheets(); }
     if(t==='reconcile'){ window.renderReconcile && window.renderReconcile(); } if(t==='returns'){ window.renderReturns && window.renderReturns(); }
     show(t); };
 });
@@ -3723,6 +3740,107 @@ document.getElementById('actReload').onclick=renderActivity;
 document.getElementById('actFilter').addEventListener('change', drawActivity);
 document.getElementById('actSearch').addEventListener('input', drawActivity);
 window.renderActivity=renderActivity;
+
+/* ============================ TIMESHEETS (shifts) ============================
+   Staff see their OWN entries (read-only); owner/manager see ALL staff and can
+   correct entries — fixing a missed clock-out / adjusting times — each edit
+   audit-logged server-side (timesheet_edit). Travel time is derived from the
+   scheduler statuses (en route → on site). All shop-scoped. */
+function tsRange(v){
+  const now=new Date(); const d=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const iso=x=>x.toISOString().slice(0,10);
+  if(v==='today') return {from:iso(d),to:iso(d)};
+  if(v==='month') return {from:iso(new Date(d.getFullYear(),d.getMonth(),1)),to:iso(d)};
+  const dow=(d.getDay()+6)%7;                        // Mon=0
+  const monday=new Date(d); monday.setDate(d.getDate()-dow);
+  if(v==='prevweek'){ const pm=new Date(monday); pm.setDate(monday.getDate()-7); const pe=new Date(pm); pe.setDate(pm.getDate()+6); return {from:iso(pm),to:iso(pe)}; }
+  return {from:iso(monday),to:iso(d)};               // this week
+}
+function tsFmtClock(s){ if(!s) return '—'; const d=new Date(s); return d.toLocaleDateString([], {month:'short',day:'numeric'})+' '+d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); }
+function tsFmtDur(min){ min=Math.max(0,Math.round(min||0)); const h=Math.floor(min/60), m=min%60; return (h?h+'h ':'')+m+'m'; }
+const TS_REASON={lunch:'🍔 Lunch',personal:'🚶 Personal',end_of_day:'🌙 End of day'};
+let tsMgr=false;
+async function renderTimesheets(){
+  const list=document.getElementById('tsList'), cards=document.getElementById('tsCards'), who=document.getElementById('tsWho'), note=document.getElementById('tsNote'), tw=document.getElementById('tsTravelWrap');
+  if(!list) return;
+  cards.innerHTML=''; tw.innerHTML=''; list.innerHTML='<div class="empty">Loading…</div>';
+  if(!(window.TKS && TKS.auth && TKS.auth.isSignedIn())){ list.innerHTML='<div class="empty">Sign in to the cloud to see timesheets.</div>'; return; }
+  let sb=null; try{ sb=TKS._sb&&TKS._sb(); }catch(_){}
+  if(!sb){ list.innerHTML='<div class="empty">Timesheets are available when signed in to the cloud.</div>'; return; }
+  tsMgr = (function(){ try{ return TKS.auth.can('viewAudit'); }catch(_){ return false; } })();
+  who.style.display = tsMgr ? '' : 'none';
+  if(tsMgr && who.options.length<=1){ try{ const r=await TKS.Fleet.staff(); ((r&&r.data)||[]).forEach(s=>{ const o=document.createElement('option'); o.value=s.user_id; o.textContent=(s.name||s.role); who.appendChild(o); }); }catch(e){} }
+  const rng=tsRange(document.getElementById('tsPeriod').value);
+  const uf = tsMgr ? (who.value||null) : null;
+  let rows=[];
+  try{ const res=await sb.rpc('timesheet_rows',{p_from:rng.from,p_to:rng.to,p_user:uf}); if(res.error) throw res.error; rows=res.data||[]; }
+  catch(e){ list.innerHTML='<div class="empty">'+esc2(e.message||'Could not load timesheets.')+'</div>'; return; }
+  let totMin=0, open=0; rows.forEach(r=>{ totMin+=+r.minutes||0; if(!r.clock_out) open++; });
+  cards.innerHTML='<div class="chip"><b>'+tsFmtDur(totMin)+'</b>total</div><div class="chip"><b>'+rows.length+'</b>entries</div>'+(open?'<div class="chip low"><b>'+open+'</b>still open</div>':'');
+  if(!rows.length){ list.innerHTML='<div class="empty">No time entries in this period.</div>'; }
+  else list.innerHTML=rows.map(r=>{
+    const openTag = r.clock_out ? '' : ' <span class="tag amt-ref">on the clock</span>';
+    const editTag = r.edited ? ' <span class="tag" title="Corrected by a manager">✎ edited</span>' : '';
+    const reason = r.out_reason ? (' · '+(TS_REASON[r.out_reason]||r.out_reason)) : '';
+    const editBtn = tsMgr ? '<button class="moveloc" data-tsedit="'+esc2(r.id)+'" title="Correct this entry">✎</button>' : '';
+    return '<div class="crow" data-ts=\''+esc2(JSON.stringify({id:r.id,in:r.clock_in,out:r.clock_out,reason:r.out_reason,name:r.staff_name}))+'\'>'+
+      '<div style="flex:1"><div class="nm">'+esc2(r.staff_name)+openTag+editTag+'</div>'+
+      '<div class="sub">'+tsFmtClock(r.clock_in)+' → '+tsFmtClock(r.clock_out)+reason+'</div></div>'+
+      '<span class="tag amt-ok">'+tsFmtDur(r.minutes)+'</span>'+editBtn+'</div>';
+  }).join('');
+  list.querySelectorAll('[data-tsedit]').forEach(b=> b.onclick=(e)=>{ e.stopPropagation(); const row=b.closest('[data-ts]'); openTsEdit(JSON.parse(row.dataset.ts)); });
+  note.textContent = tsMgr ? 'You see all staff. Tap ✎ to correct an entry (fix a missed clock-out or adjust times) — every correction is logged.' : 'Your own hours. Clock in/out happen automatically at login and clock-out. Ask a manager to fix any mistakes.';
+  // ---- travel (derived from scheduler en route → on site) ----
+  try{
+    const tr=await sb.rpc('timesheet_travel',{p_from:rng.from,p_to:rng.to,p_user:uf});
+    const trows=(tr&&tr.data)||[];
+    if(trows.length){
+      let tmin=0; trows.forEach(t=> tmin+=+t.minutes||0);
+      tw.innerHTML='<h2 style="font-size:16px;margin:0 0 8px">🚐 Travel time <span class="sub" style="font-weight:400">(from dispatch: en route → on site)</span></h2>'+
+        '<div class="rep-cards"><div class="chip"><b>'+tsFmtDur(tmin)+'</b>total travel</div><div class="chip"><b>'+trows.length+'</b>trips</div></div>'+
+        '<div class="clist">'+trows.map(t=>'<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.tech_name)+(t.customer?(' · '+esc2(t.customer)):'')+'</div><div class="sub">'+tsFmtClock(t.en_route)+' → '+tsFmtClock(t.on_site)+'</div></div><span class="tag amt-ok">'+tsFmtDur(t.minutes)+'</span></div>').join('')+'</div>';
+    }
+  }catch(_){}
+  if(window.TKS_ACCESS) TKS_ACCESS.applyGates(document.getElementById('view-timesheets'));
+}
+function openTsEdit(entry){
+  const toLocal=s=>{ if(!s) return ''; const d=new Date(s); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); };
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px';
+  const INP='width:100%;box-sizing:border-box;padding:10px;border-radius:9px;border:1px solid rgba(128,128,128,.4);background:var(--card);color:inherit;font-size:16px;margin:4px 0 10px';
+  ov.innerHTML='<div style="background:var(--card);color:var(--ink);width:100%;max-width:420px;border-radius:16px;padding:16px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:17px">Correct timesheet — '+esc2(entry.name)+'</b><button id="tseX" style="background:none;border:none;font-size:24px;cursor:pointer;color:inherit">×</button></div>'+
+    '<label>Clock in</label><input id="tseIn" type="datetime-local" style="'+INP+'" value="'+toLocal(entry.in)+'">'+
+    '<label class="toggle" style="margin:2px 0 8px"><input type="checkbox" id="tseStillOpen" '+(entry.out?'':'checked')+'> Still on the clock (no clock-out yet)</label>'+
+    '<div id="tseOutWrap"><label>Clock out</label><input id="tseOut" type="datetime-local" style="'+INP+'" value="'+toLocal(entry.out)+'">'+
+    '<label>Reason</label><select id="tseReason" style="'+INP+'"><option value="end_of_day">🌙 End of day</option><option value="lunch">🍔 Lunch</option><option value="personal">🚶 Personal</option></select></div>'+
+    '<button id="tseSave" class="btn save" style="width:100%">Save correction</button>'+
+    '<div id="tseMsg" class="sub" style="margin-top:8px"></div></div>';
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.querySelector('#tseX').onclick=close; ov.addEventListener('click',e=>{ if(e.target===ov) close(); });
+  if(entry.reason) ov.querySelector('#tseReason').value=entry.reason;
+  const outWrap=ov.querySelector('#tseOutWrap'), stillOpen=ov.querySelector('#tseStillOpen');
+  const syncOpen=()=>{ outWrap.style.display=stillOpen.checked?'none':''; }; stillOpen.onchange=syncOpen; syncOpen();
+  ov.querySelector('#tseSave').onclick=async()=>{
+    const msg=ov.querySelector('#tseMsg'); const sb=TKS._sb&&TKS._sb(); if(!sb){ msg.textContent='No cloud connection.'; return; }
+    const inV=ov.querySelector('#tseIn').value; if(!inV){ msg.textContent='Clock-in time is required.'; return; }
+    const isOpen=stillOpen.checked;
+    const outV=isOpen?null:ov.querySelector('#tseOut').value;
+    if(!isOpen && !outV){ msg.textContent='Enter a clock-out time or tick “still on the clock”.'; return; }
+    const p_in=new Date(inV).toISOString();
+    const p_out=isOpen?null:new Date(outV).toISOString();
+    const p_reason=isOpen?null:ov.querySelector('#tseReason').value;
+    msg.textContent='Saving…';
+    const r=await sb.rpc('timesheet_edit',{p_entry:entry.id,p_in:p_in,p_out:p_out,p_reason:p_reason});
+    if(r&&r.error){ msg.style.color='#c8323c'; msg.textContent=r.error.message; return; }
+    close(); renderTimesheets();
+  };
+}
+document.getElementById('tsReload').onclick=renderTimesheets;
+document.getElementById('tsPeriod').addEventListener('change', renderTimesheets);
+document.getElementById('tsWho').addEventListener('change', renderTimesheets);
+window.renderTimesheets=renderTimesheets;
 async function renderCommHolds(){
   const holds=document.getElementById('comHolds'); if(!holds) return;
   let list=[]; try{ const r=await TKS.Commission.awaitingSignoff(); if(r.error) throw r.error; list=r.data||[]; }catch(e){ holds.innerHTML=''; return; }
