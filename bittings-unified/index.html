@@ -3503,9 +3503,10 @@ function shareDepositSlip(){
    Profit (each toggleable), a period dropdown (today → year) and a graph (bar/
    line/area/pie/doughnut). Lands on TODAY — the "daily reset" is just the default
    view; nothing is deleted and every charge stays filed under its customer (via
-   its receipt). Cost & Profit read $0 until a sale carries cost_cents (parts
-   linking — plumbed, not yet wired); per-technician commission filtering will
-   hang off the technician column the same way. */
+   its receipt). Cost & Profit are WIRED end-to-end (pos_checkout stamps part
+   cost → pay fns sum cost_cents; verified 2026-07-01) — they read $0 only when
+   inventory items have no cost entered; per-technician commission filtering
+   hangs off the technician column the same way. */
 const REP_METRICS=[
   {key:'jobs',  label:'Total Jobs',  kind:'count', color:'#9b6bd6'},
   {key:'sales', label:'Total Sales', kind:'money', color:'#22994a'},
