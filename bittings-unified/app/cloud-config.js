@@ -39,17 +39,16 @@ window.TKS_CLOUD = {
      requestOwnerAccess() is the single swap point for that upgrade).
    ---------------------------------------------------------------------------- */
 window.TKS_OWNER = {
-  // Who counts as a MANAGER. A signed-in user whose email is in this list gets
-  // manager-only powers (e.g. the scheduler Quick form) WITHOUT a PIN. A regular
-  // employee's login does NOT — so their account can't unlock manager-only things.
-  OWNER_EMAILS: ['samer@turbokeysmith.com'],
+  // EMPTY since the 2026-07-02 pre-pilot review (#12): Bittings is multi-shop
+  // now, so a hardcoded email must never grant manager powers inside every
+  // shop's UI. Roles come from the staff table (signed in) or from THIS shop's
+  // Setup → Access config (owner emails + per-manager PINs). Leave this empty.
+  OWNER_EMAILS: [],
 
-  // SHARED fallback PIN for the manager-only quick forms (scheduler Quick booking
-  // AND the Receipts "Quick invoice") when NOBODY is signed in (local/offline).
-  // Prefer per-manager PINs in Setup → Access; this is an optional extra that also
-  // works. When a manager is signed in, no PIN is needed; a signed-in employee is
-  // always denied. Set to '' to disable this shared fallback.
-  QUICK_FORM_PIN: '1234',   // <-- CHANGE THIS to your own PIN
+  // EMPTY since the 2026-07-02 pre-pilot review (#12): a hardcoded default PIN
+  // shipped to every shop is guessable. Set a shared PIN per shop in
+  // Setup → Access ("Shared fallback PIN") instead — same behavior, per-shop.
+  QUICK_FORM_PIN: '',
 
   // Master ON/OFF switch for the Receipts "Quick invoice" form (the fast,
   // all-on-one-screen alternative to the guided chat). Set to false to turn it
