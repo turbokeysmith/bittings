@@ -4,7 +4,10 @@
 // seeds 2 shops with their own users + data, then runs cross-tenant probes as each
 // authenticated user. Reports PASS/FAIL like the role sweep.
 const path = require('path');
-const DBDIR = 'C:/Users/turbo/AppData/Local/Temp/claude/C--Users-turbo-OneDrive-Desktop-bittings-deploy/92e73bb9-45ed-4e59-9df7-7d9a18265895/scratchpad/pgdata';
+const os = require('os');
+// Portable across PCs: pgdata in the system temp dir (override with PG_DBDIR),
+// embedded-postgres resolved relative to the repo root (below).
+const DBDIR = process.env.PG_DBDIR || path.join(os.tmpdir(), 'bittings-isolation-pgdata');
 
 const A = '00000000-0000-0000-0000-00000000000a', B = '00000000-0000-0000-0000-00000000000b';
 const uA1 = '00000000-0000-0000-0000-0000000000a1', uA2 = '00000000-0000-0000-0000-0000000000a2', uB1 = '00000000-0000-0000-0000-0000000000b1';
@@ -104,7 +107,8 @@ insert into payment_transactions(invoice_id,stripe_payment_intent_id,method,stat
 `;
 
 (async () => {
-  const { default: EmbeddedPostgres } = await import('file:///C:/Users/turbo/OneDrive/Desktop/turbokeysmith-main/node_modules/embedded-postgres/dist/index.js');
+  const epPath = path.join(__dirname, '..', '..', '..', 'node_modules', 'embedded-postgres', 'dist', 'index.js');
+  const { default: EmbeddedPostgres } = await import('file:///' + epPath.replace(/\\/g, '/'));
   const pg = new EmbeddedPostgres({ databaseDir: DBDIR, user: 'postgres', password: 'pw', port: 54330, persistent: false, initdbFlags: ['--encoding=UTF8','--locale=C'] });
   await pg.initialise(); await pg.start(); await pg.createDatabase('mt');
   const c = pg.getPgClient('mt'); await c.connect();
