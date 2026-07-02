@@ -8,6 +8,51 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 - **Staff app** (dark): http://127.0.0.1:8088/  → Customers · Receipts · Scheduler · Payments · Inventory
 - **Public site** (light): http://127.0.0.1:8099/  → contact form `/contact/`, language toggle 🌐 in the header
 
+## 2026-07-02 (d) — Phase 7: shift + machine-lock + time-tracking (OFF by default)
+
+Server (migrations 7a/7b/7c live):
+- **7a `time_entries`** — one row per work segment; partial unique index (one OPEN segment per
+  user); RLS: staff read OWN (te_sel_own), manager reads shop (te_sel_mgr), RESTRICTIVE tenant
+  fence; NO write policies for authenticated (RPC-only). RPCs: `shift_clock_in` (idempotent),
+  `shift_clock_out(reason∈lunch/personal/end_of_day)`, `shift_status`, `timesheet_rows` (staff
+  hard-scoped to self; manager sees shop), `timesheet_edit` (mgr-only, own shop, writes old→new +
+  for_user to audit_log).
+- **7b PINs** — `set_my_pin` reworked: any active staff sets own; length by role (staff=4,
+  mgr/owner=6); UNIQUE within shop (bcrypt compare); audit `pin_set`. `pin_identify(pin,caller,
+  shop)` = lock-screen matcher, **service_role only**, self-throttling (5 fails/5min/machine via
+  the `pin_fail` audit rows). `timesheet_travel` derives en_route→on_site pairs from the existing
+  `job_status` audit events (no new tracking).
+- **7c** — grant service_role INSERT on audit_log (for machine_switch rows).
+- **isolation_test.js → 33/33** (adds time_entries probes: staff-own-only, manager-shop/zero-of-B,
+  no-direct-edit (RPC-only), one-open-segment unique).
+
+Edge fn **pin-unlock** (deployed): called with the LOCKED session JWT → shop known server-side.
+same user → {mode:unlock}; different teammate → {mode:switch} minting a magiclink token_hash the
+client verifies (verifyOtp) to become them — allowed only if they have an open shift, except a
+6-digit manager/owner PIN which always switches (client clocks them in after if needed); wrong →
+401. Every switch writes a `machine_switch` audit row. Distinct from override-approval (never
+comes here, never switches).
+
+Client:
+- **app/timeclock.js** (`window.TKS_CLOCK`) — armed only when Config.timeclock.enabled AND the
+  per-device localStorage `tks_tc_device` are BOTH on (both default off) AND signed in. Full-screen
+  lock overlay (PIN pad + clock-out buttons + full-logout escape); auto clock-in on connect; idle
+  timer; lockNow(); switch via verifyOtp then reload. Inert when off (no overlay, no listeners that
+  matter).
+- **store.js**: config schema gains `timeclock{enabled:false,idleMin:5}` (merge whitelists keys —
+  required for the toggle to persist). **Exposed `global.TKS._sb = _sb`** — latent bug: it was
+  private, so inventory-traceability/tier/timeclock all got undefined and fell back to "sign in
+  first" while signed in.
+- **index.html**: Settings "Time clock & lock" step; sidebar Lock-now (armed-only) + Timesheets
+  nav; `#view-timesheets` + renderTimesheets (staff own / mgr all + ✎ edit modal → timesheet_edit)
+  + travel section.
+
+Live-verified on the QA shop: RPC suite 10/10, PIN rules (4/6/unique) + identify + throttle,
+pin-unlock all paths incl. real token→session switch, Timesheets manager(5 rows/edit/travel) vs
+tech(own 3/no-edit/no-filter). Headless-unverifiable (flagged): real idle timing, on-screen PIN
+pad, shared-PC switch, clock-out→login on the shop machine. QA PINs: tech 1234 · manager 246810 ·
+front-desk 4321.
+
 ## 2026-07-02 (c) — overnight pre-pilot build: the whole review list executed
 
 Owner authorized the full `PRE_PILOT_REVIEW.md` run. 16 commits (96c9dbb…e436001), each verified;

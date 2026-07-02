@@ -40,6 +40,21 @@ open flags: `PRE_PILOT_REVIEW.md`.
 
 ---
 
+## ⏱ 2026-07-02: Shift + machine-lock + time clock (NEW — off until you switch it on)
+A time clock that ties "using the shop PC" to "being on the clock":
+- **Login = clock in** for the day (username + password). **Clock out** (Lunch / Personal / End of
+  day) = clock out **and** log out.
+- **Screen locks when you step away** (idle, default 5 min, or a **Lock now** button). A **PIN**
+  unlocks you — still clocked in (locking isn't a clock-out). **4-digit = staff, 6-digit =
+  manager/owner.** A different PIN **switches the active user** so their work credits to them.
+- **Field jobs aren't a clock-out** — travel time is read from your scheduler (En route → On site).
+- **Timesheets:** staff see their own; you (and managers) see everyone and can **correct** entries —
+  every fix is logged. All private to your shop.
+- **It's OFF by default.** Turn it on in **Settings → Time clock & lock** *and* tick "this is a shop
+  workstation" on the shop PC. Your techs' **phones never lock or auto-clock**. Nothing about
+  running real jobs/sales changes until you opt in. **Status: ✅ built · 🟡 needs your on-device test**
+  (idle timing, the PIN pad, switching users on a shared PC — see `PRE_PILOT_REVIEW.md`/report).
+
 ## The two products
 - **Turbo Keysmith website** — your public marketing site at turbokeysmith.com. **✅ DONE (live).**
 - **Bittings** — the private app you and your staff run the business on. Everything below is Bittings.

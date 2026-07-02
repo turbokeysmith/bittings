@@ -408,6 +408,36 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-07-02 PM (⏱ Shift + machine-lock + time-tracking system — built, OFF by default)
+- **New: a time clock that ties "using the shop PC" to "being on the clock."** Plain-language:
+  - **Start of day** — a full login (username + password) **clocks you in** for the day.
+  - **Stepped away** — after N idle minutes (default 5, adjustable) or a **Lock now** button, the
+    screen **locks**; a **PIN** unlocks it and you're right back in, **still clocked in** (locking
+    is not a clock-out). **4-digit** PIN = staff, **6-digit** = manager/owner. A *different* valid
+    PIN **switches the active user** so their work credits to them; a 6-digit manager PIN can always
+    take the machine. Wrong PIN → message + a "full logout / log in as someone else" escape.
+  - **Done** — **Clock out** (Lunch / Personal / End of day) clocks out **and logs out**; coming
+    back needs a full login again.
+  - **Off-site jobs are NOT a clock-out** — a tech on a field job is still clocked in; **travel time
+    is read from the scheduler** (the gap between *En route* and *On site*), nothing new to do.
+  - **Timesheets** — staff see **their own**; **owner/manager see everyone and can correct entries**
+    (fix a missed clock-out, adjust times); **every correction is logged** (who/what/when). All
+    shop-scoped.
+  - **Manager override vs. switch are kept separate** — approving a discount/refund on someone's
+    screen authorizes just that action and does **not** switch the logged-in user.
+- **It's OFF until you turn it on.** Two switches, both default off, both required: a **shop toggle**
+  (Settings → Time clock & lock) **and** a per-device **"this is a shop workstation"** checkbox. So
+  flipping the shop switch does nothing until you also mark the shop PC — your techs' **phones never
+  lock and never auto-clock**, and nothing about running real jobs/sales changes until you opt in.
+- **Also fixed a real latent bug along the way:** the app never exposed its live cloud-client handle
+  (`TKS._sb`), so the signed-in-only screens (Reconcile / Returns / warranty / serialized receiving
+  and the tier check) were silently falling back to "sign in first" **even when signed in** — that's
+  why they read "pending live-session." One line fixed it; those screens now work in the browser.
+- **NEEDS YOUR DEVICE/EMPLOYEE TEST** (can't be confirmed headless): the real idle-lock timing, the
+  on-screen PIN pad, PIN **session-switch** on a shared PC, and clock-out→login on the actual shop
+  machine. The server pieces (clock in/out, PIN rules + uniqueness, unlock/switch, timesheet edit +
+  audit, travel) are all live-verified on the QA test shop. See the report for the exact steps.
+
 ### 2026-07-02 PM (⚡ Overnight pre-pilot build — the whole review punch-list DONE)
 - **You green-lit the full `PRE_PILOT_REVIEW.md` list; all 16 do-able items are built, verified
   live, and pushed** (one revertible commit each). Highlights, plain-language:

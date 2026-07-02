@@ -80,6 +80,14 @@ signs in. RLS is ON; only signed-in staff can read/write.
 
 ## 4. What's built & proven so far
 
+- **Phase 7 — Shift + machine-lock + time clock (2026-07-02, OFF by default).** Login=clock-in;
+  idle/Lock-now → PIN unlock (4=staff/6=mgr; a different PIN switches the active user); Clock out
+  (Lunch/Personal/End-of-day)=logout; travel derived from scheduler en_route→on_site; Timesheets
+  (staff own · owner/mgr all+edit, audit-logged). Migrations `phase7/7a-7c` + edge fn `pin-unlock`,
+  isolation **33/33**. Gated by a shop toggle + per-device "workstation" flag (both default off) —
+  inert until the owner opts in; on-device lock/PIN/idle flows pending owner test. Full detail in
+  `bittings-unified/app/STRUCTURE_NOTES.md` (2026-07-02 (d)).
+
 Phases land as server-enforced DB migrations + edge functions, proven at the database level
 before the UI is trusted. **"DB-proven" = an automated isolation/Postgres test passed; "code-
 complete, pending mobile sign-off" = built + traced but NOT yet confirmed on a real phone.**
