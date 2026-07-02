@@ -702,6 +702,7 @@
     html[data-bt-theme="dark"] #view-inventory .invcat-top{color:#f4f5f7;}
     html[data-bt-theme="dark"] #view-inventory .invcat-sub{color:#c4c9d2;}
     #view-inventory .invsubtabs,#view-reconcile .invsubtabs{margin-bottom:12px;}
+    .reptabs{margin-bottom:14px;flex-wrap:wrap;}
     .setupBody input, .setupBody select, .setupBody textarea{max-width:100%;box-sizing:border-box;}
   }
   .rep-select{flex:1;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:11px 12px;
@@ -1135,7 +1136,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
       <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Commission</button>
       <button class="bt-nav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Inventory</button>
       <button class="bt-nav__item" data-go="reconcile" style="display:none"><span class="bt-nav__ic">🔢</span>Reconcile</button><!-- moved under the Inventory screen (Stock | Reconcile sub-tabs) -->
-      <button class="bt-nav__item" data-go="returns"><span class="bt-nav__ic">↩</span>Returns</button>
+      <button class="bt-nav__item" data-go="returns" style="display:none"><span class="bt-nav__ic">↩</span>Returns</button><!-- folded into Reports → Returns tab -->
       <button class="bt-nav__item owner-soft" data-go="fleet" style="display:none"><span class="bt-nav__ic">🚐</span>Fleet</button>
       <button class="bt-nav__item" data-go="lishi"><span class="bt-nav__ic">📇</span>Lishi &amp; Keys</button>
       <button class="bt-nav__item" data-go="programmers"><span class="bt-nav__ic">🛠</span>Programmers</button>
@@ -1556,6 +1557,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
   </div>
 
   <div class="view" id="view-reports">
+    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports" class="on">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button><button type="button" data-reptab="commission">💰 Commission</button></div>
     <div class="rep-controls">
       <select id="repPeriod" class="rep-select" aria-label="Time period">
         <option value="today">Today</option>
@@ -1584,6 +1586,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
   </div>
 
   <div class="view" id="view-commission">
+    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button><button type="button" data-reptab="commission" class="on">💰 Commission</button></div>
     <div class="rep-controls">
       <select id="comPeriod" class="rep-select" aria-label="Period">
         <option value="week">This week</option><option value="month" selected>This month</option>
@@ -1631,9 +1634,17 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
   </div>
 
   <div class="view" id="view-returns">
+    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns" class="on">↩ Returns</button><button type="button" data-reptab="commission">💰 Commission</button></div>
     <div class="bar"><div class="seg" id="retSeg"></div></div>
     <div class="note" id="retStatus"></div>
     <div class="clist" id="retList"></div>
+  </div>
+
+  <div class="view" id="view-invreport">
+    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport" class="on">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button><button type="button" data-reptab="commission">💰 Commission</button></div>
+    <div class="invsummary" id="invRepCards"></div>
+    <div class="clist" id="invRepList"></div>
+    <p class="note">Live stock value from your current inventory (all locations). Cost totals fill in once each part's cost is entered.</p>
   </div>
 
   <div class="view" id="view-part">
@@ -1748,7 +1759,7 @@ function saveCustomers(a){ TKS.saveList("customers", a); }
 function getShops(){ return TKS.list("shops"); }
 function saveShops(a){ TKS.saveList("shops", a); }
 
-const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','dashboard','inventory','part','fleet','settings','programmers','schedule','lishi','receipts','reconcile','returns'];
+const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','invreport','dashboard','inventory','part','fleet','settings','programmers','schedule','lishi','receipts','reconcile','returns'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
@@ -1757,6 +1768,7 @@ function show(name){
   document.querySelectorAll('.bt-nav__item,.bt-bottomnav__item').forEach(el=>el.classList.toggle('is-active', el.dataset.go===name));
   // sub-screens keep their parent nav item highlighted (Reconcile lives under Inventory)
   if(name==='reconcile'){ document.querySelectorAll('[data-go="inventory"]').forEach(el=>el.classList.add('is-active')); }
+  if(name==='invreport'||name==='returns'){ document.querySelectorAll('[data-go="reports"]').forEach(el=>el.classList.add('is-active')); }
   if(window.renderConsolBanner) window.renderConsolBanner();
   if(window.renderMoveReqBanner) window.renderMoveReqBanner();
   window.scrollTo(0,0);
@@ -1853,6 +1865,15 @@ document.querySelectorAll('[data-invtab]').forEach(b=>{
     if(t==='reconcile'){ window.renderReconcile && window.renderReconcile(); }
     else { renderInventory(); window.renderInvDash && window.renderInvDash(); }
     show(t); };
+});
+// Reports screen tabs across the top: Sales · Inventory · Returns · Commission
+document.querySelectorAll('[data-reptab]').forEach(b=>{
+  b.onclick = ()=>{ const t=b.dataset.reptab;
+    if(t==='reports'){ openReports(); return; }
+    if(t==='invreport'){ window.renderInvReport && window.renderInvReport(); show('invreport'); return; }
+    if(t==='returns'){ window.renderReturns && window.renderReturns(); show('returns'); return; }
+    if(t==='commission'){ renderCommission(); show('commission'); return; }
+  };
 });
 /* Embedded tools: on DESKTOP, the sub-tools (Receipts, Scheduler, Lishi, Programmers, Settings)
    open INSIDE the content panel so the left menu never leaves. On a PHONE they open as their own
@@ -3695,6 +3716,28 @@ function openReports(){
   show('reports');
   renderReports();
 }
+// Inventory report (a Reports tab) — live stock value + per-category breakdown from current inventory.
+function renderInvReport(){
+  var all=[]; try{ all=TKS.Inventory.all()||[]; }catch(e){}
+  var m=window.money||function(v){return '$'+(Number(v)||0).toFixed(2);};
+  var units=0,retail=0,cost=0,low=0,groups={};
+  all.forEach(function(p){
+    var q=parseInt(p.qty,10)||0, sp=(parseInt(p.sell_price_cents,10)||0)/100, c=parseFloat(p.cost)||0;
+    units+=q; retail+=q*sp; cost+=q*c; try{ if(TKS.Inventory.isLow(p)) low++; }catch(e){}
+    var cp=catParts(p), key=cp.top+' · '+(cp.sub||'—');
+    if(!groups[key]) groups[key]={items:0,units:0,retail:0};
+    groups[key].items++; groups[key].units+=q; groups[key].retail+=q*sp;
+  });
+  var rc=function(l,v){return '<div class="chip"><b>'+v+'</b>'+l+'</div>';};
+  var cards=document.getElementById('invRepCards');
+  if(cards) cards.innerHTML = rc('items',all.length)+rc('units in stock',units)+rc('retail value',m(retail))+rc('cost value',m(cost))+'<div class="chip'+(low?' low':'')+'"><b>'+low+'</b>low / out</div>';
+  var keys=Object.keys(groups).sort();
+  var list=document.getElementById('invRepList');
+  if(list) list.innerHTML = keys.length ? keys.map(function(k){ var g=groups[k];
+    return '<div class="crow"><div class="pinfo"><div class="nm">'+esc(k)+'</div><div class="sub">'+g.items+' item'+(g.items===1?'':'s')+' · '+g.units+' units</div></div><span class="tag">'+m(g.retail)+'</span></div>';
+  }).join('') : '<div class="empty">No inventory yet.</div>';
+}
+window.renderInvReport = renderInvReport;
 document.getElementById('repPeriod').addEventListener('change', e=>{ const v=repView(); v.period=e.target.value; repSetView(v); renderReports(); });
 document.getElementById('repChart').addEventListener('change', e=>{ const v=repView(); v.chart=e.target.value; repSetView(v); renderReports(); });
 document.getElementById('repTech').addEventListener('change', e=>{ const v=repView(); v.tech=e.target.value; repSetView(v); renderReports(); });
