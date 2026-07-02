@@ -110,6 +110,23 @@ insert into payment_transactions(invoice_id,stripe_payment_intent_id,method,stat
 revoke execute on function payment_txn_stamp_shop()   from public, authenticated;
 revoke execute on function payment_event_stamp_shop() from public, authenticated;
 
+-- (7a) time clock: staff read OWN rows, managers the shop; NO write policies for
+-- authenticated (all writes go through definer RPCs); one open segment per user.
+create table time_entries(id uuid primary key default gen_random_uuid(), user_id uuid not null,
+  shop_id uuid not null default current_shop(), clock_in timestamptz not null default now(),
+  clock_out timestamptz, out_reason text);
+create unique index te_one_open on time_entries(user_id) where clock_out is null;
+alter table time_entries enable row level security;
+create policy te_sel_own on time_entries for select to authenticated using (user_id = auth.uid());
+create policy te_sel_mgr on time_entries for select to authenticated using (is_manager());
+create policy te_tenant on time_entries as restrictive for all to authenticated
+  using (shop_id=current_shop()) with check (shop_id=current_shop());
+grant select on time_entries to authenticated;
+insert into time_entries(user_id, shop_id, clock_in) values
+  ('${uA1}','${A}', now() - interval '4 hours'),
+  ('${uA2}','${A}', now() - interval '3 hours'),
+  ('${uB1}','${B}', now() - interval '2 hours');
+
 -- (5g) shop_config: one row PER SHOP (id surrogate + unique shop_id), mirroring prod.
 create table shop_config(id serial primary key, data jsonb,
   shop_id uuid not null default current_shop(), unique(shop_id));
@@ -250,6 +267,18 @@ grant usage, select on sequence shop_config_id_seq to authenticated;
   r = await tryUser(uA1, `update shop_config set data='{"name":"HACK"}' where shop_id=$1`, [B]);
   const bCfg = (await c.query('select data->>\'name\' nm from shop_config where shop_id=$1', [B])).rows[0];
   check('5g: shop A cannot overwrite shop B settings', bCfg && bCfg.nm === 'B cfg', 'B name=' + (bCfg && bCfg.nm));
+
+  // ===================== TIME CLOCK (7a) =====================
+  r = await tryUser(uA2, 'select count(*)::int n from time_entries');
+  check('7a: A-tech sees ONLY their own time entries', r.rows && r.rows[0].n === 1, r.rows && r.rows[0].n);
+  r = await tryUser(uA1, 'select count(*)::int n, count(*) filter (where shop_id=$1)::int own from time_entries', [A]);
+  check('7a: A-owner (manager) sees the whole shop A — and ZERO of shop B', r.rows && r.rows[0].n === 2 && r.rows[0].own === 2, r.rows && JSON.stringify(r.rows[0]));
+  r = await tryUser(uA2, "update time_entries set clock_out = now() where user_id=$1", [uA2]);
+  const teOpen = (await c.query('select count(*)::int n from time_entries where user_id=$1 and clock_out is null', [uA2])).rows[0].n;
+  check('7a: staff CANNOT edit their own time directly (no write policy — RPC-only)', teOpen === 1, 'still open=' + teOpen);
+  let dupErr = '';
+  try { await c.query("insert into time_entries(user_id, shop_id) values ($1,$2)", [uA2, A]); } catch (e) { dupErr = e.message; }
+  check('7a: a second OPEN segment for the same user is impossible (unique index)', /te_one_open|duplicate key/.test(dupErr), dupErr || 'NO ERROR (bad)');
 
   // (9) RLS defense-in-depth: as authenticated A-owner, only shop A payments are visible.
   r = await tryUser(uA1, 'select count(*)::int n, count(*) filter (where shop_id=$1)::int own from payment_transactions', [A]);
