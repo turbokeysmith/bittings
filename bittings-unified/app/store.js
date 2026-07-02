@@ -1173,7 +1173,22 @@
   global.TKS.Commission = {
     config:     function(){ if(_demoOn()) return Promise.resolve({ data:_demoGet('tks_demo_comm_config', { id:1, pay_on:'whole_job', structure:'daily_min_pct', pct:8, daily_min_cents:15000, exclude_parts:true, earned_when:'paid', hold_unreconciled:true }), error:null }); return _sb().from('commission_config').select('*').limit(1).maybeSingle(); },     // read = any staff; RLS fence returns OUR shop's row (5j: per-shop)
     saveConfig: function(c){ if(_demoOn()){ _demoSet('tks_demo_comm_config', c); return _demoOk(null); } return _sb().from('commission_config').upsert(Object.assign({ updated_at:new Date().toISOString() }, c), { onConflict:'shop_id' }); },  // write = manager+ (RLS); one row per shop, shop_id defaults to current_shop() (5j)
-    dayRows:    function(from,to,tech){ if(_demoOn()) return _demoOk(_demoCommissionRows(from,to,tech)); return _sb().rpc('commission_day_rows', { p_from:from, p_to:to, p_tech:tech||null }); },  // tech = own only (server-forced)
+    dayRows:    function(from,to,tech){
+      if(_demoOn()){
+        // Mirror the server rules locally (B-#1): front_desk sees nothing;
+        // a technician sees ONLY their own rows (matched by email; no match = none).
+        var role=null; try{ role=localStorage.getItem('tks_demo_role'); }catch(_){ }
+        if(role==='front_desk') return _demoOk([]);
+        if(role==='technician'){
+          var me=null;
+          try{ var em=(global.TKS.auth.email()||'').toLowerCase();
+               var hit=_demoGet('tks_demo_staff',[]).find(function(s){ return (s.email||'').toLowerCase()===em; });
+               me=hit&&hit.user_id; }catch(_){ }
+          tech = me || '__self__';
+        }
+        return _demoOk(_demoCommissionRows(from,to,tech));
+      }
+      return _sb().rpc('commission_day_rows', { p_from:from, p_to:to, p_tech:tech||null }); },  // tech = own only (server-forced); front_desk = empty (server-forced, 5k)
     // 2d — manager sign-off / reconciliation approval (releasing a hold releases the commission hold)
     awaitingSignoff: function(){ if(_demoOn()) return _demoOk([]); return _sb().rpc('jobs_awaiting_signoff'); },                                   // manager+ only
     releaseHold:     function(job, action, note){ if(_demoOn()) return _demoOk(null); return _sb().rpc('job_release_hold', { p_job:job, p_action:action, p_note:note||'' }); }

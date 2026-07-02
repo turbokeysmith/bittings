@@ -3592,6 +3592,9 @@ async function renderCommission(){
   const cards=document.getElementById('comCards'), list=document.getElementById('comList'), note=document.getElementById('comNote'), holds=document.getElementById('comHolds');
   cards.innerHTML=''; list.innerHTML='<div class="empty">Loading…</div>'; holds.innerHTML=''; note.textContent='';
   if(!(window.TKS && TKS.auth && TKS.auth.isSignedIn())){ list.innerHTML='<div class="empty">Sign in to see commission.</div>'; return; }
+  // B-#1: front desk doesn't see commission (nav is hidden too — this guards deep links).
+  let roleNow=null; try{ roleNow = TKS.auth.staffRole && TKS.auth.staffRole(); }catch(_){}
+  if(roleNow==='front_desk'){ list.innerHTML='<div class="empty">Commission is visible to technicians (their own) and managers.</div>'; return; }
   const mgr=comIsManager(), techSel=document.getElementById('comTech');
   if(mgr && techSel && techSel.options.length<=1){ try{ const r=await TKS.Fleet.staff(); ((r&&r.data)||[]).forEach(s=>{ const o=document.createElement('option'); o.value=s.user_id; o.textContent=(s.name||s.role); techSel.appendChild(o); }); }catch(e){} }
   const rng=comPeriodRange(document.getElementById('comPeriod').value);
@@ -3958,6 +3961,10 @@ function syncOwnerTiles(){
   const hard=ownerHard(), soft=ownerSoft();
   document.querySelectorAll('.owner-only').forEach(el=>{ el.style.display = hard ? '' : 'none'; });
   document.querySelectorAll('.owner-soft').forEach(el=>{ el.style.display = soft ? '' : 'none'; });
+  // Commission (B-#1): technicians see it (their OWN rows — server-scoped);
+  // front desk doesn't see it at all.
+  let fr=null; try{ fr = TKS.auth.staffRole && TKS.auth.staffRole(); }catch(_){}
+  document.querySelectorAll('[data-go="commission"]').forEach(el=>{ el.style.display = (fr==='front_desk') ? 'none' : ''; });
 }
 function updateAuthUI(){
   syncOwnerTiles();
