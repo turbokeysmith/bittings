@@ -2386,9 +2386,16 @@ function renderInventory(){
   } else if(seg){ seg.style.display='none'; }
   // summary chips
   const low = TKS.Inventory.lowCount();
+  // C-#15: parts without a cost make Cost/Profit read $0 — nudge managers to
+  // fill them in (the cost pipeline itself is fully wired end-to-end).
+  const noCost = all.filter(p=> !(parseFloat(p.cost)>0)).length;
+  const canSeeCost = (function(){ try{ return TKS.auth.can('editPricing'); }catch(_){ return false; } })();
   document.getElementById('invSummary').innerHTML =
     '<div class="chip"><b>'+all.length+'</b>parts</div>'+
-    '<div class="chip'+(low?' low':'')+'"><b>'+low+'</b>low / out</div>';
+    '<div class="chip'+(low?' low':'')+'"><b>'+low+'</b>low / out</div>'+
+    ((canSeeCost && noCost>0)
+      ? '<div class="chip low" id="invCostNudge" title="Open a part and enter its Cost — Cost/Profit and commission then show real numbers"><b>'+noCost+'</b>missing cost — profit reads $0 for these</div>'
+      : '');
 
   const wrap = document.getElementById('invList');
   if(list.length===0){
