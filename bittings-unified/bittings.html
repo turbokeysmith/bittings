@@ -909,6 +909,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <div class="ro-viewer-btns">
       <button type="button" id="roViewerPrint">🖨 Print</button>
       <button type="button" id="roViewerDl">⬇ Download</button>
+      <button type="button" id="roViewerReturn" title="Start a return / warranty for this invoice">↩ Return</button>
       <button type="button" id="roViewerClose" aria-label="Close viewer">✕</button>
     </div>
   </div>
@@ -3963,6 +3964,14 @@ function roViewerPrint(){
     setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 60000);
   }
 }
+// Start a return from the invoice: hand off to the app's Returns area (list lives under Reports).
+function roStartReturn(){
+  if(!roViewerReceipt) return;
+  var payload={ id:roViewerReceipt.id||'', number:roViewerReceipt.number||'' };
+  try{ if(window.self!==window.top){ window.parent.postMessage({type:'tks:start-return', receipt:payload}, location.origin); roCloseViewer(); return; } }catch(e){}
+  try{ sessionStorage.setItem('tks_start_return', JSON.stringify(payload)); }catch(e){}
+  location.href='index.html';
+}
 function roOpen(){ document.body.classList.add('ro-mode'); roSetTab(roTab); }
 function roSetTab(t){
   roTab=(t==='nastf')?'nastf':'all';
@@ -4044,6 +4053,7 @@ function roRenderNastf(){
   var vc=document.getElementById('roViewerClose'); if(vc) vc.onclick=roCloseViewer;
   var vd=document.getElementById('roViewerDl'); if(vd) vd.onclick=roViewerDownload;
   var vp=document.getElementById('roViewerPrint'); if(vp) vp.onclick=roViewerPrint;
+  var vr=document.getElementById('roViewerReturn'); if(vr) vr.onclick=roStartReturn;
   var vbody=document.getElementById('roViewer');
   if(vbody) vbody.addEventListener('click', function(e){ if(e.target===vbody) roCloseViewer(); });   // tap the backdrop to close
   document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var v=document.getElementById('roViewer'); if(v && v.classList.contains('open')) roCloseViewer(); } });

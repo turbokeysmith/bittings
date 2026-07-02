@@ -1875,6 +1875,16 @@ document.querySelectorAll('[data-reptab]').forEach(b=>{
     if(t==='commission'){ renderCommission(); show('commission'); return; }
   };
 });
+// A return can be STARTED from an invoice (the receipt viewer's ↩ Return button); it hands off
+// here and opens the Returns tab (the returns LIST lives under Reports → Returns).
+function tksStartReturnFlow(receipt){
+  try{ window.renderReturns && window.renderReturns(); }catch(e){}
+  show('returns');
+  try{ var st=document.getElementById('retStatus'); if(st && receipt && (receipt.number||receipt.id)){
+    st.textContent='Processing a return for invoice '+(receipt.number||receipt.id)+'. Mark the item Warranty or Failed to send it back to the supplier.'; } }catch(e){}
+}
+window.addEventListener('message', function(ev){ try{ if(ev.data && ev.data.type==='tks:start-return'){ tksStartReturnFlow(ev.data.receipt||{}); } }catch(e){} });
+try{ var _sr=sessionStorage.getItem('tks_start_return'); if(_sr){ sessionStorage.removeItem('tks_start_return'); var _srr=JSON.parse(_sr); setTimeout(function(){ tksStartReturnFlow(_srr); }, 500); } }catch(e){}
 /* Embedded tools: on DESKTOP, the sub-tools (Receipts, Scheduler, Lishi, Programmers, Settings)
    open INSIDE the content panel so the left menu never leaves. On a PHONE they open as their own
    full page (an iframe in a narrow column would be cramped, and the bottom nav covers navigation). */
