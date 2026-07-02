@@ -2392,6 +2392,7 @@ function renderInventory(){
         ? '<button class="moveloc" data-stock="'+esc(p.id)+'" title="Stock by location (shop / vans)">📍</button>'
         : (showLoc?'<button class="moveloc" data-cap="inventoryWrite" title="Move to '+(loc==='van'?'shop':'van')+'">→ '+(loc==='van'?'Shop':'Van')+'</button>':''))+
       ((window.TKS_HW && TKS_HW.prefs().labels.enabled)?'<button class="moveloc" data-label="'+esc(p.id)+'" title="Print barcode label (Zebra ZD421)">🏷️</button>':'')+
+      ((TKS.auth && TKS.auth.isSignedIn())?'<button class="moveloc" data-warr="'+esc(p.id)+'" title="Warranty replacement (links to the original sale)">🛡️</button><button class="moveloc" data-fail="'+esc(p.id)+'" title="Mark a unit failed → supplier return">⚠️</button>':'')+
       (p.cost?'<span class="tag">'+money(p.cost)+'</span>':'');
     row.querySelector('.minus').onclick = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id,-1); renderInventory(); };
     row.querySelector('.plus').onclick  = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id, 1); renderInventory(); };
@@ -2403,6 +2404,8 @@ function renderInventory(){
     const lbl=row.querySelector('[data-label]');
     if(lbl) lbl.onclick=(e)=>{ e.stopPropagation(); const part=TKS.Inventory.get(p.id)||p;
       TKS_HW.labels.printPart(part).then(()=>{}).catch(err=>uiAlert(err.message||String(err))); };
+    const wb=row.querySelector('[data-warr]'); if(wb) wb.onclick=(e)=>{ e.stopPropagation(); window.invWarranty && window.invWarranty(p.id, p.name||''); };
+    const fb=row.querySelector('[data-fail]'); if(fb) fb.onclick=(e)=>{ e.stopPropagation(); window.invFailed && window.invFailed(p.id, p.name||''); };
     const info = row.querySelector('.pinfo');
     info.onclick = ()=> openPart(p.id);
     info.setAttribute('tabindex','0');

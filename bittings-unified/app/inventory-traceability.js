@@ -184,4 +184,72 @@
       card('Returns to send', d.returns_needed || 0) +
       '</div>';
   };
+
+  // =========================== WARRANTY / FAILED MODALS ======================
+  var INP = 'width:100%;box-sizing:border-box;padding:10px;border-radius:9px;border:1px solid rgba(128,128,128,.4);background:transparent;color:inherit;font-size:16px;margin:4px 0 10px';
+  var BTN = 'width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:700;cursor:pointer';
+  function modal(title, bodyHtml) {
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML = '<div style="background:var(--card,#fff);color:var(--ink,#14171b);width:100%;max-width:460px;border-radius:16px;padding:16px;max-height:90vh;overflow:auto">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:17px">' + title + '</b>' +
+      '<button class="tmX" style="background:none;border:none;font-size:24px;cursor:pointer;color:inherit;width:40px;height:40px">×</button></div>' +
+      '<div class="tmBody">' + bodyHtml + '</div></div>';
+    document.body.appendChild(ov);
+    function close(){ ov.remove(); }
+    ov.querySelector('.tmX').onclick = close;
+    ov.addEventListener('click', function (e){ if (e.target === ov) close(); });
+    return { ov: ov, close: close, body: ov.querySelector('.tmBody') };
+  }
+  async function locOptions(s) {
+    var vans = []; try { vans = ((await s.from('vans').select('id,nickname,fleet_no')).data) || []; } catch (e) {}
+    return '<option value="shop">🏪 Shop</option>' + vans.map(function (v){ return '<option value="van:' + v.id + '">🚐 ' + E(v.nickname || v.fleet_no || 'Van') + '</option>'; }).join('');
+  }
+  function afterChange(){ try { if (window.renderInventory) renderInventory(); } catch (e) {} try { if (window.renderInvDash) renderInvDash(); } catch (e) {} }
+
+  window.invFailed = async function (itemId, itemName) {
+    var s = sb(); if (!s) { alert('Sign in to the cloud first.'); return; }
+    var m = modal('⚠️ Mark a unit failed',
+      '<div class="sub" style="margin-bottom:8px">' + E(itemName) + ' — pulls one unit from stock and adds it to the supplier-return list. No customer (this key never reached one).</div>' +
+      '<label>From location</label><select id="fkLoc" style="' + INP + '">' + (await locOptions(s)) + '</select>' +
+      '<label>Reason (optional)</label><input id="fkReason" placeholder="e.g. wouldn’t program" style="' + INP + '">' +
+      '<button id="fkGo" style="' + BTN + '">Mark failed → return list</button>' +
+      '<div id="fkMsg" class="sub" style="margin-top:8px"></div>');
+    m.body.querySelector('#fkGo').onclick = async function () {
+      var btn = m.body.querySelector('#fkGo'); btn.disabled = true;
+      var r = await s.rpc('key_failed', { p_item: itemId, p_location: m.body.querySelector('#fkLoc').value, p_reason: m.body.querySelector('#fkReason').value || '' });
+      if (r.error) { m.body.querySelector('#fkMsg').textContent = r.error.message; btn.disabled = false; return; }
+      m.body.querySelector('#fkMsg').textContent = '✓ Marked failed and added to the returns list.';
+      afterChange(); setTimeout(m.close, 900);
+    };
+  };
+
+  window.invWarranty = async function (itemId, itemName) {
+    var s = sb(); if (!s) { alert('Sign in to the cloud first.'); return; }
+    var units = [];
+    try { units = ((await s.from('inventory_units').select('sold_receipt_id,sold_at').eq('item_id', itemId).eq('status', 'sold').not('sold_receipt_id', 'is', null).order('sold_at', { ascending: false })).data) || []; } catch (e) {}
+    var ids = []; units.forEach(function (u){ if (u.sold_receipt_id && ids.indexOf(u.sold_receipt_id) < 0) ids.push(u.sold_receipt_id); });
+    var recMap = {};
+    if (ids.length) { try { var recs = ((await s.from('receipts').select('id,data,created_at').in('id', ids)).data) || [];
+      recs.forEach(function (r){ recMap[r.id] = { cust: (r.data && r.data.customer) || '', num: (r.data && (r.data.number || r.id)) || r.id, date: (r.data && r.data.date) || (r.created_at || '').slice(0, 10) }; }); } catch (e) {} }
+    var salesHtml = ids.length
+      ? ids.map(function (id){ var r = recMap[id] || {}; return '<label style="display:flex;gap:8px;align-items:center;padding:8px;border:1px solid rgba(128,128,128,.3);border-radius:9px;margin-bottom:6px;cursor:pointer"><input type="radio" name="wrRcpt" value="' + E(id) + '"><span>' + E(r.cust || '(customer)') + ' · ' + E(r.date || '') + ' · ' + E(r.num || id) + '</span></label>'; }).join('')
+      : '<div class="sub">No serialized sales of this item found to warranty against. (Warranty tracking applies to units sold after serialization.)</div>';
+    var m = modal('🛡️ Warranty replacement',
+      '<div class="sub" style="margin-bottom:8px">' + E(itemName) + ' — pick the original sale; the app checks it’s still under warranty, issues a new one from your chosen location (logged as warranty, not a sale), and puts the bad key on the return list.</div>' +
+      '<label>Original sale</label><div style="margin-bottom:10px">' + salesHtml + '</div>' +
+      '<label>Issue replacement from</label><select id="wrLoc" style="' + INP + '">' + (await locOptions(s)) + '</select>' +
+      '<button id="wrGo" style="' + BTN + '" ' + (ids.length ? '' : 'disabled') + '>Issue warranty replacement</button>' +
+      '<div id="wrMsg" class="sub" style="margin-top:8px"></div>');
+    var go = m.body.querySelector('#wrGo');
+    if (go) go.onclick = async function () {
+      var sel = m.body.querySelector('input[name="wrRcpt"]:checked'), msg = m.body.querySelector('#wrMsg');
+      if (!sel) { msg.textContent = 'Pick the original sale first.'; return; }
+      go.disabled = true;
+      var r = await s.rpc('warranty_replace', { p_original_receipt: sel.value, p_item: itemId, p_location: m.body.querySelector('#wrLoc').value });
+      if (r.error) { msg.textContent = r.error.message; go.disabled = false; return; }
+      msg.textContent = '✓ Warranty replacement issued. Bad key added to the returns list.';
+      afterChange(); setTimeout(m.close, 1100);
+    };
+  };
 })();
