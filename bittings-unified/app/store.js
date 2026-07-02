@@ -1039,6 +1039,11 @@
      These need a live cloud session (authState.sb); offline they throw.
      =================================================================== */
   function _sb(){ if(!authState.sb) throw new Error('Connect to the cloud (sign in) to use this.'); return authState.sb; }
+  // Expose the live Supabase client accessor. Several signed-in-only feature
+  // modules (inventory-traceability, tier.js, timeclock/timesheets) fetch the
+  // client via TKS._sb() — without this it was undefined, so those cloud
+  // screens silently fell back to "sign in first" even when signed in.
+  global.TKS._sb = _sb;
 
   /* ===================================================================
      DEMO MODE (offline pitch). START-DEMO.html seeds localStorage and sets
