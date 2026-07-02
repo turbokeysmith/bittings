@@ -4808,7 +4808,14 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
           '<div id="payoutConnectStatus" class="sub" style="margin:8px 0">Checking payout connection…</div>'+
           '<button type="button" class="btn" id="payoutConnectBtn" style="display:none"></button>'+
           '<div class="hint">Card charges deposit straight into your own bank via Stripe Connect. Bittings takes a <b>1%</b> platform fee; Stripe’s standard processing fee applies. Cash &amp; check don’t need a connected account.</div>'+
+        '</div>'+
+        // C-#21: Stripe customer portal (update card, invoices, cancel) — owner-only.
+        '<div class="card" style="margin-top:14px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:12px">'+
+          '<label style="margin:0">Bittings subscription</label>'+
+          '<div class="sub" style="margin:8px 0">Update the card, download invoices, or change the plan for this shop\'s Bittings subscription.</div>'+
+          '<button type="button" class="btn" id="billingPortalBtn">Manage subscription…</button>'+
         '</div>';
+      gid('billingPortalBtn').onclick=()=>{ if(window.TKS_BILLING && TKS_BILLING.openPortal) TKS_BILLING.openPortal(); };
       setTimeout(TKS_refreshPayoutStatus, 0);
     }
     else if(key==='access'){
