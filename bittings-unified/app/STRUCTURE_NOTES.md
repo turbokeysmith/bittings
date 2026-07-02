@@ -8,6 +8,31 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 - **Staff app** (dark): http://127.0.0.1:8088/  → Customers · Receipts · Scheduler · Payments · Inventory
 - **Public site** (light): http://127.0.0.1:8099/  → contact form `/contact/`, language toggle 🌐 in the header
 
+## 2026-07-02 (b) — pre-pilot review: 5f EXECUTE hygiene + small fixes (see PRE_PILOT_REVIEW.md)
+
+Repo-root `PRE_PILOT_REVIEW.md` holds the full findings (security / missed / redundancy / quick
+wins) with 🔴🟡🟢 decisions for the owner. Code/DB changes this session (one commit each):
+
+- **`phase5/5f_revoke_public_function_execute.sql`** (applied live as
+  `phase5_5f_revoke_public_function_execute`): revoked PUBLIC/anon EXECUTE on the 15 functions
+  the linter flagged — trigger fns fully revoked (`payment_txn_stamp_shop`,
+  `payment_event_stamp_shop`, `fn_units_rollup`, `sync_staff_member`, `touch_updated_at`);
+  client RPCs keep `authenticated` (`create_shop`, `current_shop`, `shop_tier`, `seat_usage`,
+  `tier_allows`, `require_tier`, `strip_receipt_costs` — the last one because `receipts_safe`
+  is security_invoker); server-internal helpers to service_role only (`current_subscription`,
+  `inv_on_hand`); dropped leftover `_sweep_1b`. Isolation test extended with a post-revoke
+  trigger probe → **25/25**; live-verified (anon = permission denied, QA-owner session works,
+  touch trigger fires). Linter: zero anon-executable fns remain.
+- **isolation_test.js is now portable** (temp-dir pgdata via `PG_DBDIR`, embedded-postgres
+  resolved relative to repo root — was hardcoded to the old shop PC).
+- **Customers edit/merge bumps `updatedAt`** (+ `createdAt` on new rows) in `index.html`
+  (QA audit item; cloud trigger already did it server-side — local now matches).
+- **Reconcile: “✕ Discard count” button** (`#rcCancel` in index.html + handler in
+  `inventory-traceability.js`) wires the previously caller-less `cycle_cancel` RPC
+  (manager-gated, confirm-first). Live QA-shop round-trip verified.
+- Cosmetic/dev: `favicon.ico` added (404 noise), stale “cost not wired” comment corrected
+  (pipeline verified 2026-07-01), unused `acorn`/`acorn-walk` dropped from package.json.
+
 ## 2026-07-01 — live payment verification (TEST mode) + Phase 5c fix (`service_role` tenant grant)
 
 First true end-to-end exercise of the Stripe payment path through the **live edge functions** (test

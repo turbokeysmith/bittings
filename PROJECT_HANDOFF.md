@@ -408,6 +408,24 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-07-02 (🔍 Pre-pilot review: security fix applied + full findings report)
+- **A full pre-pilot review of the whole codebase ran overnight** — security, half-finished work,
+  redundancy, quick wins. **Read `PRE_PILOT_REVIEW.md` (repo root) — it's written for you**, with
+  what was fixed (each fix = one revertible commit) and what needs YOUR decision (🔴/🟡/🟢).
+- **Security fix applied + verified live:** the ~15 database functions that anyone-without-a-login
+  could call (the QA audit's 🔴, incl. `create_shop` and one that leaked Stripe customer IDs) are
+  now locked down (migration `phase5_5f`). Proven safe 4 ways: the multi-tenant isolation test
+  passes **25/25** (a new check proves payment triggers still fire), anonymous calls now get
+  "permission denied", a signed-in QA user still runs every app function, and the Supabase
+  security linter shows **zero** anonymous-executable functions.
+- **Small fixes:** customer edits now stamp their "last updated" time (QA audit item); the
+  Reconcile screen got its missing "✕ Discard count" button; favicon 404 noise cleared; a stale
+  code comment and two unused dev packages removed; the isolation test now runs on any PC.
+- **Top decisions waiting on you (see the report):** Commission tab visible to techs (hide vs
+  self-scope?); `billing-checkout` + a group of older server functions need shop-scoping before
+  5 real shops coexist; Settings storage is one-shop-only (`shop_config` singleton); and there is
+  **no staff-invite flow** — the practical pilot blocker.
+
 ### 2026-07-02 (📦 Inventory traceability engine built — serialized units, cycle count, warranty/returns)
 - **Every unit of inventory can now be tracked individually** ("serialized"): each key gets its own
   ID and is traceable through its whole life — which supplier & batch it came from, and whether it was

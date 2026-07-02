@@ -161,13 +161,15 @@ are live; all `pay-*` edge functions `ACTIVE`. Sources in the repo match what's 
    so tier-gating on RPCs is deliberately deferred). Per-shop Stripe Connect payouts need the
    `billing-checkout`/`billing-webhook`/`connect-onboard` fns reviewed for shop-scoping first.
 
-**QA fix list (open, from the 2026-06-30 sweep — see `bittings-unified/docs/QA_AUDIT_2026-06-30.md`):**
-a full Puppeteer audit (4 roles × both themes, 14 screens) ran before hardware. Top items: 🔴
-**Commission tab leaks all techs' pay to a technician** (gate or self-scope it); 🟡 mobile overflow
-(Commission/Settings/Inventory); 🟡 washed-out white-card tags + "OWES" badge contrast; 🟡 edit
-doesn't bump `updatedAt` + no customer-delete control found; 🔴 security: `REVOKE` anon EXECUTE on
-`create_shop` + trigger fns. Role gating and the 24/24 multi-tenant/payment isolation proof both
-**passed**. Cloud/Stripe write-paths still need a live session to verify (deferred). Re-run harness:
+**QA fix list (from the 2026-06-30 sweep — see `bittings-unified/docs/QA_AUDIT_2026-06-30.md`;
+status updated by the 2026-07-02 pre-pilot review, full report: `PRE_PILOT_REVIEW.md`):**
+✅ **DONE 2026-07-02:** the anon-EXECUTE revoke (migration `phase5_5f`, linter now clean; isolation
+test 25/25) and the `updatedAt`-on-edit fix; customer-delete control confirmed to exist (edit
+form → Remove). Still open: 🔴 **Commission tab leaks all techs' pay to a technician** (owner
+decision: gate vs self-scope); 🟡 mobile overflow (Commission/Settings/Inventory); 🟡 washed-out
+white-card tags + "OWES" badge contrast. **NEW pre-pilot 🔴s in `PRE_PILOT_REVIEW.md`:**
+`billing-checkout` wrong-shop subscription; older DEFINER RPCs not shop-scoped; `shop_config`
+single-row; no staff-invite flow; `pay-terminal` trusts client account id. Re-run harness:
 `bittings-unified/tools/qa/README.md`.
 
 **Hardware (the named next focus):** finish the physical device setup per `HARDWARE_SETUP.md` —
