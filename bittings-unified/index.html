@@ -801,6 +801,14 @@
   .rep-cards .chip b{color:var(--ink);}
   .qbtn.plus{color:#1f8f43;} .qbtn.minus{color:#b3242f;}
   .lowbadge{color:#1a1300;}
+  /* B-#8 (QA contrast): theme-aware transaction amount tags + Refund button
+     (were inline dark-theme colors → washed out on white cards), solid OWES
+     badge (was dark-red-on-red in dark mode), darker POS edit buttons
+     (white-on-#e08a2a was 2.7:1). Light values here; dark overrides below. */
+  .tag.amt-ok{color:#1f8f43;} .tag.amt-ref{color:#9a6a00;} .tag.amt-pend{color:#5b6470;} .tag.amt-bad{color:#b3242f;}
+  .repRefund{background:transparent;border:1px solid rgba(200,50,60,.6);color:#b3242f;border-radius:8px;padding:9px 13px;min-height:40px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .tag.owes{background:#b3242f;color:#fff;border-color:#b3242f;}
+  .posfn.fn-edit{background:#b8641b;}
 
   /* ===== Dark theme — flip the LEGACY palette so the dashboard / customers / forms / reports
      match the dark .bt shell. The .bt design system themes via --surface-*/--text-*, but this
@@ -868,6 +876,14 @@
   [data-bt-theme="dark"] .rep-toggles button.m-profit.on{color:#7fb8ff;}
   [data-bt-theme="dark"] .qbtn.plus{color:#7fd49b;}
   [data-bt-theme="dark"] .qbtn.minus{color:#e0636f;}
+  /* B-#8: the Reports/Closeout transaction cards are WHITE in BOTH themes, so
+     the amount tags + Refund button keep their dark-on-white colors everywhere
+     (no dark override — that was the original washed-out bug). The OWES badge
+     needs an explicit dark rule to outrank the generic dark .tag color. */
+  [data-bt-theme="dark"] .tag.amt-ok{color:#1f8f43;} [data-bt-theme="dark"] .tag.amt-ref{color:#9a6a00;}
+  [data-bt-theme="dark"] .tag.amt-pend{color:#5b6470;} [data-bt-theme="dark"] .tag.amt-bad{color:#b3242f;}
+  [data-bt-theme="dark"] .repRefund{color:#b3242f;border-color:rgba(200,50,60,.6);}
+  html[data-bt-theme="dark"] #view-customers .crow .tag.owes{color:#fff;background:#b3242f;border-color:#b3242f;}
 
   /* ===== Bittings shell host — let the .bt-app sidebar/bottom-nav lay out full-bleed ===== */
   body.bt{padding:0;}
@@ -1966,7 +1982,7 @@ function renderCustomers(){
     // "ES" badge = lead came through the Spanish form → expect Spanish on callback.
     const esBadge = (c.lang==='es') ? '<span class="es-badge" title="Spanish-speaking lead">ES</span>' : '';
     const owed = owedByName[(c.customer||'').trim().toLowerCase()]||0;
-    const owedTag = owed>0 ? '<span class="tag" title="Unpaid invoices" style="background:rgba(200,50,60,.14);color:#b3242f;border-color:rgba(200,50,60,.30)">OWES '+_money(owed)+'</span>' : '';
+    const owedTag = owed>0 ? '<span class="tag owes" title="Unpaid invoices">OWES '+_money(owed)+'</span>' : '';
     row.innerHTML =
       '<div class="avatar">'+(name.trim()[0]||'?').toUpperCase()+'</div>'+
       '<div><div class="nm">'+esc(name)+esBadge+'</div>'+(sub?'<div class="sub">'+esc(sub)+'</div>':'')+'</div>'+
@@ -3280,10 +3296,10 @@ async function renderHistory(){
   list.innerHTML=rows.map(t=>{
     const time=new Date(t.created_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
     const ml=t.method==='cash'?'Cash':t.method==='check'?'Check':t.method==='reader'?'Card · reader':'Card · typed';
-    const col=t.status==='completed'?'#7fd49b':(t.status==='refunded'||t.status==='partially_refunded')?'#f2b43a':t.status==='pending'?'#9aa3af':'#f0a0a6';
+    const cls=t.status==='completed'?'amt-ok':(t.status==='refunded'||t.status==='partially_refunded')?'amt-ref':t.status==='pending'?'amt-pend':'amt-bad';
     return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
       '<div class="sub">'+time+' · '+ml+(t.card_funding?(' · '+t.card_funding):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
-      '<span class="tag" style="color:'+col+'">'+money(t.captured_cents||t.base_cents)+'</span></div>';
+      '<span class="tag '+cls+'">'+money(t.captured_cents||t.base_cents)+'</span></div>';
   }).join('');
 }
 
@@ -3752,18 +3768,17 @@ async function renderReports(){
   drawRepChart(v.chart, buckets, agg, m, byMethod);
   // Transaction list (period rows, newest first)
   if(!rows.length){ list.innerHTML='<div class="empty">No transactions in this period.</div>'; return; }
-  const refBtn='background:transparent;border:1px solid rgba(200,50,60,.5);color:#f0a0a6;border-radius:8px;padding:9px 13px;min-height:40px;font-size:12.5px;font-weight:700;cursor:pointer';
   list.innerHTML=rows.map(t=>{
     const dt=new Date(t.created_at);
     const when=(v.period==='today') ? dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : dt.toLocaleDateString([], {month:'short',day:'numeric'})+' '+dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
     const ml=t.method==='cash'?'Cash':t.method==='check'?'Check':t.method==='reader'?'Card · reader':'Card · typed';
-    const col=t.status==='completed'?'#7fd49b':(t.status==='refunded'||t.status==='partially_refunded')?'#f2b43a':t.status==='pending'?'#9aa3af':'#f0a0a6';
+    const cls=t.status==='completed'?'amt-ok':(t.status==='refunded'||t.status==='partially_refunded')?'amt-ref':t.status==='pending'?'amt-pend':'amt-bad';
     const refund = (t.status==='completed'||t.status==='partially_refunded') ?
-      '<button class="repRefund" data-cap="refundVoid" data-id="'+esc2(t.id)+'" data-pi="'+esc2(t.stripe_payment_intent_id||'')+'" data-method="'+esc2(t.method)+'" data-inv="'+esc2(t.invoice_id||'')+'" style="'+refBtn+'">↩︎ Refund</button>' : '';
+      '<button class="repRefund" data-cap="refundVoid" data-id="'+esc2(t.id)+'" data-pi="'+esc2(t.stripe_payment_intent_id||'')+'" data-method="'+esc2(t.method)+'" data-inv="'+esc2(t.invoice_id||'')+'">↩︎ Refund</button>' : '';
     return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
       '<div class="sub">'+when+' · '+ml+(t.technician?(' · '+esc2(t.technician)):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
       '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'+
-        '<span class="tag" style="color:'+col+'">'+repMoney(t.captured_cents||t.base_cents)+'</span>'+refund+'</div></div>';
+        '<span class="tag '+cls+'">'+repMoney(t.captured_cents||t.base_cents)+'</span>'+refund+'</div></div>';
   }).join('');
   list.querySelectorAll('.repRefund').forEach(b=> b.onclick=async()=>{
     const id=b.dataset.id, pi=b.dataset.pi, method=b.dataset.method, inv=b.dataset.inv;
