@@ -66,8 +66,15 @@ so every existing screen keeps working. Migrations `phase6/6a–6e` (applied liv
   warranty/failed/returns/dashboard 7/7. Harnesses in the session scratchpad.
 - **Fitment hook:** `inventory_units.fitment` null now; `inventory.fitment` is the item default.
   Later per-unit fitment writes to `units.fitment` (serial→item→fitment join) with no schema change.
-- **UI (Phase 5):** the on-screen pieces (reconcile screen, warranty/failed actions, returns list,
-  dashboard cards) are the remaining increment — server RPCs are ready and proven.
+- **UI (Phase 5) — BUILT** (`app/inventory-traceability.js`, cloud-only, wired to the RPCs — engine
+  not rebuilt): Reconcile screen (`#view-reconcile`, nav 🔢 — −(X)+ per item, manager assign/start,
+  preset reason on discrepancies, Finish→cycle_complete summary; assigned staff auto-resume);
+  Returns list (`#view-returns`, nav ↩ — Open/Warranty/Failed/Resolved/All, manager advance buttons);
+  Inventory dashboard cards (`#invDash` on Inventory — retail/cost/warranty/failed/returns counts,
+  mgr+); 🛡️ Warranty + ⚠️ Failed buttons on inventory rows (modals pick original sale / location /
+  reason → warranty_replace / key_failed). Verified headless: boots with no console errors, functions
+  defined, renders light+dark. **Live signed-in flow pending the owner's phone sweep** (the app shell
+  can't be driven signed-in headless).
 
 ## 2026-07-01 (b) — Stripe Connect: per-shop payouts + 1% platform fee (TEST, verified)
 

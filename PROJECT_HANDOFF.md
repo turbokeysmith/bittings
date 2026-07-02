@@ -423,10 +423,12 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   credit/replacement received.
 - **Inventory dashboard:** total retail & cost value of stock, plus warranty-replacement and failed-key
   counts.
-- **Status:** the **engine is built and proven** in the test shop (22 automated checks passed). The
-  **on-screen screens for it are the next step** (the count screen, warranty/failed buttons, returns
-  list, dashboard cards). Built safely before the pilot so big structural changes only touched test
-  data. Kept compatible with a future **per-key vehicle fitment** project (no rework needed later).
+- **Status:** the **engine is built and proven** in the test shop (22 automated checks passed), and
+  the **screens are now built too** — the count screen, the 🛡️ warranty + ⚠️ failed buttons on
+  inventory, the returns list, and the dashboard cards. They boot cleanly (no errors, light + dark),
+  but the **live signed-in flow is pending your phone sweep** (I can't drive the signed-in app
+  automatically). Built safely before the pilot so big structural changes only touched test data.
+  Kept compatible with a future **per-key vehicle fitment** project (no rework needed later).
 - Two new plain-English owner docs added: **`BITTINGS_OVERVIEW.md`** (everything the app does, with
   honest DONE/IN-PROGRESS status) and **`ROADMAP_AND_IDEAS.md`** (the parking lot: Now / Planned / Ideas).
 

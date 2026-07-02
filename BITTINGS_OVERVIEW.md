@@ -42,20 +42,22 @@ _Last updated: 2026-07-02._
 - **Serialized inventory (every unit tracked individually)** — each key/unit gets its own ID and is
   traceable through its whole life: which supplier & batch it came from, and whether it was sold,
   failed, warranty-returned, sent back, or credited. A sale now records exactly which unit went to
-  which customer. **✅ DONE (the engine) · 🟡 the screens for it are IN PROGRESS.**
+  which customer. **✅ engine DONE · screens BUILT** (serialized stock shows through the normal
+  inventory + dashboard; reconcile/warranty/failed/returns screens are in) — pending your phone sweep.
 - **Reconciliation / cycle count** — a count you can assign to anyone; they tap or type the count per
   item, pick a reason for any discrepancy (from a set list), and a manager applies it. **✅ engine
   DONE · 🟡 screen IN PROGRESS.**
 - **Warranty replacement** — a customer's key failed under warranty: the app checks it's still in
   warranty, gives them a new one from your stock (logged as warranty, not a sale), and puts the bad
-  one on the supplier-return list. **✅ engine DONE · 🟡 screen IN PROGRESS.**
+  one on the supplier-return list. **✅ engine + screen BUILT** — pending your phone sweep for the live signed-in flow.
 - **Failed key** — a key that never worked (bench failure): pulled from stock and flagged to send
-  back to the supplier. **✅ engine DONE · 🟡 screen IN PROGRESS.**
+  back to the supplier. **✅ engine + screen BUILT** — pending your phone sweep for the live signed-in flow.
 - **Return-to-supplier tracking** — one list of everything owed back to suppliers (warranty + failed),
   tagged by supplier, tracked needs-return → sent → credit/replacement received. **✅ engine DONE ·
   🟡 screen IN PROGRESS.**
 - **Inventory dashboard** — total retail value & cost of your stock, plus counts of warranty
-  replacements and failed keys. **✅ engine DONE · 🟡 cards on screen IN PROGRESS.**
+  replacements and failed keys. **✅ engine + cards BUILT** (top of the Inventory screen) — pending
+  your phone sweep.
 
 ## Scheduling / dispatch
 - **Dispatch board** — a column per technician, day/week/month views, assign & drag jobs, statuses

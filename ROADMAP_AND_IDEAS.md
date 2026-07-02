@@ -9,10 +9,10 @@ _Last updated: 2026-07-02._
 ---
 
 ## 🔨 Now — actively building / next up
-- **Inventory traceability — the screens.** The engine is built & tested (serialized units,
-  reconciliation/cycle count, warranty replacement, failed key, supplier returns, inventory
-  dashboard). **Next up:** the on-screen pieces — the count screen (tap/type −(X)+, assign, reason
-  dropdown, summary), warranty/failed buttons on inventory, the returns list, and the dashboard cards.
+- **Inventory traceability — screens BUILT, pending your phone sweep.** Engine + screens are both in:
+  serialized units, the reconcile/cycle-count screen (tap/type −(X)+, assign, reason dropdown,
+  summary), 🛡️ warranty + ⚠️ failed buttons on inventory, the returns list, and the dashboard cards.
+  They boot clean (light + dark); the **live signed-in flow is your phone sweep** to confirm.
 - **Payments go-live rehearsal.** Test-card run-through is done; still ahead: connect real Stripe
   accounts, one real charge, retire the old TurboStripe desktop app + rotate its key.
 - **Stripe Connect finish** — the on-screen "Connect your Stripe account" card render + real bank/ID
