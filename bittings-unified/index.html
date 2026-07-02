@@ -1099,6 +1099,8 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
       <button class="bt-nav__item" data-go="schedule"><span class="bt-nav__ic">📅</span>Scheduler</button>
       <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Commission</button>
       <button class="bt-nav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Inventory</button>
+      <button class="bt-nav__item" data-go="reconcile"><span class="bt-nav__ic">🔢</span>Reconcile</button>
+      <button class="bt-nav__item" data-go="returns"><span class="bt-nav__ic">↩</span>Returns</button>
       <button class="bt-nav__item owner-soft" data-go="fleet" style="display:none"><span class="bt-nav__ic">🚐</span>Fleet</button>
       <button class="bt-nav__item" data-go="lishi"><span class="bt-nav__ic">📇</span>Lishi &amp; Keys</button>
       <button class="bt-nav__item" data-go="programmers"><span class="bt-nav__ic">🛠</span>Programmers</button>
@@ -1539,10 +1541,29 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
       <button class="add" id="invAdd" data-cap="inventoryWrite">+ Add</button>
       <button class="add" id="invHardware" title="Hardware: barcode scanner, receipt printer, label printer" style="background:#e7e9ee;color:#14171b">🖨️ Hardware</button>
     </div>
+    <div id="invDash"></div>
     <div class="invsummary" id="invSummary"></div>
     <div class="seg" id="invLocSeg" style="display:none;margin-bottom:12px"></div>
     <div class="clist" id="invList"></div>
     <p class="note" id="invNote">Stock is saved on this device. Sign in to sync it to the cloud.</p>
+  </div>
+
+  <div class="view" id="view-reconcile">
+    <div class="bar">
+      <select id="rcLoc" class="search" style="max-width:180px"></select>
+      <select id="rcAssign" class="search" style="max-width:200px;display:none"></select>
+      <button class="add" id="rcStart" data-cap="inventoryAdjust">Start count</button>
+      <button class="add" id="rcFinish" style="display:none">✓ Finish &amp; apply</button>
+    </div>
+    <div class="note" id="rcStatus"></div>
+    <div class="clist" id="rcList"></div>
+    <div id="rcSummary" style="margin-top:12px"></div>
+  </div>
+
+  <div class="view" id="view-returns">
+    <div class="bar"><div class="seg" id="retSeg"></div></div>
+    <div class="note" id="retStatus"></div>
+    <div class="clist" id="retList"></div>
   </div>
 
   <div class="view" id="view-part">
@@ -1657,7 +1678,7 @@ function saveCustomers(a){ TKS.saveList("customers", a); }
 function getShops(){ return TKS.list("shops"); }
 function saveShops(a){ TKS.saveList("shops", a); }
 
-const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','dashboard','inventory','part','fleet','settings','programmers','schedule','lishi','receipts'];
+const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','dashboard','inventory','part','fleet','settings','programmers','schedule','lishi','receipts','reconcile','returns'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
@@ -1744,10 +1765,11 @@ document.querySelectorAll('[data-go]').forEach(b=>{
     if(t==='reports'){ openReports(); return; }
     if(t==='dashboard'){ openDashboard(); return; }
     if(t==='startjob'){ openStartJob(); return; }
-    if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); } if(t==='payments'){ renderPayments(); } if(t==='commission'){ renderCommission(); }
+    if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); window.renderInvDash && window.renderInvDash(); } if(t==='payments'){ renderPayments(); } if(t==='commission'){ renderCommission(); }
     // de-iframed views are defined in later <script> blocks; guard with window. so an early
     // auto-trigger (e.g. maybeRedirectToSetup) can't throw "renderX is not defined".
     if(t==='fleet'){ window.renderFleet && window.renderFleet(); } if(t==='settings'){ window.renderSettings && window.renderSettings(); } if(t==='programmers'){ window.renderProgrammers && window.renderProgrammers(); } if(t==='schedule'){ window.renderSchedule && window.renderSchedule(); } if(t==='lishi'){ window.renderLishi && window.renderLishi(); } if(t==='receipts'){ window.renderReceipts && window.renderReceipts(); }
+    if(t==='reconcile'){ window.renderReconcile && window.renderReconcile(); } if(t==='returns'){ window.renderReturns && window.renderReturns(); }
     show(t); };
 });
 document.querySelectorAll('[data-open]').forEach(b=>{
@@ -7071,6 +7093,8 @@ gid('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') gid('vinBtn').c
      receipts (WebPRNT), Zebra ZD421 labels (ZPL/Browser Print). Optional vendor
      SDKs load below; the module degrades gracefully and previews work without them. -->
 <script src="app/hardware.js"></script>
+<!-- Inventory traceability screens (reconcile / returns / dashboard cards) on the phase6 engine -->
+<script src="app/inventory-traceability.js"></script>
 <!-- Star Web SDK (download from github.com/star-micronics/starwebprnt-sdk and drop the
      files in app/vendor/) — uncomment once installed to enable real thermal printing:
 <script src="app/vendor/StarWebPrintBuilder.js"></script>
