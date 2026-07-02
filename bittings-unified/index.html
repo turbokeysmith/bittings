@@ -685,6 +685,16 @@
 
   /* ---- Transaction History (reports) ---- */
   .rep-controls{display:flex;gap:8px;margin-bottom:12px;}
+  /* B-#7 (QA audit): nothing may clip off-screen at phone width. Commission's
+     controls row wraps (the ⚙/↻ buttons were pushed past the edge), inventory
+     part-row tags wrap instead of overflowing, and Settings step inputs can
+     never exceed their card. */
+  @media (max-width: 480px){
+    .rep-controls{flex-wrap:wrap;row-gap:8px;}
+    #view-inventory .crow{flex-wrap:wrap;}
+    #view-inventory .crow .tag{flex-shrink:1;min-width:0;}
+    .setupBody input, .setupBody select, .setupBody textarea{max-width:100%;box-sizing:border-box;}
+  }
   .rep-select{flex:1;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:11px 12px;
     color:var(--ink);font-size:16px;font-weight:700;outline:none;}
   .rep-toggles{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
