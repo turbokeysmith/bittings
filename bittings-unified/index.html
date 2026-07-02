@@ -1133,6 +1133,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
       <button class="bt-nav__item owner-only" data-go="dashboard" style="display:none"><span class="bt-nav__ic">📊</span>Dashboard</button>
       <button class="bt-nav__item owner-only" data-go="history" style="display:none"><span class="bt-nav__ic">🧮</span>Closeout</button>
       <button class="bt-nav__item owner-only" data-go="reports" style="display:none"><span class="bt-nav__ic">📈</span>Reports</button>
+      <button class="bt-nav__item" data-go="activity" id="navActivity" style="display:none"><span class="bt-nav__ic">📜</span>Activity</button>
       <div class="bt-navhead" data-cap="keycodes">Vendor tools</div>
       <div id="quickTiles"></div>
     </nav>
@@ -1168,6 +1169,18 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
   </div>
 
   <div class="view" id="view-settings"><div class="block">Loading…</div></div>
+
+  <!-- C-#17: owner-only Activity — who touched what (the append-only audit trail
+       ~15 server actions already write; this is its first read UI). -->
+  <div class="view" id="view-activity">
+    <div class="rep-controls">
+      <select id="actFilter" class="rep-select" aria-label="Action"><option value="">All actions</option></select>
+      <input id="actSearch" class="search" placeholder="Search actions, items, receipts…" style="flex:1;min-width:140px">
+      <button class="add" id="actReload" title="Refresh" style="background:#e7e9ee;color:#14171b">↻</button>
+    </div>
+    <div class="clist" id="actList"><div class="empty">Loading…</div></div>
+    <p class="note">The audit trail is append-only and written by the server — every stock move, sale, refund/void, sign-off, warranty and count lands here automatically.</p>
+  </div>
 
   <div class="view" id="view-schedule">
     <div class="bt-pagehead"><div><div class="eyebrow">Scheduler</div><h1>Calendar</h1></div></div>
@@ -1795,7 +1808,7 @@ document.querySelectorAll('[data-go]').forEach(b=>{
     if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); window.renderInvDash && window.renderInvDash(); } if(t==='payments'){ renderPayments(); } if(t==='commission'){ renderCommission(); }
     // de-iframed views are defined in later <script> blocks; guard with window. so an early
     // auto-trigger (e.g. maybeRedirectToSetup) can't throw "renderX is not defined".
-    if(t==='fleet'){ window.renderFleet && window.renderFleet(); } if(t==='settings'){ window.renderSettings && window.renderSettings(); } if(t==='programmers'){ window.renderProgrammers && window.renderProgrammers(); } if(t==='schedule'){ window.renderSchedule && window.renderSchedule(); } if(t==='lishi'){ window.renderLishi && window.renderLishi(); } if(t==='receipts'){ window.renderReceipts && window.renderReceipts(); }
+    if(t==='fleet'){ window.renderFleet && window.renderFleet(); } if(t==='settings'){ window.renderSettings && window.renderSettings(); } if(t==='programmers'){ window.renderProgrammers && window.renderProgrammers(); } if(t==='schedule'){ window.renderSchedule && window.renderSchedule(); } if(t==='lishi'){ window.renderLishi && window.renderLishi(); } if(t==='receipts'){ window.renderReceipts && window.renderReceipts(); } if(t==='activity'){ window.renderActivity && window.renderActivity(); }
     if(t==='reconcile'){ window.renderReconcile && window.renderReconcile(); } if(t==='returns'){ window.renderReturns && window.renderReturns(); }
     show(t); };
 });
@@ -3654,6 +3667,49 @@ document.getElementById('comReload').onclick=renderCommission;
 document.getElementById('comPeriod').addEventListener('change', renderCommission);
 document.getElementById('comTech').addEventListener('change', renderCommission);
 document.getElementById('comRules').onclick=()=>{ if(comIsManager()) openCommissionRules(); };
+
+/* ============================ ACTIVITY (audit trail, owner-only) ============================
+   C-#17: first read-UI for the append-only audit_log (~15 server actions write it).
+   Cloud-only; RLS = manager-read + shop fence, and the nav is owner-gated. */
+let actRows=[];
+async function renderActivity(){
+  const list=document.getElementById('actList'), filt=document.getElementById('actFilter');
+  if(!list) return;
+  let sb=null; try{ sb = TKS._sb && TKS._sb(); }catch(_){}
+  const role=(TKS.auth&&TKS.auth.staffRole)?TKS.auth.staffRole():null;
+  if(!sb){ list.innerHTML='<div class="empty">Sign in to the cloud to see the activity trail.</div>'; return; }
+  if(role!=='owner'){ list.innerHTML='<div class="empty">Activity is owner-only.</div>'; return; }
+  list.innerHTML='<div class="empty">Loading…</div>';
+  let staffNames={};
+  try{ (((await sb.from('staff').select('user_id,name')).data)||[]).forEach(s=>{ staffNames[s.user_id]=s.name; }); }catch(_){}
+  const res=await sb.from('audit_log').select('user_id,role,action,entity_type,entity_id,detail,created_at').order('created_at',{ascending:false}).limit(300);
+  if(res.error){ list.innerHTML='<div class="empty">'+esc2(res.error.message)+'</div>'; return; }
+  actRows=(res.data||[]).map(r=>Object.assign(r,{ _who: staffNames[r.user_id]||r.role||'—' }));
+  // action filter options (from the data itself)
+  const actions=[...new Set(actRows.map(r=>r.action))].sort();
+  filt.innerHTML='<option value="">All actions</option>'+actions.map(a=>'<option value="'+esc2(a)+'">'+esc2(a.replace(/_/g,' '))+'</option>').join('');
+  drawActivity();
+}
+function drawActivity(){
+  const list=document.getElementById('actList');
+  const f=(document.getElementById('actFilter').value||'');
+  const q=(document.getElementById('actSearch').value||'').toLowerCase();
+  let rows=actRows;
+  if(f) rows=rows.filter(r=>r.action===f);
+  if(q) rows=rows.filter(r=> (r.action+' '+(r.entity_id||'')+' '+(r._who||'')+' '+JSON.stringify(r.detail||{})).toLowerCase().includes(q));
+  if(!rows.length){ list.innerHTML='<div class="empty">No activity matches.</div>'; return; }
+  list.innerHTML=rows.slice(0,300).map(r=>{
+    const dt=new Date(r.created_at);
+    const when=dt.toLocaleDateString([],{month:'short',day:'numeric'})+' '+dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+    const det=r.detail?Object.entries(r.detail).filter(([k,v])=>v!==null&&v!=='').slice(0,4).map(([k,v])=>esc2(k)+': '+esc2(typeof v==='object'?JSON.stringify(v):String(v))).join(' · '):'';
+    return '<div class="crow" style="cursor:default"><div style="flex:1"><div class="nm">'+esc2(r.action.replace(/_/g,' '))+' <span class="sub" style="font-weight:400">· '+esc2(r.entity_type||'')+' '+esc2(String(r.entity_id||'').slice(0,18))+'</span></div>'+
+      '<div class="sub">'+esc2(when)+' · '+esc2(r._who)+(det?(' · '+det):'')+'</div></div></div>';
+  }).join('');
+}
+document.getElementById('actReload').onclick=renderActivity;
+document.getElementById('actFilter').addEventListener('change', drawActivity);
+document.getElementById('actSearch').addEventListener('input', drawActivity);
+window.renderActivity=renderActivity;
 async function renderCommHolds(){
   const holds=document.getElementById('comHolds'); if(!holds) return;
   let list=[]; try{ const r=await TKS.Commission.awaitingSignoff(); if(r.error) throw r.error; list=r.data||[]; }catch(e){ holds.innerHTML=''; return; }
@@ -3998,6 +4054,9 @@ function syncOwnerTiles(){
   // front desk doesn't see it at all.
   let fr=null; try{ fr = TKS.auth.staffRole && TKS.auth.staffRole(); }catch(_){}
   document.querySelectorAll('[data-go="commission"]').forEach(el=>{ el.style.display = (fr==='front_desk') ? 'none' : ''; });
+  // Activity (C-#17): strictly the OWNER (not managers) — it shows everyone's actions.
+  const isOwnerRole = (fr==='owner') || (!fr && ownerHard());
+  document.querySelectorAll('[data-go="activity"]').forEach(el=>{ el.style.display = isOwnerRole ? '' : 'none'; });
 }
 function updateAuthUI(){
   syncOwnerTiles();
