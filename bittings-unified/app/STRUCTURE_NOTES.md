@@ -42,6 +42,33 @@ mode, Teal Jumper account `acct_1SDsyb6E7RKZhKYS`), run against an **isolated QA
   same RPCs `store.js` calls. Test shop + QA logins are **left in place** for the owner's device sweep
   (card-entry UX on a real phone) — tear down only on the owner's say-so.
 
+## 2026-07-02 — Inventory traceability (Phase 6): serialized units + reconciliation + returns
+
+Server-first, all on the test shop; real-shop data untouched (nothing serializes until received).
+Coexistence design (no rip-and-replace): units drive `inventory_locations.qty` via a rollup trigger
+so every existing screen keeps working. Migrations `phase6/6a–6e` (applied live + repo files).
+
+- **6a** `inventory_units` (serial id, supplier, batch, unit_cost, location, status
+  `in_stock/sold/warranty_out/failed/lost/written_off`, `sold_receipt_id`/`sold_customer_id`,
+  **`fitment jsonb` reserved for future per-unit vehicle fitment**) + `inventory.serialized` flag +
+  `fn_units_rollup` trigger. RPCs `unit_receive` (front_desk+, flips serialized + converts existing
+  qty→units), `unit_move` (tech+), `unit_set_status` (mgr+). Tenant-fenced + role-gated.
+- **6b** `inv_move`/`inv_adjust`/`pos_decrement_stock` made **unit-aware** for serialized items
+  (non-serialized path byte-identical). A sale marks a unit `sold` + links receipt/customer.
+- **6c** cycle count: `cycle_counts`+`cycle_count_lines`; `cycle_start`(mgr+, assignable),
+  `cycle_save_line`(assigned staff or mgr+; preset reason required for assigned staff on non-zero
+  delta, optional for owner/mgr), `cycle_complete`(mgr+ → `inv_adjust`). `inv_on_hand()` helper.
+- **6d** `supplier_returns`; `warranty_replace` (verify off original sale + warranty months → issue
+  `warranty_out`, log defective key supplier-tagged+customer-linked), `key_failed` (no customer),
+  `return_update` (mgr+: needs_return→sent→credited/replacement_received).
+- **6e** `inventory_dashboard()` (mgr+): retail+cost of stock, warranty/failed/return counts.
+- **Verified (real cloud sessions, test shop):** receive/move/adjust/sale 7/7; cycle count 8/8;
+  warranty/failed/returns/dashboard 7/7. Harnesses in the session scratchpad.
+- **Fitment hook:** `inventory_units.fitment` null now; `inventory.fitment` is the item default.
+  Later per-unit fitment writes to `units.fitment` (serial→item→fitment join) with no schema change.
+- **UI (Phase 5):** the on-screen pieces (reconcile screen, warranty/failed actions, returns list,
+  dashboard cards) are the remaining increment — server RPCs are ready and proven.
+
 ## 2026-07-01 (b) — Stripe Connect: per-shop payouts + 1% platform fee (TEST, verified)
 
 Each shop now connects its OWN Stripe (Express) account and gets paid directly; customer card

@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-07-01 05:36 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-07-02 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -407,6 +407,28 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-07-02 (📦 Inventory traceability engine built — serialized units, cycle count, warranty/returns)
+- **Every unit of inventory can now be tracked individually** ("serialized"): each key gets its own
+  ID and is traceable through its whole life — which supplier & batch it came from, and whether it was
+  sold, failed, warranty-returned, sent back, or credited. **A sale now records exactly which unit
+  went to which customer.**
+- **Reconciliation (cycle count):** an assignable count where staff tap/type the count per item and
+  pick a reason for any discrepancy (from a set list — required for the assigned staff, optional for
+  you/managers); a manager applies it to stock.
+- **Warranty replacement:** checks a customer's key is still in warranty, issues a new one from your
+  stock (logged as warranty, **not** a sale), and puts the bad key on the supplier-return list.
+- **Failed key** (never worked): pulled from stock, flagged to send back — separate from warranty.
+- **Return-to-supplier list:** everything owed back, tagged by supplier, tracked needs-return → sent →
+  credit/replacement received.
+- **Inventory dashboard:** total retail & cost value of stock, plus warranty-replacement and failed-key
+  counts.
+- **Status:** the **engine is built and proven** in the test shop (22 automated checks passed). The
+  **on-screen screens for it are the next step** (the count screen, warranty/failed buttons, returns
+  list, dashboard cards). Built safely before the pilot so big structural changes only touched test
+  data. Kept compatible with a future **per-key vehicle fitment** project (no rework needed later).
+- Two new plain-English owner docs added: **`BITTINGS_OVERVIEW.md`** (everything the app does, with
+  honest DONE/IN-PROGRESS status) and **`ROADMAP_AND_IDEAS.md`** (the parking lot: Now / Planned / Ideas).
 
 ### 2026-07-01 (🏦 Stripe Connect built — each shop gets paid directly, 1% platform fee · TEST)
 - **Each shop can now connect its own Stripe account and get paid directly.** Before, all card money
