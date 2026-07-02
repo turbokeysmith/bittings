@@ -38,6 +38,26 @@ Each is one commit. To undo any single one: `git revert <hash>`.
 
 ## PART 2 — FOR YOU TO DECIDE (I did NOT touch any of these)
 
+> **STATUS UPDATE — 2026-07-02 (overnight run, owner-authorized):** every item below that could
+> be done safely is now ✅ DONE, one commit each (isolation test re-run after every tenant/money
+> change — grew from 25/25 to **29/29 PASS**):
+> **🔴s:** #1 Commission (tech self-scope + front-desk hidden, per your call) `41117dc` ·
+> #2 billing-checkout shop-scoped `31a1903` · #3 all 21 DEFINER RPCs shop-fenced `cbedc23` ·
+> #4 per-shop shop_config `96c9dbb` (+ commission_config in `cbedc23`) · #5 staff invites
+> (edge fn + Add-teammate UI) `10deeec` · #6 pay-terminal server-side account `0cad5b0`.
+> **🟡s:** #7 mobile overflow `d9a9a78` · #8 contrast (AA both themes) `4c5a075` · #9 CORS
+> allow-list on all pay fns `b5b8f92` · #10 tier fns shop-scoped `31a1903` · #12 bootstrap
+> owner-email/PIN removed `938bd1e` · #13 pre-phase1 copies archived (spikes already
+> tombstoned live) `1e0f75a`.
+> **🟢s:** #14 auto-print `a67a363` · #15 cost nudge `8c92df1` · #16 Receive-units `fa583e1` ·
+> #17 Activity viewer `a27c78b` (+grant 5l) · #21 billing-portal `e436001`.
+> **Still yours (untouched, as agreed):** #11 leaked-password protection (paid tier),
+> #18 Spanish publish, #19 thermal logo, #20 website-leads-to-app, the redundancy/de-dup
+> cleanup, and the real-device sweep. **New flags for you:** `billing-webhook` is NOT deployed
+> (deploy it before billing go-live, with STRIPE_PRICE_* + STRIPE_WEBHOOK_SECRET envs);
+> set `ALLOWED_ORIGINS` when the app gets its real domain; keep launching the app via
+> http://localhost — a file:// open would be blocked by the origin gate.
+
 ### 🔴 Must fix before the pilot (real shops, real money)
 
 1. **Commission tab shows every tech's pay to technicians and front-desk.** (Known from the QA

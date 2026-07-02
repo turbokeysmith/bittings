@@ -8,6 +8,31 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 - **Staff app** (dark): http://127.0.0.1:8088/  → Customers · Receipts · Scheduler · Payments · Inventory
 - **Public site** (light): http://127.0.0.1:8099/  → contact form `/contact/`, language toggle 🌐 in the header
 
+## 2026-07-02 (c) — overnight pre-pilot build: the whole review list executed
+
+Owner authorized the full `PRE_PILOT_REVIEW.md` run. 16 commits (96c9dbb…e436001), each verified;
+isolation test extended to **29/29** (adds 5g shop_config probes). Migrations applied live:
+- **5g** shop_config per-shop (id sequence + unique shop_id; store.js Config keys by shop)
+- **5h** service_role staff DML (for staff-invite)
+- **5i** current_subscription/shop_tier/seat_usage scoped by current_shop()
+- **5j** ALL DEFINER RPCs shop-fenced (21 fns; also commission_config → per-shop; pos_checkout +
+  warranty_replace read shop_config per-shop; inv_receive gained an item-exists guard)
+- **5k** commission_day_rows: front_desk → empty (owner decision; tech already self-forced)
+- **5l** audit_log SELECT grant (RLS still gates: is_manager + shop fence)
+
+Edge functions: **staff-invite** (NEW: owner-gated temp-password invites), **billing-checkout**
+(rewritten onto _shared auth, shop-scoped, stripe@16), **billing-portal** (NEW), **pay-terminal**
+(server-side Connect account), **pay-create-intent/record/status** (shared CORS allow-list).
+⚠️ `billing-webhook` is still NOT deployed; STRIPE_PRICE_* envs unset — billing go-live items.
+
+Client: Team-logins card (Settings→Access) · Commission gating (front_desk hidden nav+view+demo
+path; tech self-scope incl. demo) · 390px overflow fixes · AA contrast via theme-aware classes
+(reports/closeout cards are WHITE in both themes — dark override must NOT re-apply dark palette)
+· 📦 invReceiveUnits modal (+ row button) · 📜 view-activity (owner-only) · thermal.autoPrint pref
++ guarded print in posCheckoutThen done() (captured BEFORE posClear; fire-and-forget) ·
+missing-cost chip in invSummary · billingPortalBtn (Settings→Payments). QA fixture data added:
+subscriptions row for the QA shop (pro), `qa_serial_demo` item (serialized, 2 units).
+
 ## 2026-07-02 (b) — pre-pilot review: 5f EXECUTE hygiene + small fixes (see PRE_PILOT_REVIEW.md)
 
 Repo-root `PRE_PILOT_REVIEW.md` holds the full findings (security / missed / redundancy / quick

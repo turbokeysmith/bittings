@@ -5,7 +5,38 @@ language. When it feels huge, come here. Status is honest:
 **✅ DONE** (built + tested) · **🟡 IN PROGRESS** (partly built / needs a real-device or go-live step) ·
 **⬜ NOT STARTED**.
 
-_Last updated: 2026-07-02._
+_Last updated: 2026-07-02 (overnight pre-pilot build — see the block below)._
+
+---
+
+## ⚡ 2026-07-02 overnight: the pre-pilot punch-list got DONE
+Everything from `PRE_PILOT_REVIEW.md` that could be done safely was built, verified and pushed
+(one commit per item, each revertible). What moved to **✅ DONE**:
+
+- **Multi-shop readiness (the real blockers):**
+  - **Each shop has its own Settings + commission rules** (both were physically one-row-only before). ✅
+  - **Add a teammate from Settings** — you type name/email/role, the app creates their login with a
+    temp password you hand them. No more Supabase dashboard. Owner-only. ✅
+  - **Every server function now checks the caller's SHOP, not just their role** (21 functions —
+    sign-off lists, NASTF worklist, inventory ops, jobs, POS, units, counts, warranty/returns). Proven
+    live: the QA shop can no longer see even one row of your real shop's data through any of them. ✅
+  - **Billing + card-reader helpers bound to the caller's shop** (an Upgrade click or reader list can
+    never touch another shop's Stripe). ✅
+  - **Hardcoded owner-email + PIN `1234` bootstrap removed** — roles come only from the staff table /
+    each shop's own Setup. ✅
+- **Polish:** Commission = techs see **their own only**, front desk sees none ✅ · nothing clips
+  off-screen on a phone (390px) ✅ · all the washed-out tags/badges/buttons now readable in BOTH
+  themes ✅ · payment endpoints all behind the origin allow-list ✅ (at go-live: set `ALLOWED_ORIGINS`).
+- **New screens (quick wins):** 📦 **Receive units** (starts serialized tracking: supplier/batch/cost
+  per unit) ✅ · 📜 **Activity** (owner-only audit trail — who touched what) ✅ · 🖨️ **auto-print
+  receipt on sale** (checkbox; a printer problem never blocks a sale) ✅ · **N-parts-missing-cost**
+  nudge in Inventory ✅ · **Manage subscription** button (Stripe portal) ✅.
+- **Safety net:** the multi-tenant isolation proof grew to **29/29 PASS** and every view renders
+  clean in both themes.
+
+Left for you (deliberately): leaked-password protection (paid tier), Spanish publish, thermal logo
+test, website-leads-to-app, the de-dup cleanup week, and the real-device sweep. Details + the few
+open flags: `PRE_PILOT_REVIEW.md`.
 
 ---
 

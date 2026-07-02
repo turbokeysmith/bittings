@@ -161,16 +161,18 @@ are live; all `pay-*` edge functions `ACTIVE`. Sources in the repo match what's 
    so tier-gating on RPCs is deliberately deferred). Per-shop Stripe Connect payouts need the
    `billing-checkout`/`billing-webhook`/`connect-onboard` fns reviewed for shop-scoping first.
 
-**QA fix list (from the 2026-06-30 sweep — see `bittings-unified/docs/QA_AUDIT_2026-06-30.md`;
-status updated by the 2026-07-02 pre-pilot review, full report: `PRE_PILOT_REVIEW.md`):**
-✅ **DONE 2026-07-02:** the anon-EXECUTE revoke (migration `phase5_5f`, linter now clean; isolation
-test 25/25) and the `updatedAt`-on-edit fix; customer-delete control confirmed to exist (edit
-form → Remove). Still open: 🔴 **Commission tab leaks all techs' pay to a technician** (owner
-decision: gate vs self-scope); 🟡 mobile overflow (Commission/Settings/Inventory); 🟡 washed-out
-white-card tags + "OWES" badge contrast. **NEW pre-pilot 🔴s in `PRE_PILOT_REVIEW.md`:**
-`billing-checkout` wrong-shop subscription; older DEFINER RPCs not shop-scoped; `shop_config`
-single-row; no staff-invite flow; `pay-terminal` trusts client account id. Re-run harness:
-`bittings-unified/tools/qa/README.md`.
+**Pre-pilot punch-list: ✅ ALL DONE (2026-07-02 overnight run — see `PRE_PILOT_REVIEW.md` status
+banner for the per-item commits).** Everything from the 2026-06-30 QA audit + the pre-pilot review
+that could be done safely is fixed and live-verified: anon-EXECUTE revoke (5f), per-shop
+shop_config/commission_config (5g/5j), staff invites (5h + edge fn + UI), tier fns + billing-checkout
++ pay-terminal shop-scoped (5i, deploys), ALL DEFINER RPCs shop-fenced (5j), Commission
+tech-self-scope/front-desk-hidden (5k), audit read grant + Activity screen (5l), mobile overflow,
+AA contrast, CORS allow-list, bootstrap owner-email/PIN removed, Receive-units + auto-print +
+cost-nudge + billing-portal. Isolation proof **29/29**. **Still owner-gated:** deploy
+`billing-webhook` + STRIPE_PRICE_* envs (billing go-live) · set `ALLOWED_ORIGINS` at the domain
+switch (and always run the app via http://localhost, never file://) · leaked-password protection
+(paid tier) · Spanish publish · thermal logo · website-leads · the real-device sweep. Re-run
+harness: `bittings-unified/tools/qa/README.md`.
 
 **Hardware (the named next focus):** finish the physical device setup per `HARDWARE_SETUP.md` —
 scanner mode, Star WebPRNT host + SDK, Zebra Browser Print + calibration — then the device sweep.

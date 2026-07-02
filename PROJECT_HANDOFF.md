@@ -408,6 +408,26 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-07-02 PM (⚡ Overnight pre-pilot build — the whole review punch-list DONE)
+- **You green-lit the full `PRE_PILOT_REVIEW.md` list; all 16 do-able items are built, verified
+  live, and pushed** (one revertible commit each). Highlights, plain-language:
+  - **A second shop now truly works end-to-end:** its own Settings + commission rules, its own
+    plan/seat counts, and **every server function checks the caller's shop** — proven live: the QA
+    test shop can't see or touch one row of your real shop's data through any function.
+  - **You can add an employee from Settings** (name/email/role → the app creates their login with a
+    temp password you hand over). This was the practical pilot blocker.
+  - **Commission per your decision:** technicians see only their own; front desk sees none.
+  - **Money-path hardening:** billing checkout + card-reader helpers bound to the caller's shop;
+    all payment endpoints behind the origin allow-list; the old hardcoded owner-email/PIN removed.
+  - **New:** 📦 Receive-units screen (starts serialized tracking) · 📜 owner-only Activity screen
+    (the audit trail finally has a read UI) · 🖨️ auto-print-receipt-on-sale option · missing-cost
+    nudge · Manage-subscription button (Stripe portal, deployed).
+  - **Safety net grew:** the multi-tenant isolation proof is now **29/29 PASS**; a final sweep shows
+    all 16 screens render clean in both themes with zero console errors.
+- **Waiting on you:** deploy `billing-webhook` + Stripe price envs before billing go-live; set
+  `ALLOWED_ORIGINS` when the app gets its real domain; leaked-password protection (paid tier);
+  Spanish publish; thermal logo test; website-leads decision; real-device sweep.
+
 ### 2026-07-02 (🔍 Pre-pilot review: security fix applied + full findings report)
 - **A full pre-pilot review of the whole codebase ran overnight** — security, half-finished work,
   redundancy, quick wins. **Read `PRE_PILOT_REVIEW.md` (repo root) — it's written for you**, with
