@@ -8,6 +8,36 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 - **Staff app** (dark): http://127.0.0.1:8088/  → Customers · Receipts · Scheduler · Payments · Inventory
 - **Public site** (light): http://127.0.0.1:8099/  → contact form `/contact/`, language toggle 🌐 in the header
 
+## 2026-07-02 (e) — Inventory import + categories + Inventory/Reports/Returns UI restructure
+
+Owner imported physical inventory (MicroBiz PDF → 352 items) into the REAL Turbo Keysmith shop
+(`7a17…1bce`), reversible via `inventory.notes='import:INV-2026-07-02'` (ids `imp_0001..0352`); each
+item has one `inventory_locations`(shop) row + `inventory.category='<Top>/<Sub>'` (Keys 252 /
+Accessories 100). See memory `inventory-import-microbiz`. Then, per owner UI requests (all in
+`index.html` unless noted; each headless-verified in local mode via `sessionStorage.tks_use_local='1'`):
+
+- **Inventory grouped by category — no dropdown.** `renderInventory` now sorts by `INV_TOP_ORDER`
+  (Keys, Accessories) then `INV_SUB_ORDER`, and injects always-visible `.invcat-top` / `.invcat-sub`
+  section headers (with counts) as the group changes. `catParts()` splits `category` on the FIRST
+  '/' only (sub names contain '/', e.g. "Remote / Fob"). Row sub-line no longer repeats category.
+- **Reconcile folded under Inventory.** Sidebar `data-go="reconcile"` hidden; `#view-inventory` and
+  `#view-reconcile` each got a `.invsubtabs` `[ 🏪 Stock | 🔢 Reconcile ]` control (`[data-invtab]`
+  wiring); `show('reconcile')` keeps the Inventory nav highlighted.
+- **Reports = tabbed screen.** `.reptabs` bar (`[data-reptab]`, `data-cap="viewAudit"`) across the top
+  of `#view-reports`/`#view-commission`/`#view-returns` + NEW `#view-invreport` (`renderInvReport()` —
+  live stock retail/cost value + per-category breakdown from `TKS.Inventory`). Tabs: Sales · Inventory ·
+  Returns · Commission. Sidebar `data-go="returns"` hidden (folded under Reports); `'invreport'` added
+  to the `views` array; Reports nav stays highlighted on invreport/returns.
+- **Returns started from the invoice.** `bittings.html` receipt viewer (`#roViewer`) gained a
+  **↩ Return** button → `roStartReturn()` (postMessage `tks:start-return` to the parent when embedded,
+  else `sessionStorage.tks_start_return` + navigate). `index.html` `tksStartReturnFlow()` + a `message`
+  listener + boot check open the Returns tab. **Entry point only** — the deeper behavior (customer
+  refund via Stripe pay-refund vs. supplier warranty return via `warranty_replace`, and auto-selecting
+  the receipt's item) is a money-touching decision left for the owner (flagged).
+
+Commits `fde9556` (inv grouping + reconcile), `604d659` (reports tabs), `3b5baa6` (invoice return).
+On branch `phase3-frontend-unification`. Nothing deployed; local files only.
+
 ## 2026-07-02 (d) — Phase 7: shift + machine-lock + time-tracking (OFF by default)
 
 Server (migrations 7a/7b/7c live):
