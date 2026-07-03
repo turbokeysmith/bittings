@@ -6,12 +6,20 @@
   <atom:link href="https://turbokeysmith.com/blog/feed.xml" rel="self" type="application/rss+xml" />
   <description>Locked &amp; Loaded — straight talk on keys, locks, and getting back on the road.</description>
   <language>en-us</language>
-  <lastBuildDate>Wed, 24 Jun 2026 12:00:00 +0000</lastBuildDate>
+  <lastBuildDate>Fri, 03 Jul 2026 12:00:00 +0000</lastBuildDate>
   <image>
     <url>https://d17lvxud83eqj6.cloudfront.net/decc098b-8d60-486e-a4b4-504237a12fad.png</url>
     <title>Notes from the Key Man</title>
     <link>https://turbokeysmith.com/blog/</link>
   </image>
+  <item>
+    <title>Off the Clock: The Human Behind the Trade</title>
+    <link>https://turbokeysmith.com/blog/off-the-clock/</link>
+    <guid isPermaLink="true">https://turbokeysmith.com/blog/off-the-clock/</guid>
+    <description>The human side of the locksmith trade — the family sacrifices, the 2 a.m. calls, and the family waiting when the van's finally parked. The first note in our new Off the Clock series.</description>
+    <category>Off the Clock</category>
+    <pubDate>Fri, 03 Jul 2026 12:00:00 +0000</pubDate>
+  </item>
   <item>
     <title>How Much Does It Cost to Replace a Car Key in Oklahoma City?</title>
     <link>https://turbokeysmith.com/blog/car-key-replacement-cost-okc/</link>
