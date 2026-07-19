@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-27 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-07-19 03:20 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,11 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-07-19 (📝 Blog post #4 — "Locksmith vs. Dealership for a Car Key" — built + on preview, pending your two-phone check)
+- **New blog post hand-built** at `website/site/blog/locksmith-vs-dealership-car-keys/` — "Locksmith vs. Dealership for a Car Key: Almost Always Faster, Usually Cheaper" (category **Costs & Choosing a Locksmith**, by Sam The Key Man, dated July 8 2026). Makes the case that a licensed mobile locksmith is almost always faster and usually cheaper than the dealer — no tow, no manufacturer back order, no dealer markup — anchored by the true story of a Dodge dealership that called **us** to make a key for a 2023 Challenger they'd had on back order since May. Honest caveat that **European** cars (Mercedes/BMW/Audi) are usually better left to the dealer, while **domestic + Asian** vehicles (even brand-new) we do on-site. Two **Call Now — (405) 870-5397** CTA blocks (top + bottom), the two Dodge-Challenger photos (hero with caption + body shot), and internal links to the **car-key-cost blog post**, **Automotive**, and **Warranty** pages. Full schema (BlogPosting + BreadcrumbList + FAQPage, 5 FAQs matching the page word-for-word).
+- **Wired into the site:** post card added to the **blog index** and the **Costs & Choosing a Locksmith** category page (newest-first), plus the entry added to `search-index.json`, the URL added to `sitemap.xml`, and an item added to the RSS `feed.xml`.
+- **On a PREVIEW branch only** (`blog-locksmith-vs-dealership`) — **not on production yet.** Waiting on the owner's iPhone-Safari + Android-Chrome check before deploying to `--branch=main`.
 
 ### 2026-06-27 PM (🚀 Unified app on a public URL · dev scaffolding stripped · old demo removed)
 - **Unified Bittings is reachable from any device** for the owner's sweep via a Cloudflare **quick
