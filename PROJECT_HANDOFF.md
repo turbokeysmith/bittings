@@ -407,6 +407,24 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-08-21 PM (⭐ Self-hosted widgets LIVE on all 92 pages — third-party provider fully replaced)
+- **The reviews carousel is back**, now served by our own free Cloudflare Worker
+  (`turbokeysmith-widgets`) instead of the dead paid provider. Live on the homepage and all 91
+  city/service pages. Shows real Google reviews (5-star only), star badges, reviewer photos, swipe/arrow
+  navigation, and a "Read all 293 reviews on Google" link. **Review count & star rating refresh
+  automatically every 6 hours** (via the owner's Google Maps key — works today).
+- **The "Latest Updates" (Google posts) section** is rebuilt the same way but stays **hidden until
+  Google approves** the Business Profile API access (form submitted today; days to ~2 weeks). Once
+  approved, the same system also unlocks: the FULL review list (not just 5), **auto-replies to new 4-5★
+  reviews** (rotating natural templates, first names, never replies to anything pre-dating activation),
+  and **email alerts to the owner for 1-3★ reviews** (those are never auto-replied). No action needed —
+  it starts working by itself when Google approves.
+- **Owner may still do 1 thing:** restrict the Google Maps API key to "Places API" in the Google Cloud
+  console (security hardening; instructions were given in chat).
+- **Status: code-complete, pending mobile sign-off** — needs the owner's phone check on iPhone Safari +
+  Android Chrome (test steps given in chat): homepage + one city page, swipe the reviews, tap the
+  "Read all reviews" link.
+
 ### 2026-08-21 (🔐 Privacy Policy page + Google API setup for self-hosted widgets)
 - **Context:** the two paid third-party widgets from localmarketingmanager.com (the Google **reviews
   carousel** on the homepage + ~91 city pages, and the Google **posts feed** on the homepage) went dead —

@@ -307,16 +307,8 @@
   <div class="award-wrap"><span class="award-badge">Best of 2026 · Ranked #1 Locksmith in Western Oklahoma — BusinessRate</span><span class="award-badge">Voted a 2025 Nextdoor Neighborhood Fave</span></div>
   <p style="text-align:center;font-family:'Saira';font-weight:800;font-size:18px;margin:0 0 16px;color:var(--ink)">250+ Five-Star Reviews on Google</p>
 <div id="reviewsWidgetContainer">
-  <iframe id="reviewsWidget" style="width: 100%; border: none; min-height: 300px;" title="Reviews Widget"></iframe>
+  <iframe id="reviewsWidget" src="https://turbokeysmith-widgets.turbokeysmith.workers.dev/reviews" style="width: 100%; border: none; height: 360px;" title="Reviews Widget" loading="lazy"></iframe>
 </div>
-<script>
-(function() {
-  function getPageSizeForWidth(width){if(width<450)return 1;if(width<675)return 2;if(width<918)return 3;if(width<1144)return 4;return 5;}
-  function setIframeSrc(){var iframe=document.getElementById("reviewsWidget");var container=document.getElementById("reviewsWidgetContainer");if(!iframe||!container){setTimeout(setIframeSrc,50);return;}var width=container.offsetWidth;if(width===0){setTimeout(setIframeSrc,50);return;}var pageSize=getPageSizeForWidth(width);var expectedSrc="https://www.localmarketingmanager.com/api/reviews/turbo-keysmith-review-widget?pageSize="+pageSize;if(iframe.src!==expectedSrc){iframe.src=expectedSrc;}}
-  function init(){setIframeSrc();setTimeout(setIframeSrc,50);window.addEventListener("resize",setIframeSrc);}
-  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
-})();
-</script>
 </div></section>
 
 <!-- ===== Financing + Warranty teasers ===== -->
@@ -364,11 +356,16 @@
   </div>
 </div></section>
 
-<!-- ===== Google local posts (widget #3) ===== -->
-<section><div class="wrap">
+<!-- ===== Google local posts (widget #3) — hidden until the GBP feed has posts ===== -->
+<section id="localPostsSection" style="display:none"><div class="wrap">
   <div class="sec-head"><h2>Latest Updates</h2></div>
-  <iframe src="https://www.localmarketingmanager.com/api/local-posts/turbo-keysmith-local-posts-widget" style="width: 100%; min-height: 480px; border: none;" title="Local Posts Widget" loading="lazy"></iframe>
+  <iframe src="https://turbokeysmith-widgets.turbokeysmith.workers.dev/local-posts" style="width: 100%; min-height: 480px; border: none;" title="Local Posts Widget" loading="lazy"></iframe>
 </div></section>
+<script>
+window.addEventListener('message',function(e){
+  if(e&&e.data&&e.data.tkw==='posts'&&e.data.count>0){document.getElementById('localPostsSection').style.display='';}
+});
+</script>
 
 <!-- ===== Contact ===== -->
 <section class="blk surface"><div class="wrap">

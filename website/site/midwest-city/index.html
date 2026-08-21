@@ -268,16 +268,8 @@
   <div class="award-wrap"><span class="award-badge">Best of 2026 · Ranked #1 Locksmith in Western Oklahoma — BusinessRate</span><span class="award-badge">Voted a 2025 Nextdoor Neighborhood Fave</span></div>
 <p style="text-align:center;font-weight:800;font-size:18px;margin:0 0 16px"><svg class="emi" viewBox="0 0 24 24" width="1em" height="1em" style="display:inline-block;vertical-align:-.15em" fill="#C2C6CA" aria-hidden="true"><path d="M12 3.2l2.6 5.6 6 .7-4.4 4.2 1.1 6L12 16.9 6.7 19.7l1.1-6L3.4 9.5l6-.7z"/></svg> 250+ Five-Star Reviews on Google</p>
 <div id="reviewsWidgetContainer">
-  <iframe id="reviewsWidget" style="width: 100%; border: none; min-height: 300px;" title="Reviews Widget"></iframe>
+  <iframe id="reviewsWidget" src="https://turbokeysmith-widgets.turbokeysmith.workers.dev/reviews" style="width: 100%; border: none; height: 360px;" title="Reviews Widget" loading="lazy"></iframe>
 </div>
-<script>
-(function() {
-  function getPageSizeForWidth(width){if(width<450)return 1;if(width<675)return 2;if(width<918)return 3;if(width<1144)return 4;return 5;}
-  function setIframeSrc(){var iframe=document.getElementById("reviewsWidget");var container=document.getElementById("reviewsWidgetContainer");if(!iframe||!container){setTimeout(setIframeSrc,50);return;}var width=container.offsetWidth;if(width===0){setTimeout(setIframeSrc,50);return;}var pageSize=getPageSizeForWidth(width);var expectedSrc="https://www.localmarketingmanager.com/api/reviews/turbo-keysmith-review-widget?pageSize="+pageSize;if(iframe.src!==expectedSrc){iframe.src=expectedSrc;}}
-  function init(){setIframeSrc();setTimeout(setIframeSrc,50);window.addEventListener("resize",setIframeSrc);}
-  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
-})();
-</script>
 </div></section>
 
 <section class="surface"><div class="wrap">

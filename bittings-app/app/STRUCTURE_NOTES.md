@@ -28,6 +28,26 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 10. **A11y + mobile pass** — labels associated, keyboard-operable rows, focus-visible outlines,
     16px inputs, ≥40px tap targets, reduced-motion, aria-live messages.
 
+## Update 2026-08-21 — Self-hosted website widgets Worker (replaces localmarketingmanager.com)
+- **New Cloudflare Worker** `turbokeysmith-widgets` at `website/widgets-worker/` (wrangler.jsonc + src/index.js),
+  deployed to `https://turbokeysmith-widgets.turbokeysmith.workers.dev`. Serves the public site's two iframe
+  widgets (the old third-party provider went dead): `/reviews` (carousel, scroll-snap, self-responsive) and
+  `/local-posts` (GBP posts grid; homepage section hidden via postMessage until it has data). Also `/health`
+  (JSON status) and `/refresh?key=ADMIN_KEY` (force refresh).
+- **Data**: KV namespace `WIDGETS` (id 867aa774…). Keys: `reviews`, `posts`, `state`, `alerted:{reviewId}`.
+  Cron `17 */6 * * *`: (1) Places API refreshes rating/count (+5 seed reviews while GBP is unapproved);
+  (2) GBP v4 pulls full reviews/posts — fails 429 until Google approves the Business Profile API access form
+  (submitted 2026-08-21, project `turbo-keysmith` #1038005653431); (3) auto-replies to NEW 4-5★ reviews
+  (rotating templates, watermark prevents replying to pre-activation history); (4) 1-3★ → Web3Forms email
+  alert to the owner, never auto-replied.
+- **Secrets** (wrangler secret): GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN (OAuth app "Turbo Keysmith Widgets",
+  scope business.manage, published/External), MAPS_API_KEY, WEB3FORMS_KEY, ADMIN_KEY. Local copies in
+  `.secrets/google-cloud.env` (folder now gitignored).
+- **Site pages**: homepage + 91 city/service pages now iframe the Worker; zero references to
+  localmarketingmanager.com remain. Homepage got a `#localPostsSection` hide-until-populated listener.
+- **Wrangler auth**: OAuth login (old API tokens dead); deploy with `env -u CLOUDFLARE_API_TOKEN` if a stale
+  token env var reappears.
+
 ## Update 2026-06-17 (u) — Two brand layers: product (Bittings, hardcoded) vs shop (from Settings)
 - **Rule**: `.bt-sidebar__brand` (mark.svg + "Bittings") is the SOFTWARE/product brand — hardcoded, never per-shop.
   Everything else that named a shop must come from `TKS.Config.identity().name` / `.logo`. (Reverted the earlier
