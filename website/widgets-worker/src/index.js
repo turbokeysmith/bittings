@@ -302,6 +302,7 @@ async function reviewsPage(env) {
        border:none;background:#fff;box-shadow:0 2px 8px rgba(17,17,17,.25);cursor:pointer;z-index:5;
        font-size:18px;color:#111;line-height:1}
   .nav.prev{left:-2px}.nav.next{right:-2px}
+  @media (min-width:700px){.rail-wrap{padding:4px 48px}.nav.prev{left:2px}.nav.next{right:2px}}
   .footer{text-align:center;padding:2px 0 10px;font-size:13px}
   .footer a{color:#c8102e;font-weight:700;text-decoration:none;font-family:'Montserrat'}
   @media (hover:none){.nav{display:none}}
