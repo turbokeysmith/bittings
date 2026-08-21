@@ -1,4 +1,5 @@
 # Secrets — NEVER commit these
+.secrets/
 .env
 .env.*
 *.key

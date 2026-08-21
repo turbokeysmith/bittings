@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-06-20 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-08-21 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,23 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-08-21 (🔐 Privacy Policy page + Google API setup for self-hosted widgets)
+- **Context:** the two paid third-party widgets from localmarketingmanager.com (the Google **reviews
+  carousel** on the homepage + ~91 city pages, and the Google **posts feed** on the homepage) went dead —
+  the provider now shows "This widget is no longer active." We are replacing both with **our own free,
+  self-hosted widgets** (build in progress; see next entries when they land).
+- **New public page: `/privacy/` (Privacy Policy)** — plain-language, matches the Terms page design; linked
+  from the footer of the new page and added to the sitemap. Created because (a) the site collects contact/
+  careers form data and should have one, and (b) Google requires a public privacy-policy link to publish
+  the OAuth app used for the widget system. ⚠️ Not yet lawyer-reviewed (same status as Terms).
+- **Google side (owner's account):** Google Cloud project `turbo-keysmith` created; Maps API key issued and
+  filed in `.secrets/` (owner asked to restrict it to Places API); OAuth app "Turbo Keysmith Widgets"
+  configured; **Business Profile API access form submitted — waiting on Google approval (days to ~2 weeks),
+  quota is 0 until then.** Auto-reply-to-reviews plan approved by owner: auto-thank 4–5★, email alert (no
+  auto-reply) for 1–3★.
+- **Housekeeping:** `.secrets/` folder is now gitignored (it wasn't — risk of committing credentials);
+  Google credentials filed there.
 
 ### 2026-06-20 (🔗 Link-in-bio page for Instagram · preview, pending mobile sign-off)
 - **New mobile-first "link in bio" page at `/links/`** — hand-built static HTML (the retired generator was NOT
