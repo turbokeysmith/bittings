@@ -415,10 +415,9 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   schema verified word-for-word against visible text).
 - Wired into: blog index (newest-first), Locked Out & Emergencies category page, search-index.json
   (search "ignition" surfaces it — verified), sitemap.xml, feed.xml.
-- **Status: live on the PREVIEW branch only** (https://preview.turbokeysmith.pages.dev/blog/key-wont-turn-in-ignition/),
-  auto-verified in a headless browser (renders, hero loads, both CTAs dial, links resolve, no
-  horizontal overflow on 390px). **NOT on production yet — waiting on the owner's two-phone check
-  (iPhone Safari + Android Chrome), then promote with a --branch=main deploy.**
+- **Status: LIVE on production** at https://turbokeysmith.com/blog/key-wont-turn-in-ignition/ —
+  owner approved after the preview phone check; re-verified live (post renders, hero loads, both
+  CTAs dial, links resolve, index/category/search/sitemap/feed all serving the new post).
 
 ### 2026-08-25 (🔢 Review count is now a live running tally site-wide)
 - Every hand-typed **"250+ Google reviews"** across the site (316 spots on 222 pages, English AND
