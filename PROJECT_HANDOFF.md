@@ -407,6 +407,19 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-08-25 PM (📝 New blog post: "Why Won't My Key Turn in the Ignition?" — ON PREVIEW, awaiting phone check)
+- New post at `/blog/key-wont-turn-in-ignition/` (Locked Out & Emergencies, by Sam The Key Man,
+  dated Aug 25) — 5 causes a key won't turn, what not to do, 4 FAQs. Real shop photo hero (worn
+  Ram key vs fresh cut, converted from the owner's WebP). Two Call-Now blocks; internal links to
+  /automotive/ and the key-cost post. Full schema (BlogPosting + BreadcrumbList + FAQPage; FAQ
+  schema verified word-for-word against visible text).
+- Wired into: blog index (newest-first), Locked Out & Emergencies category page, search-index.json
+  (search "ignition" surfaces it — verified), sitemap.xml, feed.xml.
+- **Status: live on the PREVIEW branch only** (https://preview.turbokeysmith.pages.dev/blog/key-wont-turn-in-ignition/),
+  auto-verified in a headless browser (renders, hero loads, both CTAs dial, links resolve, no
+  horizontal overflow on 390px). **NOT on production yet — waiting on the owner's two-phone check
+  (iPhone Safari + Android Chrome), then promote with a --branch=main deploy.**
+
 ### 2026-08-25 (🔢 Review count is now a live running tally site-wide)
 - Every hand-typed **"250+ Google reviews"** across the site (316 spots on 222 pages, English AND
   Spanish "reseñas") now updates itself to the real current count from Google — today it shows
