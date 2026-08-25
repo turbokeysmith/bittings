@@ -59,3 +59,43 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inject);
   else inject();
 })();
+
+/* ===== Live Google-review tally =====
+   Pages ship a static "250+" fallback; this swaps in the real count from the
+   widgets Worker (updated every 6h from Google). Cached in localStorage for
+   an hour so repeat views update instantly with no network wait. */
+(function () {
+  var API = 'https://turbokeysmith-widgets.turbokeysmith.workers.dev/stats';
+  var RE = /250\+/g;
+
+  function apply(total) {
+    if (!total || total < 250) return; // never show something lower than the old floor
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    var node, hits = [];
+    while ((node = walker.nextNode())) {
+      var tag = node.parentNode && node.parentNode.tagName;
+      if (tag === 'SCRIPT' || tag === 'STYLE') continue;
+      if (RE.test(node.nodeValue)) hits.push(node);
+      RE.lastIndex = 0;
+    }
+    for (var i = 0; i < hits.length; i++) {
+      hits[i].nodeValue = hits[i].nodeValue.replace(RE, String(total) + '+');
+    }
+  }
+
+  function start() {
+    try {
+      var cached = JSON.parse(localStorage.getItem('tkReviewStats') || 'null');
+      if (cached && cached.total) apply(cached.total);
+      if (cached && Date.now() - cached.at < 3600000) return;
+    } catch (e) {}
+    fetch(API).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.total) return;
+      apply(d.total);
+      try { localStorage.setItem('tkReviewStats', JSON.stringify({ total: d.total, at: Date.now() })); } catch (e) {}
+    }).catch(function () {});
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();

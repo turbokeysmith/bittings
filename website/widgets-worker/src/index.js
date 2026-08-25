@@ -42,6 +42,7 @@ export default {
       if (path === '/reviews') return await reviewsPage(env);
       if (path === '/local-posts') return await postsPage(env);
       if (path === '/health') return await healthPage(env);
+      if (path === '/stats') return await statsPage(env);
       if (path === '/refresh') {
         if (!(await keyOk(url.searchParams.get('key'), env.ADMIN_KEY))) {
           return json({ error: 'forbidden' }, 403);
@@ -349,6 +350,19 @@ async function postsPage(env) {
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
 <div class="grid">${cards}</div>
 <script>try{parent.postMessage({tkw:'posts',count:${posts.length}},'*')}catch(e){}</script>`);
+}
+
+// Tiny public feed for the site's live review tally (fetched by i18n.js on
+// every page). CORS-open + edge-cached so 92 pages cost ~nothing.
+async function statsPage(env) {
+  const data = (await env.WIDGETS.get('reviews', 'json')) || {};
+  return new Response(JSON.stringify({ rating: data.rating || 5, total: data.total || 0 }), {
+    headers: {
+      'content-type': 'application/json',
+      'access-control-allow-origin': '*',
+      'cache-control': 'public, max-age=3600',
+    },
+  });
 }
 
 async function healthPage(env) {

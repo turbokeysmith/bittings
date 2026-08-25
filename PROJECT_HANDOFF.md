@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-08-21 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-08-25 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,18 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-08-25 (🔢 Review count is now a live running tally site-wide)
+- Every hand-typed **"250+ Google reviews"** across the site (316 spots on 222 pages, English AND
+  Spanish "reseñas") now updates itself to the real current count from Google — today it shows
+  **"295+"**. The number comes from the same widgets Worker (new tiny `/stats` feed, refreshed every
+  6 hours); the page script lives in `assets/i18n.js` (plus an inline copy on `turbo-premium.html`,
+  the one page that doesn't load that file). If the feed is ever unreachable, pages safely show the
+  static "250+" fallback baked into the HTML. Owner also restricted the Maps API key to Places API ✅.
+- Verified in a headless browser on 4 page types (EN home, ES home, city page, premium page): all
+  show 295+, zero stale 250+ left. Still **pending mobile sign-off** along with the widgets below.
+- **GBP API approval: still pending with Google** (submitted 2026-08-21; auto-reply & posts feed
+  remain armed and will self-activate).
 
 ### 2026-08-21 PM (⭐ Self-hosted widgets LIVE on all 92 pages — third-party provider fully replaced)
 - **The reviews carousel is back**, now served by our own free Cloudflare Worker
