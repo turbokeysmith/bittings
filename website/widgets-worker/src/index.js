@@ -20,16 +20,134 @@
 
 const BUSINESS = 'Turbo Keysmith';
 
-// Rotating thank-you templates for 4-5★ reviews. {name} = reviewer first name.
-// Chosen by a stable hash of the review id so a given review always gets the
-// same reply text (safe against double-posting variants).
-const REPLY_TEMPLATES = [
-  'Thank you so much, {name}! It was a pleasure helping you out. If you ever need us again, we’ve got you covered. — Turbo Keysmith',
-  'Really appreciate you taking the time to leave this, {name}! Glad we could get you taken care of. — Turbo Keysmith',
-  '{name}, thank you! Reviews like yours are why we do what we do. Don’t hesitate to reach out if you ever need anything. — Turbo Keysmith',
-  'Thanks a ton, {name}! We’re glad everything went smoothly. We’re here whenever you need us. — Turbo Keysmith',
-  'Thank you for the kind words, {name}! It means a lot to our small team. — Turbo Keysmith',
-  'We appreciate you, {name}! Thanks for trusting us with the job — anytime you need a key or a lock handled, we’re a call away. — Turbo Keysmith',
+// Service-aware reply composer for 4-5★ reviews.
+// We read the review text, work out which job it most likely describes, thank
+// the customer for that specific job, and mention one genuinely adjacent
+// service. Detection is deliberately conservative: anything we cannot classify
+// with confidence falls back to a warm generic reply, because a public reply
+// describing the WRONG job is far worse than a slightly generic one.
+// Variety comes from a stable hash of the review id, so a given review always
+// produces the same text (safe against double-posting variants).
+const SERVICE_REPLIES = [
+  {
+    key: 'ignition',
+    test: /ignition|key (?:broke|snapped|stuck|jammed)|broke (?:my|our|the) key|key off in/i,
+    did: [
+      'So glad we could get that ignition sorted out for you',
+      'Happy we could get the key out and your ignition turning again',
+    ],
+    offer: [
+      'If you ever want a spare cut before it turns into an emergency, we can handle that too — every key we make carries a 6-month warranty',
+      'Might be worth grabbing a spare while everything is fresh — ours come with a 6-month warranty',
+    ],
+  },
+  {
+    key: 'fob',
+    test: /fob|transponder|remote start|pcm|push[- ]?(?:to[- ])?start|program/i,
+    did: [
+      'Really glad we could get your key programmed and working',
+      'Happy the programming went smoothly for you',
+    ],
+    offer: [
+      'If you ever want a spare programmed as a backup, we do those too — and every key we cut is covered by a 6-month warranty',
+      'We can program a spare any time you want a backup, and all our keys carry a 6-month warranty',
+    ],
+  },
+  {
+    key: 'auto_lockout',
+    test: /lock(?:ed)?[^.!?]{0,30}(?:car|truck|vehicle|van)|locked out[^.!?]{0,20}(?:car|truck|vehicle)|keys? (?:locked )?in the (?:car|truck)/i,
+    did: [
+      'Glad we could get you back into your vehicle quickly',
+      'Happy we could get you back on the road without a long wait',
+    ],
+    offer: [
+      'If you do not have a spare key yet, that is the one thing that keeps this from happening twice — we can cut and program one whenever suits you',
+      'A spare key is the best insurance against a repeat of that day, and we can sort one out any time',
+    ],
+  },
+  {
+    key: 'home_lockout',
+    test: /lock(?:ed)?[^.!?]{0,30}(?:house|home|apartment)|out of (?:my|our|the) (?:house|home|apartment)|back (?:in)?to (?:my|our|the) (?:house|home)/i,
+    did: [
+      'Glad we could get you back inside quickly',
+      'Happy we could get your door open and get you back in',
+    ],
+    offer: [
+      'If you ever want the locks rekeyed or a smart lock fitted so you are never stuck outside again, we handle both',
+      'We also do rekeying and smart-lock installs whenever you want to make getting in a bit easier',
+    ],
+  },
+  {
+    key: 'auto_rekey',
+    test: /re-?key(?:ed|ing)?[^.!?]{0,20}(?:car|truck|vehicle|ignition)/i,
+    did: [
+      'Glad we could get your vehicle rekeyed and back in order',
+      'Happy we could get the vehicle rekeyed for you',
+    ],
+    offer: [
+      'If you ever want a spare cut and programmed as a backup, we can sort that out — every key we make carries a 6-month warranty',
+      'A spare is always worth having, and all our keys are covered by a 6-month warranty',
+    ],
+  },
+  {
+    key: 'rekey',
+    test: /re-?key/i,
+    not: /car|truck|vehicle|ignition|fob/i,
+    did: [
+      'Glad we could get your locks rekeyed and give you peace of mind',
+      'Happy we could get everything rekeyed for you',
+    ],
+    offer: [
+      'If you ever want to add a smart lock or upgrade a deadbolt, we can take care of that as well',
+      'We also fit smart locks and high-security deadbolts whenever you want to take it a step further',
+    ],
+  },
+  {
+    key: 'lock_work',
+    test: /smart lock|dead ?bolt|new locks?|install(?:ed|ing)?[^.!?]{0,15}lock|lock (?:install|repair|change)|changed (?:my|our|the) locks/i,
+    did: [
+      'Glad we could get your locks sorted out',
+      'Happy the lock work went smoothly for you',
+    ],
+    offer: [
+      'If you ever want the rest of the house rekeyed to one key, that is an easy job for us',
+      'We can also rekey everything to a single key whenever you want to simplify things',
+    ],
+  },
+  {
+    key: 'commercial',
+    test: /(?:my|our|the|their) (?:business|office|shop|store|building)|store ?front|commercial|master[- ]key|office building/i,
+    did: [
+      'Glad we could get your business taken care of',
+      'Happy we could get you sorted with minimal disruption',
+    ],
+    offer: [
+      'If you ever need master-key systems or high-security locks across the premises, that is very much our thing',
+      'We also set up master-key systems and high-security hardware whenever you need it',
+    ],
+  },
+  {
+    key: 'car_key',
+    test: /(?:car|truck|vehicle|van) key|key (?:for|to) (?:my|our|the) (?:car|truck|vehicle)|spare key|duplicate key|key replacement|lost (?:my|our|the) keys?/i,
+    did: [
+      'Really glad we could get you a working key sorted',
+      'Happy we could get your key made and get you going again',
+    ],
+    offer: [
+      'If you ever want a second one as a backup, we can cut and program it — all our keys carry a 6-month warranty',
+      'A spare is always worth having, and every key we make is covered by a 6-month warranty',
+    ],
+  },
+];
+
+// Used when the review is pure praise with no identifiable job in it.
+const GENERIC_REPLIES = [
+  'Thank you so much, {name}! It was a pleasure helping you out. Car keys, home rekeys, or anything commercial — we have got you covered whenever you need us. — Turbo Keysmith',
+  'Really appreciate you taking the time to leave this, {name}! Glad we could get you taken care of, and we are here any time you need keys or locks handled. — Turbo Keysmith',
+  '{name}, thank you! Reviews like yours are why we do what we do. Anything from a spare key to a full rekey, just give us a shout. — Turbo Keysmith',
+  'Thanks a ton, {name}! We are glad everything went smoothly, and we are a call away whenever you need us again. — Turbo Keysmith',
+  'Thank you for the kind words, {name}! It means a lot to our small team — and we are here for car keys, lockouts, and lock work any time. — Turbo Keysmith',
+  'We appreciate you, {name}! Thanks for trusting us with the job — any time you need a key or a lock handled, we are a call away. — Turbo Keysmith',
 ];
 
 const STAR_NUM = { ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5 };
@@ -131,9 +249,7 @@ async function refreshAll(env) {
       if (!r.createTime || r.createTime <= state.watermark) continue;
       const stars = STAR_NUM[r.starRating] || 0;
       if (stars >= 4 && !r.reviewReply) {
-        const first = firstName(r.reviewer && r.reviewer.displayName);
-        const tpl = REPLY_TEMPLATES[await stableIndex(r.reviewId, REPLY_TEMPLATES.length)];
-        const ok = await gbpReply(token, locPath, r.reviewId, tpl.replace('{name}', first));
+        const ok = await gbpReply(token, locPath, r.reviewId, await composeReply(r));
         if (ok) replied++;
       } else if (stars > 0 && stars <= 3) {
         const seenKey = `alerted:${r.reviewId}`;
@@ -389,12 +505,43 @@ function esc(s) {
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Builds the public reply for one 4-5★ review: thank the person by first name,
+// name the job we actually did for them, and offer one adjacent service.
+async function composeReply(review) {
+  const name = firstName(review.reviewer && review.reviewer.displayName);
+  const text = String(review.comment || '');
+  const svc = text
+    ? SERVICE_REPLIES.find((s) => s.test.test(text) && !(s.not && s.not.test(text)))
+    : null;
+  if (!svc) {
+    const g = GENERIC_REPLIES[await stableIndex(review.reviewId, GENERIC_REPLIES.length)];
+    return applyName(g, name);
+  }
+  const did = svc.did[await stableIndex(review.reviewId + ':d', svc.did.length)];
+  const offer = svc.offer[await stableIndex(review.reviewId + ':o', svc.offer.length)];
+  const greet = name ? `Thanks so much, ${name}!` : 'Thanks so much!';
+  return `${greet} ${did}. ${offer}. — ${BUSINESS}`;
+}
+
+// Returns a usable personal first name, or null when the display name is not a
+// person (business/handle accounts like "My WorkStuff", or a bare initial).
+// A null name makes composeReply drop the greeting rather than print nonsense.
+const NOT_A_NAME = new Set(['my','the','a','an','mr','mrs','ms','dr','and','we','our','info','admin']);
 function firstName(displayName) {
-  const first = String(displayName || '').trim().split(/\s+/)[0];
-  if (!first || first.length < 2) return 'friend';
+  const first = String(displayName || '').trim().split(/\s+/)[0].replace(/[^\p{L}\p{N}'-]/gu, '');
+  if (!first || first.length < 2) return null;
+  if (/\d/.test(first)) return null;
+  if (NOT_A_NAME.has(first.toLowerCase())) return null;
   return first[0].toUpperCase() + first.slice(1);
 }
 
+// Inserts the name into a template, or removes the placeholder cleanly when we
+// have no usable name ("Thank you so much, {name}!" -> "Thank you so much!").
+function applyName(tpl, name) {
+  if (name) return tpl.replace('{name}', name);
+  const t = tpl.replace(/,\s*\{name\}/g, '').replace(/\{name\},\s*/g, '');
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
 async function stableIndex(seed, mod) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(seed)));
   return new Uint8Array(buf)[0] % mod;

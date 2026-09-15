@@ -407,6 +407,54 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-09-14 (🎉 GBP API APPROVED & LIVE + personalised auto-replies deployed)
+- **Google approved the Business Profile API access** (submitted 2026-08-21, approved ~3.5 weeks later).
+  Owner enabled the APIs in the Cloud console; everything that had been "armed and waiting" since August
+  activated on the first run. The tell-tale was the error changing from `429` (quota 0, not approved) to
+  `403 "API has not been used in project 1038005653431 or it is disabled"` — the classic approved-but-not-
+  switched-on message.
+- **What went live automatically:** review source flipped `places-seed` → `gbp`; the carousel went from a
+  5-review Places sample to the **full 229 written reviews** (302 total ratings, ~73 are star-only with no
+  text); the **"Latest Updates" posts section now shows 9 Google posts** and revealed itself on the live
+  site with no redeploy (the `count>0` postMessage handler in `index.html` did its job).
+- **Review history was protected exactly as designed:** the first successful sync stamped the watermark at
+  `2026-09-14T21:11:36Z`; every pre-existing review predates it, so **0 auto-replies** went to the back
+  catalogue. Only genuinely new 4–5★ reviews get replies from here.
+- **Auto-replies are now personalised (owner request, deployed same day).** Replaced the 6 flat templates
+  with a service-aware composer in `website/widgets-worker/src/index.js`: it reads the review text,
+  classifies the job into one of **9 categories** (auto/home lockout, fob & programming, ignition, car key,
+  car rekey, home rekey, lock work, commercial), thanks the customer for *that specific job*, and offers one
+  genuinely adjacent service (lockout → spare key; home lockout → rekey/smart lock; key jobs → the 6-month
+  warranty). Variety via stable hash of the review id, so a given review always yields the same text.
+- **Deliberately conservative:** anything not confidently classified falls back to a warm generic reply —
+  a public reply describing the WRONG job is far worse than a slightly generic one. Tested against all 227
+  live reviews: ~40% classify to a specific job, ~60% are pure praise with no job mentioned → generic.
+  New `not:` guard field lets a category exclude false contexts.
+- **Two misfires caught in preview BEFORE deploying** (worth remembering the pattern): (1) the word
+  "business" matched a customer writing *"this business was amazing"* about a **porch lockout** — was about
+  to offer her master-key systems; commercial now requires a possessive signal ("my office", "our
+  storefront"). (2) *"rekeyed my car"* matched the residential rekey rule and offered **deadbolts**; there is
+  now a separate `auto_rekey` category. **Always preview replies against real reviews before deploying.**
+- **Deployed:** version `51074891-26e5-4877-80d1-e845df955d92`. Verified post-deploy: `lastGbpError: null`,
+  229 reviews, 9 posts, `autoReplied: 0`, watermark intact. Max reply length 245 chars (Google allows 4096).
+- **Back-catalogue catch-up (same day, owner asked):** audited all 302 reviews via the API — **291 were
+  already replied to by hand**, so this was never a mass blast: only **11 unreplied**, 10 of them recent
+  5★ (2026-08-21 → 09-10). Replied to all 10 directly (1.5s apart), 0 failures. **301/302 now replied.**
+- **Name handling hardened first — the dry run caught two that would have been embarrassing in public:**
+  "N Shaw" (single initial) produced *"Thanks so much, friend!"*, and the account "My WorkStuff" produced
+  *"Really appreciate you taking the time to leave this, My!"*. `firstName()` now returns null for bare
+  initials, names containing digits, and a stoplist of non-name tokens (my/the/a/mr/dr/info/admin…), and
+  the new `applyName()` drops the greeting cleanly instead ("Thank you so much!"). Deployed as version
+  `8b5ec4a9-8fdc-46a9-b656-0b3b6b9e619e`.
+- **⚠️ ONE UNREPLIED REVIEW REMAINS, DELIBERATELY: a 1★ from "Zach" dated 2025-08-19** — says a lock was
+  drilled out, the replacement part was not on the truck, and calls went unanswered afterwards. The system
+  will **never** auto-reply to 1–3★ by design. It is over a year old, still unanswered publicly, and sits
+  on the profile where every prospective customer can read it. **Needs a personal reply from Sam.**
+- **Still open:** mobile sign-off (iPhone Safari + Android Chrome — homepage + a city page, swipe the
+  carousel, tap "Read all reviews") has been pending since August and is more meaningful now. Also worth
+  eyeballing the **first real auto-reply** when a new 4–5★ review lands, to sign off on the tone; the owner
+  was offered "— Sam, Turbo Keysmith" as a warmer sign-off and softer cross-sell, and chose to ship as-is.
+
 ### 2026-08-25 PM (📝 New blog post: "Why Won't My Key Turn in the Ignition?" — ON PREVIEW, awaiting phone check)
 - New post at `/blog/key-wont-turn-in-ignition/` (Locked Out & Emergencies, by Sam The Key Man,
   dated Aug 25) — 5 causes a key won't turn, what not to do, 4 FAQs. Real shop photo hero (worn
