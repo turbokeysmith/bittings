@@ -6,8 +6,15 @@
 - **The public site is hand-maintained static HTML in `website/site/`** — the single source of truth. Edit those
   files directly. **There is NO build step and NO generator.** The old page generator is **RETIRED** (archived to
   `_archive/_build-generator-RETIRED/`); it is out of sync with the live site — **do NOT run any generator.**
-- Deploy the public site with: `npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main`
-  (run from `turbokeysmith-main/`; always `--branch=main` for production).
+- Deploy the public site with: `node website/_tools/deploy-site.mjs` (run from `turbokeysmith-main/`; production = branch main;
+  `node website/_tools/deploy-site.mjs preview` for a preview). It runs the **Google Analytics check first and refuses to deploy** if any
+  page is missing GA4 tag `G-8LY4YD2YFG`. Don't bypass it with a raw `wrangler pages deploy`.
+- **Google Analytics (GA4 `G-8LY4YD2YFG`) must be in the `<head>` of EVERY page.** There is no shared header, so
+  the tag lives in each file. The one source of truth for the snippet is `website/_tools/ga-snippet.html`. **Every
+  new page needs it** — after adding pages run `node website/_tools/ga-tag.mjs --fix`, then `node website/_tools/ga-tag.mjs`
+  to verify. A git pre-push hook (`.githooks/pre-push`, enabled via `git config core.hooksPath .githooks`) also blocks pushes.
+- **Enforced automatically by Claude Code hooks** (`.claude/settings.json` → `website/_tools/claude-ga-hook.mjs`): after any
+  edit/write/shell command touching `website/site/`, missing GA tags are auto-added; a raw `wrangler pages deploy` is blocked.
 
 ## ⚠️ Keep the handoff docs current — do this automatically
 After **any major change** to this project, you MUST update **both** of these files in the

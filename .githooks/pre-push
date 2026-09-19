@@ -1,0 +1,7 @@
+#!/bin/sh
+# Blocks a git push if any public-site page is missing the Google Analytics tag.
+# Enabled once per clone with:  git config core.hooksPath .githooks
+node website/_tools/ga-tag.mjs || {
+  echo "Push BLOCKED: Google Analytics tag missing. Run: node website/_tools/ga-tag.mjs --fix"
+  exit 1
+}

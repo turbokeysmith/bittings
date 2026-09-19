@@ -11,7 +11,8 @@ it's a separate later step on its own subdomain (see §9). The Spanish **`/es/`*
 
 > **The public site is hand-maintained static HTML in `website/site/`** — the source of truth. There is **no
 > build step and no generator** (the old generator is retired/archived to `_archive/_build-generator-RETIRED/`;
-> **do NOT run it**). Deploy with `npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main`.
+> **do NOT run it**). Deploy with `node website/_tools/deploy-site.mjs` — it checks every page has the Google Analytics tag
+> (`G-8LY4YD2YFG`) and refuses to deploy if not, then runs `npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main`.
 
 > ⚠️ **Biggest risk = email.** Moving nameservers to Cloudflare moves **all** DNS, including the
 > records that make your **GoDaddy email** work (MX + any `mail`/`webmail`/`autodiscover` records).

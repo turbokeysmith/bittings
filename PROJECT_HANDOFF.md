@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-08-25 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-09-19 13:28 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,20 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-09-19 (📈 Google Analytics added to every page + a guard so it can't vanish)
+- **Problem:** GA4 said "No data received" for turbokeysmith.com — the site had **no Google Analytics tag at all**.
+- **Fixed:** added the GA4 tag (Measurement ID **G-8LY4YD2YFG**) to the `<head>` of **all 246 pages** (English +
+  Spanish, blog, city pages, careers, turbo-premium). There is no shared header in this site, so every page carries its
+  own copy; the one master copy of the tag is `website/_tools/ga-snippet.html`.
+- **Guard:** `node website/_tools/ga-tag.mjs` checks every page and fails loudly if any is missing the tag;
+  `--fix` adds it to any page that lacks it (use after creating new pages).
+- **New deploy command:** `node website/_tools/deploy-site.mjs` (add `preview` for a preview deploy). It runs the check first and
+  **refuses to deploy** if a page is missing the tag. A git pre-push hook (`.githooks/pre-push`) also blocks pushes.
+- Verified: removing the tag from one page (test) made the check, the deploy command and the push hook all refuse.
+- **Automatic for Claude:** project hooks (`.claude/settings.json`) re-add the tag to any page Claude creates or edits,
+  and stop Claude from deploying with the old unchecked command. Active from the next Claude session onward.
+- **Pending:** deploy to production, then confirm visits appear in GA4 → Reports → Realtime.
 
 ### 2026-09-14 (🎉 GBP API APPROVED & LIVE + personalised auto-replies deployed)
 - **Google approved the Business Profile API access** (submitted 2026-08-21, approved ~3.5 weeks later).
