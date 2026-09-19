@@ -419,7 +419,7 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
 - Verified: removing the tag from one page (test) made the check, the deploy command and the push hook all refuse.
 - **Automatic for Claude:** project hooks (`.claude/settings.json`) re-add the tag to any page Claude creates or edits,
   and stop Claude from deploying with the old unchecked command. Active from the next Claude session onward.
-- **Pending:** deploy to production, then confirm visits appear in GA4 → Reports → Realtime.
+- **Deployed to production 2026-09-19** — verified the live pages serve the tag. Owner to confirm visits appear in GA4 → Reports → Realtime.
 
 ### 2026-09-14 (🎉 GBP API APPROVED & LIVE + personalised auto-replies deployed)
 - **Google approved the Business Profile API access** (submitted 2026-08-21, approved ~3.5 weeks later).
