@@ -6,12 +6,20 @@
   <atom:link href="https://turbokeysmith.com/blog/feed.xml" rel="self" type="application/rss+xml" />
   <description>Locked &amp; Loaded — straight talk on keys, locks, and getting back on the road.</description>
   <language>en-us</language>
-  <lastBuildDate>Tue, 25 Aug 2026 12:00:00 +0000</lastBuildDate>
+  <lastBuildDate>Tue, 22 Sep 2026 12:00:00 +0000</lastBuildDate>
   <image>
     <url>https://d17lvxud83eqj6.cloudfront.net/decc098b-8d60-486e-a4b4-504237a12fad.png</url>
     <title>Notes from the Key Man</title>
     <link>https://turbokeysmith.com/blog/</link>
   </image>
+  <item>
+    <title>Transponder Key vs. Key Fob vs. Push-to-Start: What's the Difference?</title>
+    <link>https://turbokeysmith.com/blog/transponder-key-vs-fob-vs-push-to-start/</link>
+    <guid isPermaLink="true">https://turbokeysmith.com/blog/transponder-key-vs-fob-vs-push-to-start/</guid>
+    <description>Transponder key, key fob, or push-to-start — what's the difference, how do you tell which you have, and what does each cost to replace? A plain-English OKC guide.</description>
+    <category>Car Keys &amp; Fobs</category>
+    <pubDate>Tue, 22 Sep 2026 12:00:00 +0000</pubDate>
+  </item>
   <item>
     <title>Why Won't My Key Turn in the Ignition? 5 Common Causes</title>
     <link>https://turbokeysmith.com/blog/key-wont-turn-in-ignition/</link>

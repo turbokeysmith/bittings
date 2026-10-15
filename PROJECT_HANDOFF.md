@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-09-19 13:28 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-09-22 13:10 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,28 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-09-22 (📝 New blog post: "Transponder Key vs. Key Fob vs. Push-to-Start" — LIVE)
+- New post at `/blog/transponder-key-vs-fob-vs-push-to-start/` (Car Keys & Fobs, by Sam The Key Man,
+  dated Sep 22) — what each key type is, how to tell which you have, why each costs what it does, 5 FAQs.
+  Includes a comparison table (on phones it swipes sideways, with the row labels pinned on the left).
+- Three new photos in `website/site/blog/assets/`: `car-key-fob-buttons-okc.jpg` (hero + social share
+  image), `transponder-key-car-door-okc.jpg`, `push-to-start-button-okc.jpg`. Resized from full camera
+  size (1–2 MB each) to web size (85–170 KB) so the page loads fast on phones.
+- Two Call-Now blocks; links to the key-cost post and /automotive/. Full schema (BlogPosting +
+  BreadcrumbList + FAQPage; FAQ schema checked word-for-word against the visible FAQ).
+- Wired into: blog index (newest-first), Car Keys & Fobs category page, search-index.json (searching
+  "push to start" and "transponder" both surface it — checked), sitemap.xml, feed.xml.
+- **Status: LIVE on production** at https://turbokeysmith.com/blog/transponder-key-vs-fob-vs-push-to-start/ —
+  owner OK'd it after the preview and ran the production deploy. Re-verified live: post, all 3 photos, both
+  links and the category page serve the new version.
+- **Cache note:** right after the deploy, Cloudflare kept serving saved (old) copies of `/blog/`,
+  `/blog/search-index.json` and `/sitemap.xml` on turbokeysmith.com, even though the deploy itself had them
+  (confirmed by adding `?cb=…` to the URL, and on turbokeysmith.pages.dev). Fix: Cloudflare dashboard →
+  turbokeysmith.com → Caching → Configuration → **Purge Cache → Custom Purge**, paste those URLs. Worth
+  doing after every blog post.
+- Note: the owner dropped the photos into the older `Desktopittings	urbokeysmith-main` copy; that copy's
+  blog is out of date (2 posts), so the post was built in the live `Desktop	urbokeysmith-main` copy.
 
 ### 2026-09-19 (📈 Google Analytics added to every page + a guard so it can't vanish)
 - **Problem:** GA4 said "No data received" for turbokeysmith.com — the site had **no Google Analytics tag at all**.
