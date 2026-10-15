@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-10-15 18:40 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-10-15 19:05 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -423,17 +423,23 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
 - Wired into: blog index (newest-first), Home & Business Security category page (replaces the "no posts yet"
   note), search-index.json (searching "rekey" surfaces it — checked in a headless phone-size browser),
   sitemap.xml, feed.xml.
-- **Status: LIVE on production** (owner said to deploy without waiting). Re-verified live: the post, both photos
-  and /residential/ all return 200. **Pending the owner's two-phone check** (iPhone Safari + Android Chrome)
+- **Status: LIVE on production** (owner said to deploy without waiting). The deploy itself is correct (the post
+  serves on turbokeysmith.pages.dev and when the cache is bypassed on turbokeysmith.com). **Pending the owner's two-phone check** (iPhone Safari + Android Chrome)
   this evening — the headless check (390×844) showed no horizontal overflow, both images load, tap targets are
   61 px tall, and the table scrolls sideways.
-- **Cache note (action for the owner):** same as last time — Cloudflare is still serving the OLD copies of
-  `/blog/`, `/blog/category/home-business-security/`, `/blog/search-index.json`, `/sitemap.xml` and
-  `/blog/feed.xml` on turbokeysmith.com (the deploy itself has the new ones; confirmed on the
-  `*.turbokeysmith.pages.dev` deploy URL). Until it's purged, the post is reachable by its direct link but
-  does NOT show on the blog index / category page / blog search. Fix: Cloudflare dashboard → turbokeysmith.com →
-  Caching → Configuration → **Purge Cache → Custom Purge**, paste those five URLs. (Claude Code couldn't do this
-  itself: the wrangler login has no cache-purge permission and the dashboard route was blocked.)
+- **Cache problem (worse than last time) — and a lesson:** right after the deploy, turbokeysmith.com cached the
+  WRONG page for the new post's URL: the site serves the homepage (as a 200) for any URL that doesn't exist yet,
+  and the edge cache grabbed that homepage copy for `/blog/rekey-vs-replace-locks/` during the first minute or two
+  after the deploy. Because the homepage's stylesheet link is relative, that cached copy renders as an unstyled,
+  plain-text homepage at the post's address — which is what the owner saw on his phone ("looks horrible"). The
+  owner purged the five URLs listed in the first report (`/blog/`, category page, `search-index.json`,
+  `sitemap.xml`, `feed.xml`) and those are now current, but the **post URL itself also needs purging** (it wasn't
+  on that list). Fix: Cloudflare dashboard → turbokeysmith.com → Caching → Configuration → **Purge Cache →
+  Purge Everything** (simplest), or Custom Purge with `https://turbokeysmith.com/blog/rekey-vs-replace-locks/`.
+  Claude Code's first "verified live" check was wrong: it accepted a 200 that was really the homepage fallback.
+  **Going forward:** after every blog post, purge the new post's URL too, and check the page `<title>`, not just
+  the status code. A proper `404.html` in `website/site/` would stop the homepage being served (and cached) for
+  missing URLs in the first place — recommended, not yet done.
 - Housekeeping: the Sep 22 transponder post files had been deployed but never committed to git; they were
   committed as their own commit before this work.
 
