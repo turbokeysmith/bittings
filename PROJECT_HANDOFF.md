@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-09-22 13:10 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-10-15 18:40 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,36 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-10-15 (📝 New blog post: "Rekey vs. Replace Your Locks" — LIVE, pending owner phone check)
+- New post at `/blog/rekey-vs-replace-locks/` (Home & Business Security — the first post in that category, by
+  Sam The Key Man, dated Oct 15) — what rekeying does vs. replacing, when each is right, the move-in /
+  tenant / employee / lost-key situations, which is cheaper, 5 FAQs. Two-column comparison table (on phones it
+  swipes sideways with the row labels pinned on the left).
+- Two new photos in `website/site/blog/assets/`: `rekey-vs-replace-locks-okc.jpg` (hero + social share image,
+  worn doorknob with a key in it) and `locksmith-key-cutting-shop-okc.jpg` (key-cutting workbench, in the
+  "What does rekeying actually do?" section). The owner's Pexels copies weren't in the repo folder, so the same
+  two Pexels photos (IDs 36585227 and 34286675) were fetched from Pexels and resized to web size (94 KB / 229 KB)
+  under the SEO filenames. No "pexels-…" filenames are referenced anywhere.
+- Two Call-Now blocks; two links to /residential/ ("We quote it up front", "rekey multiple locks to work off one
+  single key"). Full schema (BlogPosting + BreadcrumbList + FAQPage; FAQ schema checked word-for-word against
+  the visible FAQ).
+- Wired into: blog index (newest-first), Home & Business Security category page (replaces the "no posts yet"
+  note), search-index.json (searching "rekey" surfaces it — checked in a headless phone-size browser),
+  sitemap.xml, feed.xml.
+- **Status: LIVE on production** (owner said to deploy without waiting). Re-verified live: the post, both photos
+  and /residential/ all return 200. **Pending the owner's two-phone check** (iPhone Safari + Android Chrome)
+  this evening — the headless check (390×844) showed no horizontal overflow, both images load, tap targets are
+  61 px tall, and the table scrolls sideways.
+- **Cache note (action for the owner):** same as last time — Cloudflare is still serving the OLD copies of
+  `/blog/`, `/blog/category/home-business-security/`, `/blog/search-index.json`, `/sitemap.xml` and
+  `/blog/feed.xml` on turbokeysmith.com (the deploy itself has the new ones; confirmed on the
+  `*.turbokeysmith.pages.dev` deploy URL). Until it's purged, the post is reachable by its direct link but
+  does NOT show on the blog index / category page / blog search. Fix: Cloudflare dashboard → turbokeysmith.com →
+  Caching → Configuration → **Purge Cache → Custom Purge**, paste those five URLs. (Claude Code couldn't do this
+  itself: the wrangler login has no cache-purge permission and the dashboard route was blocked.)
+- Housekeeping: the Sep 22 transponder post files had been deployed but never committed to git; they were
+  committed as their own commit before this work.
 
 ### 2026-09-22 (📝 New blog post: "Transponder Key vs. Key Fob vs. Push-to-Start" — LIVE)
 - New post at `/blog/transponder-key-vs-fob-vs-push-to-start/` (Car Keys & Fobs, by Sam The Key Man,
