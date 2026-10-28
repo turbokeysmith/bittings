@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-10-15 19:05 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-10-28 17:17 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,28 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-10-28 (📝 New blog post: "Holiday Travel Checklist: Don't Get Locked Out This Season" — LIVE, pending owner phone check)
+- New post at `/blog/holiday-travel-lockout-checklist/` (Locked Out & Emergencies, by Sam The Key Man, dated
+  Oct 28) — a six-step pre-trip checklist: make a spare key, check the fob battery, find the fob's hidden
+  mechanical key, mind your keys while loading, have a plan for the road, lock up the house the smart way.
+  Four FAQs. Built by hand from the rekey post's HTML (same dark skin, header/footer, CTA style); no generator.
+- New hero photo `website/site/blog/assets/holiday-travel-keys-okc.jpg` (SUV with roof-rack cargo, trunk open).
+  The owner's original (`man packing luggage into car trunk.jpg`, 1.9 MB) was shrunk to a 1067×1600, ~200 KB web
+  copy; the original was removed from the folder as unused.
+- Two Call-Now blocks; links to /automotive/ ("cut and program a spare") and to the rekey post ("rekey").
+  Schema: BlogPosting + BreadcrumbList + FAQPage (the FAQ schema was checked word-for-word against the visible
+  FAQ in a headless browser).
+- Wired into: blog index (newest-first), Locked Out & Emergencies category page, search-index.json (searching
+  "holiday" and "spare key" both surface it — checked live), sitemap.xml, feed.xml.
+- **Status: LIVE on production** (the brief said to publish without waiting). This time the live check looked at
+  the page `<title>` and H1 on turbokeysmith.com, not just the status code, and they are the real post — the
+  homepage-fallback cache problem from Oct 15 did not recur. Index, category page, search index, feed and
+  sitemap on turbokeysmith.com all already carry the post, so no cache purge is needed.
+  **Pending the owner's two-phone check** (iPhone Safari + Android Chrome): the headless 390×844 check showed
+  no horizontal overflow, the hero loads with its caption directly beneath, and both Call-Now buttons are
+  61 px tall.
+- `bittings-app/app/STRUCTURE_NOTES.md` not touched — public-site-only change.
 
 ### 2026-10-15 (📝 New blog post: "Rekey vs. Replace Your Locks" — LIVE, pending owner phone check)
 - New post at `/blog/rekey-vs-replace-locks/` (Home & Business Security — the first post in that category, by
