@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-10-28 17:17 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-10-31 17:20 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -406,6 +406,36 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-10-31 (📝 New blog post: "Can a Locksmith Make a Key for a VW or Other European Car?" — LIVE, pending owner phone check)
+- New post at `/blog/can-a-locksmith-make-a-vw-european-key/` (Car Keys & Fobs, by Sam The Key Man, dated
+  Oct 31) — why most locksmiths won't touch VW/Audi/BMW/Mercedes, what we do on-site (the recent VW GTI job),
+  the honest case-by-case caveat, and why not just go to the dealer. Five FAQs. Built by hand from the holiday
+  travel post's HTML (same dark skin, header/footer, CTA style); no generator.
+- Two photos from the owner's GTI job, already renamed in `website/site/blog/assets/`:
+  `vw-gti-key-grille-okc.jpg` (hero — finished flip key in front of the GTI grille badge, portrait, cropped to
+  4:3 on the page) and `vw-gti-cluster-programming-okc.jpg` (body — the key on the instrument-cluster circuit
+  board at the bench). Each has a caption directly beneath. Two more GTI photos the owner dropped in
+  (`vw-gti-instrument-cluster-okc.jpg`, `vw-gti-key-steering-wheel-okc.jpg`) are committed but not used yet.
+- **The 36 MB video `vw-gti-key-reel.mp4` was moved OUT of the website folder** to `website/_media/` (not
+  deployed, not committed). Cloudflare Pages refuses any file over 25 MB, so leaving it in `website/site/`
+  would have broken every future deploy. If the owner wants the reel on the site it needs to be compressed
+  well under 25 MB first (or hosted on YouTube/TikTok and embedded).
+- Two Call-Now blocks; links to /automotive/ ("we come to you") and to the car-key cost post ("faster and
+  cheaper than the dealership"). **Note:** the brief asked for `/blog/locksmith-vs-dealership-car-keys/`, but
+  no such post exists — that URL just serves the homepage fallback. The link was pointed at the live
+  "How Much Does It Cost to Replace a Car Key in OKC?" post instead, which has a "Locksmith vs. the dealership"
+  section. If a dedicated locksmith-vs-dealership post is written later, update this link.
+- Schema: BlogPosting + BreadcrumbList + FAQPage (FAQ schema checked word-for-word against the visible FAQ on
+  the live page in a headless browser).
+- Wired into: blog index (newest-first), Car Keys & Fobs category page, search-index.json (searching "vw" and
+  "european" each surface only this post — checked live), sitemap.xml, feed.xml.
+- **Status: LIVE on production.** Live check on turbokeysmith.com confirmed the real page `<title>`/H1, both
+  images loading at full resolution with captions beneath, both Call-Now buttons dialing (405) 870-5397, both
+  internal links returning the real target pages, and the post present in index/category/search/feed/sitemap.
+  **Pending the owner's two-phone check** (iPhone Safari + Android Chrome): the headless 390×844 check showed
+  no horizontal overflow and 61 px-tall Call-Now buttons.
+- `bittings-app/app/STRUCTURE_NOTES.md` not touched — public-site-only change.
 
 ### 2026-10-28 (📝 New blog post: "Holiday Travel Checklist: Don't Get Locked Out This Season" — LIVE, pending owner phone check)
 - New post at `/blog/holiday-travel-lockout-checklist/` (Locked Out & Emergencies, by Sam The Key Man, dated
