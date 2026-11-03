@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-10-31 17:20 CDT (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-11-03 14:45 CST (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-app/`** (staff app) — see §8. A **blog** ("Notes from the Key Man")
@@ -29,7 +29,7 @@ static files. Data is stored in the browser today (**localStorage**) and can opt
 a **cloud database (Supabase)** when staff sign in.
 
 **Business facts used throughout:** Turbo Keysmith, mobile locksmith, licensed OK #AC441081,
-phone 405-870-5397, based at 4201 N MacArthur Blvd, Warr Acres, OK 73122.
+phone 405-870-5397, based at 9201 N Council Rd, Suite A, Oklahoma City, OK 73132 (moved Nov 2026; was 4201 N MacArthur Blvd, Warr Acres).
 
 ---
 
@@ -406,6 +406,21 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-11-03 (📍 New shop address on every page — LIVE, pending owner phone check)
+- Turbo Keysmith moved to **9201 N Council Rd, Suite A, Oklahoma City, OK 73132**. Updated on all 240 pages
+  (English + Spanish): footer address, contact page, privacy/terms, and the hidden Google business data on
+  every page (street, city, ZIP and the map pin, now 35.5633, -97.6567).
+- The Warr Acres and Bethany pages no longer say the shop is *in* Warr Acres; they now say the Council Rd shop
+  is minutes away. Copy about serving businesses along MacArthur Blvd was kept (still true).
+- The "Google" map link on every page is the Business Profile short link — it follows the profile, so it is
+  right as soon as the **owner updates the address in Google Business Profile** (please do this; Google and
+  the site should match). Also update Yelp/Nextdoor/BBB/NASTF listings if they show the old address.
+- Also changed on LocksmithsNearby.com: Turbo's listing shows the new address (manual override until Google
+  updates).
+- **Owner to-do: purge the Cloudflare cache** (dashboard → turbokeysmith.com → Caching → Configuration →
+  Purge Cache → **Purge Everything**). Deployed 2026-11-03 14:50 CST; the homepage was still serving the old
+  address from cache right after deploy (other pages checked were already new).
 
 ### 2026-10-31 (📝 New blog post: "Can a Locksmith Make a Key for a VW or Other European Car?" — LIVE, pending owner phone check)
 - New post at `/blog/can-a-locksmith-make-a-vw-european-key/` (Car Keys & Fobs, by Sam The Key Man, dated
