@@ -465,6 +465,15 @@ function pill(val){
 function uniqSort(a){ return [...new Set(a.filter(Boolean))].sort((x,y)=>String(x).localeCompare(String(y),undefined,{numeric:true})); }
 
 /* ============================== REFERENCE CARD ============================== */
+// Real-world tool removals the vendor coverage pages DON'T reflect (a maker forced the tool to
+// drop functions). Mirrors the Start-a-Job lookup so both views agree. Returns 'none' or 'addonly'.
+function toolRestriction(covkey, make, year){
+  const t=String(covkey||'').toLowerCase(), mk=String(make||'').toLowerCase(), y=parseInt(year,10)||0;
+  const AUTEL=/^(im608|im508|km100)$/.test(t);
+  if(AUTEL && /^(ford|lincoln)$/.test(mk) && y>=2015) return 'none';   // Ford forced Autel to remove 2015+ Ford key/IMMO (Aug 2025)
+  if(AUTEL && /^(toyota|lexus|scion)$/.test(mk)) return 'addonly';     // Autel removed Toyota/Lexus AKL in the US — add-key only
+  return null;
+}
 function renderCards(rows){
   const box=document.getElementById('cards');
   const dv=devices().filter(x=>x.owned!==false);
@@ -474,7 +483,16 @@ function renderCards(rows){
     const matrix=dv.map(dev=>{
       const c=(r.cov&&r.cov[dev.covkey||dev.key])||null;
       if(!c) return `<tr><td><b>${esc(dev.name)}</b></td><td>${pill('Verify')}</td><td>${pill('Verify')}</td><td>${pill('Verify')}</td><td>—</td><td class="muted">not recorded — verify on device</td></tr>`;
-      return `<tr><td><b>${esc(dev.name)}</b></td><td>${pill(c.add)}</td><td>${pill(c.akl)}</td><td>${pill(c.rem)}</td><td>${esc(c.method||'—')}</td><td class="muted">${esc(c.needs||'')}</td></tr>`;
+      let add=c.add, akl=c.akl, rem=c.rem, needs=c.needs||'';
+      const restr=toolRestriction(dev.covkey||dev.key, r.make, r.year_end);
+      if(restr==='none'){          // Autel × Ford/Lincoln 2015+ — Autel lost the function entirely
+        add='Pre-2015 only'; akl='Removed';
+        needs='Autel dropped ALL 2015+ Ford key/IMMO (Aug 2025) — pre-2015 only. For 2015+ use SmartPro / AutoProPad / Lonsdor.';
+      } else if(restr==='addonly'){ // Autel × Toyota/Lexus/Scion — AKL removed in the US
+        akl='Removed';
+        needs='Autel removed Toyota/Lexus AKL in the US — add-key only. AKL: Lonsdor (license+points) or AutoProPad.';
+      }
+      return `<tr><td><b>${esc(dev.name)}</b></td><td>${pill(add)}</td><td>${pill(akl)}</td><td>${pill(rem)}</td><td>${esc(c.method||'—')}</td><td class="muted">${esc(needs)}</td></tr>`;
     }).join('');
     return `<div class="card">
       <h2>${esc(r.system||r.make)}</h2>
@@ -561,7 +579,11 @@ document.getElementById('dSearch').addEventListener('input',renderDevices);
 function capSummary(r){
   const dv=devices().filter(x=>x.owned!==false);
   return dv.map(d2=>{ const c=(r.cov&&r.cov[d2.covkey||d2.key]); const tag=String(d2.key).toUpperCase().slice(0,4);
-    return c?(tag+':'+(c.add||'?')+'/'+(c.akl||'?')):(tag+':—'); }).join('  ');
+    if(!c) return tag+':—';
+    let add=c.add||'?', akl=c.akl||'?';
+    const restr=toolRestriction(d2.covkey||d2.key, r.make, r.year_end);
+    if(restr==='none'){ add='pre15'; akl='No'; } else if(restr==='addonly'){ akl='No'; }
+    return tag+':'+add+'/'+akl; }).join('  ');
 }
 function renderCoverage(){
   const f=(document.getElementById('cSearch').value||'').toLowerCase();

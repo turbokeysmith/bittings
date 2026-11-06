@@ -252,6 +252,9 @@ function renderPanel(key){
         '<label>Standard warranty (months)</label><input id="f_warrantyMonths" type="number" min="0" step="1" inputmode="numeric" value="'+(war.months!=null?war.months:6)+'" placeholder="6">'+
         '<div class="hint">The warranty you stand behind on labor/parts — e.g. a <b>6-month</b> standard warranty. New receipts &amp; invoices show a pill counting down the days until it expires. Set <b>0</b> to turn warranties off.</div>'+
         '<label class="toggle"><input type="checkbox" id="f_warrantyDefault" '+(war.defaultOn?'checked':'')+'> Add the warranty to new documents by default</label>'; })()+
+      (function(){ var n=cfg.nastf||{d1Days:5}; return ''+
+        '<label>NASTF D1 filing window (days)</label><input id="f_d1Days" type="number" min="1" step="1" inputmode="numeric" value="'+(n.d1Days!=null?n.d1Days:5)+'" placeholder="5">'+
+        '<div class="hint">When a job is tagged <b>NASTF</b> (on the register or Start-a-Job) Bittings starts a D1-filing countdown and shows a color-degrading badge (green → yellow → orange → red → overdue). Default <b>5 days</b>. You still file the actual D1 on the NASTF website — this only tracks the deadline.</div>'; })()+
       '<div class="note"><b>Stripe keys — never typed into this page.</b> Your <b>secret key</b> lives only as a Supabase Edge Function secret (<code>STRIPE_SECRET_KEY</code>) — set it in the Supabase dashboard, never here. Your <b>publishable key</b> (<code>pk_…</code>) is entered once on the Pay screen when you take a typed-card payment. This keeps you PCI-safe (no card data or secret ever touches the app).</div>';
   }
   else if(key==='access'){
@@ -307,7 +310,21 @@ function renderPanel(key){
     renderReview(p);
   }
 }
-function appAlertLite(t,m){ alert(t+(m?('\n\n'+m):'')); }
+function appAlertLite(t,m){
+  function _e(s){ return String(s==null?'':s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(6,8,11,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML='<div style="background:var(--card);color:var(--ink);width:100%;max-width:400px;border-radius:16px;border:1px solid var(--edge);padding:18px;">'+
+    '<div style="font-weight:800;font-size:16px;margin-bottom:'+(m?'8px':'16px')+'">'+_e(t)+'</div>'+
+    (m?('<div style="font-size:14px;color:var(--dim);line-height:1.5;margin-bottom:16px">'+_e(m)+'</div>'):'')+
+    '<div style="display:flex;justify-content:flex-end"><button type="button" id="_alOk" style="background:var(--amber,#e08a2a);color:#fff;border:none;border-radius:10px;padding:11px 18px;font-weight:800;font-size:14px;cursor:pointer;min-width:96px;min-height:42px">OK</button></div></div>';
+  document.body.appendChild(ov);
+  function close(){ if(ov.parentNode) ov.remove(); document.removeEventListener('keydown',onkey); }
+  function onkey(e){ if(e.key==='Escape'||e.key==='Enter') close(); }
+  ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
+  ov.querySelector('#_alOk').onclick=close;
+  document.addEventListener('keydown',onkey);
+}
 
 function renderQuickLinks(){
   const el=document.getElementById('qlEditor'); if(!el) return;
@@ -464,7 +481,8 @@ function gather(key){
   else if(key==='payments'){ const s=g('f_surcharge'); cfg.payments.surchargePct=s!==''?(parseFloat(s)||0):2;
     const fl=g('f_float'); cfg.payments.drawerFloatCents=fl!==''?Math.max(0,Math.round((parseFloat(fl)||0)*100)):12000;
     if(!cfg.warranty) cfg.warranty={}; const wm=g('f_warrantyMonths'); cfg.warranty.months=wm!==''?Math.max(0,parseInt(wm,10)||0):6;
-    const wd=document.getElementById('f_warrantyDefault'); cfg.warranty.defaultOn=!!(wd&&wd.checked); }
+    const wd=document.getElementById('f_warrantyDefault'); cfg.warranty.defaultOn=!!(wd&&wd.checked);
+    if(!cfg.nastf) cfg.nastf={}; const dd=g('f_d1Days'); cfg.nastf.d1Days=(dd!==''&&parseInt(dd,10)>=1)?parseInt(dd,10):5; }
   else if(key==='access'){
     const emps=(cfg.access.employees||[]).filter(e=>(e.name||'').trim()||(e.email||'').trim());
     cfg.access.employees=emps;

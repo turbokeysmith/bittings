@@ -693,6 +693,10 @@
     // where the shop operates: mobile (van) and/or a physical storefront. Drives whether
     // inventory splits into van vs shop + shows "move" buttons. Mobile-first default.
     locations: { van: true, shop: false },
+    // NASTF D1 filing window (days) — manager-set in Setup; drives the D1 countdown badge.
+    nastf: { d1Days: 5 },
+    // misc UI preferences (e.g. suppress the "save this Other service?" offer). Shop-wide, cloud-synced.
+    prefs: { offerSaveOtherService: true },
     // employees: [{name,email,owner}]; ownerEmails is derived from owner=true rows.
     access: { employees: [], ownerEmails: [], staffEmails: [], quickFormPin: '', quickInvoiceEnabled: true, quickInvoiceDefault: true },
     quickLinks: DEFAULT_QUICKLINKS.map(function (c) { return { key: c.key, label: c.label, icon: c.icon, links: c.links.slice() }; }),
@@ -751,6 +755,8 @@
       identity: Object.assign({}, d.identity, c.identity || {}),
       payments: Object.assign({}, d.payments, c.payments || {}),
       locations: Object.assign({}, d.locations, c.locations || {}),
+      nastf: Object.assign({}, d.nastf, c.nastf || {}),
+      prefs: Object.assign({}, d.prefs, c.prefs || {}),
       access: Object.assign({}, d.access, c.access || {}),
       quickLinks: normalizeQuickLinks(c.quickLinks, c.vendors),
       services: Array.isArray(c.services) ? c.services : [],
@@ -897,6 +903,9 @@
       payments: function () { return getConfig().payments; },
       warranty: function () { return getConfig().warranty || { months: 0, defaultOn: false }; },
       locations: function () { return getConfig().locations; },
+      nastf: function () { return getConfig().nastf || { d1Days: 5 }; },
+      d1Days: function () { var n = getConfig().nastf || {}; var d = parseInt(n.d1Days, 10); return (d >= 1) ? d : 5; },
+      prefs: function () { return getConfig().prefs || {}; },
       quickLinks: function () { return getConfig().quickLinks; },
       // back-compat: the links in the "vendors" category
       vendors: function () { var q = getConfig().quickLinks.filter(function (c) { return c.key === 'vendors'; })[0]; return q ? q.links : []; },
@@ -918,7 +927,7 @@
         partial = partial || {};
         var cur = getConfig();
         var merged = Object.assign({}, cur);
-        ['identity', 'payments', 'access', 'setup', 'locations', 'warranty'].forEach(function (g) {
+        ['identity', 'payments', 'access', 'setup', 'locations', 'warranty', 'nastf', 'prefs'].forEach(function (g) {
           if (partial[g]) merged[g] = Object.assign({}, cur[g], partial[g]);
         });
         if (partial.taxableByCategory) merged.taxableByCategory = Object.assign({}, cur.taxableByCategory, partial.taxableByCategory);
@@ -1088,5 +1097,15 @@
     // 2d — manager sign-off / reconciliation approval (releasing a hold releases the commission hold)
     awaitingSignoff: function(){ return _sb().rpc('jobs_awaiting_signoff'); },                                   // manager+ only
     releaseHold:     function(job, action, note){ return _sb().rpc('job_release_hold', { p_job:job, p_action:action, p_note:note||'' }); }
+  };
+
+  // ---- NASTF D1 filing tracking (shared worklist + job-scoped filing) ----
+  global.TKS.NASTF = {
+    // the shared outstanding-D1 worklist (urgency-sorted; each row carries can_file).
+    worklist:  function(includeFiled){ return _sb().rpc('nastf_worklist', { p_include_filed: includeFiled !== false }); },
+    // file / un-file a D1 — server enforces job-scope (manager OR the staff who did the job).
+    setFiled:  function(receiptId, filed){ return _sb().rpc('set_d1_filed', { p_receipt: receiptId, p_filed: filed !== false }); },
+    // UI mirror: may this user file D1 on this receipt?
+    canFile:   function(receiptId){ return _sb().rpc('can_file_d1', { p_receipt: receiptId }); }
   };
 })(window);

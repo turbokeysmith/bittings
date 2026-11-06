@@ -28,6 +28,55 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 10. **A11y + mobile pass** — labels associated, keyboard-operable rows, focus-visible outlines,
     16px inputs, ≥40px tap targets, reduced-motion, aria-live messages.
 
+## Update 2026-06-24 — Ilco 2025 dataset import + lookup wiring; chrome theme unified
+- **`app/ilco-2025.js`** — `window.TKS_ILCO_2025` = 1,642 `{mk,md,ys,ye,s,c,k}` records, **extracted from the owner's 2025 Ilco Auto/Truck PDF** via `_ilco_extract.py` (pdfplumber table extraction; make from the Model Index; deduped) → `_ilco_extracted.json` → `_gen_ilco.js` → the JS file. Validated: MKZ/Silverado/F-150 match the prior seed. Loaded in `index.html` after `lishi-seed.js`.
+- **`codeSeriesFor(make,model,year)`** (index.html Start-a-Job) now checks the curated seed `codeSeries` first, then `TKS_ILCO_2025` with a normalized fuzzy model match (`_nmod` strips non-alphanumerics). Returns `{series,card,note,keyway}`. `renderResult` uses it for the **Code series** cell (independent of any keyway record) **and** as the **keyway** fallback when there's no Lishi record. `matchVeh` no longer returns a different model's record when the named model is absent (returns null → "verify").
+- Coverage: ~70% of the 343 catalog model-lines now resolve to a code series. `lishi-seed.js` exposes `codeSeries` on `TKS_LISHI_SEED`. Re-extract by re-running `_ilco_extract.py` + `_gen_ilco.js` on a newer PDF.
+- **Chrome theme** — `bittings.html` header (`#fbfcfd` light / `#1f232a` dark) + `#appnav`, and `scheduler.html` `--header-bg/--header-fg` now follow light/dark instead of always-dark. Role chip (`access.js #tks-role-chip`) moved from top-right to bottom-left (was covering header buttons).
+
+## Update 2026-06-23 — Receipts viewer → HTML render; PDF wrap fix; RO bottom-nav pin
+- **In-app viewer now renders HTML, not a blob-PDF iframe** (iOS/Android iframes showed the blob PDF blank → "View does nothing"). `renderReceiptCard` was split into **`buildReceiptCardHTML(r, actionsHTML)`** (returns the `<div class="receipt-card">…</div>` string) + a thin `renderReceiptCard(r)` chat wrapper. `roOpenViewer(r)` injects `buildReceiptCardHTML(r)` into `#roViewerDoc`; **Download** = `makePDF(r,'en',false)` (saves), **Print** = `makePDF(…,true)` → `window.open(blobUrl)`. Removed `#roViewerFrame`/`roViewerBlob`/`roViewerUrl`. The card shows sell prices only (no cost leak). 
+- **PDF bill-to wrap fix** — `makePDF` `bl()` now `splitTextToSize(…,260)` and advances `yy` by 15×lines, so a wrapped Address no longer overlaps the VIN/next field.
+- **RO bottom-nav** — `body.ro-mode #roWrap{flex:1 1 auto;min-height:0;overflow-y:auto}` so `#appnav` stays pinned to the bottom (was floating to mid-screen because the block didn't fill height). Removed the floating `.ro-viewcue` (overlapped the `.ro-amt` dollar value).
+
+## Update 2026-06-23 — Mobile audit fixes (Receipts setup removed, theme sync, stock overflow)
+- **bittings.html `boot()`** — removed the welcome/setup gate. Now: `SETTINGS = getSettings()||DEFAULT`, then `hydrateIdentityFromConfig()` (pulls name/address/phone/email/license/logo from `TKS.Config.identity()`), `saveSettingsObj(SETTINGS)` to cache, then `RO_RECEIPTS?roOpen():startInterview()`; also `TKS.Config.load().then(re-hydrate)` for async cloud config. The `#welcome`/`firstRunSetup()` path is now unreachable (identity is owned by the main-app Setup wizard). Fixes "set up business again" + the RO Receipts tab no longer falls into chat mode.
+- **cloud-test.html** — added the pre-paint theme script + `html[data-bt-theme="dark"]` var overrides (`--bg/--card/--edge/--ink/--dim`, `color-scheme:dark`). Was always-light → caused the "light login in a dark app" mismatch.
+- **index.html inventory toolbar** — `.bar` gained `flex-wrap:wrap`; `@media(max-width:600px)` makes `.bar .search` full-width and `.bar .add` wrap/share rows. Was overflowing on phones (search + Import/Export/VIN/Add in one nowrap row → forced zoom-out).
+- **index.html stock modal** — `#stkCard select,#stkCard input{width:100%;min-width:0;max-width:100%}` (themed); the Move grid is now `.mv-grid` (`1fr auto 1fr`) that collapses to one column under 480px (`.mv-arrow` hidden).
+- **Verified:** viewport meta present on all pages (lishi included — earlier audit note was wrong). scheduler.html follows `bt_theme` but sets `data-theme` (its own CSS namespace) — functionally tracks the global theme; left as-is. No service worker, so files served fresh. Register stays `pos-desktop-only`; Receipts viewer/NASTF/D1 + themed pop-ups are mobile.
+
+## Update 2026-06-23 — Dashboard dark-mode fix + pop-up sweep finished (index/bittings/setup)
+- **Dashboard dark mode (`index.html`):** `[data-bt-theme="dark"] #view-dashboard .dash` overrode the `--ds-*` vars but not the base `background:#f6f7f9` → added `background:#14171b`. `dashKpiCard` puts its accent on `.kpi-num`; "Jobs" + "Avg ticket" passed hardcoded `#14171b` (dark-on-dark in dark mode) → now `var(--ds-ink)`; "Tax collected" → `var(--ds-2)`. Colored KPIs (green/blue/red) unchanged.
+- **Pop-up sweep to 0 native dialogs** in `index.html`, `bittings.html`, `setup.html`:
+  - `index.html`: all remaining `alert()` → `uiAlert` (job/invoice-open errors, importer, deposit copy, PDF-not-loaded, refund). 0 native `alert/confirm/prompt`.
+  - `bittings.html`: added **`appPrompt(title,opts)`** (showModal-style input); converted all `alert()`→`appAlert` and both `prompt()`→`appPrompt` (model-typing, quick-invoice manager PIN). 0 native (excluding the embedded jsPDF lib internals).
+  - `setup.html`: `appAlertLite(t,m)` is now a themed centered overlay (`--card`/`--ink`/`--edge`) instead of `alert()`.
+  - **Still native (deferred — fold in when next editing):** `programmers.html`, `lishi.html`, `scheduler.html`, `cloud-test.html`.
+
+## Update 2026-06-23 — Register "Other" items + themed pop-up sweep
+- **"Other" (unlisted) part/service (`index.html`):** picker `otherBtnHTML()`/`wireOther()` add an **➕ Other** row → `posOtherEntry(kind, svcType)` (themed modal: name + price + taxable). Adds a **custom line** (`type:'custom'`, `lineType` = `'part'` or `posInferLineType(name)` → programming/labor/service). `posBuildPayload` else-branch now emits `{type:'custom', desc, priceCents, qty, taxable, lineType}`.
+- **Server (`phase2_pos_checkout_other_lines`):** `pos_checkout` else-branch **no longer manager-gates** a custom/Other line (any staff may set a price for an unlisted item — needs `priceCents>0`; honors `lineType`; maps `'custom'`→`'service'`). Discounts + changing a **set** catalog price stay manager-only.
+- **Save-to-catalog:** `maybeOfferSaveService(name,cents,cat,taxable)` — themed offer with a **"Don't ask again"** checkbox → `TKS.Config.save({prefs:{offerSaveOtherService:false}})`. Saving appends `{value,en,cat,price,taxable}` to `cfg.services`; **cat = `automotive`|`residential`** per the picker tab so it re-lists correctly. Config: `prefs` group added (defaults/merge/save-group/`Config.prefs()`).
+- **Themed pop-up sweep (`index.html`):** `uiConfirm`/`uiPrompt`/`uiAlert`/`uiAskPriceCents` (built on `.chg-modal-ov`/`.chg-modal`, centered, `var(--card)`/`var(--ink)`; exposed on `window`). Replaced native `prompt`/`confirm` in: posEditLinePrice, posCustomLine (→ `posOtherEntry('service')`), posDiscountPrompt, posClear, pinPrompt, mark-paid, `commSignoff`, service-delete. **0 interactive native dialogs** remain in index.html; a few rare error `alert()`s kept. Verified all custom overlays centered + themed (`--surface-*/--text-*` ≡ `--card/--ink/--dim/--edge` via `app/ui/bittings-ui.css`); bittings `showModal`/`appAlert`/`appConfirm` already centered/themed.
+
+## Update 2026-06-23 — NASTF consolidation + D1 filing-deadline tracking (Phase 2 tweak)
+Branch `phase2-pos-commission`. SQL: `bittings-app/supabase/phase2/2e_nastf_d1_tracking.sql`. Shared badge: `app/d1.js`.
+- **Data shape:** a NASTF receipt carries `data.nastf = {type, d1Days, d1DueDate:'YYYY-MM-DD', d1Filed, d1FiledAt?, d1FiledBy?, d1FiledByName?}`. Window = `shop_config.data.nastf.d1Days` (default 5). Countdown anchor = the receipt date; cleared when `d1Filed`.
+- **Server (all SECURITY DEFINER, self-enforcing — standard pattern, WARN-only advisor):**
+  - `pos_checkout` stamps `data.nastf` when `payload.nastf` (the D1 type) is set, reading `d1Days` from config (`d1DueDate = current_date + d1Days`).
+  - `can_file_d1(receipt)→bool` — job-scope: `is_manager()` OR `technicianId == auth.uid()` (walk-up POS seller) OR in `job_staff` for `data.bookingId`.
+  - `set_d1_filed(receipt, filed)` — gated by `can_file_d1` (raises otherwise); merges into `data.nastf`; audit `d1_filed`/`d1_unfiled`.
+  - `nastf_worklist(include_filed)` — shared worklist, `order by d1_filed asc, d1DueDate asc nulls last`; each row carries `can_file`.
+- **`TKS_D1` (`app/d1.js`):** `badge(nastf)`/`pillHTML(nastf,opts)` — color ladder ≥4 green · 3 yellow · 2 orange · 1 red · ≤0 dark-red (pulse). Loaded in `index.html` + `bittings.html`.
+- **Data layer (`store.js`):** config `nastf.d1Days` (defaults/merge/save group + `Config.nastf()`/`Config.d1Days()`); `TKS.NASTF.worklist/setFiled/canFile`.
+- **Register (`index.html`):** `posNastf` state + `#posNastfSeg` selector inside the Automotive vehicle panel; `posSetNastf`/`posRenderNastfBadge`; `posBuildPayload` sends `nastf`. `@keyframes d1pulse`.
+- **Builder (`bittings.html`):** `stampD1Nastf(info, prior)` in `finish()` stamps the deadline on a saved NASTF receipt (preserves prior deadline/filed on re-save).
+- **Read-only Receipts (`bittings.html?receipts=1`):** `RO_RECEIPTS` flag suppresses `startInterview()`/builder (`body.ro-mode` hides `#chat`/`#inputbar`/History btn); `#roWrap` with `[All|NASTF]` tabs (`roSetTab`/`roRenderAll`/`roRenderNastf`), search, D1 pills, and the **D1-filed checkbox** (enabled per `can_file`; calls `TKS.NASTF.setFiled`). All/NASTF are **view/search/reprint only** (Send/PDF reuse `shareDocument`/`makePDF`; no New/edit/charge/delete). `TKS.onChange` re-renders All on cloud sync. Nav "Receipts" (sidebar `data-embed` + phone bottom-nav `data-open`) → `?receipts=1`; **Start-a-Job still opens the builder** (`bittings.html`, no param). `openEmbed` cache-bust now uses `&` when the URL already has a query.
+- **In-app invoice viewer (`bittings.html`, RO mode):** tap a row's `.ro-open` → `roOpenViewer(r)` builds the PDF via `makePDF(r,'en',false,true)` (returns `{blob,filename}`), `URL.createObjectURL` → `#roViewerFrame` iframe (inline, **no download**). `#roViewer` modal: Print (`iframe.contentWindow.print()`, fallback `window.open(blobUrl)`) · Download (`<a download>` the blob) · Close (Esc/backdrop). Legacy receipts get `totals`/`items` rebuilt first (same as `renderHistList`). Object URLs revoked on close. **Role-safe by construction:** `makePDF` renders `it.amount` + sell-side totals only — **cost/margin never appear in the PDF**, so any role can view. Row actions: View · Send (customer copy share) · PDF (ES).
+- **Setup (`setup.html`):** Payments step gains "NASTF D1 filing window (days)" → `cfg.nastf.d1Days`.
+- **Verified server-side** (owner + technician test users): config-driven deadline (window=3 → due today+3); job-scoped filing (manager + seller PASS, non-assigned tech BLOCKED); worklist urgency sort + per-row `can_file`. No new ERROR advisors.
+
 ## Update 2026-06-22 — Phase 2: POS / cash-register + configurable commission engine
 Branch `phase2-pos-commission`. SQL in `bittings-app/supabase/phase2/`.
 - **2a POS:** `inventory.sell_price_cents` (added to the part editor + `inventory_safe` view, visible to all; cost still masked). `services` table (price list, RLS read=staff/write=manager+). **`pos_checkout(payload)`** (SECURITY DEFINER) re-prices catalog lines server-side, gates discount/price-override to `is_manager()`, tags each line `lineType` (part/service/programming), builds a `receipts` row (source='pos') for the existing pay flow, returns the id. **`pos_decrement_stock(receipt)`** decrements part lines from `posLocation` via `inventory_locations` (idempotent via `data.posStockApplied`). The POS register **replaces** the New-Charge form in `index.html` (`posTicket`/`posRender`/`posBuildPayload`/`posCheckoutThen`); `pay.js` gained **`opts.skipUpsert`** so the server receipt isn't overwritten by the client. Manager **services editor** (`posManageServices`).
@@ -52,7 +101,9 @@ Branch `phase2-pos-commission`. SQL in `bittings-app/supabase/phase2/`.
   Everything else that named a shop must come from `TKS.Config.identity().name` / `.logo`. (Reverted the earlier
   mistake of pointing `#sideLogo` at the shop logo.)
 - **index.html**: added `bizName()` = `identity().name||'your shop'`. On-load init sets `#appName` (top header
-  `<h1>`), `#btWorkspaceName` (sidebar workspace line), and `document.title` to `bizName()`; `#appLogo` (top header
+  `<h1>`) and `#btWorkspaceName` (sidebar workspace line) to `bizName()`; `document.title` is the hardcoded
+  product brand `'Bittings'` (window/tab = product chrome, not the shop — same rationale as the sidebar mark);
+  `#appLogo` (top header
   only) ← `identity().logo`. Static fallbacks de-TK'd: `<title>Bittings</title>`, h1 "Your shop", workspace "Your
   shop". Receipt/share/email/CSV strings (`'Receipt from '+bizName()`, `bizName()+' receipt'`, mailto subjects,
   manager-CSV header) now use `bizName()`.
@@ -1051,8 +1102,8 @@ All four files syntax-checked (`new Function` per inline script) + ServiceCats l
   `height:38;width:auto;object-fit:contain`). `bittings.html` `DEFAULT_LOGO` data-URI → the mark;
   header/`.rc-head img` switched to `object-fit:contain`; **PDF `addImage` fits to real aspect via
   `getImageProperties`** (never stretched). Migration in `boot()`: adopt `DEFAULT_LOGO` unless
-  `SETTINGS.logoCustom` (set true when the owner uploads a logo). The old `bittings_logo.png` was the
-  unrelated "Bittings" receipt-app icon.
+  `SETTINGS.logoCustom` (set true when the owner uploads a logo). (`bittings_logo.png` — a retired,
+  unrelated doc+key "Bittings" receipt-app icon — was removed; the real product mark is `app/ui/assets/mark.svg`.)
 
 ## Update 2026-06-12 PM3 — configurable sales tax (server-authoritative, pass-through)
 - **Cloud-synced config:** new Supabase `shop_config` table (single row id=1: `tax_rate`,
