@@ -9,12 +9,14 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const json = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "content-type": "application/json" } });
   // Auth: any ACTIVE staff may check a payment's status; reject anon/expired.
-  try { await requireStaff(req); }
+  let auth;
+  try { auth = await requireStaff(req); }
   catch (e) { const er = e as { status?: number; error?: string }; return json(er.status ?? 401, { error: er.error ?? "unauthorized" }); }
   try {
     const { paymentIntentId } = await req.json();
     if (!paymentIntentId) return json(400, { error: "paymentIntentId required" });
-    const q = await supa.from("payment_transactions").select("*").eq("stripe_payment_intent_id", paymentIntentId).limit(1);
+    // Tenant scope: only read this shop's transactions (no cross-shop status leak).
+    const q = await supa.from("payment_transactions").select("*").eq("stripe_payment_intent_id", paymentIntentId).eq("shop_id", auth.shopId).limit(1);
     const t = q.data?.[0];
     if (!t) return json(404, { error: "transaction not found" });
     // UI feedback only — the authoritative paid state is set by the verified webhook.

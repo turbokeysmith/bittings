@@ -4,7 +4,7 @@
 // seeds 2 shops with their own users + data, then runs cross-tenant probes as each
 // authenticated user. Reports PASS/FAIL like the role sweep.
 const path = require('path');
-const DBDIR = 'C:/Users/turbo/AppData/Local/Temp/claude/C--Users-turbo-OneDrive-Desktop-bittings-deploy/42e24751-5828-4461-a253-96e50ac54e24/scratchpad/pgdata';
+const DBDIR = 'C:/Users/turbo/AppData/Local/Temp/claude/C--Users-turbo-OneDrive-Desktop-bittings-deploy/92e73bb9-45ed-4e59-9df7-7d9a18265895/scratchpad/pgdata';
 
 const A = '00000000-0000-0000-0000-00000000000a', B = '00000000-0000-0000-0000-00000000000b';
 const uA1 = '00000000-0000-0000-0000-0000000000a1', uA2 = '00000000-0000-0000-0000-0000000000a2', uB1 = '00000000-0000-0000-0000-0000000000b1';
@@ -51,6 +51,56 @@ insert into shop_members(shop_id,user_id,role) values
   ('${A}','${uA1}','owner'),('${A}','${uA2}','technician'),('${B}','${uB1}','owner');
 insert into customers(name,shop_id) values ('Acme A1','${A}'),('Acme A2','${A}'),('Beta B1','${B}'),('Beta B2','${B}');
 insert into inventory(part,shop_id) values ('A-part-1','${A}'),('A-part-2','${A}'),('B-part-1','${B}'),('B-part-2','${B}');
+
+-- ===================== PAYMENT PATH (5b money-path guard) =====================
+-- Mirrors production: receipts + payment_transactions + payment_events all carry
+-- shop_id + a RESTRICTIVE tenant fence. The edge functions run as SERVICE ROLE
+-- (RLS-bypassing), so the real protections are (a) DB triggers that DERIVE a
+-- payment row's shop from its receipt/txn — forge-proof even under service_role —
+-- and (b) the functions scoping every lookup by the caller's shop. Both proven below.
+create table receipts(id text primary key, data jsonb, shop_id uuid default current_shop());
+create table payment_transactions(
+  id uuid primary key default gen_random_uuid(),
+  invoice_id text, stripe_payment_intent_id text unique, method text,
+  status text default 'pending', base_cents int, captured_cents int,
+  stripe_refund_id text, created_by uuid, shop_id uuid default current_shop());
+create table payment_events(
+  id text primary key, type text, payment_intent_id text, payload jsonb,
+  shop_id uuid default current_shop());
+
+-- (5b) a transaction's shop is ALWAYS its receipt's shop — never trusted from the writer
+create function payment_txn_stamp_shop() returns trigger language plpgsql security definer set search_path=public as $$
+declare v uuid; begin
+  select shop_id into v from receipts where id = NEW.invoice_id;
+  if v is not null then NEW.shop_id := v; end if; return NEW; end $$;
+create trigger trg_pt before insert or update on payment_transactions for each row execute function payment_txn_stamp_shop();
+-- (5b) an event's shop is the matching transaction's shop (webhook has no caller)
+create function payment_event_stamp_shop() returns trigger language plpgsql security definer set search_path=public as $$
+declare v uuid; begin
+  if NEW.shop_id is null and NEW.payment_intent_id is not null then
+    select shop_id into v from payment_transactions where stripe_payment_intent_id = NEW.payment_intent_id limit 1;
+    NEW.shop_id := v; end if; return NEW; end $$;
+create trigger trg_pe before insert on payment_events for each row execute function payment_event_stamp_shop();
+
+alter table receipts enable row level security;
+alter table payment_transactions enable row level security;
+alter table payment_events enable row level security;
+-- permissive ROLE policies (staff read; manager mutates payments) ...
+create policy r_sel  on receipts for select to authenticated using (is_staff());
+create policy pt_sel on payment_transactions for select to authenticated using (is_staff());
+create policy pt_all on payment_transactions for all to authenticated using (is_manager()) with check (is_manager());
+create policy pe_sel on payment_events for select to authenticated using (is_manager());
+-- ... AND a RESTRICTIVE tenant fence under each
+create policy r_tenant  on receipts             as restrictive for all to authenticated using (shop_id=current_shop()) with check (shop_id=current_shop());
+create policy pt_tenant on payment_transactions as restrictive for all to authenticated using (shop_id=current_shop()) with check (shop_id=current_shop());
+create policy pe_tenant on payment_events       as restrictive for all to authenticated using (shop_id=current_shop()) with check (shop_id=current_shop());
+grant select,insert,update,delete on receipts, payment_transactions, payment_events to authenticated;
+
+-- seed one receipt + one completed card sale per shop (txn shop derived by trigger)
+insert into receipts(id,shop_id) values ('rcptA','${A}'),('rcptB','${B}');
+insert into payment_transactions(invoice_id,stripe_payment_intent_id,method,status,base_cents,captured_cents)
+  values ('rcptA','pi_A','reader','completed',10000,10000),
+         ('rcptB','pi_B','reader','completed',20000,20000);
 `;
 
 (async () => {
@@ -113,6 +163,56 @@ insert into inventory(part,shop_id) values ('A-part-1','${A}'),('A-part-2','${A}
   check('A-tech (non-manager) CANNOT insert inventory (role still enforced)', r.err && /policy/i.test(r.err), r.err || 'NO ERROR (bad)');
   r = await tryUser(uA1, "insert into inventory(part) values ('ok') returning shop_id");
   check('A-owner (manager) CAN insert inventory -> shop A', r.rows && r.rows[0].shop_id === A, r.rows ? r.rows[0].shop_id : r.err);
+
+  // ===================== PAYMENT-PATH ISOLATION (5b) =====================
+  // The edge functions run as SERVICE ROLE (RLS bypassed). We model that with the
+  // plain superuser connection `c`, plus the function's own `and shop_id=<caller>`
+  // filter — the caller's shop resolved from shop_members exactly like the auth
+  // helper does. This proves a Shop A operator cannot touch Shop B's money.
+  async function callerShop(uid) {
+    return (await c.query("select shop_id from shop_members where user_id=$1 and active order by created_at limit 1", [uid])).rows[0]?.shop_id ?? null;
+  }
+  const shopOfA = await callerShop(uA1);
+  check('auth resolves caller A -> shop A (from shop_members, not client input)', shopOfA === A, 'shop=' + shopOfA);
+
+  // (1) TRIGGER: a txn's shop is DERIVED from its receipt — a forged shop_id is ignored.
+  await c.query("insert into payment_transactions(invoice_id,stripe_payment_intent_id,method,status,base_cents,shop_id) values ('rcptB','pi_forge','reader','pending',999,$1)", [A]);
+  let row = (await c.query("select shop_id from payment_transactions where stripe_payment_intent_id='pi_forge'")).rows[0];
+  check('txn shop_id is DERIVED from its receipt (forged shop_id A on a shop-B receipt is overridden to B)', row.shop_id === B, 'shop=' + row.shop_id);
+  await c.query("delete from payment_transactions where stripe_payment_intent_id='pi_forge'");
+
+  // (2) CREATE-CHARGE: a Shop A caller cannot even load a Shop B receipt to charge it.
+  let n = (await c.query("select count(*)::int n from receipts where id='rcptB' and shop_id=$1", [shopOfA])).rows[0].n;
+  check('charge path: Shop A caller cannot load a Shop B receipt (scoped lookup -> 404)', n === 0, 'rows=' + n);
+
+  // (3) REFUND: a Shop A manager refunding Shop B's PI hits 0 rows -> no Stripe refund issued.
+  let upd = await c.query("update payment_transactions set status='refunded', stripe_refund_id='re_hack' where stripe_payment_intent_id='pi_B' and shop_id=$1", [shopOfA]);
+  check('refund path: Shop A cannot refund a Shop B payment (0 rows)', upd.rowCount === 0, 'rows=' + upd.rowCount);
+  let st = (await c.query("select status from payment_transactions where stripe_payment_intent_id='pi_B'")).rows[0].status;
+  check('  -> Shop B payment still completed (untouched)', st === 'completed', 'status=' + st);
+
+  // (4) VOID: a Shop A operator voiding Shop B's txn by id hits 0 rows.
+  const bTxnId = (await c.query("select id from payment_transactions where stripe_payment_intent_id='pi_B'")).rows[0].id;
+  upd = await c.query("update payment_transactions set status='refunded' where id=$1 and shop_id=$2", [bTxnId, shopOfA]);
+  check('void path: Shop A cannot void a Shop B transaction by id (0 rows)', upd.rowCount === 0, 'rows=' + upd.rowCount);
+
+  // (5) STATUS: a Shop A operator reading Shop B's PI status gets nothing.
+  n = (await c.query("select count(*)::int n from payment_transactions where stripe_payment_intent_id='pi_B' and shop_id=$1", [shopOfA])).rows[0].n;
+  check('status path: Shop A cannot read a Shop B payment status (0 rows)', n === 0, 'rows=' + n);
+
+  // (6) POSITIVE CONTROL: a Shop A manager CAN refund its OWN shop's payment.
+  upd = await c.query("update payment_transactions set status='refunded', stripe_refund_id='re_ok' where stripe_payment_intent_id='pi_A' and shop_id=$1", [shopOfA]);
+  check('own-shop control: Shop A CAN refund its OWN payment (1 row)', upd.rowCount === 1, 'rows=' + upd.rowCount);
+  await c.query("update payment_transactions set status='completed', stripe_refund_id=null where stripe_payment_intent_id='pi_A'");
+
+  // (7) WEBHOOK: a payment_event inserted with NO shop (as Stripe does) is auto-stamped to its txn's shop.
+  await c.query("insert into payment_events(id,type,payment_intent_id) values ('evt_B','payment_intent.succeeded','pi_B')");
+  row = (await c.query("select shop_id from payment_events where id='evt_B'")).rows[0];
+  check('webhook: payment_event auto-stamped to its transaction\'s shop (B)', row.shop_id === B, 'shop=' + row.shop_id);
+
+  // (8) RLS defense-in-depth: as authenticated A-owner, only shop A payments are visible.
+  r = await tryUser(uA1, 'select count(*)::int n, count(*) filter (where shop_id=$1)::int own from payment_transactions', [A]);
+  check('RLS: A-owner sees ONLY shop A payment_transactions', r.rows && r.rows[0].n === 1 && r.rows[0].own === 1, r.rows && JSON.stringify(r.rows[0]));
 
   await c.end(); await pg.stop();
 

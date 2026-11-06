@@ -82,8 +82,10 @@ Deno.serve(async (req) => {
     if (!invoiceId) return json(400, { error: "invoiceId required" });
     if (method === "reader" && !readerId) return json(400, { error: "readerId required for reader method" });
 
+    // Tenant scope: only act on THIS shop's rows (service_role bypasses RLS, so we
+    // filter by the caller's shop explicitly). idempotency keyed within the shop.
     const idempotency_key = `inv_${invoiceId}_attempt_${attempt}`;
-    const ex = await supa.from("payment_transactions").select("*").eq("idempotency_key", idempotency_key).limit(1);
+    const ex = await supa.from("payment_transactions").select("*").eq("idempotency_key", idempotency_key).eq("shop_id", auth.shopId).limit(1);
     if (ex.data && ex.data[0]) {
       const t = ex.data[0];
       let clientSecret: string | undefined;
@@ -91,7 +93,8 @@ Deno.serve(async (req) => {
       return json(200, { ok: true, reused: true, paymentIntentId: t.stripe_payment_intent_id, clientSecret, base_cents: t.base_cents, surcharge_cents: t.surcharge_cents, authorized_cents: t.authorized_cents, disclosure: "A 2% surcharge applies to CREDIT cards only (debit/prepaid are not surcharged)." });
     }
 
-    const r = await supa.from("receipts").select("id,data").eq("id", invoiceId).limit(1);
+    // Receipt MUST belong to the caller's shop — you cannot charge another shop's invoice.
+    const r = await supa.from("receipts").select("id,data").eq("id", invoiceId).eq("shop_id", auth.shopId).limit(1);
     if (r.error) return json(500, { error: "receipt lookup failed: " + r.error.message });
     const rec = r.data?.[0];
     if (!rec) return json(404, { error: "invoice not found in cloud (is the receipt synced to Supabase?)" });
@@ -118,7 +121,7 @@ Deno.serve(async (req) => {
       reader_id: readerId, stripe_payment_intent_id: pi.id, status: "pending",
       description: descOf((rec as any).data), cost_cents: costCentsOf((rec as any).data),
       technician: techOf((rec as any).data), tax_cents,
-      idempotency_key, created_by: auth.user.id,
+      idempotency_key, created_by: auth.user.id, shop_id: auth.shopId,  // tenant-stamped (DB trigger also derives from the receipt)
     });
 
     if (method === "reader") {

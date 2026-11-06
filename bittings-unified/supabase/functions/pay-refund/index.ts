@@ -18,7 +18,9 @@ Deno.serve(async (req) => {
   try {
     const { paymentIntentId, amountCents, connectedAccountId } = await req.json();
     if (!paymentIntentId) return json(400, { error: "paymentIntentId required" });
-    const q = await supa.from("payment_transactions").select("*").eq("stripe_payment_intent_id", paymentIntentId).limit(1);
+    // Tenant scope: the transaction MUST belong to the caller's shop. A cross-shop
+    // PI id simply resolves to "not found" — no Stripe refund is ever issued for it.
+    const q = await supa.from("payment_transactions").select("*").eq("stripe_payment_intent_id", paymentIntentId).eq("shop_id", auth.shopId).limit(1);
     const t = q.data?.[0];
     if (!t) return json(404, { error: "transaction not found" });
     if (t.status !== "completed") return json(400, { error: "only completed transactions can be refunded (status: " + t.status + ")" });
@@ -26,7 +28,7 @@ Deno.serve(async (req) => {
     const params: Stripe.RefundCreateParams = { payment_intent: paymentIntentId, reason: "requested_by_customer" };
     if (amountCents) params.amount = Math.round(Number(amountCents));
     const refund = await stripe.refunds.create(params, opts);
-    await supa.from("payment_transactions").update({ status: "refunded", stripe_refund_id: refund.id }).eq("stripe_payment_intent_id", paymentIntentId);
+    await supa.from("payment_transactions").update({ status: "refunded", stripe_refund_id: refund.id }).eq("stripe_payment_intent_id", paymentIntentId).eq("shop_id", auth.shopId);
     // NOTE: full audit_log write (who/what/when) is wired in Stage 1a once the
     // audit_log table exists. acting user = auth.user.id / role = auth.role.
     return json(200, { ok: true, refund_id: refund.id, amount: refund.amount, status: refund.status });

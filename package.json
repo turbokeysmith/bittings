@@ -3,12 +3,13 @@
   "private": true,
   "description": "Local dev/verification harness for the Bittings app (Puppeteer screenshots + DOM probes). Not shipped; node_modules + lockfile are gitignored.",
   "devDependencies": {
-    "puppeteer": "^25.2.1",
     "acorn": "^8.17.0",
-    "acorn-walk": "^8.3.4"
+    "acorn-walk": "^8.3.4",
+    "puppeteer": "^25.2.1"
   },
   "dependencies": {
     "acorn": "^8.17.0",
-    "acorn-walk": "^8.3.5"
+    "acorn-walk": "^8.3.5",
+    "embedded-postgres": "^18.4.0-beta.17"
   }
 }

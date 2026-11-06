@@ -72,11 +72,14 @@ Deno.serve(async (req) => {
     if (!invoiceId) return json(400, { error: "invoiceId required" });
     if (!method) return json(400, { error: "method must be cash or check" });
 
+    // Tenant scope: only act on THIS shop's rows (service_role bypasses RLS, so we
+    // filter by the caller's shop explicitly). idempotency keyed within the shop.
     const idempotency_key = `inv_${invoiceId}_${method}`;
-    const ex = await supa.from("payment_transactions").select("*").eq("idempotency_key", idempotency_key).limit(1);
+    const ex = await supa.from("payment_transactions").select("*").eq("idempotency_key", idempotency_key).eq("shop_id", auth.shopId).limit(1);
     if (ex.data && ex.data[0]) return json(200, { ok: true, reused: true, captured_cents: ex.data[0].captured_cents, method });
 
-    const r = await supa.from("receipts").select("id,data").eq("id", invoiceId).limit(1);
+    // Receipt MUST belong to the caller's shop — you cannot record a payment on another shop's invoice.
+    const r = await supa.from("receipts").select("id,data").eq("id", invoiceId).eq("shop_id", auth.shopId).limit(1);
     if (r.error) return json(500, { error: "receipt lookup failed: " + r.error.message });
     const rec = r.data?.[0];
     if (!rec) return json(404, { error: "invoice not found in cloud" });
@@ -89,6 +92,7 @@ Deno.serve(async (req) => {
       captured_cents: base_cents, surcharge_applied: false, status: "completed",
       description: descOf((rec as any).data), cost_cents: costCentsOf((rec as any).data),
       technician: techOf((rec as any).data), tax_cents, idempotency_key, created_by: auth.user.id,
+      shop_id: auth.shopId,  // tenant-stamped (DB trigger also derives from the receipt)
     }).select().limit(1);
     if (ins.error) return json(500, { error: "record failed: " + ins.error.message });
     return json(200, { ok: true, method, captured_cents: base_cents });

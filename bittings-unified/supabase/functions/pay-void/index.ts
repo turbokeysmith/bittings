@@ -19,12 +19,14 @@ Deno.serve(async (req) => {
   try {
     const { transactionId } = await req.json();
     if (!transactionId) return json(400, { error: "transactionId required" });
-    const q = await supa.from("payment_transactions").select("*").eq("id", transactionId).limit(1);
+    // Tenant scope: the transaction MUST belong to the caller's shop — a cross-shop
+    // id resolves to "not found" and can never be voided.
+    const q = await supa.from("payment_transactions").select("*").eq("id", transactionId).eq("shop_id", auth.shopId).limit(1);
     const t = q.data?.[0];
     if (!t) return json(404, { error: "transaction not found" });
     if (t.method !== "cash" && t.method !== "check") return json(400, { error: "only cash/check can be voided here — use a refund for card" });
     if (t.status !== "completed") return json(400, { error: "only a completed transaction can be voided (status: " + t.status + ")" });
-    const u = await supa.from("payment_transactions").update({ status: "refunded" }).eq("id", transactionId);
+    const u = await supa.from("payment_transactions").update({ status: "refunded" }).eq("id", transactionId).eq("shop_id", auth.shopId);
     if (u.error) return json(500, { error: "void failed: " + u.error.message });
     // NOTE: full audit_log write (who/what/when) is wired in Stage 1a once the
     // audit_log table exists. acting user = auth.user.id / role = auth.role.

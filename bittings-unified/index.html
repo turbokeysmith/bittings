@@ -1467,6 +1467,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
         <button type="button" class="posfn fn-cash" id="chgCash" disabled>💵 Cash</button>
         <button type="button" class="posfn fn-cash" id="chgCheck" disabled>🧾 Check</button>
         <button type="button" class="posfn fn-card" id="chgCard" disabled>💳 Card</button>
+        <button type="button" class="posfn fn-items" id="chgPrintReceipt" title="Print a thermal customer receipt (Star TSP100)">🖨️ Receipt</button>
       </div>
       <p class="note" id="chgStatus" aria-live="polite"></p>
       <div id="chgSendRow" class="actions" style="display:none;flex-wrap:wrap;gap:8px"></div>
@@ -1536,6 +1537,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
       <button class="add" id="invExport" data-cap="inventoryWrite" title="Export inventory to a .csv file" style="background:#e7e9ee;color:#14171b">📤 Export</button>
       <button class="add" id="invVin" title="Find the key/fob for a VIN" style="background:#e7e9ee;color:#14171b">🔎 VIN</button>
       <button class="add" id="invAdd" data-cap="inventoryWrite">+ Add</button>
+      <button class="add" id="invHardware" title="Hardware: barcode scanner, receipt printer, label printer" style="background:#e7e9ee;color:#14171b">🖨️ Hardware</button>
     </div>
     <div class="invsummary" id="invSummary"></div>
     <div class="seg" id="invLocSeg" style="display:none;margin-bottom:12px"></div>
@@ -2367,14 +2369,18 @@ function renderInventory(){
       ((TKS.auth && TKS.auth.isSignedIn())
         ? '<button class="moveloc" data-stock="'+esc(p.id)+'" title="Stock by location (shop / vans)">📍</button>'
         : (showLoc?'<button class="moveloc" data-cap="inventoryWrite" title="Move to '+(loc==='van'?'shop':'van')+'">→ '+(loc==='van'?'Shop':'Van')+'</button>':''))+
+      ((window.TKS_HW && TKS_HW.prefs().labels.enabled)?'<button class="moveloc" data-label="'+esc(p.id)+'" title="Print barcode label (Zebra ZD421)">🏷️</button>':'')+
       (p.cost?'<span class="tag">'+money(p.cost)+'</span>':'');
     row.querySelector('.minus').onclick = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id,-1); renderInventory(); };
     row.querySelector('.plus').onclick  = (e)=>{ e.stopPropagation(); TKS.Inventory.adjustQty(p.id, 1); renderInventory(); };
-    const mv=row.querySelector('.moveloc');
+    const mv=row.querySelector('.moveloc[data-stock], .moveloc[data-cap]');
     if(mv){
       if(mv.dataset.stock){ mv.onclick=(e)=>{ e.stopPropagation(); openStockPanel(p); }; }
       else mv.onclick=(e)=>{ e.stopPropagation(); const np=TKS.Inventory.get(p.id)||p; np.loc=(loc==='van'?'shop':'van'); TKS.Inventory.save(np); renderInventory(); };
     }
+    const lbl=row.querySelector('[data-label]');
+    if(lbl) lbl.onclick=(e)=>{ e.stopPropagation(); const part=TKS.Inventory.get(p.id)||p;
+      TKS_HW.labels.printPart(part).then(()=>{}).catch(err=>uiAlert(err.message||String(err))); };
     const info = row.querySelector('.pinfo');
     info.onclick = ()=> openPart(p.id);
     info.setAttribute('tabindex','0');
@@ -2817,6 +2823,47 @@ document.getElementById('chgCustClear').onclick=()=>setChgCustomer(null);
 document.getElementById('posAddPart').onclick=()=> posPickItem('part');
 document.getElementById('posAddService').onclick=()=> posPickItem('service');
 document.getElementById('posAddCustom').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Custom-priced lines are manager-only.',false); return; } posCustomLine(); };
+
+/* ===================== HARDWARE WIRING (app/hardware.js) =====================
+   - Barcode scanner: a `tks-scan` event (keyboard-wedge) adds the matching SHOP
+     part to the register ticket when Payments is open, or filters Inventory when
+     that view is open. Mirrors the manual "Part" picker's pricing exactly.
+   - Thermal receipt: builds the canonical receipt object from the live ticket and
+     hands it to the Star TSP100 path (separate output from the PDF; same data).
+   - Hardware settings: opens the per-workstation device panel. */
+function posThermalReceipt(){
+  const c=chgCustomer||{}, t=posTotals(), tech=posSelfTech();
+  return {
+    number:'TKT-'+Date.now().toString(36).toUpperCase(), date:new Date().toISOString().slice(0,10),
+    customer:c.customer||'', technician:tech.name||'', payment:'', status:'',
+    items: posTicket.map(l=>({ desc:l.desc||l.svc||l.type, amount:posLineAmtCents(l)/100, qty:l.qty||1, taxable:!!l.taxable })),
+    totals:{ grossSubtotal: posTicket.reduce((s,l)=>s+posLineAmtCents(l),0)/100,
+             discount:(t.discCents||0)/100, taxable:0, tax:(t.taxCents||0)/100, taxRate:posTaxRate(),
+             surcharge:0, subtotal:(t.subtotalCents||0)/100, total:(t.totalCents||0)/100 }
+  };
+}
+function posScanAddPart(code){
+  let p=null; try{ const all=TKS.Inventory.all();
+    p = all.find(x=>(x.sku||'').toLowerCase()===code.toLowerCase()) || all.find(x=>String(x.id)===code);
+  }catch(e){}
+  if(!p){ chgSay('No part with SKU “'+code+'”.',false); return; }
+  const cents=p.sellPriceCents;
+  if(cents!=null && cents>0){ posAddLine({type:'part',refId:p.id,desc:p.name,unitCents:cents,taxable:true,lineType:'part'}); chgSay('Added '+(p.name||code)+'.',true); }
+  else { uiAskPriceCents({title:'Price for '+(p.name||'part')}).then(ent=>{ if(ent==null) return; posAddLine({type:'part',refId:p.id,desc:p.name,unitCents:ent,taxable:true,lineType:'part',priceOverride:true}); chgSay('Added '+(p.name||code)+'.',true); }); }
+}
+window.addEventListener('tks-scan', function(e){
+  const code=((e.detail&&e.detail.code)||'').trim(); if(!code) return;
+  const vis=el=> el && el.offsetParent!==null;
+  if(vis(document.getElementById('view-payments'))){ posScanAddPart(code); return; }
+  if(vis(document.getElementById('view-inventory'))){ invSearchEl.value=code; renderInventory(); return; }
+});
+{ const pr=document.getElementById('chgPrintReceipt'); if(pr) pr.onclick=function(){
+  if(!posTicket.length){ chgSay('Add a line to the ticket first.',false); return; }
+  if(!window.TKS_HW){ chgSay('Hardware module not loaded.',false); return; }
+  chgSay('Printing receipt…');
+  TKS_HW.thermal.printReceipt(posThermalReceipt()).then(()=>chgSay('Receipt printed.',true)).catch(err=>chgSay(err.message||String(err),false));
+}; }
+{ const hw=document.getElementById('invHardware'); if(hw) hw.onclick=function(){ if(window.TKS_HW) TKS_HW.openSettings(); }; }
 document.getElementById('posDiscountBtn').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Discounts are manager-only.',false); return; } posDiscountPrompt(); };
 document.getElementById('posClearBtn').onclick=function(){ if(posTicket.length||posDiscountCents>0){ uiConfirm({ title:'Clear ticket?', message:'Remove all lines and any discount from this ticket?', okText:'Clear', danger:true }).then(ok=>{ if(ok) posClear(); }); } };
 document.querySelectorAll('#posJobType button').forEach(b=> b.onclick=()=> posSetJobType(b.dataset.jt));
@@ -6952,5 +6999,18 @@ gid('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') gid('vinBtn').c
 <script src="app/receipts-view.js"></script>
 <script src="app/tier.js"></script>
 <script src="app/billing.js"></script>
+<!-- Shop-floor hardware: barcode scanner (keyboard-wedge), Star TSP100 thermal
+     receipts (WebPRNT), Zebra ZD421 labels (ZPL/Browser Print). Optional vendor
+     SDKs load below; the module degrades gracefully and previews work without them. -->
+<script src="app/hardware.js"></script>
+<!-- Star Web SDK (download from github.com/star-micronics/starwebprnt-sdk and drop the
+     files in app/vendor/) — uncomment once installed to enable real thermal printing:
+<script src="app/vendor/StarWebPrintBuilder.js"></script>
+<script src="app/vendor/StarWebPrintTrader.js"></script>
+-->
+<!-- Zebra Browser Print SDK (download from zebra.com → Browser Print) — uncomment once installed:
+<script src="app/vendor/BrowserPrint-3.1.250.min.js"></script>
+<script src="app/vendor/BrowserPrint-Zebra-1.1.250.min.js"></script>
+-->
 </body>
 </html>

@@ -1,0 +1,10 @@
+# Vendor printer SDKs — downloaded per-machine, not source (see HARDWARE_SETUP.md)
+app/vendor/
+
+# Archives / OS junk
+*.zip
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local device settings live in the browser (localStorage tks_hw_prefs), not here.
