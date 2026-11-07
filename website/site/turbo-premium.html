@@ -2,6 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8LY4YD2YFG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-8LY4YD2YFG');
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Turbo Keysmith — Mobile Locksmith · OKC Metro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -323,7 +331,7 @@
       <div>
         <h5>Contact</h5>
         <a href="tel:14058705397">(405) 870-5397</a>
-        <a>4201 N MacArthur Blvd<br>Warr Acres, OK 73122</a>
+        <a>9201 N Council Rd, Suite A<br>Oklahoma City, OK 73132</a>
         <a>Hours: 24/6 · Mon–Sat</a>
       </div>
       <div>
@@ -341,5 +349,16 @@
   </div>
 </footer>
 
+<script>
+/* Live review tally — same logic as assets/i18n.js (this page doesn't load it) */
+(function(){var API='https://turbokeysmith-widgets.turbokeysmith.workers.dev/stats',RE=/250\+/g;
+function apply(t){if(!t||t<250)return;var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),n,h=[];
+while((n=w.nextNode())){var g=n.parentNode&&n.parentNode.tagName;if(g==='SCRIPT'||g==='STYLE')continue;if(RE.test(n.nodeValue))h.push(n);RE.lastIndex=0;}
+for(var i=0;i<h.length;i++)h[i].nodeValue=h[i].nodeValue.replace(RE,String(t)+'+');}
+function start(){try{var c=JSON.parse(localStorage.getItem('tkReviewStats')||'null');if(c&&c.total)apply(c.total);if(c&&Date.now()-c.at<3600000)return;}catch(e){}
+fetch(API).then(function(r){return r.json()}).then(function(d){if(!d||!d.total)return;apply(d.total);
+try{localStorage.setItem('tkReviewStats',JSON.stringify({total:d.total,at:Date.now()}))}catch(e){}}).catch(function(){});}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();})();
+</script>
 </body>
 </html>

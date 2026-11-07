@@ -30,7 +30,7 @@ static files. Data is stored in the browser today (**localStorage**) and can opt
 a **cloud database (Supabase)** when staff sign in.
 
 **Business facts used throughout:** Turbo Keysmith, mobile locksmith, licensed OK #AC441081,
-phone 405-870-5397, based at 4201 N MacArthur Blvd, Warr Acres, OK 73122.
+phone 405-870-5397, based at 9201 N Council Rd, Suite A, Oklahoma City, OK 73132 (moved Nov 2026; was 4201 N MacArthur Blvd, Warr Acres).
 
 ---
 
@@ -454,6 +454,252 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   stored readable by any staff; invite temp-passwords have no "change password" path.
 - **Your decisions (section D of the review doc):** archive dead pages, tier gating now vs later,
   PIN session-switch policy, lookup-data gaps, and merging `main` (November website work) into this branch.
+
+### 2026-11-03 (📍 New shop address on every page — LIVE, pending owner phone check)
+- Turbo Keysmith moved to **9201 N Council Rd, Suite A, Oklahoma City, OK 73132**. Updated on all 240 pages
+  (English + Spanish): footer address, contact page, privacy/terms, and the hidden Google business data on
+  every page (street, city, ZIP and the map pin, now 35.5633, -97.6567).
+- The Warr Acres and Bethany pages no longer say the shop is *in* Warr Acres; they now say the Council Rd shop
+  is minutes away. Copy about serving businesses along MacArthur Blvd was kept (still true).
+- The "Google" map link on every page is the Business Profile short link — it follows the profile, so it is
+  right as soon as the **owner updates the address in Google Business Profile** (please do this; Google and
+  the site should match). Also update Yelp/Nextdoor/BBB/NASTF listings if they show the old address.
+- Also changed on LocksmithsNearby.com: Turbo's listing shows the new address (manual override until Google
+  updates).
+- **Owner to-do: purge the Cloudflare cache** (dashboard → turbokeysmith.com → Caching → Configuration →
+  Purge Cache → **Purge Everything**). Deployed 2026-11-03 14:50 CST; the homepage was still serving the old
+  address from cache right after deploy (other pages checked were already new).
+
+### 2026-10-31 (📝 New blog post: "Can a Locksmith Make a Key for a VW or Other European Car?" — LIVE, pending owner phone check)
+- New post at `/blog/can-a-locksmith-make-a-vw-european-key/` (Car Keys & Fobs, by Sam The Key Man, dated
+  Oct 31) — why most locksmiths won't touch VW/Audi/BMW/Mercedes, what we do on-site (the recent VW GTI job),
+  the honest case-by-case caveat, and why not just go to the dealer. Five FAQs. Built by hand from the holiday
+  travel post's HTML (same dark skin, header/footer, CTA style); no generator.
+- Two photos from the owner's GTI job, already renamed in `website/site/blog/assets/`:
+  `vw-gti-key-grille-okc.jpg` (hero — finished flip key in front of the GTI grille badge, portrait, cropped to
+  4:3 on the page) and `vw-gti-cluster-programming-okc.jpg` (body — the key on the instrument-cluster circuit
+  board at the bench). Each has a caption directly beneath. Two more GTI photos the owner dropped in
+  (`vw-gti-instrument-cluster-okc.jpg`, `vw-gti-key-steering-wheel-okc.jpg`) are committed but not used yet.
+- **The 36 MB video `vw-gti-key-reel.mp4` was moved OUT of the website folder** to `website/_media/` (not
+  deployed, not committed). Cloudflare Pages refuses any file over 25 MB, so leaving it in `website/site/`
+  would have broken every future deploy. If the owner wants the reel on the site it needs to be compressed
+  well under 25 MB first (or hosted on YouTube/TikTok and embedded).
+- Two Call-Now blocks; links to /automotive/ ("we come to you") and to the car-key cost post ("faster and
+  cheaper than the dealership"). **Note:** the brief asked for `/blog/locksmith-vs-dealership-car-keys/`, but
+  no such post exists — that URL just serves the homepage fallback. The link was pointed at the live
+  "How Much Does It Cost to Replace a Car Key in OKC?" post instead, which has a "Locksmith vs. the dealership"
+  section. If a dedicated locksmith-vs-dealership post is written later, update this link.
+- Schema: BlogPosting + BreadcrumbList + FAQPage (FAQ schema checked word-for-word against the visible FAQ on
+  the live page in a headless browser).
+- Wired into: blog index (newest-first), Car Keys & Fobs category page, search-index.json (searching "vw" and
+  "european" each surface only this post — checked live), sitemap.xml, feed.xml.
+- **Status: LIVE on production.** Live check on turbokeysmith.com confirmed the real page `<title>`/H1, both
+  images loading at full resolution with captions beneath, both Call-Now buttons dialing (405) 870-5397, both
+  internal links returning the real target pages, and the post present in index/category/search/feed/sitemap.
+  **Pending the owner's two-phone check** (iPhone Safari + Android Chrome): the headless 390×844 check showed
+  no horizontal overflow and 61 px-tall Call-Now buttons.
+- `bittings-app/app/STRUCTURE_NOTES.md` not touched — public-site-only change.
+
+### 2026-10-28 (📝 New blog post: "Holiday Travel Checklist: Don't Get Locked Out This Season" — LIVE, pending owner phone check)
+- New post at `/blog/holiday-travel-lockout-checklist/` (Locked Out & Emergencies, by Sam The Key Man, dated
+  Oct 28) — a six-step pre-trip checklist: make a spare key, check the fob battery, find the fob's hidden
+  mechanical key, mind your keys while loading, have a plan for the road, lock up the house the smart way.
+  Four FAQs. Built by hand from the rekey post's HTML (same dark skin, header/footer, CTA style); no generator.
+- New hero photo `website/site/blog/assets/holiday-travel-keys-okc.jpg` (SUV with roof-rack cargo, trunk open).
+  The owner's original (`man packing luggage into car trunk.jpg`, 1.9 MB) was shrunk to a 1067×1600, ~200 KB web
+  copy; the original was removed from the folder as unused.
+- Two Call-Now blocks; links to /automotive/ ("cut and program a spare") and to the rekey post ("rekey").
+  Schema: BlogPosting + BreadcrumbList + FAQPage (the FAQ schema was checked word-for-word against the visible
+  FAQ in a headless browser).
+- Wired into: blog index (newest-first), Locked Out & Emergencies category page, search-index.json (searching
+  "holiday" and "spare key" both surface it — checked live), sitemap.xml, feed.xml.
+- **Status: LIVE on production** (the brief said to publish without waiting). This time the live check looked at
+  the page `<title>` and H1 on turbokeysmith.com, not just the status code, and they are the real post — the
+  homepage-fallback cache problem from Oct 15 did not recur. Index, category page, search index, feed and
+  sitemap on turbokeysmith.com all already carry the post, so no cache purge is needed.
+  **Pending the owner's two-phone check** (iPhone Safari + Android Chrome): the headless 390×844 check showed
+  no horizontal overflow, the hero loads with its caption directly beneath, and both Call-Now buttons are
+  61 px tall.
+- `bittings-app/app/STRUCTURE_NOTES.md` not touched — public-site-only change.
+
+### 2026-10-15 (📝 New blog post: "Rekey vs. Replace Your Locks" — LIVE, pending owner phone check)
+- New post at `/blog/rekey-vs-replace-locks/` (Home & Business Security — the first post in that category, by
+  Sam The Key Man, dated Oct 15) — what rekeying does vs. replacing, when each is right, the move-in /
+  tenant / employee / lost-key situations, which is cheaper, 5 FAQs. Two-column comparison table (on phones it
+  swipes sideways with the row labels pinned on the left).
+- Two new photos in `website/site/blog/assets/`: `rekey-vs-replace-locks-okc.jpg` (hero + social share image,
+  worn doorknob with a key in it) and `locksmith-key-cutting-shop-okc.jpg` (key-cutting workbench, in the
+  "What does rekeying actually do?" section). The owner's Pexels copies weren't in the repo folder, so the same
+  two Pexels photos (IDs 36585227 and 34286675) were fetched from Pexels and resized to web size (94 KB / 229 KB)
+  under the SEO filenames. No "pexels-…" filenames are referenced anywhere.
+- Two Call-Now blocks; two links to /residential/ ("We quote it up front", "rekey multiple locks to work off one
+  single key"). Full schema (BlogPosting + BreadcrumbList + FAQPage; FAQ schema checked word-for-word against
+  the visible FAQ).
+- Wired into: blog index (newest-first), Home & Business Security category page (replaces the "no posts yet"
+  note), search-index.json (searching "rekey" surfaces it — checked in a headless phone-size browser),
+  sitemap.xml, feed.xml.
+- **Status: LIVE on production** (owner said to deploy without waiting). The deploy itself is correct (the post
+  serves on turbokeysmith.pages.dev and when the cache is bypassed on turbokeysmith.com). **Pending the owner's two-phone check** (iPhone Safari + Android Chrome)
+  this evening — the headless check (390×844) showed no horizontal overflow, both images load, tap targets are
+  61 px tall, and the table scrolls sideways.
+- **Cache problem (worse than last time) — and a lesson:** right after the deploy, turbokeysmith.com cached the
+  WRONG page for the new post's URL: the site serves the homepage (as a 200) for any URL that doesn't exist yet,
+  and the edge cache grabbed that homepage copy for `/blog/rekey-vs-replace-locks/` during the first minute or two
+  after the deploy. Because the homepage's stylesheet link is relative, that cached copy renders as an unstyled,
+  plain-text homepage at the post's address — which is what the owner saw on his phone ("looks horrible"). The
+  owner purged the five URLs listed in the first report (`/blog/`, category page, `search-index.json`,
+  `sitemap.xml`, `feed.xml`) and those are now current, but the **post URL itself also needs purging** (it wasn't
+  on that list). Fix: Cloudflare dashboard → turbokeysmith.com → Caching → Configuration → **Purge Cache →
+  Purge Everything** (simplest), or Custom Purge with `https://turbokeysmith.com/blog/rekey-vs-replace-locks/`.
+  Claude Code's first "verified live" check was wrong: it accepted a 200 that was really the homepage fallback.
+  **Going forward:** after every blog post, purge the new post's URL too, and check the page `<title>`, not just
+  the status code. A proper `404.html` in `website/site/` would stop the homepage being served (and cached) for
+  missing URLs in the first place — recommended, not yet done.
+- Housekeeping: the Sep 22 transponder post files had been deployed but never committed to git; they were
+  committed as their own commit before this work.
+
+### 2026-09-22 (📝 New blog post: "Transponder Key vs. Key Fob vs. Push-to-Start" — LIVE)
+- New post at `/blog/transponder-key-vs-fob-vs-push-to-start/` (Car Keys & Fobs, by Sam The Key Man,
+  dated Sep 22) — what each key type is, how to tell which you have, why each costs what it does, 5 FAQs.
+  Includes a comparison table (on phones it swipes sideways, with the row labels pinned on the left).
+- Three new photos in `website/site/blog/assets/`: `car-key-fob-buttons-okc.jpg` (hero + social share
+  image), `transponder-key-car-door-okc.jpg`, `push-to-start-button-okc.jpg`. Resized from full camera
+  size (1–2 MB each) to web size (85–170 KB) so the page loads fast on phones.
+- Two Call-Now blocks; links to the key-cost post and /automotive/. Full schema (BlogPosting +
+  BreadcrumbList + FAQPage; FAQ schema checked word-for-word against the visible FAQ).
+- Wired into: blog index (newest-first), Car Keys & Fobs category page, search-index.json (searching
+  "push to start" and "transponder" both surface it — checked), sitemap.xml, feed.xml.
+- **Status: LIVE on production** at https://turbokeysmith.com/blog/transponder-key-vs-fob-vs-push-to-start/ —
+  owner OK'd it after the preview and ran the production deploy. Re-verified live: post, all 3 photos, both
+  links and the category page serve the new version.
+- **Cache note:** right after the deploy, Cloudflare kept serving saved (old) copies of `/blog/`,
+  `/blog/search-index.json` and `/sitemap.xml` on turbokeysmith.com, even though the deploy itself had them
+  (confirmed by adding `?cb=…` to the URL, and on turbokeysmith.pages.dev). Fix: Cloudflare dashboard →
+  turbokeysmith.com → Caching → Configuration → **Purge Cache → Custom Purge**, paste those URLs. Worth
+  doing after every blog post.
+- Note: the owner dropped the photos into the older `Desktopittings	urbokeysmith-main` copy; that copy's
+  blog is out of date (2 posts), so the post was built in the live `Desktop	urbokeysmith-main` copy.
+
+### 2026-09-19 (📈 Google Analytics added to every page + a guard so it can't vanish)
+- **Problem:** GA4 said "No data received" for turbokeysmith.com — the site had **no Google Analytics tag at all**.
+- **Fixed:** added the GA4 tag (Measurement ID **G-8LY4YD2YFG**) to the `<head>` of **all 246 pages** (English +
+  Spanish, blog, city pages, careers, turbo-premium). There is no shared header in this site, so every page carries its
+  own copy; the one master copy of the tag is `website/_tools/ga-snippet.html`.
+- **Guard:** `node website/_tools/ga-tag.mjs` checks every page and fails loudly if any is missing the tag;
+  `--fix` adds it to any page that lacks it (use after creating new pages).
+- **New deploy command:** `node website/_tools/deploy-site.mjs` (add `preview` for a preview deploy). It runs the check first and
+  **refuses to deploy** if a page is missing the tag. A git pre-push hook (`.githooks/pre-push`) also blocks pushes.
+- Verified: removing the tag from one page (test) made the check, the deploy command and the push hook all refuse.
+- **Automatic for Claude:** project hooks (`.claude/settings.json`) re-add the tag to any page Claude creates or edits,
+  and stop Claude from deploying with the old unchecked command. Active from the next Claude session onward.
+- **Deployed to production 2026-09-19** — verified the live pages serve the tag. Owner to confirm visits appear in GA4 → Reports → Realtime.
+
+### 2026-09-14 (🎉 GBP API APPROVED & LIVE + personalised auto-replies deployed)
+- **Google approved the Business Profile API access** (submitted 2026-08-21, approved ~3.5 weeks later).
+  Owner enabled the APIs in the Cloud console; everything that had been "armed and waiting" since August
+  activated on the first run. The tell-tale was the error changing from `429` (quota 0, not approved) to
+  `403 "API has not been used in project 1038005653431 or it is disabled"` — the classic approved-but-not-
+  switched-on message.
+- **What went live automatically:** review source flipped `places-seed` → `gbp`; the carousel went from a
+  5-review Places sample to the **full 229 written reviews** (302 total ratings, ~73 are star-only with no
+  text); the **"Latest Updates" posts section now shows 9 Google posts** and revealed itself on the live
+  site with no redeploy (the `count>0` postMessage handler in `index.html` did its job).
+- **Review history was protected exactly as designed:** the first successful sync stamped the watermark at
+  `2026-09-14T21:11:36Z`; every pre-existing review predates it, so **0 auto-replies** went to the back
+  catalogue. Only genuinely new 4–5★ reviews get replies from here.
+- **Auto-replies are now personalised (owner request, deployed same day).** Replaced the 6 flat templates
+  with a service-aware composer in `website/widgets-worker/src/index.js`: it reads the review text,
+  classifies the job into one of **9 categories** (auto/home lockout, fob & programming, ignition, car key,
+  car rekey, home rekey, lock work, commercial), thanks the customer for *that specific job*, and offers one
+  genuinely adjacent service (lockout → spare key; home lockout → rekey/smart lock; key jobs → the 6-month
+  warranty). Variety via stable hash of the review id, so a given review always yields the same text.
+- **Deliberately conservative:** anything not confidently classified falls back to a warm generic reply —
+  a public reply describing the WRONG job is far worse than a slightly generic one. Tested against all 227
+  live reviews: ~40% classify to a specific job, ~60% are pure praise with no job mentioned → generic.
+  New `not:` guard field lets a category exclude false contexts.
+- **Two misfires caught in preview BEFORE deploying** (worth remembering the pattern): (1) the word
+  "business" matched a customer writing *"this business was amazing"* about a **porch lockout** — was about
+  to offer her master-key systems; commercial now requires a possessive signal ("my office", "our
+  storefront"). (2) *"rekeyed my car"* matched the residential rekey rule and offered **deadbolts**; there is
+  now a separate `auto_rekey` category. **Always preview replies against real reviews before deploying.**
+- **Deployed:** version `51074891-26e5-4877-80d1-e845df955d92`. Verified post-deploy: `lastGbpError: null`,
+  229 reviews, 9 posts, `autoReplied: 0`, watermark intact. Max reply length 245 chars (Google allows 4096).
+- **Back-catalogue catch-up (same day, owner asked):** audited all 302 reviews via the API — **291 were
+  already replied to by hand**, so this was never a mass blast: only **11 unreplied**, 10 of them recent
+  5★ (2026-08-21 → 09-10). Replied to all 10 directly (1.5s apart), 0 failures. **301/302 now replied.**
+- **Name handling hardened first — the dry run caught two that would have been embarrassing in public:**
+  "N Shaw" (single initial) produced *"Thanks so much, friend!"*, and the account "My WorkStuff" produced
+  *"Really appreciate you taking the time to leave this, My!"*. `firstName()` now returns null for bare
+  initials, names containing digits, and a stoplist of non-name tokens (my/the/a/mr/dr/info/admin…), and
+  the new `applyName()` drops the greeting cleanly instead ("Thank you so much!"). Deployed as version
+  `8b5ec4a9-8fdc-46a9-b656-0b3b6b9e619e`.
+- **⚠️ ONE UNREPLIED REVIEW REMAINS, DELIBERATELY: a 1★ from "Zach" dated 2025-08-19** — says a lock was
+  drilled out, the replacement part was not on the truck, and calls went unanswered afterwards. The system
+  will **never** auto-reply to 1–3★ by design. It is over a year old, still unanswered publicly, and sits
+  on the profile where every prospective customer can read it. **Needs a personal reply from Sam.**
+- **Still open:** mobile sign-off (iPhone Safari + Android Chrome — homepage + a city page, swipe the
+  carousel, tap "Read all reviews") has been pending since August and is more meaningful now. Also worth
+  eyeballing the **first real auto-reply** when a new 4–5★ review lands, to sign off on the tone; the owner
+  was offered "— Sam, Turbo Keysmith" as a warmer sign-off and softer cross-sell, and chose to ship as-is.
+
+### 2026-08-25 PM (📝 New blog post: "Why Won't My Key Turn in the Ignition?" — ON PREVIEW, awaiting phone check)
+- New post at `/blog/key-wont-turn-in-ignition/` (Locked Out & Emergencies, by Sam The Key Man,
+  dated Aug 25) — 5 causes a key won't turn, what not to do, 4 FAQs. Real shop photo hero (worn
+  Ram key vs fresh cut, converted from the owner's WebP). Two Call-Now blocks; internal links to
+  /automotive/ and the key-cost post. Full schema (BlogPosting + BreadcrumbList + FAQPage; FAQ
+  schema verified word-for-word against visible text).
+- Wired into: blog index (newest-first), Locked Out & Emergencies category page, search-index.json
+  (search "ignition" surfaces it — verified), sitemap.xml, feed.xml.
+- **Status: LIVE on production** at https://turbokeysmith.com/blog/key-wont-turn-in-ignition/ —
+  owner approved after the preview phone check; re-verified live (post renders, hero loads, both
+  CTAs dial, links resolve, index/category/search/sitemap/feed all serving the new post).
+
+### 2026-08-25 (🔢 Review count is now a live running tally site-wide)
+- Every hand-typed **"250+ Google reviews"** across the site (316 spots on 222 pages, English AND
+  Spanish "reseñas") now updates itself to the real current count from Google — today it shows
+  **"295+"**. The number comes from the same widgets Worker (new tiny `/stats` feed, refreshed every
+  6 hours); the page script lives in `assets/i18n.js` (plus an inline copy on `turbo-premium.html`,
+  the one page that doesn't load that file). If the feed is ever unreachable, pages safely show the
+  static "250+" fallback baked into the HTML. Owner also restricted the Maps API key to Places API ✅.
+- Verified in a headless browser on 4 page types (EN home, ES home, city page, premium page): all
+  show 295+, zero stale 250+ left. Still **pending mobile sign-off** along with the widgets below.
+- **GBP API approval: still pending with Google** (submitted 2026-08-21; auto-reply & posts feed
+  remain armed and will self-activate).
+
+### 2026-08-21 PM (⭐ Self-hosted widgets LIVE on all 92 pages — third-party provider fully replaced)
+- **The reviews carousel is back**, now served by our own free Cloudflare Worker
+  (`turbokeysmith-widgets`) instead of the dead paid provider. Live on the homepage and all 91
+  city/service pages. Shows real Google reviews (5-star only), star badges, reviewer photos, swipe/arrow
+  navigation, and a "Read all 293 reviews on Google" link. **Review count & star rating refresh
+  automatically every 6 hours** (via the owner's Google Maps key — works today).
+- **The "Latest Updates" (Google posts) section** is rebuilt the same way but stays **hidden until
+  Google approves** the Business Profile API access (form submitted today; days to ~2 weeks). Once
+  approved, the same system also unlocks: the FULL review list (not just 5), **auto-replies to new 4-5★
+  reviews** (rotating natural templates, first names, never replies to anything pre-dating activation),
+  and **email alerts to the owner for 1-3★ reviews** (those are never auto-replied). No action needed —
+  it starts working by itself when Google approves.
+- **Owner may still do 1 thing:** restrict the Google Maps API key to "Places API" in the Google Cloud
+  console (security hardening; instructions were given in chat).
+- **Status: code-complete, pending mobile sign-off** — needs the owner's phone check on iPhone Safari +
+  Android Chrome (test steps given in chat): homepage + one city page, swipe the reviews, tap the
+  "Read all reviews" link.
+
+### 2026-08-21 (🔐 Privacy Policy page + Google API setup for self-hosted widgets)
+- **Context:** the two paid third-party widgets from localmarketingmanager.com (the Google **reviews
+  carousel** on the homepage + ~91 city pages, and the Google **posts feed** on the homepage) went dead —
+  the provider now shows "This widget is no longer active." We are replacing both with **our own free,
+  self-hosted widgets** (build in progress; see next entries when they land).
+- **New public page: `/privacy/` (Privacy Policy)** — plain-language, matches the Terms page design; linked
+  from the footer of the new page and added to the sitemap. Created because (a) the site collects contact/
+  careers form data and should have one, and (b) Google requires a public privacy-policy link to publish
+  the OAuth app used for the widget system. ⚠️ Not yet lawyer-reviewed (same status as Terms).
+- **Google side (owner's account):** Google Cloud project `turbo-keysmith` created; Maps API key issued and
+  filed in `.secrets/` (owner asked to restrict it to Places API); OAuth app "Turbo Keysmith Widgets"
+  configured; **Business Profile API access form submitted — waiting on Google approval (days to ~2 weeks),
+  quota is 0 until then.** Auto-reply-to-reviews plan approved by owner: auto-thank 4–5★, email alert (no
+  auto-reply) for 1–3★.
+- **Housekeeping:** `.secrets/` folder is now gitignored (it wasn't — risk of committing credentials);
+  Google credentials filed there.
 
 ### 2026-07-02 PM (⏱ Shift + machine-lock + time-tracking system — built, OFF by default)
 - **New: a time clock that ties "using the shop PC" to "being on the clock."** Plain-language:
@@ -881,6 +1127,7 @@ Logged 2026-06-22 at the owner's request so it isn't lost. **Replaces the curren
 - This is **Stage 0** of Phase 1 (Roles, Security & Accountability). Next: **Stage 1a** — `staff` table +
   `current_role()` + real RLS + soft-delete + `audit_log`. Work is on branch **`phase1-roles-security`**; staged
   1a→1b→1c→1d, each tested with owner sign-off before the next. **Not yet merged to `main`.**
+
 
 ### 2026-06-20 (🔗 Link-in-bio page for Instagram · preview, pending mobile sign-off)
 - **New mobile-first "link in bio" page at `/links/`** — hand-built static HTML (the retired generator was NOT

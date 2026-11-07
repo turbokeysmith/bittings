@@ -1,0 +1,21 @@
+// Turbo Keysmith self-hosted widgets (reviews carousel + Google posts feed)
+// Replaces the retired localmarketingmanager.com embeds. Deploy:
+//   npx wrangler deploy   (from website/widgets-worker/; needs the OAuth login)
+// Secrets (wrangler secret put ...): GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+//   GOOGLE_REFRESH_TOKEN, MAPS_API_KEY, WEB3FORMS_KEY, ADMIN_KEY
+{
+  "name": "turbokeysmith-widgets",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "kv_namespaces": [
+    { "binding": "WIDGETS", "id": "867aa774f6954b358744cdd4e5522f11" }
+  ],
+  "triggers": { "crons": ["17 */6 * * *"] },
+  "vars": {
+    "PLACE_ID": "ChIJTeQkUSEFhS8RgTFRKClrtHY",
+    "REVIEWS_URL": "https://search.google.com/local/reviews?placeid=ChIJTeQkUSEFhS8RgTFRKClrtHY",
+    "WRITE_REVIEW_URL": "https://search.google.com/local/writereview?placeid=ChIJTeQkUSEFhS8RgTFRKClrtHY"
+  }
+}

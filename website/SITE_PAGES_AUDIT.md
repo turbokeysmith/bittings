@@ -629,7 +629,7 @@ Total: **111** pages at the time of this snapshot.
 ### /warr-acres/
 - **Targets:** City — Warr Acres
 - **Title:** Warr Acres Locksmith | Our Home Base — Fastest Response
-- **Meta:** Turbo Keysmith is based in Warr Acres, OK. Fastest local response for car keys, home rekeys, business locks & 24-hour lockouts on the MacArthur corridor. Call 405-870-5397.
+- **Meta:** Turbo Keysmith’s shop on N Council Rd is minutes from Warr Acres, OK. Fast local response for car keys, home rekeys, business locks & 24-hour lockouts on the MacArthur corridor. Call 405-870-5397.
 - **H1:** Warr Acres Locksmith — This Is Our Backyard
 
 ### /warr-acres/automotive/

@@ -23,9 +23,13 @@ The site is **hand-maintained static HTML** — there is **no build step and no 
 is retired and is **not in this repo** — there is nothing to run). To publish:
 
 ```
-npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main
+node website/_tools/deploy-site.mjs
 ```
 
+That runs a **Google Analytics check first** (every page must carry GA4 tag `G-8LY4YD2YFG` in its `<head>`) and
+refuses to deploy if any page is missing it; then it runs `npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=main`. Use
+`node website/_tools/deploy-site.mjs preview` for a preview deploy. Check by hand any time with `node website/_tools/ga-tag.mjs`;
+add the tag to new pages with `node website/_tools/ga-tag.mjs --fix` (snippet source: `website/_tools/ga-snippet.html`).
 Always use `--branch=main` for production. After editing `website/site/assets/styles.css`, bump the `?v=N` version
 on the CSS link site-wide so returning visitors get the new styles (cache-busting).
 
