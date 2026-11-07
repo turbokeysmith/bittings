@@ -108,6 +108,9 @@
 
     function onKey(e) {
       if (!prefs.scanner.enabled) return;
+      // OS key auto-repeat (holding a key) arrives faster than burstMs and used to be
+      // classified as a scan when followed by Enter. Repeats never come from a scanner.
+      if (e.repeat) { buf = ''; return; }
       var t = now();
       var p = prefs.scanner;
 
@@ -121,6 +124,16 @@
           buf = '';
           e.preventDefault();        // don't let the Enter submit/trigger anything
           e.stopPropagation();
+          // The wedge already "typed" the code into whatever field had focus (customer name,
+          // search, PIN…). Pull it back out of that field — except the Hardware test box,
+          // which is meant to show it — so a scan never corrupts a form value.
+          try {
+            var ae = document.activeElement;
+            if (ae && /^(INPUT|TEXTAREA)$/.test(ae.tagName) && ae.id !== 'hwScanTest' && typeof ae.value === 'string' && ae.value.length >= code.length && ae.value.slice(-code.length) === code) {
+              ae.value = ae.value.slice(0, -code.length);
+              ae.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          } catch (_) {}
           emit(code);
           return;
         }
