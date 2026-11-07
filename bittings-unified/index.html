@@ -1884,7 +1884,7 @@ function tksStartReturnFlow(receipt){
   try{ var st=document.getElementById('retStatus'); if(st && receipt && (receipt.number||receipt.id)){
     st.textContent='Processing a return for invoice '+(receipt.number||receipt.id)+'. Mark the item Warranty or Failed to send it back to the supplier.'; } }catch(e){}
 }
-window.addEventListener('message', function(ev){ try{ if(ev.data && ev.data.type==='tks:start-return'){ tksStartReturnFlow(ev.data.receipt||{}); } }catch(e){} });
+window.addEventListener('message', function(ev){ try{ if(ev.origin!==location.origin) return; if(ev.data && ev.data.type==='tks:start-return'){ tksStartReturnFlow(ev.data.receipt||{}); } }catch(e){} });
 try{ var _sr=sessionStorage.getItem('tks_start_return'); if(_sr){ sessionStorage.removeItem('tks_start_return'); var _srr=JSON.parse(_sr); setTimeout(function(){ tksStartReturnFlow(_srr); }, 500); } }catch(e){}
 /* Embedded tools: on DESKTOP, the sub-tools (Receipts, Scheduler, Lishi, Programmers, Settings)
    open INSIDE the content panel so the left menu never leaves. On a PHONE they open as their own
@@ -1933,10 +1933,18 @@ document.querySelectorAll('.bt-themetoggle [data-bt-set]').forEach(function(b){
 try{
   var _goView = new URLSearchParams(location.search).get('go');
   if(_goView){
-    setTimeout(function(){
+    // Only follow the deep link once the nav item is actually SHOWN for this role. Owner-only
+    // items start display:none and are revealed when the role loads; clicking a hidden button
+    // used to open Reports/Closeout/Dashboard for a technician (UI only — data is RLS-fenced).
+    // Poll briefly so an owner's link still works after the role fetch; a tech's never fires.
+    var _goTries=0;
+    (function _tryGo(){
       var _b = document.querySelector('[data-go="'+_goView+'"]');
-      if(_b) _b.click();
-    }, 0);
+      if(!_b) return;
+      var _hidden = _b.style.display==='none' || _b.classList.contains('tks-cap-hidden');
+      if(!_hidden){ _b.click(); return; }
+      if(++_goTries<30) setTimeout(_tryGo, 200);
+    })();
   } else if(!isPhoneView()){
     // Desktop hero: open straight to the Register. (Phone defaults to Start-a-job,
     // which is the active view in the HTML — the Register is desktop-only.)
