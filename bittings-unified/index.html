@@ -6013,7 +6013,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
   var STAFF=null, VANS=null, loaded=false, dragId=null;
   var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   var MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  var STATUSES=[{k:'scheduled',L:'Scheduled'},{k:'en_route',L:'En route'},{k:'on_site',L:'On site'},{k:'in_progress',L:'In progress'},{k:'completed',L:'Completed'},{k:'canceled',L:'Cancelled'}];
+  var STATUSES=[{k:'scheduled',L:'Scheduled'},{k:'en_route',L:'En route'},{k:'on_site',L:'On site'},{k:'in_progress',L:'In progress'},{k:'completed',L:'Completed'},{k:'canceled',L:'Canceled'}];  // label must match TKS.Bookings.STATUSES ('Canceled') — scheduler.html, statusTagHTML, isArchived and .st-canceled all key on that spelling
   var CANCEL_REASONS=['Customer no-show','Customer canceled','Duplicate booking','Unable to complete (vehicle/parts)','Priced too high','Other'];
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
@@ -6228,7 +6228,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
   function doCancel(jobId){
     reasonModal({title:'Cancel job', reasons:true, confirm:'Cancel job'}, function(reason, note){
       var b=TKS.Bookings.get(jobId); if(!b) return;
-      function applied(){ b.status='Cancelled'; if(reason||note) b.notes=((b.notes||'')+'\n[cancel] '+reason+(note?(' — '+note):'')).trim(); try{TKS.Bookings.save(b);}catch(e){} render(); keysStep(jobId); }
+      function applied(){ b.status='Canceled'; if(reason||note) b.notes=((b.notes||'')+'\n[cancel] '+reason+(note?(' — '+note):'')).trim(); try{TKS.Bookings.save(b);}catch(e){} render(); keysStep(jobId); }
       if(signedIn() && TKS.Jobs && TKS.Jobs.cancel){ TKS.Jobs.cancel(jobId, reason, note).then(function(res){ if(res&&res.error){ toast(res.error.message); return; } applied(); }).catch(function(e){ toast((e&&e.message)||'Cancel blocked'); }); }
       else applied();
     });
