@@ -1759,7 +1759,7 @@ function saveCustomers(a){ TKS.saveList("customers", a); }
 function getShops(){ return TKS.list("shops"); }
 function saveShops(a){ TKS.saveList("shops", a); }
 
-const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','invreport','dashboard','inventory','part','fleet','settings','programmers','schedule','lishi','receipts','reconcile','returns'];
+const views = ['startjob','matsvc','customers','form','payments','commission','history','reports','invreport','dashboard','inventory','part','fleet','settings','programmers','schedule','lishi','receipts','reconcile','returns','activity','timesheets'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
