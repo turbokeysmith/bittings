@@ -452,8 +452,12 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   receipts print the pre-surcharge total; Register sales never flip the receipt to "Paid"; tax rate is
   trusted from the device at checkout; a few edge-function hardening items; Setup manager PINs are
   stored readable by any staff; invite temp-passwords have no "change password" path.
-- **Your decisions (section D of the review doc):** archive dead pages, tier gating now vs later,
-  PIN session-switch policy, lookup-data gaps, and merging `main` (November website work) into this branch.
+- **Later the same day:** you **restored the Supabase project** — verified from this PC: all tables
+  from every phase exist, the security lockdowns held, 12/13 edge functions deployed (`billing-webhook`
+  still pending, as before). You approved and I did: **merged `main` into this branch** (the November
+  website work now lives here too), **archived the three dead pages** + unused code, and **pushed
+  everything to GitHub**. Still yours: confirm your real data in the app, PIN-switch policy, tier
+  gating timing, lookup-data gaps; then the section-C money/stock items can start.
 
 ### 2026-11-03 (📍 New shop address on every page — LIVE, pending owner phone check)
 - Turbo Keysmith moved to **9201 N Council Rd, Suite A, Oklahoma City, OK 73132**. Updated on all 240 pages

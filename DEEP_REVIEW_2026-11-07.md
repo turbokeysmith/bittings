@@ -24,12 +24,18 @@ owner; the technical detail is in `bittings-unified/app/STRUCTURE_NOTES.md` (202
 ---
 
 ## A. Owner action — the blocker
-- ⬜ **A1. Restore the Supabase project** (`gcshuhlksjznksspbigl`). Its hostname no longer resolves —
-  the signature of a **paused** project (nothing has used it since 2026-07-02). Log in at supabase.com
-  → the project → **Restore**. Free projects paused > 90 days can be scheduled for deletion, and the
-  customers, receipts, transactions, time entries and the 352 imported inventory items live only
-  there. When it's back, say so: the next step is to verify the live migrations + edge functions
-  against the repo (`HANDOFF_TO_SHOP_PC.md` §1 lists what must be there).
+- ✅ **A1. Restore the Supabase project** — **done by the owner 2026-11-07 (~13:46 CST)**. It had been
+  paused since July (hostname didn't resolve). Verified from this PC after the restore, anonymously
+  (the July QA test logins no longer work):
+  - all **24 tables/views** from every migration phase (1a → 7a) exist; anon has **no** table grants
+    ("permission denied") and the 5f function lockdown is still in place;
+  - every RPC name the app calls exists (PostgREST only suggests "did you mean…" for a missing name —
+    it did so only for a name that *shouldn't* exist);
+  - **12 of 13 edge functions are deployed** with the localhost origin allow-list working;
+    `billing-webhook` is the one not deployed (known — billing go-live item);
+  - the payment auth path answers a clean `401 invalid or expired session` for anon (not the old 503).
+  - **Still to confirm by the owner: sign in to the app and check the real shop's Customers /
+    Inventory / Receipts are all there** (data can't be read anonymously — by design).
 
 ## B. Confirmed bugs — fixed today (one commit each, all verified headless)
 | # | What was wrong | Status |
@@ -62,16 +68,18 @@ owner; the technical detail is in `bittings-unified/app/STRUCTURE_NOTES.md` (202
 | C8 | Security: Setup manager **PINs stored in plain text, readable by any staff**; an owner can hijack another user's "current shop" via `shop_members` insert; CORS deny value `"null"` matches `file://`; invite temp-passwords permanent (no change-password UI); terminal job states not guarded | Pilot-shop trust | 🟡 |
 
 ## D. Your decisions (nothing built until you say)
-- **D1. Archive dead pages/plumbing:** `programmers.html`, `fleet.html`, `app/ui/demo.html` (zero inbound
-  links), the unused iframe-embed code, the unused "surcharge %" setting.
+- ✅ **D1. Archive dead pages/plumbing** — approved + done 2026-11-07: the three pages moved to
+  `_archive/bittings-unified-retired/`, iframe-embed code removed, "surcharge %" input replaced by a
+  fixed "2% on credit cards only" line.
 - **D2. Tier gating** is client-only (every pilot shop is Pro). Enforce server-side now, or when you sell a lower tier?
 - **D3. PIN session-switch policy:** today a shoulder-surfed 6-digit PIN is a full owner login from any
   staff phone. Owner alert on every switch, or restrict switching to the registered shop PC?
 - **D4. Lookup data:** 7 makes (Genesis, Jaguar, Land Rover, MINI, Pontiac, Saturn, Suzuki) have no models
   and no free-text fallback; the June Lishi cross-reference items are still open.
-- **D5. Branch plan:** `main` has the November website changes; this branch has the whole app. Merge
-  `main` into `phase3-frontend-unification` so one branch is complete?
-- **D6. Push:** today's commits are local on this PC until pushed to GitHub (`origin`).
+- ✅ **D5. Branch plan** — approved + done 2026-11-07: `main` merged into `phase3-frontend-unification`
+  (website files + GA4 deploy guard from `main`; both changelogs kept). This branch is now complete.
+- ✅ **D6. Push** — approved; everything is on GitHub (`origin/phase3-frontend-unification`).
+- **D3 (PIN policy) is still open** — the owner asked for a plainer explanation; see the chat.
 
 ## E. Physical (unchanged, owner-only)
 Scanner mode, Star WebPRNT host + SDK, Zebra Browser Print + calibration, re-run `_make-shortcuts.ps1`
