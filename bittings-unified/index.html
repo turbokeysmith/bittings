@@ -3732,7 +3732,8 @@ function renderInvReport(){
   var m=window.money||function(v){return '$'+(Number(v)||0).toFixed(2);};
   var units=0,retail=0,cost=0,low=0,groups={};
   all.forEach(function(p){
-    var q=parseInt(p.qty,10)||0, sp=(parseInt(p.sell_price_cents,10)||0)/100, c=parseFloat(p.cost)||0;
+    // store.js fromRow() maps the column to sellPriceCents (camelCase); reading sell_price_cents made retail always $0
+    var q=parseInt(p.qty,10)||0, sp=(parseInt(p.sellPriceCents!=null?p.sellPriceCents:p.sell_price_cents,10)||0)/100, c=parseFloat(p.cost)||0;
     units+=q; retail+=q*sp; cost+=q*c; try{ if(TKS.Inventory.isLow(p)) low++; }catch(e){}
     var cp=catParts(p), key=cp.top+' · '+(cp.sub||'—');
     if(!groups[key]) groups[key]={items:0,units:0,retail:0};
