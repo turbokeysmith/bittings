@@ -61,6 +61,22 @@ Deno.serve(async (req) => {
       return json(409, { error: `PIN accepted, but ${hit.name} isn't clocked in. Start the day with a full login (username + password).`, code: "not_clocked_in", name: hit.name });
     }
 
+    // (8d — owner decision "shop PC only") A session SWITCH is only honoured on a device a
+    // manager registered as a shop workstation. Any signed-in phone could otherwise be turned
+    // into a manager session by a shoulder-surfed 6-digit PIN. Own-screen unlock (above) is
+    // unaffected. The device proves itself with the token minted by device_register().
+    const devId = String(body.deviceId ?? "").trim(), devTok = String(body.deviceToken ?? "").trim();
+    let trusted = false;
+    if (devId && devTok) {
+      const dc = await supa.rpc("device_check", { p_id: devId, p_token: devTok, p_shop: auth.shopId });
+      trusted = !dc.error && dc.data === true;
+    }
+    if (!trusted) {
+      await supa.from("audit_log").insert({ user_id: auth.user.id, role: auth.role, action: "machine_switch_refused", entity_type: "staff", entity_id: hit.user_id, shop_id: auth.shopId,
+        detail: { to_name: hit.name, to_role: hit.role, reason: "untrusted device" } });
+      return json(403, { error: `Switching to ${hit.name} only works on a registered shop workstation. Use full login (username + password) on this device.`, code: "untrusted_device", name: hit.name });
+    }
+
     // Mint the switch: one-time magiclink token for the teammate; the client
     // verifies it and the machine session becomes them.
     const u = await supa.auth.admin.getUserById(hit.user_id);

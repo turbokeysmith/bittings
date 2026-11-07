@@ -146,7 +146,9 @@
         res(null);
       });
     }
-    c.functions.invoke('pin-unlock', { body: { pin: pin } }).then(async function (r) {
+    // Present this device's registration (8d) — without it the server only allows unlocking your own screen.
+    var dev = {}; try { dev = { deviceId: localStorage.getItem('tks_tc_device_id') || '', deviceToken: localStorage.getItem('tks_tc_device_token') || '' }; } catch (e) {}
+    c.functions.invoke('pin-unlock', { body: { pin: pin, deviceId: dev.deviceId, deviceToken: dev.deviceToken } }).then(async function (r) {
       var d = r && r.data, err = r && r.error;
       if (err && !d) { var se = await serverErr(err); d = { error: se || 'Could not check the PIN — try again.' }; }
       if (d && d.mode === 'unlock') { unlockUI(); return; }
@@ -192,7 +194,27 @@
     isActive: active,
     // Settings helpers (per-device flag)
     deviceEnabled: deviceOn,
-    setDeviceEnabled: function (on) { try { localStorage.setItem(DEVICE_KEY, on ? '1' : '0'); } catch (e) {} this.init(); }
+    setDeviceEnabled: function (on) { try { localStorage.setItem(DEVICE_KEY, on ? '1' : '0'); } catch (e) {} this.init(); },
+    // (8d) Register / un-register THIS browser as a shop workstation. Manager/owner only (server
+    // enforces). The one-time token is kept in this browser's localStorage and only ever sent to
+    // pin-unlock; the server stores a bcrypt hash. Returns a Promise<{ok, error?, id?}>.
+    deviceRegistered: function () { try { return !!(localStorage.getItem('tks_tc_device_id') && localStorage.getItem('tks_tc_device_token')); } catch (e) { return false; } },
+    registerDevice: function (name) {
+      var c = sb(); if (!c) return Promise.resolve({ ok: false, error: 'Sign in first.' });
+      return c.rpc('device_register', { p_name: name || ('Workstation · ' + (navigator.platform || 'PC')) }).then(function (r) {
+        if (r.error) return { ok: false, error: r.error.message || String(r.error) };
+        var d = r.data || {}; if (!d.id || !d.token) return { ok: false, error: 'no token returned' };
+        try { localStorage.setItem('tks_tc_device_id', d.id); localStorage.setItem('tks_tc_device_token', d.token); localStorage.setItem(DEVICE_KEY, '1'); } catch (e) {}
+        TKS_CLOCK.init(); return { ok: true, id: d.id };
+      }, function (e) { return { ok: false, error: (e && e.message) || String(e) }; });
+    },
+    unregisterDevice: function () {
+      var c = sb(), id = null; try { id = localStorage.getItem('tks_tc_device_id'); } catch (e) {}
+      try { localStorage.removeItem('tks_tc_device_id'); localStorage.removeItem('tks_tc_device_token'); localStorage.setItem(DEVICE_KEY, '0'); } catch (e) {}
+      TKS_CLOCK.init();
+      if (!c || !id) return Promise.resolve({ ok: true });
+      return c.rpc('device_revoke', { p_id: id }).then(function (r) { return r.error ? { ok: false, error: r.error.message } : { ok: true }; }, function (e) { return { ok: false, error: String(e && e.message || e) }; });
+    }
   };
   window.TKS_CLOCK = TKS_CLOCK;
 

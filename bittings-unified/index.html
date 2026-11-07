@@ -5200,8 +5200,31 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
         '<div class="hint">Default 5. Applies to workstations (below). Stepping away locks the screen; a PIN gets you right back in — you stay clocked in (locking is not a clock-out).</div>'+
         '<label class="toggle" style="margin-top:14px"><input type="checkbox" id="f_tcDevice" '+(devOn?'checked':'')+'> <b>This device is a shop workstation</b> (lock &amp; clock here)</label>'+
         '<div class="hint">Set this on the <b>shop PC</b> only. Leave it OFF on phones/tablets your techs use in the field — those keep working normally (no lock, no auto clock-in). This choice is remembered on this device.</div>'+
-        '<div class="hint" style="margin-top:8px">Each person sets their own PIN under <b>Access &amp; managers</b> (or on their own device). PINs are unique within your shop.</div>';
-      gid('f_tcDevice').onchange=function(){ try{ if(window.TKS_CLOCK) TKS_CLOCK.setDeviceEnabled(this.checked); else localStorage.setItem('tks_tc_device', this.checked?'1':'0'); }catch(e){} };
+        '<div class="hint">Registering needs a <b>manager/owner sign-in on this device</b>. Only registered workstations can <b>switch users by PIN</b>; everywhere else a PIN only unlocks your own screen.</div>'+
+        '<div class="hint" id="f_tcDeviceMsg" style="min-height:16px"></div>'+
+        '<div id="f_tcDevices" style="margin-top:10px"></div>'+
+        '<div class="hint" style="margin-top:8px">Each person sets their own PIN under <b>Access &amp; managers → My PIN</b>. PINs are unique within your shop.</div>';
+      (function(){
+        var cb=gid('f_tcDevice'), msg=gid('f_tcDeviceMsg'), listEl=gid('f_tcDevices');
+        var canCloud = !!(window.TKS && TKS.auth && TKS.auth.isSignedIn && TKS.auth.isSignedIn() && !(TKS.isDemo && TKS.isDemo()) && window.TKS_CLOCK && TKS_CLOCK.registerDevice);
+        function renderDevices(){
+          if(!canCloud || !listEl) return;
+          try{ TKS._sb().from('shop_devices').select('id,name,created_at,last_seen_at,revoked_at').is('revoked_at',null).order('created_at',{ascending:false}).limit(20).then(function(q){
+            var rows=(q&&q.data)||[]; var mine=(function(){ try{ return localStorage.getItem('tks_tc_device_id'); }catch(e){ return null; } })();
+            listEl.innerHTML = rows.length ? '<label>Registered workstations</label>'+rows.map(function(d){ return '<div class="emp-row" style="align-items:center"><span style="flex:1">'+esc(d.name||'Workstation')+(d.id===mine?' <b>(this device)</b>':'')+' <span style="color:var(--dim);font-size:12px">· since '+esc(new Date(d.created_at).toLocaleDateString())+(d.last_seen_at?(' · last used '+esc(new Date(d.last_seen_at).toLocaleDateString())):'')+'</span></span><button type="button" class="del" data-dev="'+esc(d.id)+'" title="Revoke">&times;</button></div>'; }).join('') : '<div class="hint">No registered workstations yet.</div>';
+            listEl.querySelectorAll('[data-dev]').forEach(function(b){ b.onclick=function(){ TKS._sb().rpc('device_revoke',{p_id:b.dataset.dev}).then(function(r){ if(r.error){ msg.textContent=r.error.message; return; } if(b.dataset.dev===mine){ try{ localStorage.removeItem('tks_tc_device_id'); localStorage.removeItem('tks_tc_device_token'); localStorage.setItem('tks_tc_device','0'); }catch(e){} if(cb) cb.checked=false; } renderDevices(); }); }; });
+          }); }catch(e){}
+        }
+        renderDevices();
+        if(!cb) return;
+        cb.onchange=function(){
+          var want=this.checked;
+          if(!canCloud){ try{ if(window.TKS_CLOCK) TKS_CLOCK.setDeviceEnabled(want); else localStorage.setItem('tks_tc_device', want?'1':'0'); }catch(e){} if(msg) msg.textContent = want ? 'Marked locally. Sign in as a manager on this device to register it for PIN switching.' : ''; return; }
+          cb.disabled=true; msg.textContent = want ? 'Registering this device…' : 'Un-registering…';
+          var p = want ? TKS_CLOCK.registerDevice('Workstation · '+(navigator.platform||'PC')) : TKS_CLOCK.unregisterDevice();
+          p.then(function(r){ cb.disabled=false; if(r && r.ok){ msg.textContent = want ? '✓ Registered — PIN switching works on this device now.' : 'Un-registered.'; } else { cb.checked=!want; try{ localStorage.setItem('tks_tc_device', (!want)?'1':'0'); }catch(e){} msg.textContent='Could not '+(want?'register':'un-register')+': '+((r&&r.error)||'unknown error'); } renderDevices(); });
+        };
+      })();
     }
     else if(key==='inventory'){
       p.innerHTML='<h2>Inventory (optional)</h2><div class="sub">Already have a parts list in a spreadsheet? Import it now — upload an .xlsx or .csv, match your columns to the app\'s fields, preview, and import. Duplicates are skipped.</div>'+
