@@ -1985,13 +1985,16 @@ function fmtOutlook(dt){ return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${p
 function googleUrl(){
   if(!booking.date||!booking.time) return '#';
   const {start,end}=eventTimes();
-  const p = new URLSearchParams({
+  // Invite the SHOP's own calendar (Setup → Business identity → email) as guest / system of
+  // record. Bittings is multi-shop now — a hardcoded address would send every tenant's job
+  // details (customer, phone, address) to one business's Gmail.
+  let shopEmail=''; try{ shopEmail=((window.TKS&&TKS.Config)?(TKS.Config.identity().email||''):'').trim(); }catch(e){}
+  const p = new URLSearchParams(Object.assign({
     action:'TEMPLATE', text:eventTitle(),
     dates:`${fmtCompact(start)}/${fmtCompact(end)}`,
     details:eventDetails(), location:eventLocation(),
-    ctz:'America/Chicago',
-    add:'turbokeysmith@gmail.com'   // business calendar is invited as guest / system of record
-  });
+    ctz:'America/Chicago'
+  }, shopEmail ? { add: shopEmail } : {}));
   return 'https://calendar.google.com/calendar/render?'+p.toString();
 }
 function outlookUrl(){
