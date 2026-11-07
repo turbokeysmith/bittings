@@ -847,34 +847,18 @@
       // if they equal the shared fallback PIN (Setup quickFormPin / cloud-config
       // default). Returns null on no match. This lets several managers each have a
       // distinct PIN while keeping the old single-PIN fallback working.
-      managerByPin: function (entered) {
-        entered = String(entered == null ? '' : entered).trim();
-        if (!entered) return null;
-        try {
-          var emps = getConfig().access.employees || [];
-          for (var i = 0; i < emps.length; i++) {
-            var e = emps[i];
-            if (e && e.owner && e.pin && String(e.pin).trim() === entered)
-              return { name: (e.name || e.email || 'Manager'), email: (e.email || '') };
-          }
-        } catch (e) {}
-        var shared = '';
-        try { shared = getConfig().access.quickFormPin || ''; } catch (e) {}
-        if (!shared && global.TKS_OWNER && global.TKS_OWNER.QUICK_FORM_PIN) shared = String(global.TKS_OWNER.QUICK_FORM_PIN);
-        if (shared && String(shared).trim() === entered) return { name: 'Manager', email: '' };
-        return null;
-      },
-      // True if ANY PIN gate exists (a manager has a personal PIN, or a shared
-      // fallback PIN is configured). Used to decide whether to offer a PIN prompt.
-      hasManagerPin: function () {
-        try {
-          var emps = getConfig().access.employees || [];
-          for (var i = 0; i < emps.length; i++) { if (emps[i] && emps[i].owner && String(emps[i].pin || '').trim()) return true; }
-        } catch (e) {}
-        var shared = '';
-        try { shared = getConfig().access.quickFormPin || ''; } catch (e) {}
-        if (!shared && global.TKS_OWNER && global.TKS_OWNER.QUICK_FORM_PIN) shared = String(global.TKS_OWNER.QUICK_FORM_PIN);
-        return !!String(shared).trim();
+      // 8c (2026-11-07): the no-login PIN fallback is RETIRED. Those PINs lived in plain text in
+      // shop_config.data, which every staff member can read; the server now strips them on write.
+      // The API is kept so the three signed-out gates (Register, Quick invoice, scheduler Quick
+      // form) keep working — they now simply report "no PIN configured" → "sign in required".
+      // The real PIN system is staff.pin_hash (set via setMyPin below; used by the lock screen).
+      managerByPin: function (/* entered */) { return null; },
+      hasManagerPin: function () { return false; },
+      // Set MY lock-screen / clock-in PIN (server: 7b set_my_pin — 4 digits staff, 6 manager/owner,
+      // unique per shop, stored bcrypt-hashed). Returns the rpc result ({error} on failure).
+      setMyPin: function (pin) {
+        try { return _sb().rpc('set_my_pin', { p_pin: String(pin || '').trim() }); }
+        catch (e) { return Promise.resolve({ error: { message: 'Sign in to set your PIN.' } }); }
       },
       // --- Real role from the `staff` table (Phase 1). null = not an active staff
       //     member, or not loaded yet. ---
@@ -929,7 +913,7 @@
       isSetupComplete: function () { return !!getConfig().setup.completed; },
       // Owner PIN: wizard value wins, else the cloud-config.js bootstrap default.
       ownerPin: function () {
-        var p = getConfig().access.quickFormPin;
+        var p = '';   // 8c: shared fallback PIN retired (was plaintext in shop_config)
         if (p) return String(p);
         return (global.TKS_OWNER && global.TKS_OWNER.QUICK_FORM_PIN) ? String(global.TKS_OWNER.QUICK_FORM_PIN) : '';
       },

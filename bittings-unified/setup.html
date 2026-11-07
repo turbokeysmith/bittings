@@ -317,11 +317,9 @@ function renderPanel(key){
       '<div class="note"><b>Stripe keys — never typed into this page.</b> Your <b>secret key</b> lives only as a Supabase Edge Function secret (<code>STRIPE_SECRET_KEY</code>) — set it in the Supabase dashboard, never here. Your <b>publishable key</b> (<code>pk_…</code>) is entered once on the Pay screen when you take a typed-card payment. This keeps you PCI-safe (no card data or secret ever touches the app).</div>';
   }
   else if(key==='access'){
-    p.innerHTML = '<h2>Access &amp; managers</h2><div class="sub">Your team. Tick <b>Manager</b> for anyone who should see manager-only tools (Closeout, Transaction History, taking payments, Setup); everyone else gets the everyday tools. Give each manager their <b>own PIN</b> — it unlocks those tools on a signed-out/offline device.</div>'+
+    p.innerHTML = '<h2>Access &amp; managers</h2><div class="sub">Your team. Tick <b>Manager</b> for anyone who should see manager-only tools (Closeout, Transaction History, taking payments, Setup); everyone else gets the everyday tools. Manager-only tools need a <b>manager sign-in</b>.</div>'+
       '<label>Employees</label><div id="emplist"></div><button type="button" class="addbtn" id="empAdd">+ Add user</button>'+
-      '<div class="hint">Manager powers follow the email of any row marked Manager. (The bootstrap manager in cloud-config.js is always a manager — you can\'t lock yourself out.) Each manager\'s PIN is personal; any manager\'s PIN unlocks manager actions when nobody is signed in.</div>'+
-      '<label>Shared fallback PIN (optional)</label><input id="f_pin" value="'+esc(ac.quickFormPin||'')+'" placeholder="e.g. 1234" inputmode="numeric">'+
-      '<div class="hint">An extra PIN that also unlocks manager actions when nobody is signed in — handy if you\'d rather use one shop PIN instead of (or alongside) personal manager PINs. Leave blank to require a personal manager PIN or sign-in.</div>'+
+      '<div class="hint">Manager powers follow the signed-in person\'s real role. PINs are no longer kept here — each person sets their own lock-screen PIN from <b>Settings → Access → My PIN</b> in the app (stored hashed; nobody else can see it).</div>'+
       '<label class="toggle"><input type="checkbox" id="f_qiEnabled" '+(ac.quickInvoiceEnabled!==false?'checked':'')+'> Enable the Receipts <b>Quick invoice</b> shortcut</label>'+
       '<label class="toggle"><input type="checkbox" id="f_qiDefault" '+(ac.quickInvoiceDefault?'checked':'')+'> Open Quick invoice automatically for a signed-in manager</label>';
     if(!cfg.access.employees || !cfg.access.employees.length){ cfg.access.employees = (cfg.access.employees&&cfg.access.employees.length)?cfg.access.employees:[{name:'',email:'',owner:true}]; }
@@ -462,12 +460,10 @@ function renderEmployees(){
     '<input class="tx e_name" data-i="'+i+'" placeholder="Name" value="'+esc(e.name||'')+'">'+
     '<input class="tx e_email" data-i="'+i+'" type="email" placeholder="name@example.com" value="'+esc(e.email||'')+'">'+
     '<label class="emp-own"><input type="checkbox" class="e_owner" data-i="'+i+'" '+(e.owner?'checked':'')+'>Manager</label>'+
-    '<input class="tx e_pin" data-i="'+i+'" inputmode="numeric" placeholder="PIN" value="'+esc(e.pin||'')+'"'+(e.owner?'':' style="display:none"')+'>'+
     '<button type="button" class="del" data-i="'+i+'">&times;</button></div>').join('');
   el.querySelectorAll('.e_name').forEach(x=> x.oninput=()=> cfg.access.employees[+x.dataset.i].name=x.value);
   el.querySelectorAll('.e_email').forEach(x=> x.oninput=()=> cfg.access.employees[+x.dataset.i].email=x.value);
   el.querySelectorAll('.e_owner').forEach(x=> x.onchange=()=>{ cfg.access.employees[+x.dataset.i].owner=x.checked; renderEmployees(); });
-  el.querySelectorAll('.e_pin').forEach(x=> x.oninput=()=> cfg.access.employees[+x.dataset.i].pin=x.value.trim());
   el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.access.employees.splice(+b.dataset.i,1); renderEmployees(); });
 }
 const HOURS_DAYS=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri'],['sat','Sat'],['sun','Sun']];
@@ -547,7 +543,7 @@ function gather(key){
     cfg.access.employees=emps;
     cfg.access.ownerEmails=emps.filter(e=>e.owner && (e.email||'').trim()).map(e=>e.email.trim());
     cfg.access.staffEmails=emps.filter(e=>!e.owner && (e.email||'').trim()).map(e=>e.email.trim());
-    const pe=document.getElementById('f_pin'); if(pe) cfg.access.quickFormPin=pe.value.trim();
+    delete cfg.access.quickFormPin; emps.forEach(e=>{ if(e) delete e.pin; });   // 8c: never store plaintext PINs
     const qe=document.getElementById('f_qiEnabled'); if(qe) cfg.access.quickInvoiceEnabled=qe.checked;
     const qd=document.getElementById('f_qiDefault'); if(qd) cfg.access.quickInvoiceDefault=qd.checked;
   }
@@ -597,7 +593,7 @@ function renderReview(p){
     ['Business identity','identity', id.name? (id.name+(id.phone?(' · '+id.phone):'')) : ''],
     ['Sales tax','tax', cfg.taxRate? (cfg.taxRate+'%') : 'No rate set'],
     ['Payments','payments', '2% credit surcharge · $'+(((cfg.payments.drawerFloatCents!=null?cfg.payments.drawerFloatCents:12000)/100).toFixed(2))+' drawer float'],
-    ['Access & managers','access', (emps.length? (emps.length+' user(s), '+owners+' manager(s)') : '') + (emps.filter(e=>e.owner && (e.pin||'').trim()).length?(' · '+emps.filter(e=>e.owner && (e.pin||'').trim()).length+' personal PIN(s)'):'') + (ac.quickFormPin?' · shared PIN set':'')],
+    ['Access & managers','access', (emps.length? (emps.length+' user(s), '+owners+' manager(s)') : 'No users listed')],
     ['Quick links','quicklinks', (function(){ let n=0; (cfg.quickLinks||[]).forEach(c=>n+=(c.links||[]).length); return n+' link(s)'; })()],
     ['Service types','servicetypes', (cfg.serviceCats||[]).map(c=>SVC_CAT_LABEL[c]||c).join(', ')],
     ['Services','services', cfg.services.length+' offered'+(cfg.services.filter(s=>(s.price||'').trim()).length?(' · '+cfg.services.filter(s=>(s.price||'').trim()).length+' priced'):'')],

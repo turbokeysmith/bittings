@@ -29,12 +29,16 @@ function allowedOrigins(): string[] {
 export function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
   const ok = allowedOrigins().includes(origin);
-  return {
-    "Access-Control-Allow-Origin": ok ? origin : "null",
+  // (C8) A disallowed origin used to get the literal value "null" — which MATCHES the opaque
+  // origin a file:// page sends, so the allow-list didn't actually block file:// launches.
+  // Omit the header entirely when the origin isn't allowed: the browser then blocks the response.
+  const h: Record<string, string> = {
     "Access-Control-Allow-Headers": "authorization, content-type, apikey",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Vary": "Origin",
   };
+  if (ok) h["Access-Control-Allow-Origin"] = origin;
+  return h;
 }
 
 export type AuthError = { status: number; error: string };
