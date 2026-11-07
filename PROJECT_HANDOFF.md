@@ -477,6 +477,14 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
     can **Reset 2FA** for a teammate who lost their phone from Settings → Access → Team logins.
   - **Your login:** a temporary password was set on `samer@turbokeysmith.com` and handed to you in chat —
     change it in Settings → Access → My login security.
+  - **Inventory engine (later that night):** receiving a serialized key now creates the individual
+    units (before, the count vanished on the next stock event); parts imported with a quantity now
+    start with that quantity *in the shop* (they used to read 0 per location); a warranty replacement
+    can't be issued twice for the same sale without a manager; finishing a stock count applies the
+    *difference* you counted, so sales made while counting aren't undone; approving a tech's stock-move
+    request moves the stock exactly once even on a double-tap; the spreadsheet importer no longer
+    mistakes a "Price" column for your cost and now has a Sell-price column.
+  - **Jobs:** a completed or cancelled job can only be reopened by a manager (and it's logged).
 - **Later the same day:** you **restored the Supabase project** — verified from this PC: all tables
   from every phase exist, the security lockdowns held, 12/13 edge functions deployed (`billing-webhook`
   still pending, as before). You approved and I did: **merged `main` into this branch** (the November

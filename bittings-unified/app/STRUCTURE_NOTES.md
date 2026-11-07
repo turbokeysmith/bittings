@@ -92,8 +92,19 @@ reads `--read-only`). Project linked from the worktree root. QA test-shop logins
 - Owner temp password set via Auth admin API (service key fetched through the CLI, never written down);
   QA users too. Live QA scripts: scratchpad `live-qa-*.js` (C3/C4 12/12, C6 8/8, 8c 7/7, 8d 11/11,
   MFA 17/18 — the miss is the error wrapper dropping `code`, message is matched instead).
-- Open from this batch: C7 inventory-engine fixes; terminal job-state guard; billing-webhook deploy;
-  forgot-password flow needs the Auth redirect allow-list (dashboard setting).
+- **8f** inventory engine: `inv_receive` → `unit_receive` for serialized items;
+  `trg_inventory_seed_location` (AFTER INSERT on inventory: qty>0 & non-serialized → shop location
+  row); `warranty_replace` original lookup `status='sold'` + second replacement needs is_manager;
+  `cycle_complete` FOR UPDATE + relative apply (`current on-hand + delta`, serialized = unit count);
+  `move_request_approve(p_id)` / `move_request_deny(p_id)` (flip + inv_move in one txn) —
+  `TKS.MoveReq.approve/deny`, manager modal uses them; inventory-import.js: cost hints lose
+  'price', new `sellPrice` → `sellPriceCents`. Live 10/10.
+- **8g** `job_set_status`: same-status no-op; completed/canceled → other = reopen, manager-only,
+  audit `job_reopen` with `from`; client `sjSave` rolls the local label back when the server
+  refuses. Live 8/8.
+- Open after this batch: billing-webhook deploy (go-live); forgot-password flow needs the Auth
+  redirect allow-list (dashboard setting); `inventory_safe.serialized`; decrement-sweep for paid
+  receipts; hardware.js modal theme.
 
 Known residual (not changed): the probe's "overflow" on Settings/Closeout inputs is placeholder text
 scrolling inside inputs that fit (false positive); rgba-tinted pills/badges (`.hi-warr`, Fleet

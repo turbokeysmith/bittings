@@ -64,8 +64,8 @@ owner; the technical detail is in `bittings-unified/app/STRUCTURE_NOTES.md` (202
 | C4 | **Tax rate taken from the device at checkout** | ✅ **8b**: `pos_checkout` reads `shop_config.tax_rate`. Live: client sent 50%, receipt carried the shop's 8.5% |
 | C5 | Edge-function hardening (orphan charge on ledger failure, refund idempotency, swallowed capture errors) | ✅ `pay-create-intent` cancels the intent + 500; `pay-refund` idempotency key + ledger-failure reported; webhook returns 500 so Stripe retries |
 | C6 | Closing the card sheet mid-charge left a **live reader intent** | ✅ `pay-terminal cancel_intent`; sheet close cancels; Register lists abandoned attempts with "Cancel it". Live 8/8 with a real test-mode intent |
-| C7 | Inventory engine: `inv_receive` not serialized-aware; warranty-replace repeatable; move-approve double-move; stale cycle count; importer cost/price + no location seeding | 🚫 **not started** — next on the list |
-| C8 | Security: plaintext Setup PINs readable by any staff; `shop_members` hijack; CORS `"null"`; no change-password; terminal job states | ✅ migration **8c**: PINs stripped on write + scrubbed, `shop_members` client writes revoked; CORS deny omits the header (live: `file://`/foreign origins blocked, localhost allowed); **Change my password** + **My PIN** cards added (the lock-screen PIN had *no* way to be set before). ⬜ terminal job-state guard still open |
+| C7 | Inventory engine: `inv_receive` not serialized-aware; warranty-replace repeatable; move-approve double-move; stale cycle count; importer cost/price + no location seeding | ✅ migration **8f**: serialized receive creates units; parts inserted with a qty seed their shop location; warranty replace needs a manager the second time and never picks a previous replacement as the "original"; cycle count applies the *difference* under a lock; approve-move is one atomic server call (second approve refused); importer: "Price" no longer becomes cost, new Sell-price field. Live 10/10 |
+| C8 | Security: plaintext Setup PINs readable by any staff; `shop_members` hijack; CORS `"null"`; no change-password; terminal job states | ✅ migration **8c**: PINs stripped on write + scrubbed, `shop_members` client writes revoked; CORS deny omits the header (live: `file://`/foreign origins blocked, localhost allowed); **Change my password** + **My PIN** cards added (the lock-screen PIN had *no* way to be set before). ✅ migration **8g**: a completed/canceled job can only be reopened by a manager (audited `job_reopen`); the board rolls a refused status back instead of showing it. Live 8/8 |
 | C9 | **Google Authenticator for managers/owners** (owner request) | ✅ migration **8e**: `is_manager()`/`is_owner()` require an aal2 session once a factor is enrolled; `mfa_pending()`, `staff_mfa_status()`; edge functions enforce the same; `mfa-reset` (owner, lost phone); login page: code step + first-time setup (QR, skippable); Settings: status / set up / remove / Team card 2FA + Reset. Live 17/18 with a real TOTP (the 18th was a test-shape nit) |
 | PIN | **Shop-PC-only PIN switching** (owner decision D3) | ✅ migration **8d** `shop_devices` + `device_register/revoke/check`; `pin-unlock` only switches users on a registered workstation; Settings registers/revokes devices. Live 11/11 |
 
@@ -87,6 +87,20 @@ owner; the technical detail is in `bittings-unified/app/STRUCTURE_NOTES.md` (202
   Settings → Access. ⬜ Still to confirm: the owner's real data in the app after signing in.
 - **Working agreement 2026-11-07:** the owner suspended the ask-before-production rule for this
   project until they say they are going live ("delete that rule till I tell you we are going live").
+
+## What is still open after 2026-11-07 (short list)
+- **Owner:** sign in (temp password from chat), confirm your real Customers / Inventory / Receipts,
+  change the password (Settings → Access → My login security), set up Google Authenticator from the
+  same card, and mark the shop PC as a workstation (Settings → Time clock) if you want PIN switching.
+- **Decisions:** D2 tier gating now vs. later · D4 lookup-data gaps (7 makes without models; June
+  Lishi cross-reference items).
+- **Go-live items (unchanged):** deploy `billing-webhook` + Stripe price envs; set `ALLOWED_ORIGINS`
+  when the app gets a real domain; live Stripe keys; retire TurboStripe.exe + rotate its key.
+- **Nice-to-have:** "Forgot password" on the login page (needs the Auth redirect allow-list set in
+  the Supabase dashboard to `http://localhost:8088/cloud-test.html`); expose `serialized` through
+  `inventory_safe` so the 🛡️/⚠️ buttons only show on serialized rows; a sweep for paid receipts whose
+  stock decrement never ran; the `hardware.js` settings modal is hard-coded dark.
+- **Physical / real-device:** below.
 
 ## E. Physical (unchanged, owner-only)
 Scanner mode, Star WebPRNT host + SDK, Zebra Browser Print + calibration, re-run `_make-shortcuts.ps1`

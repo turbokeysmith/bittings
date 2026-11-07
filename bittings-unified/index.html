@@ -6555,13 +6555,20 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       if(stChanged && sel==='canceled'){ try{TKS.Bookings.save(rec);}catch(e){} close(); doCancel(jid); return; }
       // Apply EVERY field directly (incl. date/time + status) and persist — no silent routing.
       rec.date=newDate||rec.date; rec.time=newTime;
+      var prevStatus = rec.status;
       rec.status = stLabel(sel);
       var saved; try{ saved=TKS.Bookings.save(rec); }catch(e){ q('sjMsg').textContent=(e&&e.message)||'Save failed.'; return; }
       if(!saved){ q('sjMsg').textContent='Save failed — please retry.'; return; }
       jid=saved.id||jid;
       // cloud (server-enforced, best-effort): assign tech + push status change
       if(signedIn() && rec.technicianId && TKS.Jobs && TKS.Jobs.assign){ TKS.Jobs.assign(jid, rec.technicianId, 'lead').then(function(res){ if(res&&res.error) toast(res.error.message); }).catch(function(){}); }
-      if(stChanged && signedIn() && TKS.Jobs && TKS.Jobs.setStatus){ TKS.Jobs.setStatus(jid, sel).then(function(res){ if(res&&res.error) toast('Saved locally; status: '+res.error.message); }).catch(function(){}); }
+      // The SERVER owns the status (role rules, reconciliation gate, 8g terminal-state guard). If it
+      // refuses, roll the local label back so the board never shows a status the cloud rejected.
+      if(stChanged && signedIn() && TKS.Jobs && TKS.Jobs.setStatus){
+        TKS.Jobs.setStatus(jid, sel).then(function(res){
+          if(res&&res.error){ try{ var b=TKS.Bookings.get(jid); if(b){ b.status=prevStatus; TKS.Bookings.save(b); } }catch(_){} toast('Status not changed: '+(res.error.message||'refused')); try{ render(); }catch(_){} }
+        }).catch(function(e){ try{ var b=TKS.Bookings.get(jid); if(b){ b.status=prevStatus; TKS.Bookings.save(b); } }catch(_){} toast('Status not changed: '+((e&&e.message)||'offline')); try{ render(); }catch(_){} });
+      }
       close(); render();
       toast(isNew?'Job created.':'Saved.');
     };
