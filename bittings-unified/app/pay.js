@@ -21,7 +21,12 @@
   async function token(){ const c=client(); if(!c) return null; try{ const {data}=await c.auth.getSession(); return data&&data.session?data.session.access_token:null; }catch(e){ return null; } }
   async function call(fn, body){
     const tok=await token();
-    const r=await fetch(FN+"/"+fn,{method:"POST",headers:{"content-type":"application/json","apikey":CFG.anonKey,"authorization":"Bearer "+(tok||CFG.anonKey)},body:JSON.stringify(body||{})});
+    // A failed fetch (offline, DNS, CORS, paused project) used to THROW out of here, which left
+    // callers with an unhandled rejection and the UI stuck on "Recording…" / "Waiting…".
+    // Return the same {error} shape the server uses so every caller shows a message instead.
+    let r;
+    try{ r=await fetch(FN+"/"+fn,{method:"POST",headers:{"content-type":"application/json","apikey":CFG.anonKey,"authorization":"Bearer "+(tok||CFG.anonKey)},body:JSON.stringify(body||{})}); }
+    catch(e){ return { error:"Can't reach the payment service — check the connection and try again.", network:true }; }
     let j; try{ j=await r.json(); }catch(e){ j={error:"bad response"}; }
     if(!r.ok && !j.error) j.error="HTTP "+r.status; return j;
   }
@@ -170,9 +175,14 @@
     poll();
   }
   async function poll(){
-    polls=0;
+    polls=0; let netFails=0;
     const tick=async()=>{ polls++;
+      if(!modal || !S.pi) return;                    // sheet closed — stop polling
       const j=await call("pay-status",{paymentIntentId:S.pi});
+      // One dropped request used to end polling silently ("Waiting for the customer…" forever).
+      // Retry transient network errors a few times before giving up with a visible message.
+      if(j.error && j.network){ netFails++; if(netFails<=5 && polls<40){ status("Connection hiccup — retrying… ("+netFails+")"); setTimeout(tick,2000); return; } status(j.error+" The charge may still have gone through — check Transaction History before retrying.","bad"); return; }
+      netFails=0;
       if(j.error){ status(j.error,"bad"); return; }
       if(j.status==="completed"){ status("✓ Approved — "+m(j.captured_cents)+(j.surcharge_applied?" (incl. 2% credit surcharge)":" (no surcharge)"),"ok"); if(onDoneCb){ try{onDoneCb(j);}catch(_){} } return; }
       if(j.status==="failed"){ status("✗ "+(j.failure_reason||"failed")+" — try again.","bad"); S.attempt++; return; }
