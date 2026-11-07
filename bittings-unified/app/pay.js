@@ -33,7 +33,18 @@
   function m(c){ return "$"+(Number(c||0)/100).toFixed(2); }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
   function nodeEl(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstElementChild; }
-  function close(){ if(modal){ modal.remove(); modal=null; } S={}; stripe=null; elements=null; }
+  // Closing the sheet while a charge is live used to leave the PaymentIntent (and a reader
+  // prompt) armed: the customer could still tap later, the webhook would capture, and the
+  // sale was never finalized on this side → a retry meant a second charge (C6). Cancel it.
+  function close(){
+    try{
+      if(S && S.pi && !S.completed && !S.cancelling){
+        S.cancelling=true;
+        call("pay-terminal",{ action:"cancel_intent", paymentIntentId:S.pi, readerId:S.reader||null }).then(j=>{ if(j&&j.error) console.warn("cancel_intent:",j.error); },()=>{});
+      }
+    }catch(_){}
+    if(modal){ modal.remove(); modal=null; } S={}; stripe=null; elements=null;
+  }
   function status(msg,kind){ const s=modal&&modal.querySelector("#pnStatus"); if(s){ s.innerHTML=msg||""; s.style.color=kind==="bad"?"#f0a0a6":kind==="ok"?"#7fd49b":"#9aa3af"; } }
 
   window.TKPay = window.TKPay || {};
@@ -71,6 +82,11 @@
   window.TKPay.refundCard = async function(paymentIntentId){
     if(!paymentIntentId) return { error:"missing paymentIntentId" };
     return await call("pay-refund", { paymentIntentId });
+  };
+  // Cancel an abandoned (pending/authorized) card intent → pay-terminal cancel_intent (C6).
+  window.TKPay.cancelIntent = async function(paymentIntentId, readerId){
+    if(!paymentIntentId) return { error:"missing paymentIntentId" };
+    return await call("pay-terminal", { action:"cancel_intent", paymentIntentId, readerId: readerId||null });
   };
   // Void a CASH/CHECK transaction by its row id → pay-void (no Stripe).
   window.TKPay.voidCashCheck = async function(transactionId){
@@ -184,7 +200,7 @@
       if(j.error && j.network){ netFails++; if(netFails<=5 && polls<40){ status("Connection hiccup — retrying… ("+netFails+")"); setTimeout(tick,2000); return; } status(j.error+" The charge may still have gone through — check Transaction History before retrying.","bad"); return; }
       netFails=0;
       if(j.error){ status(j.error,"bad"); return; }
-      if(j.status==="completed"){ status("✓ Approved — "+m(j.captured_cents)+(j.surcharge_applied?" (incl. 2% credit surcharge)":" (no surcharge)"),"ok"); if(onDoneCb){ try{onDoneCb(j);}catch(_){} } return; }
+      if(j.status==="completed"){ S.completed=true; status("✓ Approved — "+m(j.captured_cents)+(j.surcharge_applied?" (incl. 2% credit surcharge)":" (no surcharge)"),"ok"); if(onDoneCb){ try{onDoneCb(j);}catch(_){} } return; }
       if(j.status==="failed"){ status("✗ "+(j.failure_reason||"failed")+" — try again.","bad"); S.attempt++; return; }
       if(j.status==="canceled"){ status("Canceled — try again.","bad"); S.attempt++; return; }
       if(polls<40) setTimeout(tick,2000); else status("Still waiting — check the reader.","bad");

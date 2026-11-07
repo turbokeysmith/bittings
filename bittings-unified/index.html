@@ -1500,6 +1500,7 @@ window.tksDemoOn = function(){
 
   <div class="view" id="view-payments">
     <div class="pay-banner" id="chgBanner"></div>
+    <div class="note" id="posPending" style="display:none"></div>
     <div class="note" id="chgGate" style="display:none"></div>
     <div class="form pos-form" id="chgForm">
       <div class="pos-jobtype" id="posJobType">
@@ -1869,7 +1870,7 @@ document.querySelectorAll('[data-go]').forEach(b=>{
     if(t==='reports'){ openReports(); return; }
     if(t==='dashboard'){ openDashboard(); return; }
     if(t==='startjob'){ openStartJob(); return; }
-    if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); window.renderInvDash && window.renderInvDash(); } if(t==='payments'){ renderPayments(); } if(t==='commission'){ renderCommission(); }
+    if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); window.renderInvDash && window.renderInvDash(); } if(t==='payments'){ renderPayments(); try{ window.posCheckPendingCharges && posCheckPendingCharges(); }catch(e){} } if(t==='commission'){ renderCommission(); }
     // de-iframed views are defined in later <script> blocks; guard with window. so an early
     // auto-trigger (e.g. maybeRedirectToSetup) can't throw "renderX is not defined".
     if(t==='fleet'){ window.renderFleet && window.renderFleet(); } if(t==='settings'){ window.renderSettings && window.renderSettings(); } if(t==='programmers'){ window.renderProgrammers && window.renderProgrammers(); } if(t==='schedule'){ window.renderSchedule && window.renderSchedule(); } if(t==='lishi'){ window.renderLishi && window.renderLishi(); } if(t==='receipts'){ window.renderReceipts && window.renderReceipts(); } if(t==='activity'){ window.renderActivity && window.renderActivity(); } if(t==='timesheets'){ window.renderTimesheets && window.renderTimesheets(); }
@@ -3378,6 +3379,32 @@ function posManageServices(){
 }
 
 /* charge: server checkout (re-prices + gates) → existing pay flow (skipUpsert) → decrement stock */
+/* (C6) Recovery: a card charge that was started and then abandoned (browser closed, power loss,
+   sheet dismissed before the fix) is still a live PaymentIntent the customer could tap into later.
+   When the Register opens, list this shop's pending/authorized card attempts from the last 2 hours
+   and offer to cancel each one. Server-gated (pay-terminal cancel_intent only touches THIS shop). */
+window.posCheckPendingCharges = async function(){
+  const box=document.getElementById('posPending'); if(!box) return;
+  box.style.display='none'; box.innerHTML='';
+  try{
+    if(!(window.TKS && TKS.auth && TKS.auth.isSignedIn && TKS.auth.isSignedIn()) || (TKS.isDemo && TKS.isDemo())) return;
+    const sb=TKS._sb && TKS._sb(); if(!sb) return;
+    const since=new Date(Date.now()-2*3600*1000).toISOString();
+    const q=await sb.from('payment_transactions').select('id,stripe_payment_intent_id,method,reader_id,base_cents,status,created_at,invoice_id')
+      .in('status',['pending','authorized']).in('method',['reader','keyed']).gte('created_at', since).order('created_at',{ascending:false}).limit(5);
+    const rows=(q&&q.data)||[]; if(!rows.length) return;
+    const money=c=>'$'+((Number(c)||0)/100).toFixed(2);
+    box.innerHTML='<b>⚠️ '+rows.length+' card charge'+(rows.length>1?'s were':' was')+' started and never finished.</b> If the customer is not paying right now, cancel so a later tap can’t charge them:<br>'+
+      rows.map(r=>'<div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>'+money(r.base_cents)+' · '+esc2(r.method==='reader'?'reader':'typed card')+' · '+esc2(new Date(r.created_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}))+' · '+esc2(r.status)+'</span>'+
+        '<button class="btn sm" data-cancelpi="'+esc2(r.stripe_payment_intent_id||'')+'" data-reader="'+esc2(r.reader_id||'')+'">Cancel it</button></div>').join('');
+    box.style.display='';
+    box.querySelectorAll('[data-cancelpi]').forEach(b=>{ b.onclick=async()=>{ b.disabled=true; b.textContent='…';
+      const res=await TKPay.cancelIntent(b.dataset.cancelpi, b.dataset.reader||null);
+      if(res&&res.error){ b.disabled=false; b.textContent='Cancel it'; _stockToast('Could not cancel: '+res.error); return; }
+      b.textContent = res&&res.skipped ? ('already '+(res.status||'done')) : 'canceled';
+      setTimeout(()=>{ try{ posCheckPendingCharges(); }catch(e){} }, 800); }; });
+  }catch(e){ /* banner is advisory — never block the Register */ }
+};
 // In-flight guard: pos_checkout mints a NEW receipt id on every call, so a double tap on
 // Cash/Check/Card used to record two sales (two transactions, two stock decrements).
 let _posBusy=false;

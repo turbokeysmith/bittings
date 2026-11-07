@@ -4135,14 +4135,20 @@ function _receiptsRefresh(){
   async function token(){ const c=client(); if(!c) return null; try{ const {data}=await c.auth.getSession(); return data&&data.session?data.session.access_token:null; }catch(e){ return null; } }
   async function call(fn, body){
     const tok=await token();
-    const r=await fetch(FN+"/"+fn,{method:"POST",headers:{"content-type":"application/json","apikey":CFG.anonKey,"authorization":"Bearer "+(tok||CFG.anonKey)},body:JSON.stringify(body||{})});
+    let r;
+    try{ r=await fetch(FN+"/"+fn,{method:"POST",headers:{"content-type":"application/json","apikey":CFG.anonKey,"authorization":"Bearer "+(tok||CFG.anonKey)},body:JSON.stringify(body||{})}); }
+    catch(e){ return { error:"Can't reach the payment service — check the connection and try again.", network:true }; }   // never throw out of here (B8)
     let j; try{ j=await r.json(); }catch(e){ j={error:"bad response"}; }
     if(!r.ok && !j.error) j.error="HTTP "+r.status; return j;
   }
   function m(c){ return "$"+(Number(c||0)/100).toFixed(2); }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
   function node(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstElementChild; }
-  function close(){ if(modal){ modal.remove(); modal=null; } S={}; stripe=null; elements=null; }
+  // Closing the sheet mid-charge cancels the live PaymentIntent + reader prompt (C6) — see app/pay.js.
+  function close(){
+    try{ if(S && S.pi && !S.completed && !S.cancelling){ S.cancelling=true; call("pay-terminal",{ action:"cancel_intent", paymentIntentId:S.pi, readerId:S.reader||null }).then(j=>{ if(j&&j.error) console.warn("cancel_intent:",j.error); },()=>{}); } }catch(_){}
+    if(modal){ modal.remove(); modal=null; } S={}; stripe=null; elements=null;
+  }
   function status(msg,kind){ const s=modal&&modal.querySelector("#pnStatus"); if(s){ s.textContent=msg||""; s.style.color=kind==="bad"?"#f0a0a6":kind==="ok"?"#7fd49b":"#9aa3af"; } }
 
   window.openPayNow = async function(receipt){
@@ -4269,6 +4275,7 @@ function _receiptsRefresh(){
       const j=await call("pay-status",{paymentIntentId:S.pi});
       if(j.error){ status(j.error,"bad"); return; }
       if(j.status==="completed"){
+        S.completed=true;
         status("✓ Approved — "+m(j.captured_cents)+(j.surcharge_applied?" (incl. 2% credit surcharge)":" (no surcharge)"),"ok");
         // Card cleared → mark the doc paid and consume its parts (once).
         try{ const r=S.receipt; if(r){

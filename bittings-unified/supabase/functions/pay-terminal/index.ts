@@ -50,6 +50,30 @@ Deno.serve(async (req) => {
       await stripe.terminal.readers.cancelAction(body.readerId, opts);
       return json(200, { ok: true });
     }
+    // (C6) The Pay Now sheet was closed with a charge still live. Cancel the PaymentIntent (so a
+    // later tap can't capture a sale nobody is watching), clear the reader prompt, and mark the
+    // ledger row canceled. Only THIS shop's pending/authorized intents; anything else is a no-op.
+    if (action === "cancel_intent") {
+      const piId = String(body.paymentIntentId || "");
+      if (!piId) return json(400, { error: "paymentIntentId required" });
+      const q = await supa.from("payment_transactions").select("id,status,method,reader_id").eq("stripe_payment_intent_id", piId).eq("shop_id", auth.shopId).limit(1);
+      const t = q.data?.[0];
+      if (!t) return json(404, { error: "transaction not found" });
+      if (!["pending", "authorized"].includes(t.status)) return json(200, { ok: true, skipped: true, status: t.status });
+      const readerId = body.readerId || t.reader_id;
+      if (readerId) { try { await stripe.terminal.readers.cancelAction(readerId, opts); } catch (_) { /* reader may already be idle */ } }
+      let piStatus = "canceled";
+      try { piStatus = (await stripe.paymentIntents.cancel(piId)).status; }
+      catch (e) {
+        // Already captured/succeeded? Then it is NOT abandoned — leave the row for the webhook.
+        const msg = String((e as any)?.message ?? e);
+        const live = await stripe.paymentIntents.retrieve(piId).catch(() => null);
+        if (live && (live.status === "succeeded" || live.status === "processing")) return json(200, { ok: true, skipped: true, status: live.status });
+        return json(400, { error: "could not cancel: " + msg });
+      }
+      await supa.from("payment_transactions").update({ status: "canceled", failure_reason: "abandoned — sheet closed before the customer paid" }).eq("id", t.id).eq("shop_id", auth.shopId);
+      return json(200, { ok: true, status: piStatus });
+    }
     return json(400, { error: "unknown action" });
   } catch (e) { return json(400, { error: String((e as any)?.message ?? e) }); }
 });
