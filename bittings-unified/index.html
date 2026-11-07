@@ -77,7 +77,7 @@
   .ll-ico.fallback{display:flex;align-items:center;justify-content:center;font-weight:800;color:#1b1f27;font-size:15px;background:#cbd2da;}
   .ll-row .nm{font-weight:700;font-size:15px;flex:1;min-width:0;}
   .ll-row .go{color:var(--dim);font-size:16px;flex:0 0 auto;}
-  .ll-note{font-size:11.5px;color:#9a9a9a;margin:2px 2px 12px;line-height:1.45;}
+  .ll-note{font-size:11.5px;color:#6b7280;margin:2px 2px 12px;line-height:1.45;}   /* #9a9a9a on white was 2.8:1 */
   .vendor-h{font-size:12.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
     color:var(--dim);margin:20px 2px 10px;}
   .tile .ic{font-size:26px;line-height:1;margin-bottom:10px;}
@@ -184,7 +184,7 @@
   #view-settings .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   #view-settings .toggle{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--ink);margin:7px 0;cursor:pointer;}
   #view-settings .toggle input{width:20px;height:20px;flex:0 0 auto;}
-  #view-settings .hint{font-size:11.5px;color:#9a9a9a;margin-top:5px;line-height:1.45;}
+  #view-settings .hint{font-size:11.5px;color:#6b7280;margin-top:5px;line-height:1.45;}   /* #9a9a9a on the white panel was 2.8:1 */
   #view-settings .note{background:rgba(242,180,58,.10);border:1px dashed rgba(242,180,58,.45);border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.45;color:#9a6b08;margin:8px 0;}
   html[data-bt-theme="dark"] #view-settings .note{color:#f2d18a;}
   #view-settings .note code{background:rgba(20,23,27,.06);padding:1px 5px;border-radius:5px;color:var(--ink);}
@@ -536,7 +536,7 @@
   .qcol{display:flex;flex-direction:column;align-items:center;line-height:1;gap:2px;}
   .qcap{font-size:8px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--dim);}
   .crow.part.islow{border-color:rgba(242,180,58,.45);}
-  .crow.part .sub.reorder{color:var(--amber);font-weight:700;margin-top:2px;}
+  .crow.part .sub.reorder{color:#9a6a00;font-weight:700;margin-top:2px;}   /* was var(--amber) #f2b43a: 1.85:1 on the white row */
   .form textarea{width:100%;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:12px 14px;
     color:var(--ink);font-size:15px;outline:none;min-height:70px;resize:vertical;font-family:inherit;}
 
@@ -726,7 +726,8 @@
   .rep-cards .chip.m-cost{border-color:rgba(242,180,58,.4);}
   .rep-cards .chip.m-profit{border-color:rgba(74,163,255,.4);}
   .rep-chartwrap{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:14px;margin-bottom:16px;
-    height:260px;position:relative;}
+    height:260px;position:relative;min-width:0;overflow:hidden;}   /* min-width/overflow: the canvas keeps its old width for a beat when the window shrinks (phone rotation) — never let it push the page sideways */
+  .rep-chartwrap canvas{max-width:100%;}
   .rep-chartwrap.empty{display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:13px;}
 
   /* ---- Accessibility + mobile polish ---- */
@@ -757,7 +758,7 @@
 
   /* ===== Manager Dashboard (approved "Studio" light surface — self-contained, scoped) ===== */
   .tile.t-dashboard::before{background:linear-gradient(180deg,#c92c3d,#b82334);}
-  #view-dashboard .dash{--ds-card:#fff;--ds-sunk:#eef0f3;--ds-bd:#e3e6ea;--ds-ink:#14171b;--ds-2:#5a616c;--ds-3:#9aa1ac;
+  #view-dashboard .dash{--ds-card:#fff;--ds-sunk:#eef0f3;--ds-bd:#e3e6ea;--ds-ink:#14171b;--ds-2:#5a616c;--ds-3:#6b7280; /* --ds-3 was #9aa1ac: 2.6:1 for the weekday labels on white */
     background:#f6f7f9;border:1px solid var(--ds-bd);border-radius:16px;padding:18px;color:var(--ds-ink);}
   #view-dashboard .dash-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;}
   #view-dashboard .dash-eyebrow{font-size:9.5px;font-weight:800;letter-spacing:.16em;color:var(--ds-2);text-transform:uppercase;}
@@ -830,9 +831,14 @@
     --bg:#14171b; --bg2:#1b1f25; --card:#1f232a; --edge:#2c313a; --ink:#f4f5f7; --dim:#9aa1ac; --off:#7e8693;
   }
   [data-bt-theme="dark"] #view-dashboard .dash{
-    --ds-card:#1f232a; --ds-sunk:#11141a; --ds-bd:#2c313a; --ds-ink:#f4f5f7; --ds-2:#9aa1ac; --ds-3:#5a616c;
+    --ds-card:#1f232a; --ds-sunk:#11141a; --ds-bd:#2c313a; --ds-ink:#f4f5f7; --ds-2:#9aa1ac; --ds-3:#8a92a0;  /* --ds-3 was #5a616c: 2.5:1 on the dark card for the weekday labels */
     background:#14171b;   /* the base rule hardcodes a light panel bg — flip it for dark */
   }
+  /* .view pins the LIGHT --dim for its white cards, but helper text that sits directly on the
+     dark page background (notes under a list, lookup hints, intros) inherited it too → #5a616c on
+     #14171b is 2.9:1. Lift only those direct-child helpers to the dark-theme dim. Text inside
+     cards/panels is unaffected (not a direct child of .view). */
+  html[data-bt-theme="dark"] .view :is(.hint, .note, .intro, .empty, #view-settings .btn.skip):not(:is(.card, .sheet, .crow, .pos-rail, .pos-ticket, .chg-modal, #view-payments, #view-settings .panel, #view-fleet .panel, .invsummary, .ticket, .rep-chartwrap) *){ color:#9aa1ac; }
   /* hardcoded light surfaces → dark equivalents */
   [data-bt-theme="dark"] .ll-sheet{background:var(--card);}
   [data-bt-theme="dark"] .ll-row,
@@ -880,10 +886,12 @@
   [data-bt-theme="dark"] .invsummary .chip.low b{color:#f2b43a;}
   [data-bt-theme="dark"] .drawer-tot .tr.over b{color:#7fd49b;}
   [data-bt-theme="dark"] .drawer-tot .tr.short b{color:#e0636f;}
-  [data-bt-theme="dark"] .rep-toggles button.m-jobs.on{color:#b89be0;}
-  [data-bt-theme="dark"] .rep-toggles button.m-sales.on{color:#7fd49b;}
-  [data-bt-theme="dark"] .rep-toggles button.m-cost.on{color:#f2b43a;}
-  [data-bt-theme="dark"] .rep-toggles button.m-profit.on{color:#7fb8ff;}
+  /* The metric toggle chips sit on a WHITE surface in dark mode too (the .view palette pin), so the
+     pastel dark-palette text was 1.8–2.4:1. Keep the strong light-theme colors in both themes. */
+  [data-bt-theme="dark"] .rep-toggles button.m-jobs.on{color:#6d3fb0;}
+  [data-bt-theme="dark"] .rep-toggles button.m-sales.on{color:#1f8f43;}
+  [data-bt-theme="dark"] .rep-toggles button.m-cost.on{color:#9a6a00;}
+  [data-bt-theme="dark"] .rep-toggles button.m-profit.on{color:#1f6fd0;}
   [data-bt-theme="dark"] .qbtn.plus{color:#7fd49b;}
   [data-bt-theme="dark"] .qbtn.minus{color:#e0636f;}
   /* B-#8: the Reports/Closeout transaction cards are WHITE in BOTH themes, so
