@@ -10,12 +10,19 @@
   function sb() { try { return window.TKS && TKS._sb && TKS._sb(); } catch (e) { return null; } }
   function note(m) { (window.uiAlert || window.alert)(m); }
 
+  // supabase-js wraps any non-2xx reply in a FunctionsHttpError whose .message is just
+  // "Edge Function returned a non-2xx status code" — the server's real {error} text is in
+  // .context (the Response). Pull it out so the owner sees "Billing not configured…" etc.
+  async function serverError(err) {
+    try { if (err && err.context && typeof err.context.json === 'function') { var j = await err.context.json(); if (j && (j.error || j.message)) return String(j.error || j.message); } } catch (e) {}
+    return (err && err.message) || String(err);
+  }
   async function invoke(fn, body) {
     var c = sb();
     if (!c || !c.functions) { note('Billing needs a signed-in cloud session (Stripe test keys pending).'); return null; }
     try {
       var r = await c.functions.invoke(fn, { body: body || {} });
-      if (r.error) { note('Billing error: ' + (r.error.message || r.error)); return null; }
+      if (r.error) { note('Billing error: ' + (await serverError(r.error))); return null; }
       return r.data;
     } catch (e) { note('Billing is not configured yet (Stripe test keys + price ids pending): ' + (e && e.message || e)); return null; }
   }

@@ -137,9 +137,18 @@
     var c = sb(); if (!c) { msg('No cloud connection.'); return; }
     if (pinBuf.length !== 4 && pinBuf.length !== 6) { msg('Enter your 4-digit (staff) or 6-digit (manager) PIN.'); return; }
     var pin = pinBuf; msg('Checking…');
-    c.functions.invoke('pin-unlock', { body: { pin: pin } }).then(function (r) {
+    // supabase-js turns every non-2xx reply into a FunctionsHttpError whose .message is only
+    // "Edge Function returned a non-2xx status code"; the server's real text ("Incorrect PIN",
+    // "isn't clocked in — use full login", "too many PIN attempts") is in .context (the Response).
+    function serverErr(err) {
+      return new Promise(function (res) {
+        try { if (err && err.context && typeof err.context.json === 'function') { err.context.json().then(function (j) { res((j && (j.error || j.message)) ? String(j.error || j.message) : null); }, function () { res(null); }); return; } } catch (e) {}
+        res(null);
+      });
+    }
+    c.functions.invoke('pin-unlock', { body: { pin: pin } }).then(async function (r) {
       var d = r && r.data, err = r && r.error;
-      if (err && !d) { msg('Could not check the PIN — try again.'); pinBuf = ''; renderDots(); return; }
+      if (err && !d) { var se = await serverErr(err); d = { error: se || 'Could not check the PIN — try again.' }; }
       if (d && d.mode === 'unlock') { unlockUI(); return; }
       if (d && d.mode === 'switch') {
         msg('Switching to ' + (d.user ? d.user.name : 'teammate') + '…');
