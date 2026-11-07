@@ -1108,9 +1108,21 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
      → stay → HOME in local mode. The van must never be stranded with no signal.
    The token check is synchronous (reads localStorage, works offline), so there's no
    home-screen flash and no network is required to reach a usable app. */
+// Demo/sandbox flag is honored ONLY while the stored session is a fake seeded user (u_…), never
+// a real Supabase UUID — mirrors store.js _demoOn(). Keeps a leftover demo flag from ever
+// skipping the login gate for a real account in the same browser profile.
+window.tksDemoOn = function(){
+  try{
+    if(localStorage.getItem('tks_demo_mode')!=='1') return false;
+    var key = Object.keys(localStorage).filter(function(k){ return /^sb-.*-auth-token$/.test(k); })[0];
+    var t = key ? JSON.parse(localStorage.getItem(key)||'null') : null;
+    var id = (t && t.user && t.user.id) ? String(t.user.id) : '';
+    return !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  }catch(e){ return false; }
+};
 (function(){
   try{
-    if(localStorage.getItem('tks_demo_mode')==='1') return;  // DEMO: skip login, run on seeded sample data
+    if(window.tksDemoOn()) return;  // DEMO: skip login, run on seeded sample data
     var cfg = window.TKS_CLOUD;
     if(!cfg || cfg.AUTO_CONNECT===false) return;            // cloud/login disabled → no gate
     var hasToken=false;
@@ -4380,7 +4392,7 @@ var _shopEnsured=false;
 function maybeEnsureShop(){
   try{
     if(_shopEnsured) return;
-    if(localStorage.getItem('tks_demo_mode')==='1') return;
+    if(window.tksDemoOn && window.tksDemoOn()) return;
     if(!(window.TKS && TKS.auth && TKS.auth.isSignedIn && TKS.auth.isSignedIn() && TKS.Shop)) return;
     _shopEnsured=true;
     var name=''; try{ name=(TKS.Config.identity && TKS.Config.identity().name)||''; }catch(e){}

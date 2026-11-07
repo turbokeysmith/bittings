@@ -586,7 +586,7 @@
   }
 
   var changeHandlers = [];
-  var authState = { user: null, sb: null, staffRole: (function(){ try{ return (localStorage.getItem('tks_demo_mode')==='1' && localStorage.getItem('tks_demo_role')) || null; }catch(e){ return null; } })() };   // current signed-in user + staff role (cloud; or a seeded demo role)
+  var authState = { user: null, sb: null, staffRole: (function(){ try{ return (_demoOn() && localStorage.getItem('tks_demo_role')) || null; }catch(e){ return null; } })() };   // current signed-in user + staff role (cloud; or a seeded demo role — _demoOn() is hoisted, see DEMO MODE below)
   // Capability → roles allowed (mirrors the server RLS matrix). Gates destructive UI.
   var TKS_CAPS = {
     hardDelete:     ['owner'],
@@ -1056,7 +1056,19 @@
      to seeded local data when the flag is on. Production never sets the flag,
      so every branch here is inert outside the demo.
      =================================================================== */
-  function _demoOn(){ try{ return localStorage.getItem('tks_demo_mode')==='1'; }catch(e){ return false; } }
+  // Demo/sandbox is only honored while the stored session is one of the FAKE seeded users
+  // (START-DEMO/SANDBOX write ids like u_samer / u_sandbox_owner). A real Supabase user id is a
+  // UUID — if a real sign-in ever lands in the same browser profile, the demo flag must not
+  // skip the login gate, force a role, or serve seeded sales over the real ones.
+  function _demoSeedUser(){
+    try{
+      var key = Object.keys(localStorage).filter(function(k){ return /^sb-.*-auth-token$/.test(k); })[0];
+      var t = key ? JSON.parse(localStorage.getItem(key) || 'null') : null;
+      var id = (t && t.user && t.user.id) ? String(t.user.id) : '';
+      return !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    }catch(e){ return true; }
+  }
+  function _demoOn(){ try{ return localStorage.getItem('tks_demo_mode')==='1' && _demoSeedUser(); }catch(e){ return false; } }
   function _demoGet(k,d){ try{ var v=JSON.parse(localStorage.getItem(k)); return (v==null)?d:v; }catch(e){ return d; } }
   function _demoSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
   function _demoOk(data){ return Promise.resolve({ data:data, error:null }); }

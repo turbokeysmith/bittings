@@ -141,6 +141,7 @@ $('loginBtn').onclick = async ()=>{
   try {
     const { error } = await sb.auth.signInWithPassword({ email:$('email').value.trim(), password:$('password').value });
     if(error){ flash($('loginMsg'),'err', error.message); }
+    else { try{ ['tks_demo_mode','tks_demo_role'].forEach(k=>localStorage.removeItem(k)); }catch(_){} }   // a REAL sign-in always leaves demo/sandbox mode
     // success -> onAuthStateChange refreshes the view
   } catch(e){
     flash($('loginMsg'),'err','Could not reach the server: '+(e && e.message ? e.message : e)+
