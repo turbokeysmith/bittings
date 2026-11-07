@@ -593,6 +593,7 @@
     softDelete:     ['owner','manager'],
     refundVoid:     ['owner','manager'],
     inventoryWrite: ['owner','manager'],
+    inventoryAdjust:['owner','manager'],               // start/finish/discard a cycle count (cycle_* RPCs are manager-gated)
     editPricing:    ['owner','manager'],
     manageStaff:    ['owner'],
     setup:          ['owner','manager'],

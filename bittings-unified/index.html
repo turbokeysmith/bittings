@@ -1603,7 +1603,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
   </div>
 
   <div class="view" id="view-inventory">
-    <div class="seg invsubtabs"><button type="button" data-invtab="inventory" class="on">🏪 Stock</button><button type="button" data-invtab="reconcile" data-cap="inventoryAdjust">🔢 Reconcile</button></div>
+    <div class="seg invsubtabs"><button type="button" data-invtab="inventory" class="on">🏪 Stock</button><button type="button" data-invtab="reconcile">🔢 Reconcile</button></div>
     <div class="bar">
       <input class="search" id="invSearch" type="text" placeholder="Search part, SKU, fitment, VIN…">
       <button class="add" id="invImport" data-cap="inventoryWrite" title="Import from a spreadsheet (.xlsx/.csv)" style="background:#e7e9ee;color:#14171b">📥 Import</button>
@@ -1629,7 +1629,8 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
       <button class="add" id="rcCancel" style="display:none;opacity:.85">✕ Discard count</button>
     </div>
     <div class="note" id="rcStatus"></div>
-    <div class="clist" id="rcList"></div>
+    <div class="clist" id="rcCountList"></div><!-- was id="rcList", which collided with the Receipts list (#view-receipts) -->
+
     <div id="rcSummary" style="margin-top:12px"></div>
   </div>
 

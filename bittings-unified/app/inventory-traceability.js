@@ -23,7 +23,7 @@
   var rc = { countId: null, loc: 'shop', role: '' };
   window.renderReconcile = async function () {
     var s = sb();
-    var status = document.getElementById('rcStatus'), list = document.getElementById('rcList'), sum = document.getElementById('rcSummary');
+    var status = document.getElementById('rcStatus'), list = document.getElementById('rcCountList'), sum = document.getElementById('rcSummary');
     var startBtn = document.getElementById('rcStart'), finishBtn = document.getElementById('rcFinish');
     var cancelBtn = document.getElementById('rcCancel');
     var locSel = document.getElementById('rcLoc'), assignSel = document.getElementById('rcAssign');
@@ -91,7 +91,7 @@
   };
   function locLabel(){ var l = document.getElementById('rcLoc'); return (l && l.selectedOptions[0]) ? l.selectedOptions[0].textContent : 'stock'; }
   async function rcItems(){
-    var s = sb(), list = document.getElementById('rcList'); if (!s || !list) return;
+    var s = sb(), list = document.getElementById('rcCountList'); if (!s || !list) return;
     var rows = [];
     try { rows = ((await s.from('inventory_locations').select('item_id,qty,inventory(name,sku,deleted_at)').eq('location', rc.loc)).data) || []; } catch (e) {}
     rows = rows.filter(function (r){ return r.inventory && !r.inventory.deleted_at; });
