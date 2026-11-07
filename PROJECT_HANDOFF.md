@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-07-02 (Claude Code) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-11-07 (Claude Code, on the new shop PC "TK-Main") &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -407,6 +407,53 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-11-07 (🔍 Deep review of the whole app on the new shop PC — 14 fixes, full checklist in `DEEP_REVIEW_2026-11-07.md`)
+- **Where things stand:** the app code on this branch (`phase3-frontend-unification`, folder
+  `bittings-unified/`) is the latest — nothing from the old PC was lost. All 14 screens render clean
+  in both themes with zero JavaScript errors, the 4-role permission matrix matches the server exactly,
+  and the multi-shop/payment isolation proof passes **33/33** on a real Postgres on this PC.
+- **⚠️ The cloud database is PAUSED.** The Supabase project (`gcshuhlksjznksspbigl`) no longer answers
+  — that's what a paused free-tier project looks like after months of no traffic (nothing touched it
+  since July 2). **Until you restore it from the Supabase dashboard, nothing signed-in works:** no
+  payments, no cloud inventory, no time clock. Your customers, receipts, transactions and the 352
+  imported inventory items live only there — paused projects can be scheduled for deletion after 90
+  days, so please do this first. Only you can (it needs your Supabase login).
+- **Fixed today (each its own revertible commit, each verified in headless Chrome):**
+  - **Activity** and **Timesheets** screens never displayed (clicking them showed a blank page).
+  - **Reconcile (stock count)** was hidden from every signed-in person — owner included — and its
+    item list rendered into the hidden Receipts screen.
+  - **Warranty months set in Settings were silently thrown away** → every new invoice got no warranty
+    while Settings kept showing the default.
+  - **Inventory value report** always showed **$0 retail**.
+  - A job cancelled on the dispatch board showed as **Scheduled** elsewhere and never auto-archived
+    (two spellings of "Canceled").
+  - **Register: a double tap on Cash/Check/Card recorded two sales.** The buttons now lock until the
+    sale finishes (or fails).
+  - **Editing a paid invoice subtracted its parts from stock a second time.**
+  - A dropped connection during a payment left the Register frozen on "Recording…" and card polling
+    stopped silently; now you get a clear message (and polling retries).
+  - PIN-unlock and billing errors showed a generic line instead of the real reason.
+  - `?go=reports` links opened owner-only screens for a technician (display only — data was always
+    fenced).
+  - Barcode scanner: holding a key was mis-read as a scan, and scanned codes were left typed into
+    whatever field was focused.
+  - Contrast misses the July pass left in **both** themes (Reports metric chips in dark, the amber
+    "Reorder" line, helper text on the dark background, Dashboard weekday labels, grey hints on white).
+  - **Demo/Sandbox safety:** a leftover demo flag can no longer skip the login or fake a role for a
+    real account; a real sign-in clears it.
+  - Calendar export invited **turbokeysmith@gmail.com for every shop** → now uses each shop's own email.
+  - **Launching:** the "Bittings" desktop shortcut opened the app from `file://` (every doc says
+    "run via localhost"; printers, cloud sign-in and the payment functions expect it). New
+    `START-BITTINGS.ps1` starts a small Node server and opens `http://localhost:8088`; re-run
+    `_make-shortcuts.ps1` on the shop PC to get the corrected shortcut.
+- **Still open — money/stock items that need the cloud back to deploy and prove** (code review found
+  them; see the review doc, section C): refunding a Register sale never returns parts to stock; card
+  receipts print the pre-surcharge total; Register sales never flip the receipt to "Paid"; tax rate is
+  trusted from the device at checkout; a few edge-function hardening items; Setup manager PINs are
+  stored readable by any staff; invite temp-passwords have no "change password" path.
+- **Your decisions (section D of the review doc):** archive dead pages, tier gating now vs later,
+  PIN session-switch policy, lookup-data gaps, and merging `main` (November website work) into this branch.
 
 ### 2026-07-02 PM (⏱ Shift + machine-lock + time-tracking system — built, OFF by default)
 - **New: a time clock that ties "using the shop PC" to "being on the clock."** Plain-language:

@@ -8,6 +8,56 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 - **Staff app** (dark): http://127.0.0.1:8088/  → Customers · Receipts · Scheduler · Payments · Inventory
 - **Public site** (light): http://127.0.0.1:8099/  → contact form `/contact/`, language toggle 🌐 in the header
 
+## 2026-11-07 — Deep review on the new shop PC (TK-Main): findings + 14 fixes
+
+Full checklist with status: repo-root `DEEP_REVIEW_2026-11-07.md`. Environment facts for the next
+session: app work happens in the git worktree **`D:\Work\Code\tk-phase3`** (branch
+`phase3-frontend-unification`; `D:\Work\Code\turbokeysmith-main` stays on `main` for the website).
+No Python on this PC → serve with `node bittings-unified/_devserver.js` (port 8088). Puppeteer +
+Chrome-for-Testing + embedded-postgres are installed in the worktree's `node_modules`; QA harness runs
+with `NODE_PATH=D:/Work/Code/tk-phase3/node_modules`. `isolation_test.js` refuses to run from an
+elevated shell (embedded Postgres won't start as admin) — run it under a non-admin token, e.g.
+`runas /trustlevel:0x20000 "cmd /c node …\isolation_test.js > log"` → **33/33 PASS** (2026-11-07).
+**Supabase project `gcshuhlksjznksspbigl` resolves NXDOMAIN** (paused) — every cloud-bound check is
+deferred until the owner restores it.
+
+Fixes landed (one commit each, all headless-verified; nothing deployed — there is no deploy step):
+- `index.html` `views` array gained `'activity','timesheets'` (show() never activated those views).
+- `TKS_CAPS.inventoryAdjust` added (owner/manager); the Reconcile tab is ungated, `#rcStart` keeps the
+  cap; reconcile list id `rcList` → `rcCountList` (`#view-receipts` already owned `#rcList`).
+- `mergeConfig()` whitelists `warranty` (was dropped on every save/load → `Config.warranty()` always
+  fell back to `{months:0}`).
+- `renderInvReport()` reads `sellPriceCents` (camelCase from `fromRow`), not `sell_price_cents`.
+- Native scheduler status label/write `'Cancelled'` → `'Canceled'` (matches `BOOKING_STATUSES`,
+  `statusTagHTML`, `isArchived`, `.st-canceled`).
+- `posCheckoutThen`: `_posBusy` + `posSetBusy()` in-flight guard; chain starts in
+  `Promise.resolve().then(...)` so sync throws release; card/cash paths release via trailing `.then`.
+- `bittings.html` Quick-invoice EDIT branch copies `stockApplied/stockAppliedAt/posStockApplied`.
+- `pay.js` `call()` returns `{error, network:true}` on fetch rejection; `poll()` retries ≤5 network
+  errors, stops when the sheet is closed, and names Transaction History before a retry.
+- `timeclock.js` / `billing.js` unwrap `FunctionsHttpError.context.json()` for the server message.
+- `?go=` deep link polls until the nav item is shown for the role (never fires for a hidden item);
+  `message` listener checks `ev.origin`; `lishi.html`/`programmers.html` icon path.
+- `hardware.js` scanner: ignores `e.repeat`; on a detected burst strips the code from the focused
+  input (except `#hwScanTest`) and dispatches `input`.
+- Contrast: dark `.rep-toggles .on` use the strong colors (chips are white in both themes);
+  `.sub.reorder` #9a6a00; dark-theme `--dim` for `.hint/.note/.intro/.empty/.btn.skip` that sit on the
+  page bg (`:not()` excludes the white card containers); `#9a9a9a` hints → `#6b7280`; `--ds-3` light
+  `#6b7280` / dark `#8a92a0`; `.rep-chartwrap{min-width:0;overflow:hidden}` + `canvas{max-width:100%}`.
+- Demo guard: `store.js _demoOn()` and `window.tksDemoOn()` (entry gate + `maybeEnsureShop`) require the
+  stored `sb-*-auth-token` user id to NOT be a UUID; `cloud-test.html` removes `tks_demo_mode/role` on
+  a successful password sign-in.
+- `scheduler.html googleUrl()` invites `TKS.Config.identity().email` (omitted when unset) instead of
+  the hardcoded Gmail.
+- Launch: `_devserver.js` (Node), `START-BITTINGS.ps1` (server + Chrome app-mode at
+  `http://localhost:8088`), `_make-shortcuts.ps1` `Bittings.lnk` → the launcher; Sandbox/Demo remain
+  `file://` + own profiles. `tools/qa/audit/` is now gitignored.
+
+Known residual (not changed): the probe's "overflow" on Settings/Closeout inputs is placeholder text
+scrolling inside inputs that fit (false positive); rgba-tinted pills/badges (`.hi-warr`, Fleet
+badges, `.pay-banner`) read as low-contrast to the probe because it treats alpha>0.1 backgrounds as
+solid — visually fine; `hardware.js` settings modal is hardcoded dark in both themes (low).
+
 ## 2026-07-02 (e) — Inventory import + categories + Inventory/Reports/Returns UI restructure
 
 Owner imported physical inventory (MicroBiz PDF → 352 items) into the REAL Turbo Keysmith shop

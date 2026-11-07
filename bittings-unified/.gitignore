@@ -8,3 +8,6 @@ Thumbs.db
 desktop.ini
 
 # Local device settings live in the browser (localStorage tks_hw_prefs), not here.
+
+# QA harness output (regenerable screenshots + report.json)
+tools/qa/audit/
