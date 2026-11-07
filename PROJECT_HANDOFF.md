@@ -452,6 +452,31 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   receipts print the pre-surcharge total; Register sales never flip the receipt to "Paid"; tax rate is
   trusted from the device at checkout; a few edge-function hardening items; Setup manager PINs are
   stored readable by any staff; invite temp-passwords have no "change password" path.
+- **Evening — the money/stock and security batch, all live** (you said "do whatever you need" until
+  go-live, so these were applied to the cloud and deployed without a check-in; every one was proven
+  in the separate QA test shop, never in your real shop's data):
+  - **Refunds put parts back on the shelf** (a new `pos_restock` routine; before, the dialog promised it
+    and nothing happened). Signed-in sales now consume stock through one server path everywhere.
+  - **Register sales now mark the receipt Paid**, and **card receipts show what the card was actually
+    charged** (including the 2% when it applied) under the real receipt number.
+  - **Sales tax comes from your Settings**, not from whatever the device sent.
+  - **Payment plumbing hardened:** a charge can't exist in Stripe without a ledger row; refunds can't
+    double-fire on a retry; a failed capture makes Stripe retry; closing the card sheet mid-charge now
+    **cancels the live card prompt**, and the Register lists any abandoned card attempts with a
+    "Cancel it" button.
+  - **Security:** the Setup PINs that were stored readable by every staff member are gone (server strips
+    them); the way an owner could hijack another person's shop membership is closed; the origin
+    allow-list on the payment functions now really blocks `file://`; a **Change my password** card and a
+    **My PIN** card (the lock-screen PIN could never be set from the app before) live in Settings → Access.
+  - **PIN switching is shop-PC-only** (your choice): a manager PIN typed on a phone only unlocks that
+    phone's own screen; switching users works only on a workstation a manager registered in
+    Settings → Time clock.
+  - **Google Authenticator** (your request): managers/owners can set up an authenticator app from the
+    login page or Settings; once set up, that account has **no manager powers until the code is entered**
+    on a new device (enforced in the database and the payment functions, not just the screen). You (owner)
+    can **Reset 2FA** for a teammate who lost their phone from Settings → Access → Team logins.
+  - **Your login:** a temporary password was set on `samer@turbokeysmith.com` and handed to you in chat —
+    change it in Settings → Access → My login security.
 - **Later the same day:** you **restored the Supabase project** — verified from this PC: all tables
   from every phase exist, the security lockdowns held, 12/13 edge functions deployed (`billing-webhook`
   still pending, as before). You approved and I did: **merged `main` into this branch** (the November

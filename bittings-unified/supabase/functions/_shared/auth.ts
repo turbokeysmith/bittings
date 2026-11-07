@@ -70,6 +70,19 @@ export async function requireRole(req: Request, allowed: string[]): Promise<Auth
     throw { status: 403, error: `forbidden: requires role ${allowed.join(" or ")}` } as AuthError;
   }
 
+  // (8e) Two-factor: a manager/owner who has a VERIFIED authenticator must be on an aal2 session
+  // (they entered the code this session). Mirrors aal_ok() in the database so the edge functions
+  // can't be used to bypass what RLS now enforces. Staff without a factor are unaffected.
+  if (role === "manager" || role === "owner") {
+    let aal = "aal1";
+    try { const p = JSON.parse(atob(m[1].split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); aal = String(p?.aal ?? "aal1"); } catch (_) { /* treat as aal1 */ }
+    if (aal !== "aal2") {
+      const lf = await admin.auth.admin.mfa.listFactors({ userId: user.id });
+      const enrolled = !lf.error && (lf.data?.factors ?? []).some((f: { status?: string }) => f.status === "verified");
+      if (enrolled) throw { status: 403, error: "authenticator code required — sign in again and enter your 6-digit code", code: "mfa_required" } as AuthError & { code: string };
+    }
+  }
+
   // Tenant context: the caller's shop is resolved from shop_members (the Phase-5
   // security authority), NOT from any client-supplied orgId. Mirrors current_shop()
   // (oldest active membership). Payment functions run as service_role and bypass

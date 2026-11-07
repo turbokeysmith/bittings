@@ -53,6 +53,48 @@ Fixes landed (one commit each, all headless-verified; nothing deployed — there
   `http://localhost:8088`), `_make-shortcuts.ps1` `Bittings.lnk` → the launcher; Sandbox/Demo remain
   `file://` + own profiles. `tools/qa/audit/` is now gitignored.
 
+### Evening batch (after the owner restored Supabase; owner suspended ask-first until go-live)
+Supabase CLI is logged in on this PC (`npx supabase@3.0.0 … --linked`; mutations need `--yes`,
+reads `--read-only`). Project linked from the worktree root. QA test-shop logins
+(`qa-*@bittings-qa.test`) have a known temp password kept in the session scratchpad only.
+- **8a** `pos_restock(receipt)` (manager, fenced, idempotent on `posStockApplied`) — inverse of
+  `pos_decrement_stock`; `TKS.POS.restock()`; Reports refund/void calls it on a full refund;
+  `applyStockForReceipt`/`reverseStockForReceipt` (bittings.html) + `markInvoicePaid` use the server
+  RPCs when signed in (retry "not found" while the row lands), local adjust only offline/demo
+  (`TKS.isDemo()`). isolation_test.js now mirrors inventory/locations/units + rollup triggers and
+  runs the real 5j/8a text → 42/42.
+- **8b** `receipt_mark_paid(receipt, shop, method, captured, surcharge, tax)` service_role-only jsonb
+  merge (status/payment/paidAt/docType+number/totals); called by pay-record and the webhook
+  `payment_intent.succeeded`. `pos_checkout` = live 5j text with `v_taxrate` from
+  `shop_config.tax_rate`. Register `done(j)` prints/shares captured totals; builder Pay Now writes
+  payment='Card' + real totals.
+- C5: pay-create-intent checks the ledger insert (cancels PI on failure); pay-refund idempotencyKey
+  + reported ledger failure; webhook capture failure deletes its event row and returns 500.
+- C6: pay-terminal `cancel_intent` (shop-fenced; skips if already captured; row → canceled);
+  pay.js/bittings.html `close()` cancels an uncompleted intent; `TKPay.cancelIntent`;
+  `posCheckPendingCharges()` banner on Register open.
+- **8c** `trg_shop_config_strip_pins` (+ scrub), `shop_members` sm_write dropped + client DML revoked;
+  `_shared/auth.ts corsHeaders` omits ACAO when not allowed; store.js managerByPin/hasManagerPin/
+  ownerPin retired (always null/false), `TKS.auth.setMyPin`; Settings Access: My PIN card, PIN
+  inputs removed (index.html + setup.html).
+- **8d** `shop_devices` + `device_register/device_revoke` (manager) + `device_check` (service_role);
+  pin-unlock: switch requires deviceId+deviceToken → else 403 `untrusted_device` +
+  `machine_switch_refused` audit; timeclock.js `registerDevice/unregisterDevice` (token in
+  localStorage `tks_tc_device_id/_token`), Settings Time clock registers + lists/revokes devices.
+- **8e** `aal_ok()`; `is_manager()`/`is_owner()` AND aal_ok; `mfa_pending()`; `staff_mfa_status()`;
+  `_shared/auth.ts requireRole` enforces aal2 for enrolled managers/owners (403 "authenticator code
+  required"); new edge fn **mfa-reset** (owner, same shop, not self, audited). cloud-test.html:
+  `mfaView` (challengeAndVerify) + `enrollView` (enroll → QR → challenge/verify; `?enroll=1`;
+  skippable via sessionStorage `tks_mfa_skip`); index.html boot redirects when `mfa_pending`;
+  Settings Access "My login security" (status/setup/remove + change password via
+  `auth.updateUser`); Team logins shows 🔐 2FA + owner "Reset 2FA". pay.js `call()` redirects to
+  the login page on the 403.
+- Owner temp password set via Auth admin API (service key fetched through the CLI, never written down);
+  QA users too. Live QA scripts: scratchpad `live-qa-*.js` (C3/C4 12/12, C6 8/8, 8c 7/7, 8d 11/11,
+  MFA 17/18 — the miss is the error wrapper dropping `code`, message is matched instead).
+- Open from this batch: C7 inventory-engine fixes; terminal job-state guard; billing-webhook deploy;
+  forgot-password flow needs the Auth redirect allow-list (dashboard setting).
+
 Known residual (not changed): the probe's "overflow" on Settings/Closeout inputs is placeholder text
 scrolling inside inputs that fit (false positive); rgba-tinted pills/badges (`.hi-warr`, Fleet
 badges, `.pay-banner`) read as low-contrast to the probe because it treats alpha>0.1 backgrounds as

@@ -4454,6 +4454,9 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       rerenderActive();
       updateAuthUI();
       try{ if(window.TKS_CLOCK) TKS_CLOCK.init(); }catch(e){}   // arm the shift/lock system (no-op unless enabled)
+      // (8e) Two-factor: a manager/owner with an authenticator must enter the code this session —
+      // the database grants them no manager powers until then. Finish it on the login page.
+      try{ TKS._sb().rpc('mfa_pending').then(r=>{ if(r && r.data===true){ location.replace('cloud-test.html?next='+encodeURIComponent('index.html'+location.search)); } }, ()=>{}); }catch(e){}
     }).catch(()=>{ /* stay local */ });
   }).catch(()=>{ /* stay local */ });
 })();
@@ -5141,6 +5144,16 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
           '<div class="hint" style="margin-top:0 0 8px">Set from <b>your own</b> login. <b>4 digits</b> for staff, <b>6 digits</b> for managers/owners; nobody else can see it, and it must be unique in the shop.</div>'+
           '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="f_mypin" type="password" inputmode="numeric" autocomplete="off" placeholder="new PIN" style="max-width:160px"><button type="button" class="btn" id="f_mypinSave">Save my PIN</button></div>'+
           '<div class="hint" id="f_mypinMsg" style="min-height:16px"></div></div>'+
+        /* 8e: two-factor + password for MY account (the login page does the actual enrolment/code step) */
+        '<div class="panel" style="margin-top:12px;padding:12px 14px"><label style="margin-top:0">My login security</label>'+
+          '<div id="f_mfaStatus" class="hint" style="margin:0 0 8px">Checking…</div>'+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+            '<button type="button" class="btn" id="f_mfaSetup">📱 Set up authenticator app</button>'+
+            '<button type="button" class="btn ghostbtn" id="f_mfaRemove" style="display:none">Remove authenticator</button>'+
+          '</div>'+
+          '<div class="hint" style="margin-top:8px">Managers and owners are asked for a 6-digit code from <b>Google Authenticator</b> (or Authy / 1Password) when this account signs in on a new device.</div>'+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px"><input id="f_newpw" type="password" autocomplete="new-password" placeholder="new password (8+ characters)" style="max-width:240px"><button type="button" class="btn ghostbtn" id="f_newpwSave">Change my password</button></div>'+
+          '<div class="hint" id="f_newpwMsg" style="min-height:16px"></div></div>'+
         '<label class="toggle"><input type="checkbox" id="f_qiEnabled" '+(ac.quickInvoiceEnabled!==false?'checked':'')+'> Enable the Receipts <b>Quick invoice</b> shortcut</label>'+
         '<label class="toggle"><input type="checkbox" id="f_qiDefault" '+(ac.quickInvoiceDefault?'checked':'')+'> Open Quick invoice automatically for a signed-in manager</label>';
       if(!cfg.access.employees || !cfg.access.employees.length){ cfg.access.employees = (cfg.access.employees&&cfg.access.employees.length)?cfg.access.employees:[{name:'',email:'',owner:true}]; }
@@ -5152,6 +5165,40 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
           try{ const r=await TKS.auth.setMyPin(v); if(r&&r.error){ msg.textContent=r.error.message||String(r.error); } else { msg.textContent='✓ PIN saved.'; inp.value=''; } }
           catch(e){ msg.textContent=(e&&e.message)||'Could not save the PIN.'; }
           btn.disabled=false; };
+      })();
+      (function(){ // 8e: my two-factor status + change password
+        const st=gid('f_mfaStatus'), setup=gid('f_mfaSetup'), rm=gid('f_mfaRemove'), pw=gid('f_newpw'), pwBtn=gid('f_newpwSave'), pwMsg=gid('f_newpwMsg');
+        const live = !!(window.TKS && TKS.auth && TKS.auth.isSignedIn && TKS.auth.isSignedIn() && !(TKS.isDemo && TKS.isDemo()) && TKS._sb);
+        if(!live){ if(st) st.textContent='Sign in to manage your authenticator and password.'; if(setup) setup.disabled=true; if(pwBtn) pwBtn.disabled=true; return; }
+        const sb=TKS._sb();
+        const loginPage = 'cloud-test.html?enroll=1&next='+encodeURIComponent('index.html?go=settings');
+        function refreshMfa(){
+          sb.auth.mfa.listFactors().then(function(r){
+            const verified=((r&&r.data&&r.data.totp)||[]).filter(function(f){ return f.status==='verified'; });
+            if(verified.length){ st.innerHTML='🔐 <b>Two-factor is ON</b> for this account.'; setup.textContent='Add / replace authenticator'; rm.style.display=''; rm.dataset.fid=verified[0].id; }
+            else { st.innerHTML='Two-factor is <b>off</b> for this account.'; setup.textContent='📱 Set up authenticator app'; rm.style.display='none'; }
+          }, function(){ st.textContent='Could not read your two-factor status.'; });
+        }
+        refreshMfa();
+        setup.onclick=function(){ location.href=loginPage; };
+        rm.onclick=async function(){
+          if(!(await TKS_ACCESS.confirmDanger({ title:'Remove your authenticator?', message:'Your account will sign in with just a password until you set one up again.', confirmLabel:'Remove' }))) return;
+          rm.disabled=true;
+          try{
+            const aal=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+            if(aal&&aal.data&&aal.data.currentLevel!=='aal2'){ st.textContent='Enter your code first — taking you to the login page…'; location.href='cloud-test.html?next='+encodeURIComponent('index.html?go=settings'); return; }
+            const r=await sb.auth.mfa.unenroll({ factorId: rm.dataset.fid });
+            if(r.error){ st.textContent='Could not remove: '+r.error.message; } else { st.textContent='Authenticator removed.'; }
+          }catch(e){ st.textContent='Could not remove: '+((e&&e.message)||e); }
+          rm.disabled=false; refreshMfa();
+        };
+        pwBtn.onclick=async function(){
+          const v=(pw.value||''); if(v.length<8){ pwMsg.textContent='Use at least 8 characters.'; return; }
+          pwBtn.disabled=true; pwMsg.textContent='Saving…';
+          try{ const r=await sb.auth.updateUser({ password:v }); if(r.error){ pwMsg.textContent=r.error.message; } else { pwMsg.textContent='✓ Password changed. Use it next time you sign in.'; pw.value=''; } }
+          catch(e){ pwMsg.textContent=(e&&e.message)||'Could not change the password.'; }
+          pwBtn.disabled=false;
+        };
       })();
       gid('empAdd').onclick=()=>{ cfg.access.employees.push({name:'',email:'',owner:false}); renderEmployees(); };
       // Cloud team (real sign-ins) — owner-only Add-teammate via the staff-invite
@@ -5353,14 +5400,28 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
         '<button type="button" class="btn save" id="ctInvite" style="margin-top:8px;width:100%">➕ Add teammate</button>'+
         '<div id="ctMsg" class="hint"></div>'
       ) : '<div class="hint">Only the shop owner can add teammates.</div>');
-    sb.from('staff').select('user_id,name,role,active').order('role').then(function(r){
+    Promise.all([ sb.from('staff').select('user_id,name,role,active').order('role'), sb.rpc('staff_mfa_status').then(function(x){ return x; }, function(){ return {data:[]}; }) ]).then(function(res){
+      const r=res[0], mfaRows=(res[1]&&res[1].data)||[]; const mfa={}; mfaRows.forEach(function(m){ mfa[m.user_id]=!!m.has_mfa; });
       const el=gid('ctList'); if(!el) return;
       const rows=(r&&r.data)||[];
+      let myId=null; try{ myId = TKS.auth.user && TKS.auth.user() && TKS.auth.user().id; }catch(_){}
       el.innerHTML = rows.length ? rows.map(function(s){
-        return '<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--edge)">'+
-          '<b style="flex:1">'+esc(s.name||'(no name)')+'</b><span>'+esc(s.role)+'</span>'+
-          (s.active?'<span style="color:var(--ok,#2c9)">active</span>':'<span style="color:var(--dim)">inactive</span>')+'</div>';
+        const isMgr = (s.role==='manager'||s.role==='owner');
+        const mfaTag = isMgr ? (mfa[s.user_id] ? '<span title="Authenticator app is on" style="color:var(--ok,#2c9)">🔐 2FA</span>' : '<span title="No authenticator yet" style="color:var(--dim)">2FA off</span>') : '';
+        const resetBtn = (role==='owner' && isMgr && mfa[s.user_id] && s.user_id!==myId) ? '<button type="button" class="btn sm ghostbtn" data-mfareset="'+esc(s.user_id)+'" data-nm="'+esc(s.name||'')+'" title="Lost phone? Remove their authenticator so they can sign in with password and set it up again">Reset 2FA</button>' : '';
+        return '<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--edge);flex-wrap:wrap">'+
+          '<b style="flex:1">'+esc(s.name||'(no name)')+'</b><span>'+esc(s.role)+'</span>'+mfaTag+
+          (s.active?'<span style="color:var(--ok,#2c9)">active</span>':'<span style="color:var(--dim)">inactive</span>')+resetBtn+'</div>';
       }).join('') : 'No staff rows yet.';
+      el.querySelectorAll('[data-mfareset]').forEach(function(b){ b.onclick=async function(){
+        if(!(await TKS_ACCESS.confirmDanger({ title:'Reset '+(b.dataset.nm||'this person')+'’s authenticator?', message:'Use this when they lost or replaced their phone. They can sign in with their password again and set up a new authenticator.', confirmLabel:'Reset 2FA' }))) return;
+        b.disabled=true; b.textContent='…';
+        sb.auth.getSession().then(function(s){ const tok=s&&s.data&&s.data.session&&s.data.session.access_token;
+          return fetch((window.TKS_CLOUD&&TKS_CLOUD.url)+'/functions/v1/mfa-reset',{ method:'POST', headers:{ 'apikey':(window.TKS_CLOUD&&TKS_CLOUD.anonKey)||'', 'Authorization':'Bearer '+tok, 'Content-Type':'application/json' }, body: JSON.stringify({ userId:b.dataset.mfareset }) });
+        }).then(function(res){ return res.json().then(function(j){ return {ok:res.ok,j:j}; }); })
+        .then(function(out){ if(!out.ok){ b.disabled=false; b.textContent='Reset 2FA'; uiAlert({ title:'Could not reset', message:String(out.j&&out.j.error||'failed') }); return; } renderCloudTeam(); })
+        .catch(function(e){ b.disabled=false; b.textContent='Reset 2FA'; uiAlert({ title:'Could not reset', message:String(e&&e.message||e) }); });
+      }; });
     }, function(){ const el=gid('ctList'); if(el) el.textContent='Could not load the team list.'; });
     const btn=gid('ctInvite');
     if(btn) btn.onclick=function(){

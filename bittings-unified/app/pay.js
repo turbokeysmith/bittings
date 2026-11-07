@@ -28,7 +28,13 @@
     try{ r=await fetch(FN+"/"+fn,{method:"POST",headers:{"content-type":"application/json","apikey":CFG.anonKey,"authorization":"Bearer "+(tok||CFG.anonKey)},body:JSON.stringify(body||{})}); }
     catch(e){ return { error:"Can't reach the payment service — check the connection and try again.", network:true }; }
     let j; try{ j=await r.json(); }catch(e){ j={error:"bad response"}; }
-    if(!r.ok && !j.error) j.error="HTTP "+r.status; return j;
+    if(!r.ok && !j.error) j.error="HTTP "+r.status;
+    // (8e) An enrolled manager on a password-only session: the server refuses manager actions until
+    // they enter their authenticator code. Send them to the login page to finish that step.
+    if(r.status===403 && /authenticator code required/i.test(String(j.error||""))){
+      try{ location.href="cloud-test.html?next="+encodeURIComponent(location.pathname.split("/").pop()+location.search); }catch(_){}
+    }
+    return j;
   }
   function m(c){ return "$"+(Number(c||0)/100).toFixed(2); }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }

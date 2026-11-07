@@ -55,17 +55,19 @@ owner; the technical detail is in `bittings-unified/app/STRUCTURE_NOTES.md` (202
 | B13 | Desktop shortcut launched from `file://`; no Python on this PC for the dev server → Node server + `http://localhost:8088` launcher; demo/sandbox flag can no longer affect a real account | ✅ |
 | B14 | Calendar export invited `turbokeysmith@gmail.com` for every shop; `postMessage` origin check; favicon path | ✅ |
 
-## C. Money & stock integrity — code review findings that need the cloud to deploy + prove
-| # | Finding | Why it matters | Status |
-|---|---|---|---|
-| C1 | **Refund/void of a Register sale never returns parts to stock** (dialog says it does). The invoice builder writes `inventory.qty` directly — the location triggers overwrite it, and for technicians it silently fails. | Stock drifts after every refund / builder sale | 🟡 needs a `pos_restock` RPC + one decrement path |
-| C2 | **Card receipts print/share the pre-surcharge total**; auto-print uses a fake ticket number; 1¢ rounding drift on discounted mixed-tax tickets | Customer paper ≠ card statement | 🟡 |
-| C3 | **Register sales never mark the receipt Paid** → Receipts/OWES show Unpaid | Wrong balances | 🟡 (pay-record + webhook patch) |
-| C4 | **Tax rate is taken from the device at checkout** (`pos_checkout` trusts `taxRate`) | Any staffer with dev tools can under/over-tax | 🟡 (read shop config server-side) |
-| C5 | Edge functions: cancel the Stripe intent if the DB insert fails; refund idempotency key; don't swallow capture errors in the webhook | Rare double-charge / stale ledger paths | 🟡 |
-| C6 | Closing the card sheet mid-charge leaves a **live reader intent** — customer can still tap, sale never finalizes | Possible double charge on retry | 🟡 (`pay-terminal cancel` + pending-txn recovery) |
-| C7 | Inventory engine: `inv_receive` ignores serialized items; warranty-replace repeatable + can mis-tag units; move-approve can double-move; cycle count applies a stale absolute count; importer maps "Price" as cost and never seeds locations | Counts drift under real use | 🟡 |
-| C8 | Security: Setup manager **PINs stored in plain text, readable by any staff**; an owner can hijack another user's "current shop" via `shop_members` insert; CORS deny value `"null"` matches `file://`; invite temp-passwords permanent (no change-password UI); terminal job states not guarded | Pilot-shop trust | 🟡 |
+## C. Money & stock integrity — **done the same evening after the restore** (each applied live, deployed, and proven in the isolated QA test shop)
+| # | Finding | Status |
+|---|---|---|
+| C1 | **Refund/void of a Register sale never returned parts to stock**; the invoice builder wrote `inventory.qty` directly (overwritten by triggers, silently blocked for technicians) | ✅ migration **8a** `pos_restock` + one server-owned stock path when signed in. Local proof 42/42; live: restock gate + no-op verified |
+| C2 | **Card receipts printed the pre-surcharge total**; auto-print used a fake ticket number | ✅ receipts get the *captured* total + surcharge from the server (`receipt_mark_paid`); Register prints under the real receipt id |
+| C3 | **Register sales never marked the receipt Paid** | ✅ migration **8b** `receipt_mark_paid` called by `pay-record` and the Stripe webhook. Live: cash sale → "Paid in Full / Cash / $10.85" |
+| C4 | **Tax rate taken from the device at checkout** | ✅ **8b**: `pos_checkout` reads `shop_config.tax_rate`. Live: client sent 50%, receipt carried the shop's 8.5% |
+| C5 | Edge-function hardening (orphan charge on ledger failure, refund idempotency, swallowed capture errors) | ✅ `pay-create-intent` cancels the intent + 500; `pay-refund` idempotency key + ledger-failure reported; webhook returns 500 so Stripe retries |
+| C6 | Closing the card sheet mid-charge left a **live reader intent** | ✅ `pay-terminal cancel_intent`; sheet close cancels; Register lists abandoned attempts with "Cancel it". Live 8/8 with a real test-mode intent |
+| C7 | Inventory engine: `inv_receive` not serialized-aware; warranty-replace repeatable; move-approve double-move; stale cycle count; importer cost/price + no location seeding | 🚫 **not started** — next on the list |
+| C8 | Security: plaintext Setup PINs readable by any staff; `shop_members` hijack; CORS `"null"`; no change-password; terminal job states | ✅ migration **8c**: PINs stripped on write + scrubbed, `shop_members` client writes revoked; CORS deny omits the header (live: `file://`/foreign origins blocked, localhost allowed); **Change my password** + **My PIN** cards added (the lock-screen PIN had *no* way to be set before). ⬜ terminal job-state guard still open |
+| C9 | **Google Authenticator for managers/owners** (owner request) | ✅ migration **8e**: `is_manager()`/`is_owner()` require an aal2 session once a factor is enrolled; `mfa_pending()`, `staff_mfa_status()`; edge functions enforce the same; `mfa-reset` (owner, lost phone); login page: code step + first-time setup (QR, skippable); Settings: status / set up / remove / Team card 2FA + Reset. Live 17/18 with a real TOTP (the 18th was a test-shape nit) |
+| PIN | **Shop-PC-only PIN switching** (owner decision D3) | ✅ migration **8d** `shop_devices` + `device_register/revoke/check`; `pin-unlock` only switches users on a registered workstation; Settings registers/revokes devices. Live 11/11 |
 
 ## D. Your decisions (nothing built until you say)
 - ✅ **D1. Archive dead pages/plumbing** — approved + done 2026-11-07: the three pages moved to
@@ -79,7 +81,12 @@ owner; the technical detail is in `bittings-unified/app/STRUCTURE_NOTES.md` (202
 - ✅ **D5. Branch plan** — approved + done 2026-11-07: `main` merged into `phase3-frontend-unification`
   (website files + GA4 deploy guard from `main`; both changelogs kept). This branch is now complete.
 - ✅ **D6. Push** — approved; everything is on GitHub (`origin/phase3-frontend-unification`).
-- **D3 (PIN policy) is still open** — the owner asked for a plainer explanation; see the chat.
+- ✅ **D3 (PIN policy)** — owner chose **"shop PC only"**; built as migration 8d (see table C).
+- ✅ **Owner login** — the owner had no record of their password; a temporary one was set on
+  `samer@turbokeysmith.com` (handed over in chat) and a **Change my password** card now exists in
+  Settings → Access. ⬜ Still to confirm: the owner's real data in the app after signing in.
+- **Working agreement 2026-11-07:** the owner suspended the ask-before-production rule for this
+  project until they say they are going live ("delete that rule till I tell you we are going live").
 
 ## E. Physical (unchanged, owner-only)
 Scanner mode, Star WebPRNT host + SDK, Zebra Browser Print + calibration, re-run `_make-shortcuts.ps1`
