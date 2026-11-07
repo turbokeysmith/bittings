@@ -764,6 +764,9 @@
       locations: Object.assign({}, d.locations, c.locations || {}),
       nastf: Object.assign({}, d.nastf, c.nastf || {}),
       timeclock: Object.assign({}, d.timeclock, c.timeclock || {}),
+      // warranty was missing from this whitelist, so Setup's warranty months/default were
+      // silently dropped on every save/load and Config.warranty() always fell back to "off".
+      warranty: Object.assign({}, d.warranty, c.warranty || {}),
       prefs: Object.assign({}, d.prefs, c.prefs || {}),
       access: Object.assign({}, d.access, c.access || {}),
       quickLinks: normalizeQuickLinks(c.quickLinks, c.vendors),
