@@ -303,8 +303,8 @@ function renderPanel(key){
   }
   else if(key==='payments'){
     p.innerHTML = '<h2>Payments</h2><div class="sub">How charges are taken. Card processing runs through Stripe.</div>'+
-      '<label>Card surcharge shown to customers (%)</label><input id="f_surcharge" type="number" step="0.01" inputmode="decimal" value="'+(pay.surchargePct!=null?pay.surchargePct:2)+'" placeholder="2">'+
-      '<div class="hint">Oklahoma allows up to <b>2% on credit cards only</b> (never debit/prepaid, never cash/check). The 2% is enforced on the server at capture; this field is the figure shown on screen/receipt.</div>'+
+      '<label>Card surcharge</label><div style="font-weight:700;margin:2px 0 4px">2% on credit cards only</div>'+
+      '<div class="hint">Oklahoma allows up to <b>2% on credit cards only</b> (never debit/prepaid, never cash/check). The 2% is fixed and enforced on the server at capture — it is not a setting.</div>'+
       '<label>Cash drawer float ($)</label><input id="f_float" type="number" step="0.01" inputmode="decimal" value="'+(pay.drawerFloatCents!=null?(pay.drawerFloatCents/100).toFixed(2):"120.00")+'" placeholder="120.00">'+
       '<div class="hint">The cash you keep in the drawer to start each day. Closeout uses this as the <b>starting float</b> (you can adjust it for a single day right on the Closeout screen). Raise it here as the business grows.</div>'+
       (function(){ var war=cfg.warranty||{months:6,defaultOn:true}; return ''+
@@ -537,7 +537,7 @@ function gather(key){
     cfg.locations=cfg.locations||{}; const lv=document.getElementById('f_locVan'), lsh=document.getElementById('f_locShop');
     if(lv||lsh){ cfg.locations.van=!!(lv&&lv.checked); cfg.locations.shop=!!(lsh&&lsh.checked); if(!cfg.locations.van&&!cfg.locations.shop) cfg.locations.van=true; } }
   else if(key==='tax'){ const r=g('f_taxRate'); cfg.taxRate=r!==''?(parseFloat(r)||0):0; document.querySelectorAll('.taxcat').forEach(cb=> cfg.taxableByCategory[cb.dataset.k]=cb.checked); }
-  else if(key==='payments'){ const s=g('f_surcharge'); cfg.payments.surchargePct=s!==''?(parseFloat(s)||0):2;
+  else if(key==='payments'){
     const fl=g('f_float'); cfg.payments.drawerFloatCents=fl!==''?Math.max(0,Math.round((parseFloat(fl)||0)*100)):12000;
     if(!cfg.warranty) cfg.warranty={}; const wm=g('f_warrantyMonths'); cfg.warranty.months=wm!==''?Math.max(0,parseInt(wm,10)||0):6;
     const wd=document.getElementById('f_warrantyDefault'); cfg.warranty.defaultOn=!!(wd&&wd.checked);
@@ -596,7 +596,7 @@ function renderReview(p){
   const rows=[
     ['Business identity','identity', id.name? (id.name+(id.phone?(' · '+id.phone):'')) : ''],
     ['Sales tax','tax', cfg.taxRate? (cfg.taxRate+'%') : 'No rate set'],
-    ['Payments','payments', (cfg.payments.surchargePct!=null?cfg.payments.surchargePct:2)+'% credit surcharge · $'+(((cfg.payments.drawerFloatCents!=null?cfg.payments.drawerFloatCents:12000)/100).toFixed(2))+' drawer float'],
+    ['Payments','payments', '2% credit surcharge · $'+(((cfg.payments.drawerFloatCents!=null?cfg.payments.drawerFloatCents:12000)/100).toFixed(2))+' drawer float'],
     ['Access & managers','access', (emps.length? (emps.length+' user(s), '+owners+' manager(s)') : '') + (emps.filter(e=>e.owner && (e.pin||'').trim()).length?(' · '+emps.filter(e=>e.owner && (e.pin||'').trim()).length+' personal PIN(s)'):'') + (ac.quickFormPin?' · shared PIN set':'')],
     ['Quick links','quicklinks', (function(){ let n=0; (cfg.quickLinks||[]).forEach(c=>n+=(c.links||[]).length); return n+' link(s)'; })()],
     ['Service types','servicetypes', (cfg.serviceCats||[]).map(c=>SVC_CAT_LABEL[c]||c).join(', ')],

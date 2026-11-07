@@ -1179,7 +1179,7 @@ window.tksDemoOn = function(){
       <button data-bt-set="dark">🌙 Dark</button>
     </div></div>
   </aside>
-  <main class="bt-main"><iframe id="btEmbed" class="bt-embed" title="Tool"></iframe><div class="bt-pagewrap">
+  <main class="bt-main"><div class="bt-pagewrap">
 <div class="wrap">
   <header class="app">
     <img id="appLogo" src="tks_mark.png" alt="logo">
@@ -1865,7 +1865,6 @@ function openMoveReqModal(){
 
 document.querySelectorAll('[data-go]').forEach(b=>{
   b.onclick = ()=>{ const t=b.dataset.go;
-    closeEmbed();                                   // leaving an embedded tool for a built-in view
     if(t==='history'){ openHistory(); return; }
     if(t==='reports'){ openReports(); return; }
     if(t==='dashboard'){ openDashboard(); return; }
@@ -1911,40 +1910,17 @@ try{ var _sr=sessionStorage.getItem('tks_start_return'); if(_sr){ sessionStorage
    full page (an iframe in a narrow column would be cramped, and the bottom nav covers navigation). */
 var _btApp = document.querySelector('.bt-app');
 function isPhoneView(){ return window.matchMedia('(max-width:720px)').matches; }
-function openEmbed(url){
-  if(isPhoneView()){ location.href = url; return; }
-  var f=document.getElementById('btEmbed');
-  if(f){ var cur=(f.getAttribute('src')||'').split('?')[0];
-    if(cur!==url) f.setAttribute('src', url + (url.indexOf('?')>=0?'&':'?') + 'v=' + Date.now()); }   // cache-bust so embedded tools always load FRESH (no stale gating)
-  if(_btApp) _btApp.classList.add('is-embedding');
-  document.querySelectorAll('.bt-nav__item,.bt-bottomnav__item').forEach(el=>el.classList.toggle('is-active', el.dataset.embed===url));
-  // close the phone slide-in menu if it happens to be open
-  try{ document.querySelector('.bt-sidebar.is-open')?.classList.remove('is-open'); document.querySelector('.bt-scrim.is-open')?.classList.remove('is-open'); }catch(_){}
-  window.scrollTo(0,0);
-}
-function closeEmbed(){ if(_btApp) _btApp.classList.remove('is-embedding'); }
-document.querySelectorAll('[data-embed]').forEach(b=>{
-  b.onclick = ()=> openEmbed(b.dataset.embed);
-});
-/* Live theme sync: if a tool is embedded when the Light/Dark toggle is clicked, push the new
-   theme into the iframe too (same-origin) so it flips immediately instead of on next open.
-   Sets both attributes — data-bt-theme (Receipts/Lishi/Programmers/Setup) and data-theme
-   (Scheduler). Runs alongside bittings-ui.js's own toggle handler. */
+/* (The iframe "embed" plumbing — openEmbed/closeEmbed/[data-embed] + the iframe theme sync — was
+   removed 2026-11-07: every former sub-tool is a native #view-* now and nothing used data-embed.) */
+/* Theme toggle: set both attributes — data-bt-theme (design system) and data-theme (scheduler
+   styles) — and persist so it sticks on reload. Runs alongside bittings-ui.js's own handler. */
 document.querySelectorAll('.bt-themetoggle [data-bt-set]').forEach(function(b){
   b.addEventListener('click', function(){
     var t=b.getAttribute('data-bt-set');
-    // 1) theme THIS (main) page + persist so it sticks on reload
     var root=document.documentElement;
     if(t==='dark') root.setAttribute('data-bt-theme','dark'); else root.removeAttribute('data-bt-theme');
     root.setAttribute('data-theme', t);
     try{ localStorage.setItem('bt_theme', t); }catch(e){}
-    // 2) sync the embedded tool iframe if one is open
-    try{
-      var f=document.getElementById('btEmbed');
-      if(f && f.contentDocument){ var de=f.contentDocument.documentElement;
-        if(t==='dark') de.setAttribute('data-bt-theme','dark'); else de.removeAttribute('data-bt-theme');
-        de.setAttribute('data-theme', t); }
-    }catch(e){}
   });
 });
 /* Deep-link: index.html?go=<view> opens that view on load (used by the sub-page nav bars,
@@ -5067,8 +5043,8 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     }
     else if(key==='payments'){
       p.innerHTML = '<h2>Payments</h2><div class="sub">How charges are taken. Card processing runs through Stripe.</div>'+
-        '<label>Card surcharge shown to customers (%)</label><input id="f_surcharge" type="number" step="0.01" inputmode="decimal" value="'+(pay.surchargePct!=null?pay.surchargePct:2)+'" placeholder="2">'+
-        '<div class="hint">Oklahoma allows up to <b>2% on credit cards only</b> (never debit/prepaid, never cash/check). The 2% is enforced on the server at capture; this field is the figure shown on screen/receipt.</div>'+
+        '<label>Card surcharge</label><div style="font-weight:700;margin:2px 0 4px">2% on credit cards only</div>'+
+        '<div class="hint">Oklahoma allows up to <b>2% on credit cards only</b> (never debit/prepaid, never cash/check). The 2% is fixed and enforced on the server at capture — it is not a setting.</div>'+
         '<label>Cash drawer float ($)</label><input id="f_float" type="number" step="0.01" inputmode="decimal" value="'+(pay.drawerFloatCents!=null?(pay.drawerFloatCents/100).toFixed(2):"120.00")+'" placeholder="120.00">'+
         '<div class="hint">The cash you keep in the drawer to start each day. Closeout uses this as the <b>starting float</b> (you can adjust it for a single day right on the Closeout screen). Raise it here as the business grows.</div>'+
         (function(){ var war=cfg.warranty||{months:6,defaultOn:true}; return ''+
@@ -5382,7 +5358,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       cfg.locations=cfg.locations||{}; const lv=gid('f_locVan'), lsh=gid('f_locShop');
       if(lv||lsh){ cfg.locations.van=!!(lv&&lv.checked); cfg.locations.shop=!!(lsh&&lsh.checked); if(!cfg.locations.van&&!cfg.locations.shop) cfg.locations.van=true; } }
     else if(key==='tax'){ const r=g('f_taxRate'); cfg.taxRate=r!==''?(parseFloat(r)||0):0; root.querySelectorAll('.taxcat').forEach(cb=> cfg.taxableByCategory[cb.dataset.k]=cb.checked); }
-    else if(key==='payments'){ const s=g('f_surcharge'); cfg.payments.surchargePct=s!==''?(parseFloat(s)||0):2;
+    else if(key==='payments'){
       const fl=g('f_float'); cfg.payments.drawerFloatCents=fl!==''?Math.max(0,Math.round((parseFloat(fl)||0)*100)):12000;
       if(!cfg.warranty) cfg.warranty={}; const wm=g('f_warrantyMonths'); cfg.warranty.months=wm!==''?Math.max(0,parseInt(wm,10)||0):6;
       const wd=gid('f_warrantyDefault'); cfg.warranty.defaultOn=!!(wd&&wd.checked);
@@ -5439,7 +5415,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     const rows=[
       ['Business identity','identity', id.name? (id.name+(id.phone?(' · '+id.phone):'')) : ''],
       ['Sales tax','tax', cfg.taxRate? (cfg.taxRate+'%') : 'No rate set'],
-      ['Payments','payments', (cfg.payments.surchargePct!=null?cfg.payments.surchargePct:2)+'% credit surcharge · $'+(((cfg.payments.drawerFloatCents!=null?cfg.payments.drawerFloatCents:12000)/100).toFixed(2))+' drawer float'],
+      ['Payments','payments', '2% credit surcharge · $'+(((cfg.payments.drawerFloatCents!=null?cfg.payments.drawerFloatCents:12000)/100).toFixed(2))+' drawer float'],
       ['Access & managers','access', (emps.length? (emps.length+' user(s), '+owners+' manager(s)') : '') + (emps.filter(e=>e.owner && (e.pin||'').trim()).length?(' · '+emps.filter(e=>e.owner && (e.pin||'').trim()).length+' personal PIN(s)'):'') + (ac.quickFormPin?' · shared PIN set':'')],
       ['Quick links','quicklinks', (function(){ let n=0; (cfg.quickLinks||[]).forEach(c=>n+=(c.links||[]).length); return n+' link(s)'; })()],
       ['Service types','servicetypes', (cfg.serviceCats||[]).map(c=>SVC_CAT_LABEL[c]||c).join(', ')],
