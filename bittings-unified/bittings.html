@@ -4683,6 +4683,10 @@ function reverseStockForReceipt(r){
       if(edit.savedAt) receipt.savedAt=edit.savedAt;
       if(edit.date) receipt.date=edit.date;
       if(edit.cashLogged) receipt.cashLogged=edit.cashLogged;   // already-logged: don't double-log
+      // Stock was already subtracted when this receipt was first paid — carry the guard flags over,
+      // otherwise finish() sees a "paid, not applied" receipt and decrements the parts a second time.
+      if(edit.stockApplied){ receipt.stockApplied=edit.stockApplied; if(edit.stockAppliedAt) receipt.stockAppliedAt=edit.stockAppliedAt; }
+      if(edit.posStockApplied) receipt.posStockApplied=edit.posStockApplied;
       try{ signatureData=edit.signature||null; }catch(e){}        // keep the original signature
     }
     if(typeof clearUndo==="function") clearUndo();
