@@ -14,7 +14,10 @@
     { k: 'qty', label: 'Qty on hand', hints: ['qty', 'quantity', 'stock', 'on hand', 'onhand', 'count', 'available'] },
     { k: 'lowAt', label: 'Low-stock at', hints: ['low', 'reorder at', 'min', 'minimum', 'lowstock', 'low at'] },
     { k: 'unit', label: 'Unit', hints: ['unit', 'uom'] },
-    { k: 'cost', label: 'Unit cost', hints: ['cost', 'price', 'unit cost', 'buy', 'wholesale'] },
+    // 8f: 'price' used to be a COST hint, so a "Price" column before "Cost" was mapped to cost; and
+    // there was no sell-price field at all. Cost = what you pay; Sell price = what you charge.
+    { k: 'cost', label: 'Unit cost (what you pay)', hints: ['cost', 'unit cost', 'buy', 'wholesale', 'our cost'] },
+    { k: 'sellPrice', label: 'Sell price (what you charge)', hints: ['sell price', 'sell', 'retail', 'price', 'msrp', 'list price', 'sale price'] },
     { k: 'location', label: 'Location', hints: ['location', 'bin', 'shelf', 'aisle', 'spot', 'loc'] },
     { k: 'supplier', label: 'Supplier', hints: ['supplier', 'vendor', 'source'] },
     { k: 'reorderQty', label: 'Reorder qty', hints: ['reorder qty', 'reorder quantity', 'order qty', 'reorder'] },
@@ -176,6 +179,7 @@
           v = (v == null) ? '' : String(v).trim();
           if (INT_FIELDS[f.k]) part[f.k] = parseInt(String(v).replace(/[^0-9-]/g, ''), 10) || 0;
           else if (f.k === 'cost') part.cost = (v === '') ? '' : (parseFloat(String(v).replace(/[^0-9.\-]/g, '')) || 0);
+          else if (f.k === 'sellPrice') { var sp = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); if (v !== '' && !isNaN(sp)) part.sellPriceCents = Math.round(sp * 100); }
           else part[f.k] = v;
         }
       });

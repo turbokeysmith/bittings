@@ -1142,7 +1142,11 @@
   global.TKS.MoveReq = {
     create:  function(r){ if(_demoOn()) return _demoOk(null); return _sb().from('move_requests').insert({ item_id:r.itemId, item_name:r.itemName||null, from_loc:r.from, to_loc:r.to, qty:r.qty||1, job_id:r.jobId||null, note:r.note||null, requested_by_name:r.byName||null }).select(); },
     pending: function(){ if(_demoOn()) return _demoOk([]); return _sb().from('move_requests').select('*').eq('status','pending').order('created_at',{ascending:true}); },
-    decide:  function(id, approve){ if(_demoOn()) return _demoOk(null); return _sb().from('move_requests').update({ status: approve?'approved':'denied', decided_at: new Date().toISOString() }).eq('id', id).select(); }, // manager (RLS)
+    decide:  function(id, approve){ if(_demoOn()) return _demoOk(null); return _sb().from('move_requests').update({ status: approve?'approved':'denied', decided_at: new Date().toISOString() }).eq('id', id).select(); }, // manager (RLS) — legacy; prefer approve()/deny()
+    // 8f: decide + move in ONE server transaction (a failed move rolls the approval back; a second
+    // Approve on the same request is refused instead of moving the stock again).
+    approve: function(id){ if(_demoOn()) return _demoOk(null); return _sb().rpc('move_request_approve', { p_id: id }); },
+    deny:    function(id){ if(_demoOn()) return _demoOk(null); return _sb().rpc('move_request_deny', { p_id: id }); },
     remove:  function(id){ if(_demoOn()) return _demoOk(null); return _sb().from('move_requests').delete().eq('id', id); }
   };
 
