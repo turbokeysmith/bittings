@@ -148,6 +148,50 @@ grant usage, select on sequence shop_config_id_seq to authenticated;
   const c = pg.getPgClient('mt'); await c.connect();
   await c.query(SETUP);
 
+  // ===================== INVENTORY + POS STOCK PATHS (2a/5j decrement, 6a/1b rollups, 8a restock) =====================
+  // Mirrors prod closely enough to run the REAL function text: the live pos_decrement_stock (5j file),
+  // the two rollup triggers (1b fn_sync_inv_total, 6a fn_units_rollup) and the NEW 8a pos_restock file.
+  const fsx = require('fs');
+  const sqlDir = path.join(__dirname, '..');
+  function fnText(file, name) {
+    const src = fsx.readFileSync(path.join(sqlDir, file), 'utf8');
+    const re = new RegExp('create or replace function public\\.' + name + '\\([\\s\\S]*?\\$(?:function|)\\$;', 'm');
+    const m = src.match(re); if (!m) throw new Error('could not extract ' + name + ' from ' + file);
+    return m[0];
+  }
+  await c.query(`
+    create role anon nologin;
+    alter table receipts add column updated_at timestamptz default now();
+    alter table inventory alter column id drop default;
+    alter table inventory alter column id type text using id::text;
+    alter table inventory alter column id set default replace(gen_random_uuid()::text,'-','');
+    alter table inventory add column serialized boolean default false, add column qty int default 0, add column updated_at timestamptz default now();
+    create table inventory_locations(id uuid primary key default gen_random_uuid(), item_id text not null references inventory(id) on delete cascade,
+      location text not null, qty int not null default 0, shop_id uuid not null default current_shop(), updated_at timestamptz default now(), unique(item_id, location));
+    create table inventory_units(id text primary key default ('u_'||replace(gen_random_uuid()::text,'-','')), item_id text not null references inventory(id) on delete cascade,
+      shop_id uuid not null default current_shop(), location text not null default 'shop', status text not null default 'in_stock',
+      sold_receipt_id text, sold_customer_id uuid, sold_at timestamptz, disposition text default '', acquired_at timestamptz default now(), updated_at timestamptz default now());
+    create table audit_log(id bigserial primary key, user_id uuid, role text, action text, entity_type text, entity_id text, detail jsonb, created_at timestamptz default now());
+    alter table inventory_locations enable row level security; alter table inventory_units enable row level security; alter table audit_log enable row level security;
+    create policy il_sel on inventory_locations for select to authenticated using (is_staff());
+    create policy il_tenant on inventory_locations as restrictive for all to authenticated using (shop_id=current_shop()) with check (shop_id=current_shop());
+    create policy iu_sel on inventory_units for select to authenticated using (is_staff());
+    create policy iu_tenant on inventory_units as restrictive for all to authenticated using (shop_id=current_shop()) with check (shop_id=current_shop());
+    grant select on inventory_locations, inventory_units, audit_log to authenticated;
+  `);
+  await c.query(fnText('phase1/1b_fleet_inventory.sql', 'fn_sync_inv_total'));
+  await c.query('create trigger trg_inv_total after insert or update or delete on inventory_locations for each row execute function fn_sync_inv_total()');
+  await c.query(fnText('phase6/6a_serialized_units.sql', 'fn_units_rollup'));
+  await c.query('create trigger trg_units_rollup after insert or update or delete on inventory_units for each row execute function fn_units_rollup()');
+  await c.query(fnText('phase5/5j_rpc_tenant_scoping.sql', 'pos_decrement_stock'));
+  await c.query(fsx.readFileSync(path.join(sqlDir, 'phase8', '8a_pos_restock.sql'), 'utf8'));
+  await c.query(`
+    insert into inventory(id, part, shop_id, serialized) values ('A-ser','A serialized key','${A}',true), ('A-plain','A plain blank','${A}',false);
+    insert into inventory_units(item_id, shop_id, location) select 'A-ser','${A}','shop' from generate_series(1,3);
+    insert into inventory_locations(item_id, location, qty, shop_id) values ('A-plain','shop',5,'${A}');
+    insert into receipts(id, data, shop_id) values ('rcptA2', '{"status":"Paid in Full","items":[{"partId":"A-ser","qty":2},{"partId":"A-plain","qty":3}]}', '${A}');
+  `);
+
   const results = [];
   function check(name, pass, detail) { results.push({ name, pass: !!pass, detail: detail || '' }); }
 
@@ -283,6 +327,46 @@ grant usage, select on sequence shop_config_id_seq to authenticated;
   // (9) RLS defense-in-depth: as authenticated A-owner, only shop A payments are visible.
   r = await tryUser(uA1, 'select count(*)::int n, count(*) filter (where shop_id=$1)::int own from payment_transactions', [A]);
   check('RLS: A-owner sees ONLY shop A payment_transactions', r.rows && r.rows[0].n === 1 && r.rows[0].own === 1, r.rows && JSON.stringify(r.rows[0]));
+
+  // ===================== POS RESTOCK (8a) =====================
+  // run AS a user and COMMIT (the other helpers roll back) â€” the stock paths must persist between steps
+  async function asUserCommit(uid, sql, params) {
+    await c.query('begin');
+    try { await c.query('set local role authenticated'); await c.query("select set_config('app.user_id', $1, true)", [uid]);
+      const rr = await c.query(sql, params || []); await c.query('commit'); return rr; }
+    catch (e) { await c.query('rollback'); throw e; }
+  }
+  const stockNow = async () => (await c.query(`select
+      (select qty from inventory_locations where item_id='A-plain' and location='shop') plain_loc,
+      (select qty from inventory where id='A-plain') plain_total,
+      (select count(*)::int from inventory_units where item_id='A-ser' and status='in_stock') ser_in,
+      (select count(*)::int from inventory_units where item_id='A-ser' and status='sold' and sold_receipt_id='rcptA2') ser_sold,
+      (select qty from inventory_locations where item_id='A-ser' and location='shop') ser_loc,
+      (select coalesce((data->>'posStockApplied')::boolean,false) from receipts where id='rcptA2') applied`)).rows[0];
+  let stk = await stockNow();
+  check('8a seed: 5 plain in stock, 3 serialized units', stk.plain_loc === 5 && stk.ser_in === 3 && stk.ser_loc === 3, JSON.stringify(stk));
+  await asUserCommit(uA1, "select pos_decrement_stock('rcptA2')");
+  stk = await stockNow();
+  check('2a/5j decrement: sale of 2 units + 3 plain â†’ 1 unit left, plain 2, totals synced, flag set',
+    stk.plain_loc === 2 && stk.plain_total === 2 && stk.ser_in === 1 && stk.ser_sold === 2 && stk.ser_loc === 1 && stk.applied === true, JSON.stringify(stk));
+  r = await tryUser(uA2, "select pos_restock('rcptA2')");
+  check('8a: a technician CANNOT restock (manager-only)', !!r.err && /manager/i.test(r.err), r.err || 'NO ERROR (bad)');
+  r = await tryUser(uB1, "select pos_restock('rcptA2')");
+  check('8a: Shop B owner cannot restock a Shop A receipt (fenced â†’ not found)', !!r.err && /not found/i.test(r.err), r.err || 'NO ERROR (bad)');
+  stk = await stockNow();
+  check('8a: nothing changed after the two blocked attempts', stk.plain_loc === 2 && stk.ser_in === 1 && stk.applied === true, JSON.stringify(stk));
+  let rs = await asUserCommit(uA1, "select pos_restock('rcptA2') as r");
+  stk = await stockNow();
+  check('8a: Shop A manager restocks â†’ units back in stock (3), plain back to 5, totals synced, flag cleared',
+    rs.rows[0].r.restocked === true && stk.plain_loc === 5 && stk.plain_total === 5 && stk.ser_in === 3 && stk.ser_sold === 0 && stk.ser_loc === 3 && stk.applied === false, JSON.stringify(stk) + ' ' + JSON.stringify(rs.rows[0].r));
+  const audits = (await c.query("select count(*)::int n from audit_log where action='pos_restocked' and entity_id in ('A-ser','A-plain')")).rows[0].n;
+  check('8a: one audit row per restocked item', audits === 2, 'rows=' + audits);
+  rs = await asUserCommit(uA1, "select pos_restock('rcptA2') as r");
+  stk = await stockNow();
+  check('8a: second restock is a no-op (idempotent) â€” counts unchanged', rs.rows[0].r.restocked === false && stk.plain_loc === 5 && stk.ser_in === 3, JSON.stringify(rs.rows[0].r));
+  await asUserCommit(uA1, "select pos_decrement_stock('rcptA2')");
+  stk = await stockNow();
+  check('8a: the receipt can be sold again after a restock (decrement works a second time)', stk.plain_loc === 2 && stk.ser_in === 1 && stk.applied === true, JSON.stringify(stk));
 
   await c.end(); await pg.stop();
 

@@ -3398,9 +3398,12 @@ function renderHistList(){
       else if(act==="pdf") makePDF(r, "en");
       else if(act==="pdfes") makePDF(r, "es");
       else if(act==="del"){
-        const note = r.stockApplied ? "This cannot be undone. Any parts used will be added back to stock." : "This cannot be undone.";
+        const note = (r.stockApplied||r.posStockApplied) ? "This cannot be undone. Any parts used will be added back to stock." : "This cannot be undone.";
         appConfirm("Delete "+r.number+"?", note).then(ok=>{
-          if(ok){ if(r.stockApplied) reverseStockForReceipt(r); hist.splice(i,1); saveHistory(hist); renderHistList(); }
+          if(!ok) return;
+          const finishDelete=()=>{ hist.splice(i,1); saveHistory(hist); renderHistList(); };
+          // Restock must COMPLETE before the receipt row disappears (the server reads the receipt to know what to put back).
+          if(r.stockApplied||r.posStockApplied){ Promise.resolve(reverseStockForReceipt(r)).then(finishDelete, finishDelete); } else finishDelete();
         });
       }else if(act==="paid"){
         appConfirm("Mark "+r.number+" as Paid?", "This converts the invoice to a receipt.").then(ok=>{
@@ -4363,20 +4366,54 @@ function _syncReceiptInHistory(r){
     if(i>=0){ hist[i]=r; saveHistory(hist); } }catch(e){}
 }
 function _receiptIsPaid(r){ return !!r && r.status==="Paid in Full"; }
+/* Stock on a sale.
+   SIGNED IN → the server does it (pos_decrement_stock / pos_restock): per-location, serialized-unit
+   aware, audited, idempotent via receipts.data.posStockApplied. The old direct write to inventory.qty
+   is wrong when signed in — inventory.qty is a trigger-maintained SUM of inventory_locations, so the
+   next location event silently undid it, and RLS rejected it (0 rows, no error) for technicians.
+   LOCAL / signed out → the simple per-item qty adjust, as before. */
+function _stockViaServer(){ try{ return !!(window.TKS && TKS.POS && TKS.POS.decrementStock && TKS.auth && TKS.auth.isSignedIn && TKS.auth.isSignedIn() && !(TKS.isDemo && TKS.isDemo())); }catch(e){ return false; } }
+function _stockNote(msg){ try{ if(typeof toast==="function") toast(msg); else if(typeof appAlert==="function") appAlert("Stock", msg); else console.warn(msg); }catch(e){} }
+// The receipt row may still be in flight to the cloud when this runs right after a save → retry "not found" briefly.
+function _stockRpcRetry(fn, tries){
+  return Promise.resolve().then(fn).then(res=>{
+    if(res && res.error && /not found/i.test(res.error.message||"") && tries>0){ return new Promise(r=>setTimeout(r,700)).then(()=>_stockRpcRetry(fn, tries-1)); }
+    return res;
+  });
+}
 /* Decrement stock for each part line — ONLY once, ONLY on a paid/completed sale. */
 function applyStockForReceipt(r){
-  if(!r || r.stockApplied) return false;
+  if(!r || r.stockApplied || r.posStockApplied) return false;
   if(!window.TKS || !TKS.Inventory) return false;
+  const hasParts=(r.items||[]).some(it=> it && it.partId && (parseInt(it.qty,10)||0)>0);
+  if(!hasParts) return false;
+  if(_stockViaServer()){
+    _stockRpcRetry(()=>TKS.POS.decrementStock(r.id), 5).then(res=>{
+      if(res && res.error){ _stockNote("Stock was NOT updated for "+(r.number||r.id)+": "+(res.error.message||res.error)); return; }
+      r.posStockApplied=true; r.stockApplied=true; r.stockAppliedAt=Date.now();   // keep the client copy in step so a later save can't clear the server flag
+      _syncReceiptInHistory(r);
+    }).catch(e=>_stockNote("Stock was NOT updated: "+((e&&e.message)||e)));
+    return true;
+  }
   let did=false;
   (r.items||[]).forEach(it=>{ const qn=parseInt(it.qty,10)||0; if(it.partId && qn>0){ TKS.Inventory.adjustQty(it.partId, -qn); did=true; } });
   r.stockApplied=true; r.stockAppliedAt=Date.now();
   _syncReceiptInHistory(r);
   return did;
 }
-/* Add stock back if a paid sale is voided / deleted / refunded. */
+/* Add stock back if a paid sale is voided / deleted / refunded. Returns a Promise when the server
+   path is used (callers that then DELETE the receipt must wait for it — see the history "del" action). */
 function reverseStockForReceipt(r){
-  if(!r || !r.stockApplied) return false;
+  if(!r || !(r.stockApplied || r.posStockApplied)) return false;
   if(!window.TKS || !TKS.Inventory) return false;
+  if(_stockViaServer()){
+    return _stockRpcRetry(()=>TKS.POS.restock(r.id), 2).then(res=>{
+      if(res && res.error){ _stockNote("Parts were NOT returned to stock for "+(r.number||r.id)+": "+(res.error.message||res.error)); return false; }
+      r.posStockApplied=false; r.stockApplied=false; r.stockReversedAt=Date.now();
+      _syncReceiptInHistory(r);
+      return true;
+    }).catch(e=>{ _stockNote("Parts were NOT returned to stock: "+((e&&e.message)||e)); return false; });
+  }
   let did=false;
   (r.items||[]).forEach(it=>{ const qn=parseInt(it.qty,10)||0; if(it.partId && qn>0){ TKS.Inventory.adjustQty(it.partId, +qn); did=true; } });
   r.stockApplied=false; r.stockReversedAt=Date.now();

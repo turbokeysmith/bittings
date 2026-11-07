@@ -2213,6 +2213,7 @@ function totalOwedAll(){
 }
 // Mark an invoice paid — mirrors Receipts (docType→receipt, status→Paid in Full,
 // INV→TKS number, paidAt, consume stock once via the shared TKS.Inventory).
+function _stockToast(m){ try{ if(window.TKS_ACCESS && TKS_ACCESS.toast) TKS_ACCESS.toast(m); else console.warn(m); }catch(e){} }
 function markInvoicePaid(ref){
   let arr=[]; try{ arr=TKS.list('receipts')||[]; }catch(e){ return false; }
   const t=arr.find(function(x){ return (ref.id&&x.id===ref.id) || (ref.number&&x.number===ref.number); });
@@ -2221,11 +2222,22 @@ function markInvoicePaid(ref){
   t.docType='receipt'; t.status='Paid in Full';
   if(t.number) t.number=String(t.number).replace(/^INV/,'TKS');
   t.paidAt=Date.now();
-  try{ if(!t.stockApplied && window.TKS && TKS.Inventory){
+  var viaServer=false;
+  try{ viaServer = !!(window.TKS && TKS.POS && TKS.POS.decrementStock && TKS.auth && TKS.auth.isSignedIn && TKS.auth.isSignedIn() && !(TKS.isDemo && TKS.isDemo())); }catch(e){}
+  try{ if(!t.stockApplied && !t.posStockApplied && window.TKS && TKS.Inventory && !viaServer){
+    // LOCAL mode only. Signed in, the server owns stock (per-location + serialized units + audit) — see below.
     (t.items||[]).forEach(function(it){ const qn=parseInt(it.qty,10)||0; if(it.partId && qn>0) TKS.Inventory.adjustQty(it.partId,-qn); });
     t.stockApplied=true; t.stockAppliedAt=Date.now();
   } }catch(e){}
   try{ TKS.saveList('receipts', arr); }catch(e){ return false; }
+  if(viaServer && !t.stockApplied && !t.posStockApplied && (t.items||[]).some(function(it){ return it && it.partId && (parseInt(it.qty,10)||0)>0; })){
+    // Save first (above) so the row carries status Paid, then let the server consume the parts once.
+    var tries=5, rid=t.id;
+    (function go(){ Promise.resolve().then(function(){ return TKS.POS.decrementStock(rid); }).then(function(res){
+      if(res && res.error){ if(/not found/i.test(res.error.message||'') && tries-->0){ setTimeout(go,700); return; } _stockToast('Stock was NOT updated: '+(res.error.message||res.error)); return; }
+      try{ const a2=TKS.list('receipts')||[]; const t2=a2.find(function(x){ return x.id===rid; }); if(t2){ t2.posStockApplied=true; t2.stockApplied=true; t2.stockAppliedAt=Date.now(); TKS.saveList('receipts', a2); } }catch(e){}
+    }).catch(function(e){ _stockToast('Stock was NOT updated: '+((e&&e.message)||e)); }); })();
+  }
   return true;
 }
 function invStatusTag(r){
@@ -4103,11 +4115,20 @@ async function renderReports(){
   list.querySelectorAll('.repRefund').forEach(b=> b.onclick=async()=>{
     const id=b.dataset.id, pi=b.dataset.pi, method=b.dataset.method, inv=b.dataset.inv;
     const isCard=(method==='reader'||method==='keyed');
-    if(!(await TKS_ACCESS.confirmDanger({ title:'Refund / void this '+(isCard?'card charge':method+' payment')+'?', message:'Any parts used will be returned to stock. This can’t be undone.', confirmLabel:'Refund / Void' }))) return;
+    if(!(await TKS_ACCESS.confirmDanger({ title:'Refund / void this '+(isCard?'card charge':method+' payment')+'?', message:'Parts on this sale go back to stock when it is fully refunded or voided. This can’t be undone.', confirmLabel:'Refund / Void' }))) return;
     b.disabled=true; const old=b.textContent; b.textContent='…';
     let r2; try{ r2 = isCard ? await TKPay.refundCard(pi) : await TKPay.voidCashCheck(id); }catch(e){ r2={error:String(e)}; }
     if(r2 && r2.error){ uiAlert({ title:'Couldn’t refund/void', message:String(r2.error) }); b.disabled=false; b.textContent=old; return; }
-    reverseStockForInvoice(inv);
+    // Parts go back to stock on the SERVER (8a pos_restock) — only when the sale is fully refunded/voided.
+    // (pay-refund reports refunded_total_cents vs captured_cents; a void is always full.)
+    const fully = !isCard || !(r2 && r2.refunded_total_cents!=null && r2.captured_cents!=null) || Number(r2.refunded_total_cents)>=Number(r2.captured_cents);
+    if(inv && fully && window.TKS && TKS.POS && TKS.POS.restock && !(TKS.isDemo && TKS.isDemo())){
+      try{ TKS.POS.restock(inv).then(res=>{
+        if(res && res.error){ _stockToast('Refunded, but parts were NOT returned to stock: '+(res.error.message||res.error)); }
+        else if(res && res.data && res.data.restocked){ _stockToast('Parts returned to stock.'); }
+      }).catch(e=>_stockToast('Refunded, but parts were NOT returned to stock: '+((e&&e.message)||e))); }catch(_){}
+    }
+    reverseStockForInvoice(inv);   // legacy: builder sales made before 8a carried only the local stockApplied flag
     renderReports();
   });
 }

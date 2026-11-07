@@ -1069,6 +1069,8 @@
     }catch(e){ return true; }
   }
   function _demoOn(){ try{ return localStorage.getItem('tks_demo_mode')==='1' && _demoSeedUser(); }catch(e){ return false; } }
+  // Public read-only accessor: pages use it to keep server-only paths (stock RPCs) off in demo/sandbox.
+  global.TKS.isDemo = _demoOn;
   function _demoGet(k,d){ try{ var v=JSON.parse(localStorage.getItem(k)); return (v==null)?d:v; }catch(e){ return d; } }
   function _demoSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
   function _demoOk(data){ return Promise.resolve({ data:data, error:null }); }
@@ -1193,7 +1195,10 @@
     // builds a receipts row, returns its id (then charge it via the existing pay flow).
     checkout:    function(payload){ return _sb().rpc('pos_checkout', { p_payload: payload }); },
     // decrement sold parts from the ticket's location (call after the charge succeeds).
-    decrementStock: function(receiptId){ return _sb().rpc('pos_decrement_stock', { p_receipt: receiptId }); }
+    decrementStock: function(receiptId){ return _sb().rpc('pos_decrement_stock', { p_receipt: receiptId }); },
+    // Inverse of decrementStock (8a): returns the receipt's parts to stock after a FULL refund/void.
+    // Manager-only + shop-fenced on the server; no-op when stock wasn't applied for that receipt.
+    restock:        function(receiptId){ return _sb().rpc('pos_restock', { p_receipt: receiptId }); }
   };
 
   // ---- Phase 2b: configurable commission engine ----
