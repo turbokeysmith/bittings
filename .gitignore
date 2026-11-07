@@ -25,4 +25,4 @@ package-lock.json
 .secrets/
 
 # Supabase CLI link state (per machine)
-supabase/.temp/
+**/supabase/.temp/
