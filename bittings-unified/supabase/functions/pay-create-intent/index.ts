@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
 
     const pi = await stripe.paymentIntents.create(piParams, reqOpts);
 
-    await supa.from("payment_transactions").insert({
+    const ins = await supa.from("payment_transactions").insert({
       invoice_id: invoiceId, org_id: orgId, connected_account_id: shopConnectId,
       method, currency: "usd", base_cents, surcharge_cents, authorized_cents,
       reader_id: readerId, stripe_payment_intent_id: pi.id, status: "pending",
@@ -145,6 +145,13 @@ Deno.serve(async (req) => {
       technician: techOf((rec as any).data), tax_cents,
       idempotency_key, created_by: auth.user.id, shop_id: auth.shopId,  // tenant-stamped (DB trigger also derives from the receipt)
     });
+    if (ins.error) {
+      // (C5) Never send a charge to the reader/card field that our ledger doesn't know about —
+      // the webhook would update 0 rows, pay-status would 404, and the cashier would retry
+      // into a double charge. Cancel the intent and fail loudly instead.
+      try { await stripe.paymentIntents.cancel(pi.id); } catch (_) { /* best effort */ }
+      return json(500, { error: "could not record the charge (" + ins.error.message + ") — nothing was charged, try again" });
+    }
 
     if (method === "reader") {
       await stripe.terminal.readers.processPaymentIntent(readerId!, { payment_intent: pi.id });

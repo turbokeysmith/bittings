@@ -23,3 +23,6 @@ Thumbs.db
 bittings-app.zip
 package-lock.json
 .secrets/
+
+# Supabase CLI link state (per machine)
+supabase/.temp/

@@ -96,7 +96,12 @@ Deno.serve(async (req) => {
       shop_id: auth.shopId,  // tenant-stamped (DB trigger also derives from the receipt)
     }).select().limit(1);
     if (ins.error) return json(500, { error: "record failed: " + ins.error.message });
-    return json(200, { ok: true, method, captured_cents: base_cents });
+    // (8b / C3) Stamp the receipt itself Paid in Full + payment label + authoritative totals.
+    // A jsonb MERGE on the server — nothing a client wrote on the receipt is lost. Best-effort:
+    // the money is already recorded above; a failure here is logged, never surfaced as a failed sale.
+    const mp = await supa.rpc("receipt_mark_paid", { p_receipt: invoiceId, p_shop: auth.shopId, p_method: method, p_captured_cents: base_cents, p_surcharge_cents: 0, p_tax_cents: tax_cents });
+    if (mp.error) console.error("receipt_mark_paid failed", invoiceId, mp.error.message);
+    return json(200, { ok: true, method, captured_cents: base_cents, base_cents, surcharge_cents: 0, surcharge_applied: false, tax_cents, receipt_marked_paid: !mp.error && mp.data === true });
   } catch (e) {
     return json(400, { error: String((e as any)?.message ?? e) });
   }

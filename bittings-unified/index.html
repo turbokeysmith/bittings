@@ -3074,15 +3074,21 @@ document.getElementById('posAddCustom').onclick=function(){ if(!(TKS.auth.can &&
    - Thermal receipt: builds the canonical receipt object from the live ticket and
      hands it to the Star TSP100 path (separate output from the PDF; same data).
    - Hardware settings: opens the per-workstation device panel. */
-function posThermalReceipt(){
+// opts (from a completed sale): { number: the real receipt id, payment: 'Card'|'Cash'|'Check',
+// surcharge: dollars actually added (credit only), total: dollars actually captured }.
+// Without opts (the manual 🖨️ button on an open ticket) it prints the current ticket with a TKT- preview number.
+function posThermalReceipt(opts){
+  opts=opts||{};
   const c=chgCustomer||{}, t=posTotals(), tech=posSelfTech();
+  const sur = Number(opts.surcharge)||0;
+  const total = (opts.total!=null) ? Number(opts.total) : (t.totalCents||0)/100;
   return {
-    number:'TKT-'+Date.now().toString(36).toUpperCase(), date:new Date().toISOString().slice(0,10),
-    customer:c.customer||'', technician:tech.name||'', payment:'', status:'',
+    number: opts.number || ('TKT-'+Date.now().toString(36).toUpperCase()), date:new Date().toISOString().slice(0,10),
+    customer:c.customer||'', technician:tech.name||'', payment:opts.payment||'', status: opts.payment ? 'Paid in Full' : '',
     items: posTicket.map(l=>({ desc:l.desc||l.svc||l.type, amount:posLineAmtCents(l)/100, qty:l.qty||1, taxable:!!l.taxable })),
     totals:{ grossSubtotal: posTicket.reduce((s,l)=>s+posLineAmtCents(l),0)/100,
              discount:(t.discCents||0)/100, taxable:0, tax:(t.taxCents||0)/100, taxRate:posTaxRate(),
-             surcharge:0, subtotal:(t.subtotalCents||0)/100, total:(t.totalCents||0)/100 }
+             surcharge:sur, subtotal:(t.subtotalCents||0)/100, total: total }
   };
 }
 function posScanAddPart(code){
@@ -3393,20 +3399,27 @@ function posCheckoutThen(method){
     const rid = res && res.data; if(!rid){ posSetBusy(false); chgSay('Checkout failed.',false); return; }
     const cust=chgCustomer||{};
     const stub={ id:rid, number:rid, customer:cust.customer||'', email:cust.email||'', totals:{ total:t.totalCents/100, surcharge:0 } };
-    const done=()=>{
+    const done=(j)=>{
       posSetBusy(false);
+      // What was ACTUALLY charged comes back from the server (pay-status / pay-record):
+      // captured_cents includes the 2% credit surcharge when it applied. Use it for the printed
+      // and shared receipt — the ticket total alone was wrong for credit cards (C2).
+      const capt = (j && j.captured_cents!=null) ? Number(j.captured_cents) : t.totalCents;
+      const sur  = (j && j.surcharge_applied) ? Math.max(0, capt - t.totalCents) : 0;
+      const payLabel = method==='card' ? 'Card' : (method==='cash' ? 'Cash' : 'Check');
+      const money = c => '$'+(c/100).toFixed(2);
       // C-#14: auto-print the customer receipt on the completed sale. The
       // receipt is captured BEFORE the ticket clears, and the print is fire-
       // and-forget — a printer problem can never block a completed charge.
       try{
         if(window.TKS_HW && TKS_HW.prefs().thermal.enabled && TKS_HW.prefs().thermal.autoPrint){
-          const _rcpt=posThermalReceipt();
+          const _rcpt=posThermalReceipt({ number: rid, payment: payLabel, surcharge: sur/100, total: capt/100 });
           TKS_HW.thermal.printReceipt(_rcpt).then(()=>{}, ()=>{});
         }
       }catch(_){/* never block the sale */}
       TKS.POS.decrementStock(rid).catch(()=>{}); posClear();
-      chgSay('✓ '+(method==='card'?'Card charge complete.':((method==='cash'?'Cash':'Check')+' recorded.')),true);
-      showChgSend({ id:rid, email:cust.email, items:[{desc:'Register sale'}], totals:{ total:t.totalCents/100 } }); };
+      chgSay('✓ '+(method==='card' ? 'Card charge complete — '+money(capt)+(sur?' (incl. 2% credit surcharge)':'') : (payLabel+' recorded — '+money(capt)+'.')),true);
+      showChgSend({ id:rid, number:rid, email:cust.email, items:[{desc:'Register sale'}], totals:{ total:capt/100, surcharge:sur/100 }, payment:payLabel }); };
     if(method==='card'){ if(!TKPay.openForReceipt){ posSetBusy(false); chgSay('Payment engine not loaded.',false); return; }
       // Once the Pay Now sheet is up it is modal (full-screen overlay), so the buttons can be
       // released as soon as it has opened; done() also releases on completion.

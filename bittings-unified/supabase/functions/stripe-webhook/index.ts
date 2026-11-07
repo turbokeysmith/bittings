@@ -47,12 +47,34 @@ Deno.serve(async (req) => {
       const isCredit = isPlainCard && funding === "credit";
       const captureAmount = isCredit ? base + surcharge : base;
       if (full.status === "requires_capture") {
-        await stripe.paymentIntents.capture(pi.id, { amount_to_capture: captureAmount });
+        try {
+          await stripe.paymentIntents.capture(pi.id, { amount_to_capture: captureAmount });
+        } catch (capErr) {
+          // (C5) A transient Stripe error used to be swallowed with a 200 — the intent stayed
+          // authorized-but-uncaptured, the row 'pending', and Stripe never retried. Forget this
+          // event (so the retry isn't rejected as a duplicate) and answer 500 so Stripe resends it.
+          console.error("capture failed", pi.id, String((capErr as any)?.message ?? capErr));
+          await supa.from("payment_events").delete().eq("id", event.id);
+          return new Response("capture failed — retry", { status: 500 });
+        }
       }
       await setTxn(pi.id, { status: "authorized", card_funding: funding, card_brand: brand, surcharge_applied: isCredit, captured_cents: captureAmount });
     } else if (event.type === "payment_intent.succeeded") {
       const pi = event.data.object as Stripe.PaymentIntent;
       await setTxn(pi.id, { status: "completed", captured_cents: pi.amount_received });
+      // (8b / C3 + C2) Mark the receipt Paid with what the card was ACTUALLY charged. The
+      // surcharge is whatever was captured above the pre-surcharge base (credit cards only).
+      try {
+        const tq = await supa.from("payment_transactions").select("invoice_id, shop_id, base_cents, tax_cents, surcharge_applied").eq("stripe_payment_intent_id", pi.id).limit(1);
+        const t = tq.data?.[0];
+        if (t?.invoice_id && t?.shop_id) {
+          const captured = Number(pi.amount_received ?? 0);
+          const base = Number(t.base_cents ?? captured);
+          const sur = t.surcharge_applied ? Math.max(0, captured - base) : 0;
+          const mp = await supa.rpc("receipt_mark_paid", { p_receipt: t.invoice_id, p_shop: t.shop_id, p_method: "card", p_captured_cents: captured, p_surcharge_cents: sur, p_tax_cents: t.tax_cents ?? null });
+          if (mp.error) console.error("receipt_mark_paid failed", t.invoice_id, mp.error.message);
+        }
+      } catch (e) { console.error("receipt_mark_paid threw", String((e as any)?.message ?? e)); }
     } else if (event.type === "payment_intent.payment_failed") {
       const pi = event.data.object as Stripe.PaymentIntent;
       await setTxn(pi.id, { status: "failed", failure_reason: (pi.last_payment_error as any)?.message ?? "payment failed" });

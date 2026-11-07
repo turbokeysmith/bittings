@@ -4273,7 +4273,12 @@ function _receiptsRefresh(){
         // Card cleared → mark the doc paid and consume its parts (once).
         try{ const r=S.receipt; if(r){
           if(r.docType==="invoice"){ r.docType="receipt"; if(r.number) r.number=String(r.number).replace(/^INV/,"TKS"); }
-          r.status="Paid in Full"; r.paidAt=Date.now();
+          r.status="Paid in Full"; r.paidAt=Date.now(); r.payment="Card";
+          // The card was charged captured_cents (base + 2% only when it was a CREDIT card). Put the
+          // real figures on the document so the PDF/share matches the card statement (C2).
+          try{ const capt=Number(j.captured_cents), base=Number(j.base_cents!=null?j.base_cents:capt);
+            if(capt>0){ r.totals=Object.assign({}, r.totals||{}, { surcharge: j.surcharge_applied ? Math.max(0,(capt-base))/100 : 0, total: capt/100 }); } }catch(_){}
+          if(typeof _syncReceiptInHistory==="function") _syncReceiptInHistory(r);
           if(typeof applyStockForReceipt==="function") applyStockForReceipt(r);
           if(typeof renderHistList==="function"){ try{ renderHistList(); }catch(_){} }
           // Offer to send the receipt straight from the success screen (native share / file).

@@ -41,12 +41,20 @@ Deno.serve(async (req) => {
     const isConnect = !!t.connected_account_id;
     const params: Stripe.RefundCreateParams = { payment_intent: paymentIntentId, reason: "requested_by_customer", amount: reqAmt };
     if (isConnect) { params.reverse_transfer = true; params.refund_application_fee = true; }
-    const refund = await stripe.refunds.create(params);
+    // (C5) Idempotency key: a timeout after Stripe already refunded + a retry must NOT refund twice.
+    // Keyed on the PI + the refunded-so-far total + the requested amount, so a *different* later
+    // partial refund still goes through.
+    const refund = await stripe.refunds.create(params, { idempotencyKey: `refund_${paymentIntentId}_${already}_${reqAmt}` });
     const newRefunded = already + Number(refund.amount ?? reqAmt);
     const fully = newRefunded >= captured;
-    await supa.from("payment_transactions")
+    const upd = await supa.from("payment_transactions")
       .update({ status: fully ? "refunded" : "partially_refunded", refunded_cents: newRefunded, stripe_refund_id: refund.id })
       .eq("stripe_payment_intent_id", paymentIntentId).eq("shop_id", auth.shopId);
+    if (upd.error) {
+      // Stripe DID refund; our ledger didn't record it. Say so explicitly instead of pretending success.
+      console.error("refund recorded in Stripe but ledger update failed", paymentIntentId, upd.error.message);
+      return json(500, { error: "Refund issued (" + refund.id + ") but the ledger could not be updated: " + upd.error.message + ". Check Transaction History before retrying.", refund_id: refund.id });
+    }
     // NOTE: full audit_log write (who/what/when) is wired in Stage 1a once the
     // audit_log table exists. acting user = auth.user.id / role = auth.role.
     return json(200, { ok: true, refund_id: refund.id, amount: refund.amount, refunded_total_cents: newRefunded, captured_cents: captured, fully_refunded: fully, status: refund.status });
