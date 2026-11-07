@@ -3356,20 +3356,29 @@ function posManageServices(){
 }
 
 /* charge: server checkout (re-prices + gates) → existing pay flow (skipUpsert) → decrement stock */
+// In-flight guard: pos_checkout mints a NEW receipt id on every call, so a double tap on
+// Cash/Check/Card used to record two sales (two transactions, two stock decrements).
+let _posBusy=false;
+function posSetBusy(on){ _posBusy=!!on; ['chgCard','chgCash','chgCheck'].forEach(id=>{ const b=document.getElementById(id); if(b){ b.disabled=_posBusy; b.style.opacity=_posBusy?'.6':''; } }); }
 function posCheckoutThen(method){
+  if(_posBusy) return;
   if(!_chgUnlocked){ chgGate(); return; }
   if(!posTicket.length){ chgSay('Add a line first.',false); return; }
   const t=posTotals();
   if(method==='card' && t.totalCents<50){ chgSay('Card needs at least $0.50.',false); return; }
   if(method!=='cash' && (!chgCustomer || !chgCustomer.customer)){ chgSay((method==='card'?'Card':'Check')+" needs the customer's info — tap “Select / add customer”.",false); return; }
   if(!(window.TKS && TKS.POS && TKS.auth.isSignedIn())){ chgSay('Sign in to take a payment.',false); return; }
+  posSetBusy(true);
   chgSay('Building ticket…',null);
-  TKS.POS.checkout(posBuildPayload()).then(res=>{
-    if(res && res.error){ chgSay(res.error.message,false); return; }
-    const rid = res && res.data; if(!rid){ chgSay('Checkout failed.',false); return; }
+  // Start inside a promise so a synchronous throw (e.g. from posBuildPayload) lands in the
+  // .catch below and releases the buttons instead of leaving the Register locked.
+  Promise.resolve().then(()=>TKS.POS.checkout(posBuildPayload())).then(res=>{
+    if(res && res.error){ posSetBusy(false); chgSay(res.error.message,false); return; }
+    const rid = res && res.data; if(!rid){ posSetBusy(false); chgSay('Checkout failed.',false); return; }
     const cust=chgCustomer||{};
     const stub={ id:rid, number:rid, customer:cust.customer||'', email:cust.email||'', totals:{ total:t.totalCents/100, surcharge:0 } };
     const done=()=>{
+      posSetBusy(false);
       // C-#14: auto-print the customer receipt on the completed sale. The
       // receipt is captured BEFORE the ticket clears, and the print is fire-
       // and-forget — a printer problem can never block a completed charge.
@@ -3382,12 +3391,20 @@ function posCheckoutThen(method){
       TKS.POS.decrementStock(rid).catch(()=>{}); posClear();
       chgSay('✓ '+(method==='card'?'Card charge complete.':((method==='cash'?'Cash':'Check')+' recorded.')),true);
       showChgSend({ id:rid, email:cust.email, items:[{desc:'Register sale'}], totals:{ total:t.totalCents/100 } }); };
-    if(method==='card'){ if(!TKPay.openForReceipt){ chgSay('Payment engine not loaded.',false); return; }
-      TKPay.openForReceipt(stub, { skipUpsert:true, title:'Register — '+(cust.customer||'walk-in'), onDone:done }); }
-    else { if(!TKPay.recordCashCheck){ chgSay('Payment engine not loaded.',false); return; }
+    if(method==='card'){ if(!TKPay.openForReceipt){ posSetBusy(false); chgSay('Payment engine not loaded.',false); return; }
+      // Once the Pay Now sheet is up it is modal (full-screen overlay), so the buttons can be
+      // released as soon as it has opened; done() also releases on completion.
+      return Promise.resolve(TKPay.openForReceipt(stub, { skipUpsert:true, title:'Register — '+(cust.customer||'walk-in'), onDone:done }))
+        .catch(e=>chgSay('Could not open card payment: '+((e&&e.message)||e),false))
+        .then(()=>posSetBusy(false)); }
+    else { if(!TKPay.recordCashCheck){ posSetBusy(false); chgSay('Payment engine not loaded.',false); return; }
       chgSay('Recording…',null);
-      TKPay.recordCashCheck(stub, method, { skipUpsert:true, onDone:done, onError:(m)=>chgSay('Could not record: '+m,false) }); }
-  }).catch(e=> chgSay(e.message||'Checkout failed.',false));
+      // recordCashCheck calls onDone/onError before it resolves; the trailing .then covers
+      // every other exit (sign-in alert, thrown network error) so the Register never sticks.
+      return Promise.resolve(TKPay.recordCashCheck(stub, method, { skipUpsert:true, onDone:done, onError:(m)=>chgSay('Could not record: '+m,false) }))
+        .catch(e=>chgSay('Could not record: '+((e&&e.message)||e),false))
+        .then(()=>posSetBusy(false)); }
+  }).catch(e=>{ posSetBusy(false); chgSay((e&&e.message)||'Checkout failed.',false); });
 }
 document.getElementById('chgCard').onclick=()=>posCheckoutThen('card');
 document.getElementById('chgCash').onclick=()=>posCheckoutThen('cash');
