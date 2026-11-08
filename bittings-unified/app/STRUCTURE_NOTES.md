@@ -8,6 +8,81 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 - **Staff app** (dark): http://127.0.0.1:8088/  → Customers · Receipts · Scheduler · Payments · Inventory
 - **Public site** (light): http://127.0.0.1:8099/  → contact form `/contact/`, language toggle 🌐 in the header
 
+## 2026-11-08 — 8h: vehicle fitment for keys (FCC ID · transponder chip · year/make/model matching)
+
+**Why:** the owner wants to paste a distributor fits list ("2018-2021 enclave 2020-2021 encore 2018-2020
+regal") + an FCC ID on a key, then have *any* year/make/model lookup find it (2019 Enclave and 2019 Regal
+→ same key), with the FCC ID shown on smart/remote keys and the chip on remote/transponder keys.
+
+**Data (migration `supabase/phase8/8h_inventory_key_fields.sql`, applied live 2026-11-08):**
+`inventory.fcc_id text`, `inventory.chip text` (both `not null default ''`); `inventory_safe` recreated
+with `fcc_id, chip, serialized` appended after `sell_price_cents` (additive `create or replace`; grants
+and the `is_manager()` cost mask unchanged). No RLS change — the existing inventory policies + the 5b
+`shop_id` fence apply. `store.js` CLOUD_MAP: `fromRow` → `fccId/chip/serialized`, `toRow` →
+`fcc_id/chip` (never writes `serialized`, 6a owns it). The free-text `fitment` column is still the only
+thing stored for vehicles — parsing is client-side.
+
+**Parser `app/fitment.js` (`window.TKS_FIT`, also `module.exports` for node tests):**
+- `parse(text)` → `[{ys, ye, make, model, raw, resolved}]`. Tokeniser: year ranges (`2018-2021`,
+  `2018–21`, `2015 to 2020`, `2018+`), distributor 2-digit shorthand (`08-14`, `16+`, `ROGUE14-19`,
+  `150019-24`, `Traverse-18-20`), hard separators (`, ; | · newline`, " - "), `/` lists split into model
+  words (compound catalog names like `F-250/350`, `Silverado 2500/3500` still match), parentheticals
+  dropped (also an unclosed one — the import truncated names at 30 chars), `HYQ14FBA/FBB` kept as one
+  code. Words: STOP list (smart/remote/fob/w/ RS/trunk/4-Button…), ALIAS_WORD shorthand (`crv`→CR-V,
+  `acrd`→Accord, `chrs`→Chrysler, `f-series`→F-150 F-250 F-350, `toy`→Toyota…), make aliases
+  (`chevy`, `vw`, `landrover`, `gm`→**GM** brand group). Resolution per segment: any number of leading
+  makes ("Chrysler Dodge Jeep 04-19" → one make-only entry each; "GMC Chevrolet Suburban Tahoe Yukon"
+  → each model resolved within those makes), then catalog model matching left-to-right (longest name
+  first, from `TKS_LISHI_SEED.models` + saved `tks_vehicle_keyways`), make inferred from the model
+  when absent (Enclave → Buick), unknown words become unresolved entries under the current make,
+  key-blank codes / part numbers / all-consonant junk skipped, a bare make with only junk after it →
+  make-only entry (resolved). A make mid-list switches the current make ("Scion FR-S / Toyota 86").
+- `itemFits(item, {year, make, model})` / `filter(items, veh)` (exact-model hits first): year within
+  range (open ranges `ys..9999`), make equal or inside a brand group (`GM` covers Chevrolet/GMC/Buick/
+  Cadillac/…), model equal or the query *more specific* than the entry ("Silverado" covers "Silverado
+  1500"; "Encore" does **not** match an "Encore GX" entry). A make-only entry is a weak hit for any
+  model of that make. `parseQuery(q)` turns a search-box string into a vehicle only when a catalog
+  model/make was recognised ("2019 enclave", "buick regal"; never "hu101 blank" or "HYQ4EA").
+- `label(e)` / `summary(text)` → "2018–2021 Buick Enclave · 2020–2021 Buick Encore". Results cached
+  per text (bounded). Unit tests: scratch `test-fitment.js` 31/31; the real 253-row inventory parses
+  208 rows fully, the rest partially (make-only) — none wrong after the junk rules.
+
+**Store:** `Inventory.search(q)` also tries `TKS_FIT.parseQuery(q)` → fitting parts first, then text
+hits (also matches `fccId`/`chip` text). New `Inventory.forVehicle(veh)` (non-deleted, score-sorted).
+
+**UI (`index.html`):** part form — `#pCategory` is a `<select>` built from `INV_CATEGORIES`
+(value `Top/Sub`, the same format the importer wrote, compared via `catParts`; `__other` reveals
+`#pCategoryOther`); `#pKeyFields` row with `#pFcc` (shown for `FCC_SUBS`) and `#pChip` + datalist
+`CHIP_SUGGEST` (shown for `CHIP_SUBS`); `#pFitment` textarea with live `#pFitPreview` ("Reads as: …",
+unresolved entries amber with "?") and the `#pFitAdd` helper (year-from/to + make/model via `TKS_YMM`,
+appends "YYYY-YYYY Make Model"). Save: `fccId` (upper-cased), `chip`, `category` from `pCategoryValue()`.
+Inventory header: `#invFitBtn` toggles `#invFitBar` (year/make/model selects) → `renderInventory`
+filters by `forVehicle` and adds a "N fit 2019 Buick Enclave" chip; `openVinModal` decode now calls
+`invFitShow(veh)`. List rows show `FCC …`/`chip …` in the sub line. Register `posPickItem('part')`:
+when `posJobType==='automotive'` and `posVeh` has make/model, a green `#piFit` bar pre-filters to
+fitting parts (toggle); rows show FCC/chip. Start-a-job `renderResult`: `forVehicle` hits are
+prepended to `vanParts` ("name · FCC"). CSV export adds `fccId, chip`. `bittings.html`
+`pickInventoryPart(onPick, veh)` gains the same bar; both call sites pass the invoice vehicle
+(chat flow: `receipt.vehYear/Make/Model`; quick-invoice modal: the `#qiV*` selects). Importer
+`FIELDS`: `fccId` (hints fcc/fcc id) and `chip` (chip/transponder) placed **before** `category` so a
+"Chip Type" column is not grabbed by category's `type` hint.
+
+**Owner-data pass (one-off, 2026-11-08):** scratch `propose-cleanup.js` read the live inventory via the
+CLI (postgres role, read-only), ran the parser + FCC extraction + chip-token rules + the web research
+of 88 FCC IDs (4 agents → `fcc-research-*.json`), and emitted `apply-8h-cleanup.sql` (242 `update`s,
+dollar-quoted, fenced by `shop_id`) + a rollback. Rules of thumb: description chip words beat research;
+FCCs known to ship with two chips (`DUAL` set) never get a research chip; research is dropped when it
+is for a different make *family* than the label (none hit); the distributor's own vehicles come first in
+Fits; category is only ever changed on generic "Remote / Fob" rows (112 → Smart Key / Remote Head).
+Owner report: repo-root `INVENTORY_CLEANUP_2026-11-08.md`; rollback:
+`supabase/phase8/8h_cleanup_rollback_2026-11-08.sql`.
+
+**Verified:** `probe-fitment-ui.js` 21/21 (form toggles by category, preview, add-vehicle helper, save
++ reopen, Other… path, finder 2019 Enclave/Regal yes · 2019 Encore no · 2021 Encore yes, typed
+"2019 enclave" + FCC search, Register picker bar + toggle, Start-a-job list); sweep 28 passes 0 JS
+errors 0 overflow; live `live-qa-8h.js` 6/6. Known pre-existing noise: demo mode still fires anon REST
+calls that 401 (not caused by 8h; a cheap follow-up is to skip the cloud fetch when there is no session).
+
 ## 2026-11-07 — Deep review on the new shop PC (TK-Main): findings + 14 fixes
 
 Full checklist with status: repo-root `DEEP_REVIEW_2026-11-07.md`. Environment facts for the next

@@ -10,6 +10,9 @@
   var FIELDS = [
     { k: 'name', label: 'Part name', req: true, hints: ['name', 'part', 'description', 'desc', 'item'] },
     { k: 'sku', label: 'SKU / part #', hints: ['sku', 'part #', 'part no', 'partnumber', 'part number', 'number', 'code', 'mpn'] },
+    // 8h: key fields sit BEFORE category so a "Chip Type" / "FCC ID" column isn't grabbed by category's 'type' hint
+    { k: 'fccId', label: 'FCC ID', hints: ['fcc', 'fcc id', 'fccid', 'fcc-id'] },
+    { k: 'chip', label: 'Transponder chip', hints: ['chip', 'transponder', 'chip type', 'transponder chip', 'chip id'] },
     { k: 'category', label: 'Category', hints: ['category', 'type', 'group', 'class'] },
     { k: 'qty', label: 'Qty on hand', hints: ['qty', 'quantity', 'stock', 'on hand', 'onhand', 'count', 'available'] },
     { k: 'lowAt', label: 'Low-stock at', hints: ['low', 'reorder at', 'min', 'minimum', 'lowstock', 'low at'] },
@@ -21,7 +24,7 @@
     { k: 'location', label: 'Location', hints: ['location', 'bin', 'shelf', 'aisle', 'spot', 'loc'] },
     { k: 'supplier', label: 'Supplier', hints: ['supplier', 'vendor', 'source'] },
     { k: 'reorderQty', label: 'Reorder qty', hints: ['reorder qty', 'reorder quantity', 'order qty', 'reorder'] },
-    { k: 'fitment', label: 'Fits (vehicles / VIN)', hints: ['fit', 'fits', 'fitment', 'vehicle', 'application', 'vin', 'compatible'] },
+    { k: 'fitment', label: 'Fits (vehicles / VIN)', hints: ['fit', 'fits', 'fitment', 'vehicle', 'application', 'vin', 'compatible', 'applications', 'year make model'] },
     { k: 'notes', label: 'Notes', hints: ['note', 'notes', 'comment', 'remark'] }
   ];
   var INT_FIELDS = { qty: 1, lowAt: 1, reorderQty: 1 };

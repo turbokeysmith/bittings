@@ -1135,6 +1135,8 @@ try{ if(window.self!==window.top){
 <script src="app/access.js"></script>
 <script src="app/lishi-seed.js"></script>
 <script src="app/ymm.js"></script>
+<!-- Vehicle fitment parser (Fits list → year/make/model matching) — shared with the main app -->
+<script src="app/fitment.js"></script>
 <script src="app/d1.js"></script>
 <script>
 "use strict";
@@ -2136,7 +2138,7 @@ function showJobPickerForCategory(catKey){
         itemDraft.unitCost=(p.cost!=null && p.cost!=="")?Number(p.cost):0;
         itemDraft.qty=1;
         setTimeout(askItemAmount,200);
-      });
+      }, (receipt&&(receipt.vehMake||receipt.vehModel))?{year:receipt.vehYear,make:receipt.vehMake,model:receipt.vehModel}:null);
     };
     opts.appendChild(pk);
   }
@@ -4338,35 +4340,43 @@ function lineCost(unitCost, qty){
 }
 /* Open a searchable Inventory picker (name / SKU / fitment / VIN — same search as
    the Inventory tile). Calls onPick(part) with the chosen part. Owner-gated. */
-function pickInventoryPart(onPick){
+function pickInventoryPart(onPick, veh){
   if(!_isOwnerForCosts()){ appAlert("Managers only", "Picking parts (and seeing cost) is manager-only."); return; }
   if(!window.TKS || !TKS.Inventory){ appAlert("Inventory unavailable", "Inventory isn't available here yet."); return; }
+  // 8h: when the invoice already names a vehicle, start on the keys whose Fits list covers it.
+  const vehOk = !!(veh && (veh.make||veh.model) && window.TKS_FIT);
+  const vehLbl = vehOk ? TKS_FIT.vehLabel(veh) : "";
+  let fitOnly = vehOk;
   const ov=document.createElement("div");
   ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:center;justify-content:center;overflow:auto;padding:14px";
   ov.innerHTML=`<div style="background:#ffffff;color:#14171b;width:100%;max-width:460px;border-radius:16px;padding:16px;margin:auto;max-height:92vh;overflow:auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:17px">📦 Pick a part</b><button id="ipX" style="background:none;border:none;color:#5a616c;font-size:26px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin:-6px -6px -6px 0">&times;</button></div>
-    <input id="ipQ" placeholder="Search name, SKU, fitment, VIN…" style="width:100%;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:10px;color:#14171b;padding:11px;font-size:15px;box-sizing:border-box">
+    ${vehOk?`<button type="button" id="ipFit" style="width:100%;text-align:left;border:1px solid #2f6b46;background:#e6f4ea;color:#14171b;border-radius:10px;padding:9px 11px;margin-bottom:8px;font-size:13.5px;cursor:pointer"><b>🚗 Fits ${escapeHtml(vehLbl)}</b> <span id="ipFitN" style="color:#5a616c"></span><span style="float:right;color:#5a616c">tap to show all parts</span></button>`:""}
+    <input id="ipQ" placeholder="Search name, SKU, FCC ID, fitment, VIN…" style="width:100%;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:10px;color:#14171b;padding:11px;font-size:15px;box-sizing:border-box">
     <div id="ipList" style="margin-top:10px;max-height:60vh;overflow:auto"></div>
   </div>`;
   document.body.appendChild(ov);
   const close=()=>ov.remove();
   ov.querySelector("#ipX").onclick=close;
   ov.addEventListener("click",e=>{ if(e.target===ov) close(); });
-  const q=ov.querySelector("#ipQ"), listBox=ov.querySelector("#ipList");
+  const q=ov.querySelector("#ipQ"), listBox=ov.querySelector("#ipList"), fitBtn=ov.querySelector("#ipFit");
+  if(fitBtn) fitBtn.onclick=()=>{ fitOnly=!fitOnly; fitBtn.style.background=fitOnly?"#e6f4ea":"#f3f4f6"; fitBtn.style.borderColor=fitOnly?"#2f6b46":"#e3e6ea"; fitBtn.querySelector("span:last-child").textContent=fitOnly?"tap to show all parts":"tap to show only parts that fit"; draw(); };
   function row(p){
     const low = TKS.Inventory.isLow(p);
     const costTxt = (p.cost!=null && p.cost!=="") ? ("$"+Number(p.cost).toFixed(2)) : "no cost set";
     const costCol = (p.cost!=null && p.cost!=="") ? "#7fd49b" : "#f2b43a";
+    const keyBits=[p.fccId?("FCC "+p.fccId):"", p.chip?("chip "+p.chip):""].filter(Boolean).join(" · ");
     return `<button class="ipRow" data-id="${escapeHtml(p.id)}" style="width:100%;text-align:left;background:#f3f4f6;border:1px solid ${low?'#7a5b12':'#e3e6ea'};border-radius:11px;padding:10px 12px;margin-bottom:7px;color:#14171b;cursor:pointer">
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
         <b style="font-size:14px">${escapeHtml(p.name||"(unnamed part)")}</b>
         <span style="font-size:12px;color:${costCol};white-space:nowrap">cost ${costTxt}</span></div>
-      <div style="font-size:12px;color:#5a616c;margin-top:2px">${escapeHtml([p.sku, "qty "+(parseInt(p.qty,10)||0)+(low?" · LOW":""), p.fitment].filter(Boolean).join(" · "))}</div>
+      <div style="font-size:12px;color:#5a616c;margin-top:2px">${escapeHtml([p.sku, "qty "+(parseInt(p.qty,10)||0)+(low?" · LOW":""), keyBits, (window.TKS_FIT&&p.fitment)?TKS_FIT.summary(p.fitment)||p.fitment:p.fitment].filter(Boolean).join(" · "))}</div>
     </button>`;
   }
   function draw(){
-    const res=TKS.Inventory.search(q.value||"");
-    if(!res.length){ listBox.innerHTML='<div style="color:#5a616c;font-size:14px;padding:14px;text-align:center">'+(((q.value||"").trim())?"No parts match.":"No parts in inventory yet. Add them in the Inventory tile, or type a manual cost on the line.")+'</div>'; return; }
+    let res=TKS.Inventory.search(q.value||"");
+    if(fitOnly){ const ids={}; TKS.Inventory.forVehicle(veh).forEach(p=>{ ids[p.id]=1; }); res=res.filter(p=>ids[p.id]); const n=ov.querySelector("#ipFitN"); if(n) n.textContent="· "+res.length+" part"+(res.length===1?"":"s"); }
+    if(!res.length){ listBox.innerHTML='<div style="color:#5a616c;font-size:14px;padding:14px;text-align:center">'+(fitOnly?("No parts in Inventory list "+escapeHtml(vehLbl)+" in their Fits. Tap the green bar to see all parts."):(((q.value||"").trim())?"No parts match.":"No parts in inventory yet. Add them in the Inventory tile, or type a manual cost on the line."))+'</div>'; return; }
     listBox.innerHTML=res.slice(0,60).map(row).join("");
     listBox.querySelectorAll(".ipRow").forEach(b=> b.onclick=()=>{ const p=TKS.Inventory.get(b.dataset.id); if(p){ close(); onPick(p); } });
   }
@@ -4609,7 +4619,7 @@ function reverseStockForReceipt(r){
         const tag=r.querySelector(".qiPartTag");
         tag.style.display="block";
         tag.textContent="📦 "+(p.name||"part")+" · stock "+(parseInt(p.qty,10)||0)+" — will subtract on a paid sale";
-      });
+      }, {year:(modal.querySelector("#qiVYear")||{}).value||"", make:(modal.querySelector("#qiVMake")||{}).value||"", model:(modal.querySelector("#qiVModel")||{}).value||""});
     }
     addItem(); modal.querySelector("#qiAdd").onclick=addItem;
     // Year/Make/Model cascading dropdowns (shared TKS_YMM). Year resets Make+Model; Make resets Model.

@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-11-07 (Claude Code, on the new shop PC "TK-Main") &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-11-08 (Claude Code, on the new shop PC "TK-Main") &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -407,6 +407,39 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-11-08 (🔑 Inventory knows which vehicles a key fits — FCC ID, transponder chip, year/make/model finder; the real stock list cleaned up)
+- **The owner's idea:** type the distributor's fits list once ("2018-2021 enclave 2020-2021 encore
+  2018-2020 regal"), give the key its FCC ID (HYQ4EA), and from then on *any* year/make/model lookup —
+  2019 Enclave **or** 2019 Regal — brings that key up. Built end-to-end:
+  - **Part form:** Category is now a picker (Keys → Smart Key / Remote / Remote Head / Transponder /
+    Shell / Mechanical; Accessories → …; "Other…" keeps free text). **FCC ID** appears for Smart Key,
+    Remote / Fob and Remote Head / Flip; **Transponder chip** (with a suggestion list) for Remote / Fob,
+    Remote Head / Flip, Transponder and Smart Key. **Fits** is a paste box with a live "Reads as: 2018–2021
+    Buick Enclave · …" line (make is optional — Enclave is recognised as a Buick) plus a small
+    year-from / year-to / make / model helper that appends a line.
+  - **Finding the key:** Inventory has a **🚗 Fits vehicle** button (year / make / model) and the
+    search box understands "2019 enclave" or "buick regal"; the Register's **📦 Part** picker opens on
+    the keys that fit the job's vehicle (tap the green bar to see everything); the invoice builder's
+    part picker does the same; Start-a-job's "In your van" lists fitting keys first. VIN decode in
+    Inventory now opens the finder instead of a text search. Rows and pickers show the FCC ID and chip.
+  - **Distributor shorthand is understood:** "08-14", "16+", "ACRD/ELMNT", "CRV/Cross/FIT", "F-SERIES",
+    "Chrysler/Dodge/Jeep 04-19" (one entry per make), "GM 10-19" (matches every GM brand), part numbers
+    and "4-Button / w/ remote start" noise are ignored.
+  - **Cloud:** migration **8h** adds `fcc_id` + `chip` to inventory and exposes them (and `serialized`)
+    through the cost-masking view; importer and CSV export carry both. Applied live; test shop 6/6.
+- **Your real inventory was cleaned up the same night** (owner request "go through our current
+  inventory list and fix it"): 253 key rows read, **242 updated** — FCC ID filled on 130, chip on 120,
+  112 generic "Remote / Fob" rows re-typed as Smart Key or Remote Head / Flip, Fits rewritten as
+  year/make/model lines on 238 (the distributor's own vehicles first, then the other vehicles that FCC
+  ID is sold for, from a web check across locksmith distributors). Part names, SKUs, quantities, costs
+  and prices untouched. **Read `INVENTORY_CLEANUP_2026-11-08.md`:** 32 rows need your eye (FCC IDs that
+  ship with two different chips — chip left blank on purpose), 94 remotes have no FCC ID printed in
+  the description, 15 descriptions could not be read. A one-file rollback is saved next to the
+  migrations.
+- **Verified:** parser unit tests 31/31; headless UI probe 21/21 (form → finder → search → Register
+  picker → Start-a-job); full 28-pass screen/theme sweep 0 JS errors; live test-shop checks 6/6
+  (technician sees FCC/chip, never cost; cannot write them).
 
 ### 2026-11-07 (🔍 Deep review of the whole app on the new shop PC — 14 fixes, full checklist in `DEEP_REVIEW_2026-11-07.md`)
 - **Where things stand:** the app code on this branch (`phase3-frontend-unification`, folder

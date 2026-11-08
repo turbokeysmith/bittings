@@ -88,7 +88,18 @@ owner; the technical detail is in `bittings-unified/app/STRUCTURE_NOTES.md` (202
 - **Working agreement 2026-11-07:** the owner suspended the ask-before-production rule for this
   project until they say they are going live ("delete that rule till I tell you we are going live").
 
+## F. 2026-11-08 — Inventory knows what a key fits (owner idea, built + data cleaned the same night)
+| # | What | Status |
+|---|---|---|
+| F1 | Part form: Category picker; **FCC ID** on Smart Key / Remote / Remote Head; **Transponder chip** on Remote / Remote Head / Transponder / Smart Key; **Fits** paste box reads distributor text ("2018-2021 enclave 2020-2021 encore 2018-2020 regal" → Buick Enclave / Encore / Regal) with a live preview + add-a-vehicle helper | ✅ probe 21/21 |
+| F2 | Find the key by vehicle: Inventory **🚗 Fits vehicle** (year/make/model) and typed search ("2019 enclave"); Register **📦 Part** picker and invoice part picker open on the keys that fit the job's vehicle; Start-a-job lists them first; VIN decode opens the finder. 2019 Enclave and 2019 Regal → the same key; 2019 Encore → not (list says 2020-2021) | ✅ |
+| F3 | Cloud: migration **8h** (`fcc_id`, `chip`; view exposes them + `serialized`), importer/export fields | ✅ applied live; test shop 6/6 (tech sees FCC/chip, never cost, cannot write) |
+| F4 | **Your real inventory cleaned up:** 253 key rows → 242 updated (FCC on 130, chip on 120, 112 re-typed Smart Key / Remote Head, Fits as year/make/model on 238; distributor's vehicles first, then the FCC's other vehicles from a web check). Names/SKUs/qty/cost/price untouched; rollback file saved | ✅ see `INVENTORY_CLEANUP_2026-11-08.md` |
+| F5 | ⬜ **Owner:** 32 rows where the FCC ID ships with two chips (chip left blank on purpose), 94 remotes with no FCC ID printed, 15 unreadable descriptions — all listed in that report | ⬜ |
+
 ## What is still open after 2026-11-07 (short list)
+- **Inventory (2026-11-08):** work through the three lists in `INVENTORY_CLEANUP_2026-11-08.md` as you
+  touch those keys; nothing blocks on it.
 - **Owner:** sign in (temp password from chat), confirm your real Customers / Inventory / Receipts,
   change the password (Settings → Access → My login security), set up Google Authenticator from the
   same card, and mark the shop PC as a workstation (Settings → Time clock) if you want PIN switching.

@@ -111,6 +111,7 @@
         id: r.id, name: r.name, sku: r.sku, category: r.category, qty: r.qty, lowAt: r.low_at,
         unit: r.unit, cost: r.cost, sellPriceCents: r.sell_price_cents, location: r.location, notes: r.notes,
         supplier: r.supplier, reorderQty: r.reorder_qty, fitment: r.fitment,
+        fccId: r.fcc_id || '', chip: r.chip || '', serialized: !!r.serialized,     // 8h: key fields (+ serialized exposed through the view)
         createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
       toRow: function (o) { return {
         id: o.id, name: o.name || '', sku: o.sku || '', category: o.category || '',
@@ -119,7 +120,7 @@
         sell_price_cents: (o.sellPriceCents === '' || o.sellPriceCents == null) ? null : parseInt(o.sellPriceCents, 10),
         location: o.location || '',
         notes: o.notes || '', supplier: o.supplier || '', reorder_qty: parseInt(o.reorderQty, 10) || 0,
-        fitment: o.fitment || '' }; }
+        fitment: o.fitment || '', fcc_id: (o.fccId || '').trim(), chip: (o.chip || '').trim() }; }   // `serialized` is never written from here (6a owns it)
     },
     // bookings + receipts: keep their full (nested) shape inside jsonb `data`
     bookings: {
@@ -330,12 +331,30 @@
       q = (q || '').trim().toLowerCase();
       var list = this.all();
       if (!q) return list;
-      return list.filter(function (p) {
+      var hits = list.filter(function (p) {
         // `fitment` = what vehicles a key/fob fits (make/model/years/FCC), so a
         // VIN search (decoded to make+model) finds the matching part.
-        return ['name', 'sku', 'category', 'location', 'notes', 'fitment', 'vin']
+        return ['name', 'sku', 'category', 'location', 'notes', 'fitment', 'vin', 'fccId', 'chip']
           .some(function (f) { return (p[f] || '').toString().toLowerCase().indexOf(q) !== -1; });
       });
+      // 8h: "2019 enclave" / "buick regal" typed in the box → every key whose Fits list covers
+      // that vehicle (parsed, not substring: "2018-2021 Enclave" matches 2019 Enclave). Fitting
+      // keys go first; plain text hits follow.
+      try {
+        var veh = window.TKS_FIT && TKS_FIT.parseQuery(q);
+        if (veh) {
+          var fit = TKS_FIT.filter(list, veh), seen = {};
+          fit.forEach(function (p) { seen[p.id] = 1; });
+          return fit.concat(hits.filter(function (p) { return !seen[p.id]; }));
+        }
+      } catch (e) {}
+      return hits;
+    },
+
+    // 8h: parts whose Fits list covers {year, make, model} (exact-model hits first). Empty when no
+    // make/model is given. Used by the Inventory finder, Register/invoice part pickers, Start-a-job.
+    forVehicle: function (veh) {
+      try { return (window.TKS_FIT ? TKS_FIT.filter(this.all().filter(function (p) { return !p.deletedAt; }), veh) : []); } catch (e) { return []; }
     },
 
     get: function (id) { return this.all().find(function (p) { return p.id === id; }) || null; },
