@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7f9">
+<title>Bittings — Sign in</title>
+<!-- Follow the global Light/Dark toggle (shared with the main app via localStorage), before paint. -->
+<script>try{if(localStorage.getItem('bt_theme')==='dark')document.documentElement.setAttribute('data-bt-theme','dark');}catch(e){}</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--bg:#f6f7f9;--card:#ffffff;--edge:#e3e6ea;--ink:#14171b;--dim:#5a616c;--red:#c8323c;--red-deep:#8f1f27;--green:#22994a;--amber:#f2b43a;}
+  html[data-bt-theme="dark"]{--bg:#14171b;--card:#1f232a;--edge:#2c313a;--ink:#f4f5f7;--dim:#9aa1ac;color-scheme:dark;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);min-height:100vh;padding:24px 18px;}
+  .wrap{max-width:560px;margin:0 auto;}
+  .badge{text-align:center;font-size:11px;font-weight:800;letter-spacing:1px;color:var(--amber);
+    border:1px solid rgba(242,180,58,.4);background:rgba(242,180,58,.12);border-radius:999px;padding:6px;margin-bottom:18px;}
+  h1{font-size:20px;margin:0 0 4px;font-weight:800;}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 20px;}
+  label{display:block;font-size:12.5px;color:var(--dim);margin:12px 0 6px;font-weight:600;}
+  input{width:100%;background:var(--card);border:1px solid var(--edge);border-radius:11px;padding:12px 14px;color:var(--ink);font-size:16px;outline:none;}
+  .btn{width:100%;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;margin-top:16px;
+    background:linear-gradient(180deg,var(--red),var(--red-deep));color:#fff;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn.ghost{background:transparent;border:1px solid var(--edge);color:var(--dim);}
+  .msg{margin-top:14px;padding:12px;border-radius:10px;font-size:13px;display:none;}
+  .msg.show{display:block;}
+  .msg.err{background:rgba(200,50,60,.14);color:#f0a0a6;border:1px solid rgba(200,50,60,.4);}
+  .msg.ok{background:rgba(34,153,74,.14);color:#4bd07e;border:1px solid rgba(34,153,74,.4);}
+  .hidden{display:none;}
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+  .topbar .who{font-size:13px;color:var(--dim);}
+  .topbar .who b{color:var(--ink);}
+  .topbar .out{margin-left:auto;background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--dim);border-radius:9px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;}
+  .bar{display:flex;gap:10px;margin-bottom:14px;}
+  .add{background:linear-gradient(180deg,var(--red),var(--red-deep));border:none;color:#fff;border-radius:12px;padding:0 18px;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap;}
+  .clist{display:flex;flex-direction:column;gap:10px;}
+  .crow{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;}
+  .crow .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;background:rgba(74,163,255,.16);color:#8ec5ff;}
+  .crow.biz .avatar{background:rgba(242,180,58,.16);color:var(--amber);}
+  .crow .nm{font-weight:700;font-size:15px;}.crow .sub2{font-size:12.5px;color:var(--dim);margin-top:2px;}
+  .crow .tag{margin-left:auto;font-size:10px;font-weight:800;color:var(--dim);border:1px solid var(--edge);border-radius:999px;padding:3px 8px;}
+  .empty{text-align:center;color:var(--dim);padding:30px;font-size:14px;}
+  .typeseg{display:flex;gap:8px;}
+  .typeseg button{flex:1;background:var(--card);border:1px solid var(--edge);color:var(--dim);border-radius:11px;padding:11px;font-weight:700;cursor:pointer;}
+  .typeseg button.on{color:#fff;border-color:var(--red);background:linear-gradient(180deg,rgba(200,50,60,.22),rgba(200,50,60,.06));}
+  .row2{display:flex;gap:10px;margin-top:16px;}
+  .row2 .btn{margin-top:0;}
+  .del{background:transparent;border:1px solid rgba(200,50,60,.5);color:#f0a0a6;flex:0 0 auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img src="app/ui/assets/mark.svg" alt="Bittings" style="display:block;width:100%;max-width:120px;height:auto;margin:6px auto 14px">
+  <div style="text-align:center;font-weight:900;font-size:22px;letter-spacing:-.02em;margin-bottom:18px">Bittings</div>
+
+  <!-- LOGIN -->
+  <div id="loginView">
+    <h1>Staff sign-in</h1>
+    <p class="sub">Sign in with your Turbo Keysmith staff account.</p>
+    <label>Email</label>
+    <input id="email" type="email" autocomplete="username" placeholder="you@email.com">
+    <label>Password</label>
+    <input id="password" type="password" autocomplete="current-password" placeholder="••••••••">
+    <a href="#" id="forgotLink" style="display:block;text-align:right;margin:6px 0 10px;font-size:12.5px;color:inherit;opacity:.8">Forgot password?</a><!-- 8k -->
+    <button class="btn" id="loginBtn">Sign in</button>
+    <button class="btn ghost" id="checkBtn" style="display:none">Check connection</button>
+    <div id="loginMsg" class="msg"></div>
+    <button class="btn ghost" id="offlineBtn" style="margin-top:10px">Use the app offline (no sign-in)</button>
+    <p class="sub" style="margin-top:8px;font-size:11.5px;">No signal? You can still work on this device — your data saves locally and syncs next time you sign in.</p>
+    <p class="sub" id="diag" style="margin-top:6px;font-size:11.5px;"></p>
+  </div>
+
+  <!-- TWO-FACTOR: enter the code (managers/owners who set up an authenticator app) -->
+  <!-- 8k: password recovery — the "Forgot password?" email links back here; Supabase opens a recovery session -->
+  <div id="resetView" class="hidden">
+    <h1 id="resetTitle">Set a new password</h1>
+    <p class="sub" id="resetSub">Choose a new password for your staff account.</p>
+    <!-- 8z5: an account with an authenticator must also prove the phone before the password changes -->
+    <div id="resetCodeWrap" class="hidden">
+      <label>6-digit code from your authenticator app</label>
+      <input id="resetCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456">
+      <a href="#" id="resetUseBackup" style="display:block;margin:6px 0 4px;font-size:12.5px;color:inherit;opacity:.8">Lost your phone? Use a backup code instead</a>
+      <input id="resetBackup" class="hidden" type="text" autocapitalize="characters" spellcheck="false" maxlength="9" placeholder="ABCD-EFGH">
+    </div>
+    <!-- 8z6: a new teammate (invite) also fills in their contact details -->
+    <div id="profileWrap" class="hidden">
+      <label>Full name</label>
+      <input id="pfName" type="text" autocomplete="name" placeholder="First and last name">
+      <label>Mobile phone</label>
+      <input id="pfPhone" type="tel" autocomplete="tel" placeholder="(405) 555-0123">
+      <label>Home address</label>
+      <input id="pfAddress" type="text" autocomplete="street-address" placeholder="Street, city, state ZIP">
+      <p class="sub" style="font-size:11.5px;margin-top:6px">Only the owner and managers can see your phone and address.</p>
+    </div>
+    <label>New password</label>
+    <input id="newPw" type="password" autocomplete="new-password" placeholder="at least 8 characters">
+    <label>Repeat it</label>
+    <input id="newPw2" type="password" autocomplete="new-password" placeholder="same password again">
+    <button class="btn" id="setPwBtn">Save new password</button>
+    <div id="resetMsg" class="msg"></div>
+  </div>
+
+  <div id="mfaView" class="hidden">
+    <h1>Authenticator code</h1>
+    <p class="sub">Open <b>Google Authenticator</b> (or Authy / 1Password) on your phone and enter the 6-digit code for <b>Bittings</b>. You only see this on a device that had to sign in again.</p>
+    <label>6-digit code</label>
+    <input id="mfaCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456">
+    <button class="btn" id="mfaBtn">Continue</button>
+    <div id="mfaMsg" class="msg"></div>
+    <button class="btn ghost" id="mfaLogout" style="margin-top:10px">Use a different account</button>
+    <!-- 8z5: lost phone → one backup code removes the old authenticator, then set up the new phone -->
+    <a href="#" id="mfaUseBackup" style="display:block;margin-top:12px;font-size:12.5px;color:inherit;opacity:.85">Lost your phone? Use a backup code</a>
+    <div id="mfaBackupWrap" class="hidden">
+      <label>Backup code (from the list you saved when you set up 2FA)</label>
+      <input id="mfaBackup" type="text" autocapitalize="characters" spellcheck="false" maxlength="9" placeholder="ABCD-EFGH">
+      <button class="btn" id="mfaBackupBtn">Use backup code</button>
+    </div>
+    <p class="sub" style="margin-top:8px;font-size:11.5px;">No backup codes? The shop owner can reset your authenticator from <b>Settings → Access → Team logins</b>.</p>
+  </div>
+
+  <!-- TWO-FACTOR: first-time setup (offered to managers/owners who have none yet) -->
+  <div id="enrollView" class="hidden">
+    <h1>Set up two-step sign-in</h1>
+    <p class="sub">Managers and owners can refund, change prices and see everyone's pay — so Bittings <b>requires</b> a code from an authenticator app whenever this account signs in on a new device. Takes one minute.</p>
+    <ol class="sub" style="padding-left:18px;margin:0 0 10px">
+      <li>Install <b>Google Authenticator</b> (free, iPhone/Android) if you don't have it.</li>
+      <li>In the app tap <b>+</b> → <b>Scan a QR code</b> and scan this:</li>
+    </ol>
+    <div id="enrollQr" style="background:#fff;border-radius:12px;padding:18px;width:min(260px,78vw);margin:6px auto 8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1"></div>
+    <p class="sub" style="text-align:center;font-size:11.5px">Can't scan? Enter this key by hand: <code id="enrollSecret" style="user-select:all"></code></p>
+    <label>Then type the 6-digit code it shows</label>
+    <input id="enrollCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456">
+    <button class="btn" id="enrollBtn">Turn on two-factor</button>
+    <div id="enrollMsg" class="msg"></div>
+    <button class="btn ghost" id="enrollSkip" style="margin-top:10px">Sign out</button><!-- 8z5: required for managers/owners — no "Not now" -->
+  </div>
+
+  <!-- 8z5: one-time backup codes, shown once right after the authenticator is set up -->
+  <div id="backupView" class="hidden">
+    <h1>Save your backup codes</h1>
+    <p class="sub">If you lose your phone, each code below lets you in <b>once</b> so you can set up the new phone. Save them somewhere safe (a photo in a private album, a note in your password manager, or print them). You won't see them again.</p>
+    <div id="backupList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font:700 17px/1.2 ui-monospace,Consolas,monospace;letter-spacing:.06em;background:var(--card);border:1px solid var(--edge);border-radius:12px;padding:14px;margin:10px 0"></div>
+    <div class="row2"><button class="btn ghost" id="backupCopy" style="margin-top:0">Copy</button><button class="btn ghost" id="backupPrint" style="margin-top:0">Print</button></div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:14px;font-weight:600"><input type="checkbox" id="backupSaved" style="width:auto;min-height:0"> I saved my backup codes</label>
+    <button class="btn" id="backupDone" disabled>Continue</button>
+    <div id="backupMsg" class="msg"></div>
+  </div>
+
+  <!-- APP -->
+  <div id="appView" class="hidden">
+    <div class="topbar">
+      <span class="who">Signed in as <b id="whoEmail"></b></span>
+      <button class="out" id="logoutBtn">Sign out</button>
+    </div>
+    <div id="listPane">
+      <div class="bar">
+        <input id="search" type="text" placeholder="Search…" style="flex:1;">
+        <button class="add" id="addBtn">+ Add</button>
+      </div>
+      <div id="list" class="clist"></div>
+      <div id="listMsg" class="msg"></div>
+    </div>
+
+    <div id="formPane" class="hidden">
+      <label>Name</label>
+      <input id="fName" type="text" placeholder="Customer or business name">
+      <label>Type</label>
+      <div class="typeseg"><button id="tInd" class="on">Individual</button><button id="tBiz">Business</button></div>
+      <label>Contact (optional)</label><input id="fContact" type="text">
+      <label>Phone</label><input id="fPhone" type="tel">
+      <label>Email</label><input id="fEmail" type="email">
+      <label>Address</label><input id="fAddress" type="text">
+      <div class="row2">
+        <button class="btn del" id="fDelete" style="display:none;flex:0 0 auto;">Delete</button>
+        <button class="btn" id="fSave">Save</button>
+      </div>
+      <button class="btn ghost" id="fCancel">Cancel</button>
+      <div id="formMsg" class="msg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://gcshuhlksjznksspbigl.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ZAbJ-2SEResLrdsLvbgh1A_puY6vDL0";
+// 8z5: read the email-link type BEFORE the client consumes the URL (invite → "Create your password")
+const _linkType = (function(){ try{ return new URLSearchParams(location.hash.replace(/^#/,'')).get('type') || new URLSearchParams(location.search).get('type') || ''; }catch(e){ return ''; } })();
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = id => document.getElementById(id);
+function flash(el, cls, text){ el.className = 'msg show '+cls; el.textContent = text; }
+function clearMsg(el){ el.className = 'msg'; el.textContent=''; }
+
+/* Where to go after sign-in. Honors ?next= but only a same-origin relative path
+   (no open redirects). Defaults to the app home. */
+function safeNext(){
+  const n = new URLSearchParams(location.search).get('next');
+  if(!n || /^https?:|^\/\//i.test(n)) return 'index.html';
+  return n;
+}
+/* ---- two-factor (8e) ---------------------------------------------------------------
+   Supabase TOTP MFA. A session that entered the code carries aal2; the database only grants
+   manager/owner powers to an enrolled manager on an aal2 session, so this page MUST finish the
+   code step before handing over to the app. Managers/owners with no authenticator yet are
+   offered setup (skippable this session; ?enroll=1 opens it on purpose from Settings). */
+function showOnly(id){ ['loginView','resetView','mfaView','enrollView','backupView','appView'].forEach(v=>$(v).classList.toggle('hidden', v!==id)); }
+async function mfaState(){ try{ const { data } = await sb.auth.mfa.getAuthenticatorAssuranceLevel(); return data||null; }catch(e){ return null; } }
+async function verifiedTotpFactor(){ try{ const { data } = await sb.auth.mfa.listFactors(); return ((data&&data.totp)||[]).find(f=>f.status==='verified')||null; }catch(e){ return null; } }
+async function myRole(){ try{ const r = await sb.rpc('current_staff_role'); if(!r.error && r.data) return String(r.data); }catch(e){} return ''; }
+let enrollFactorId = null;
+async function showEnroll(){
+  showOnly('enrollView'); clearMsg($('enrollMsg')); $('enrollQr').innerHTML='<span class="sub">Preparing…</span>'; enrollFactorId=null;
+  try{
+    // clear any half-finished enrolments so we don't pile up unverified factors
+    try{ const { data } = await sb.auth.mfa.listFactors(); for(const f of ((data&&data.all)||[])){ if(f.status!=='verified'){ await sb.auth.mfa.unenroll({ factorId:f.id }); } } }catch(e){}
+    const { data, error } = await sb.auth.mfa.enroll({ factorType:'totp', friendlyName:'Bittings' });
+    if(error){ flash($('enrollMsg'),'err', error.message); return; }
+    enrollFactorId = data.id;
+    // 8z8: qr_code is a data: URL → show it as an image (centred, white quiet zone from the box padding)
+    const q = String((data.totp && data.totp.qr_code) || '');
+    const box = $('enrollQr'); box.innerHTML = '';
+    if(/^data:/i.test(q)){
+      let svgText = q.slice(q.indexOf(',') + 1); try{ svgText = decodeURIComponent(svgText); }catch(_){}
+      const img = new Image(); img.alt = 'Scan this QR code with Google Authenticator';
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
+      img.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain';
+      box.appendChild(img);
+    } else {
+      box.innerHTML = q;
+      const svg = box.querySelector('svg'); if(svg){ svg.style.width='100%'; svg.style.height='100%'; svg.style.display='block'; }
+    }
+    $('enrollSecret').textContent = data.totp.secret;
+    $('enrollCode').focus();
+  }catch(e){ flash($('enrollMsg'),'err', (e&&e.message)||String(e)); }
+}
+$('enrollBtn').onclick = async ()=>{
+  const code = ($('enrollCode').value||'').replace(/\s+/g,'');
+  if(!/^\d{6}$/.test(code)){ flash($('enrollMsg'),'err','Enter the 6-digit code from the app.'); return; }
+  if(!enrollFactorId){ flash($('enrollMsg'),'err','Setup not ready — try again.'); return; }
+  $('enrollBtn').disabled = true; clearMsg($('enrollMsg'));
+  try{
+    const ch = await sb.auth.mfa.challenge({ factorId: enrollFactorId });
+    if(ch.error) throw ch.error;
+    const vr = await sb.auth.mfa.verify({ factorId: enrollFactorId, challengeId: ch.data.id, code });
+    if(vr.error) throw vr.error;
+    flash($('enrollMsg'),'ok','✓ Two-factor is on.');
+    setTimeout(()=>showBackupCodes(), 400);   // 8z5: hand out the one-time backup codes
+  }catch(e){ flash($('enrollMsg'),'err', (e&&e.message)||String(e)); $('enrollBtn').disabled=false; }
+};
+$('enrollSkip').onclick = async ()=>{ await sb.auth.signOut(); showOnly('loginView'); };   // 8z5: setup is required — the only other way out is signing out
+
+/* 8z5: backup codes — minted by the database on this aal2 session, shown once */
+let _backupText = '';
+async function showBackupCodes(){
+  showOnly('backupView'); clearMsg($('backupMsg')); $('backupList').innerHTML='<span class="sub">Making your codes…</span>';
+  $('backupSaved').checked=false; $('backupDone').disabled=true;
+  try{
+    const r = await sb.rpc('mfa_backup_codes_new');
+    if(r.error) throw r.error;
+    const codes = r.data || [];
+    _backupText = 'Bittings backup codes ('+new Date().toLocaleDateString()+'). Each works once.'+String.fromCharCode(10) + codes.join(String.fromCharCode(10));
+    $('backupList').innerHTML = codes.map(c=>'<div>'+c+'</div>').join('');
+  }catch(e){ $('backupList').innerHTML=''; flash($('backupMsg'),'err','Could not make backup codes ('+((e&&e.message)||e)+'). You can make them later in Settings → Two-factor.'); $('backupDone').disabled=false; }
+}
+$('backupSaved').onchange = ()=>{ $('backupDone').disabled = !$('backupSaved').checked; };
+$('backupCopy').onclick = async ()=>{ try{ await navigator.clipboard.writeText(_backupText); flash($('backupMsg'),'ok','Copied.'); }catch(e){ flash($('backupMsg'),'err','Copy failed — take a screenshot instead.'); } };
+$('backupPrint').onclick = ()=>{ const w=window.open('','_blank'); if(!w) return; w.document.write('<pre style="font:16px monospace">'+_backupText.replace(/[<&]/g,'')+'</pre>'); w.document.close(); w.print(); };
+$('backupDone').onclick = ()=>{ location.replace(safeNext()); };
+
+/* 8z5: lost phone → trade one backup code for removing the old authenticator, then set up the new one */
+async function useBackupCode(code){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(!session) throw new Error('Sign in with your password first.');
+  const res = await fetch(SUPABASE_URL+'/functions/v1/mfa-recover', { method:'POST',
+    headers:{ 'apikey':SUPABASE_KEY, 'authorization':'Bearer '+session.access_token, 'content-type':'application/json' },
+    body: JSON.stringify({ code }) });
+  const j = await res.json().catch(()=>({}));
+  if(!res.ok || !j.ok) throw new Error(j.error || ('backup code refused ('+res.status+')'));
+  try{ await sb.auth.refreshSession(); }catch(e){}
+  return j;
+}
+$('mfaUseBackup').onclick = (e)=>{ e.preventDefault(); $('mfaBackupWrap').classList.toggle('hidden'); setTimeout(()=>{ try{ $('mfaBackup').focus(); }catch(_){} }, 30); };
+$('mfaBackupBtn').onclick = async ()=>{
+  const code = ($('mfaBackup').value||'').trim(); if(!code){ flash($('mfaMsg'),'err','Type one of your backup codes.'); return; }
+  $('mfaBackupBtn').disabled = true; clearMsg($('mfaMsg'));
+  try{ await useBackupCode(code); flash($('mfaMsg'),'ok','✓ Old authenticator removed. Now set up your new phone…'); setTimeout(()=>refresh(), 700); }
+  catch(e){ flash($('mfaMsg'),'err', (e&&e.message)||String(e)); }
+  finally{ $('mfaBackupBtn').disabled = false; }
+};
+$('mfaBtn').onclick = async ()=>{
+  const code = ($('mfaCode').value||'').replace(/\s+/g,'');
+  if(!/^\d{6}$/.test(code)){ flash($('mfaMsg'),'err','Enter the 6-digit code.'); return; }
+  $('mfaBtn').disabled = true; clearMsg($('mfaMsg'));
+  try{
+    const f = await verifiedTotpFactor(); if(!f) throw new Error('No authenticator is set up for this account.');
+    const r = await sb.auth.mfa.challengeAndVerify({ factorId: f.id, code });
+    if(r.error) throw r.error;
+    location.replace(safeNext());
+  }catch(e){ flash($('mfaMsg'),'err', (e&&e.message)||String(e)); $('mfaBtn').disabled=false; $('mfaCode').select(); }
+};
+$('mfaLogout').onclick = async ()=>{ await sb.auth.signOut(); showOnly('loginView'); };
+$('mfaCode').addEventListener('keydown', e=>{ if(e.key==='Enter') $('mfaBtn').click(); });
+$('enrollCode').addEventListener('keydown', e=>{ if(e.key==='Enter') $('enrollBtn').click(); });
+
+/* ---- session ---- (1) on a valid session, go STRAIGHT HOME — don't stay on this page. */
+let _refreshing = false;
+async function refresh(){
+  if(_refreshing) return; _refreshing = true;
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(session){
+      // 8z6: invited but never created a password (e.g. the link signed them in) → finish setup first
+      const u0 = session.user || {};
+      if(u0.invited_at && !(u0.user_metadata && u0.user_metadata.password_set)){ await enterSetPassword('invite'); return; }
+      const st = await mfaState();
+      if(st && st.nextLevel === 'aal2' && st.currentLevel !== 'aal2'){ showOnly('mfaView'); setTimeout(()=>$('mfaCode').focus(), 50); return; }
+      // 8z5: managers/owners MUST have an authenticator (the database gives them no powers without one)
+      const wantEnroll = new URLSearchParams(location.search).get('enroll') === '1';
+      const role = await myRole();
+      if(role === 'manager' || role === 'owner' || wantEnroll){
+        const f = await verifiedTotpFactor();
+        if(!f){ await showEnroll(); return; }
+        if(wantEnroll){ location.replace(safeNext()); return; }
+      }
+      location.replace(safeNext()); return;
+    }
+    showOnly('loginView');
+  } finally { _refreshing = false; }
+}
+/* 8k: Forgot password → email link → recovery session → set a new password here. */
+let _recovery = false, _setKind = '';
+/* 8z5: the set-password screen serves both "Forgot password?" and a new teammate's invite. If the
+   account has an authenticator, the phone code (or a backup code) is required before saving. */
+async function enterSetPassword(kind){
+  _recovery = true; _setKind = kind; showOnly('resetView'); clearMsg($('resetMsg'));
+  $('profileWrap').classList.toggle('hidden', kind !== 'invite');
+  if(kind === 'invite'){ try{ const r = await sb.rpc('my_profile'); const p = (r && r.data && r.data[0]) || {}; $('pfName').value = p.name || ''; $('pfPhone').value = p.phone || ''; $('pfAddress').value = p.address || ''; }catch(e){} }
+  if(kind === 'invite'){ $('resetTitle').textContent='Create your password'; $('resetSub').textContent='Welcome to Bittings! Choose a password for your staff account — you will use it with your email to sign in.'; $('setPwBtn').textContent='Create password & sign in'; }
+  const f = await verifiedTotpFactor();
+  $('resetCodeWrap').classList.toggle('hidden', !f);
+  setTimeout(()=>{ try{ $('newPw').focus(); }catch(e){} }, 50);
+}
+sb.auth.onAuthStateChange((event, session)=>{
+  // 8z10: a set-password link for an invited teammate who never finished setup → the full invite screen (name/phone/address too)
+  if(event === 'PASSWORD_RECOVERY'){ const u=(session&&session.user)||{}; enterSetPassword(u.invited_at && !(u.user_metadata&&u.user_metadata.password_set) ? 'invite' : 'recovery'); return; }
+  // 8z6: newer auth library reports the link's session as INITIAL_SESSION, not SIGNED_IN
+  if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && _linkType === 'invite' && !_recovery){ enterSetPassword('invite'); return; }
+  if(_recovery) return;   // stay on the new-password form until it is saved
+  refresh();
+});
+$('resetUseBackup').onclick = (e)=>{ e.preventDefault(); $('resetBackup').classList.toggle('hidden'); };
+$('forgotLink').onclick = async (e)=>{
+  e.preventDefault(); clearMsg($('loginMsg'));
+  const email = $('email').value.trim();
+  if(!email){ flash($('loginMsg'),'err','Type your email above first, then tap “Forgot password?”.'); return; }
+  try{
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    if(error) flash($('loginMsg'),'err', error.message);
+    else flash($('loginMsg'),'ok','Check your email — the reset link brings you back here to choose a new password.');
+  }catch(err){ flash($('loginMsg'),'err','Could not send the reset email: '+(err && err.message ? err.message : err)); }
+};
+$('setPwBtn').onclick = async ()=>{
+  clearMsg($('resetMsg'));
+  const a = $('newPw').value, b = $('newPw2').value;
+  if(a.length < 8){ flash($('resetMsg'),'err','Use at least 8 characters.'); return; }
+  if(a !== b){ flash($('resetMsg'),'err','The two passwords don’t match.'); return; }
+  const pf = { name: ($('pfName').value||'').trim(), phone: ($('pfPhone').value||'').trim(), address: ($('pfAddress').value||'').trim() };
+  if(_setKind === 'invite'){
+    if(!pf.name){ flash($('resetMsg'),'err','Enter your full name.'); return; }
+    if(pf.phone.replace(/[^0-9]/g,'').length < 10){ flash($('resetMsg'),'err','Enter your mobile phone number.'); return; }
+    if(pf.address.length < 6){ flash($('resetMsg'),'err','Enter your home address.'); return; }
+  }
+  $('setPwBtn').disabled = true;
+  try{
+    // 8z5: 2FA on reset — prove the authenticator (or spend a backup code) before the password changes
+    if(!$('resetCodeWrap').classList.contains('hidden')){
+      const bk = ($('resetBackup').value||'').trim(), code = ($('resetCode').value||'').replace(/[^0-9]/g,'');
+      if(bk){ await useBackupCode(bk); }
+      else {
+        if(code.length !== 6){ flash($('resetMsg'),'err','Enter the 6-digit code from your authenticator app (or a backup code).'); return; }
+        const fct = await verifiedTotpFactor(); if(!fct) throw new Error('No authenticator found.');
+        const v = await sb.auth.mfa.challengeAndVerify({ factorId: fct.id, code }); if(v.error) throw v.error;
+      }
+    }
+    const { error } = await sb.auth.updateUser({ password: a, data: { password_set: true } });   // 8z6: marks setup finished
+    if(!error && _setKind === 'invite'){ const pr = await sb.rpc('update_my_profile', { p_name: pf.name, p_phone: pf.phone, p_address: pf.address }); if(pr.error){ flash($('resetMsg'),'err','Password saved, but your details didn’t save: '+pr.error.message); return; } }
+    if(error) flash($('resetMsg'),'err', error.message);
+    else { _recovery = false; flash($('resetMsg'),'ok','Saved. Signing you in…'); setTimeout(()=> refresh(), 600); }
+  }catch(err){ flash($('resetMsg'),'err', String(err && err.message ? err.message : err)); }
+  finally { $('setPwBtn').disabled = false; }
+};
+
+/* Offline / no-account escape: never dead-end. Mark this session as "local use"
+   so the app's entry gate won't bounce back here, then go to the app (local mode). */
+$('offlineBtn').onclick = ()=>{ try{ sessionStorage.setItem('tks_use_local','1'); }catch(e){} location.replace(safeNext()); };
+
+$('loginBtn').onclick = async ()=>{
+  clearMsg($('loginMsg'));
+  $('loginBtn').disabled = true;
+  try {
+    const { error } = await sb.auth.signInWithPassword({ email:$('email').value.trim(), password:$('password').value });
+    if(error){ flash($('loginMsg'),'err', error.message); }
+    else { try{ ['tks_demo_mode','tks_demo_role'].forEach(k=>localStorage.removeItem(k)); }catch(_){} }   // a REAL sign-in always leaves demo/sandbox mode
+    // success -> onAuthStateChange refreshes the view
+  } catch(e){
+    flash($('loginMsg'),'err','Could not reach the server: '+(e && e.message ? e.message : e)+
+      '. If you opened this by double-clicking the file, host it on your GitHub site and open the https link instead.');
+  } finally {
+    $('loginBtn').disabled = false;
+  }
+};
+$('logoutBtn').onclick = async ()=>{ await sb.auth.signOut(); };
+
+/* ---- diagnostics ---- */
+(function diag(){
+  const local = location.protocol === 'file:';
+  const libOK = !!(window.supabase && window.supabase.createClient);
+  let t = 'Opened from: ' + (local ? '⚠ a local file — host it and use the https link' : location.origin);
+  t += '  ·  Library: ' + (libOK ? 'loaded ✓' : '⚠ NOT loaded (no internet?)');
+  $('diag').textContent = t;
+})();
+
+$('checkBtn').onclick = async ()=>{
+  flash($('loginMsg'),'ok','Checking…');
+  try {
+    const res = await fetch(SUPABASE_URL + '/auth/v1/health', { headers: { apikey: SUPABASE_KEY } });
+    if(res.ok){
+      flash($('loginMsg'),'ok','✓ Supabase is reachable. So the problem is the login itself — make sure you created a user under Authentication → Users → Add user (with Auto Confirm ON), then sign in.');
+    } else {
+      flash($('loginMsg'),'err','Reached Supabase but it returned status '+res.status+'. Double-check the project URL.');
+    }
+  } catch(e){
+    flash($('loginMsg'),'err','Cannot reach Supabase from here: '+(e && e.message ? e.message : e)+
+      '. This usually means the page is opened as a local file — host it on your GitHub site and open the https link.');
+  }
+};
+
+/* ---- customers (cloud) ---- */
+let cache = [];
+async function loadCustomers(){
+  clearMsg($('listMsg'));
+  const { data, error } = await sb.from('customers').select('*').order('last_used',{ascending:false});
+  if(error){ flash($('listMsg'),'err','Could not load: '+error.message+' (did you run the SQL?)'); return; }
+  cache = data || [];
+  renderList();
+}
+function renderList(){
+  const q = $('search').value.trim().toLowerCase();
+  const rows = cache.filter(c=>!q || [c.name,c.contact,c.phone,c.email,c.address].some(v=>(v||'').toLowerCase().includes(q)));
+  const wrap = $('list');
+  if(rows.length===0){ wrap.innerHTML = '<div class="empty">'+(q?'No matches.':'No customers yet. Tap “+ Add”.')+'</div>'; return; }
+  wrap.innerHTML='';
+  rows.forEach(c=>{
+    const biz = c.customer_type==='business';
+    const d = document.createElement('div');
+    d.className='crow'+(biz?' biz':'');
+    const sub=[c.phone,c.email].filter(Boolean).join('  ·  ')||(c.address||'');
+    d.innerHTML='<div class="avatar">'+((c.name||'?').trim()[0]||'?').toUpperCase()+'</div>'+
+      '<div><div class="nm">'+esc(c.name||'(no name)')+'</div>'+(sub?'<div class="sub2">'+esc(sub)+'</div>':'')+'</div>'+
+      '<span class="tag">'+(biz?'BUSINESS':'INDIVIDUAL')+'</span>';
+    d.onclick=()=>openForm(c);
+    wrap.appendChild(d);
+  });
+}
+$('search').addEventListener('input', renderList);
+function esc(s){return (s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+
+let editing = null, ftype='individual';
+function setType(t){ ftype=t; $('tInd').classList.toggle('on',t==='individual'); $('tBiz').classList.toggle('on',t==='business'); }
+$('tInd').onclick=()=>setType('individual'); $('tBiz').onclick=()=>setType('business');
+
+$('addBtn').onclick=()=>openForm(null);
+function openForm(c){
+  editing=c; clearMsg($('formMsg'));
+  $('fName').value=c?c.name:''; $('fContact').value=c?c.contact||'':'';
+  $('fPhone').value=c?c.phone||'':''; $('fEmail').value=c?c.email||'':''; $('fAddress').value=c?c.address||'':'';
+  setType(c&&c.customer_type==='business'?'business':'individual');
+  $('fDelete').style.display=c?'block':'none';
+  $('listPane').classList.add('hidden'); $('formPane').classList.remove('hidden');
+}
+$('fCancel').onclick=()=>{ $('formPane').classList.add('hidden'); $('listPane').classList.remove('hidden'); };
+
+$('fSave').onclick=async ()=>{
+  const name=$('fName').value.trim();
+  if(!name){ flash($('formMsg'),'err','Enter a name.'); return; }
+  $('fSave').disabled=true;
+  const rec={ name, contact:$('fContact').value.trim(), phone:$('fPhone').value.trim(),
+    email:$('fEmail').value.trim(), address:$('fAddress').value.trim(), customer_type:ftype,
+    last_used:new Date().toISOString() };
+  let error;
+  if(editing){
+    const { data:{ user } } = await sb.auth.getUser();
+    rec.updated_by = user ? user.id : null;
+    ({ error } = await sb.from('customers').update(rec).eq('id', editing.id));
+  } else {
+    ({ error } = await sb.from('customers').insert(rec));
+  }
+  $('fSave').disabled=false;
+  if(error){ flash($('formMsg'),'err', error.message); return; }
+  $('formPane').classList.add('hidden'); $('listPane').classList.remove('hidden');
+  loadCustomers();
+};
+$('fDelete').onclick=async ()=>{
+  if(!editing) return;
+  if(!confirm('Delete this customer?')) return;
+  const { error } = await sb.from('customers').delete().eq('id', editing.id);
+  if(error){ flash($('formMsg'),'err', error.message); return; }
+  $('formPane').classList.add('hidden'); $('listPane').classList.remove('hidden');
+  loadCustomers();
+};
+
+refresh();
+</script>
+</body>
+</html>

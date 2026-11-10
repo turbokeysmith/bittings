@@ -32,7 +32,7 @@
     // (8e) An enrolled manager on a password-only session: the server refuses manager actions until
     // they enter their authenticator code. Send them to the login page to finish that step.
     if(r.status===403 && /authenticator code required/i.test(String(j.error||""))){
-      try{ location.href="cloud-test.html?next="+encodeURIComponent(location.pathname.split("/").pop()+location.search); }catch(_){}
+      try{ location.href="signin.html?next="+encodeURIComponent(location.pathname.split("/").pop()+location.search); }catch(_){}
     }
     return j;
   }
@@ -89,6 +89,8 @@
     if(!paymentIntentId) return { error:"missing paymentIntentId" };
     return await call("pay-refund", { paymentIntentId });
   };
+  // 8z13: card-reader setup (Settings → Payments → Card readers). action: list | register | rename | remove
+  window.TKPay.readers = async function(action, body){ return await call("pay-terminal", Object.assign({ action: action||"list" }, body||{})); };
   // Cancel an abandoned (pending/authorized) card intent → pay-terminal cancel_intent (C6).
   window.TKPay.cancelIntent = async function(paymentIntentId, readerId){
     if(!paymentIntentId) return { error:"missing paymentIntentId" };
@@ -152,7 +154,7 @@
     const sel=modal&&modal.querySelector("#pnReader"); if(!sel) return;
     const j=await call("pay-terminal",{action:"list"});
     if(j.error){ sel.innerHTML="<option value=''>(error)</option>"; status(j.error,"bad"); return; }
-    sel.innerHTML=(j.readers||[]).map(r=>`<option value="${esc(r.id)}">${esc(r.label||r.id)} &middot; ${esc(r.status)}</option>`).join("")||"<option value=''>(no readers — register one in Stripe)</option>";
+    sel.innerHTML=(j.readers||[]).map(r=>`<option value="${esc(r.id)}">${esc(r.label||r.id)} &middot; ${esc(r.status)}</option>`).join("")||"<option value=''>(no reader yet — add one in Settings → Payments)</option>";
     if(!S.reader && j.readers&&j.readers[0]) S.reader=j.readers[0].id;
     sel.value=S.reader||""; sel.onchange=()=>{ S.reader=sel.value; localStorage.setItem("tks_pay_reader",S.reader); };
     if(j.mode==="test"){ modal.querySelector("#pnSim").innerHTML=`<div style="font-size:11px;color:#9aa3af;margin-bottom:4px">TEST — simulate a tap:</div><div style="display:flex;gap:6px"><button type="button" class="pnSimB" data-k="credit">Credit</button><button type="button" class="pnSimB" data-k="debit">Debit</button><button type="button" class="pnSimB" data-k="decline">Decline</button></div>`;
@@ -170,8 +172,16 @@
     const body={action:"simulate",readerId:S.reader}; if(kind==="debit")body.debit=true; if(kind==="decline")body.declined=true;
     const j=await call("pay-terminal",body); if(j.error) status("Simulate: "+j.error,"bad");
   }
+  // 8z13: the publishable key comes from the server (same for every shop) — nobody types keys.
+  let serverPK=null;
+  async function getPK(){
+    if(serverPK) return serverPK;
+    try{ const j=await call("pay-terminal",{action:"config"}); if(j&&j.publishableKey){ serverPK=j.publishableKey; return serverPK; } }catch(e){}
+    return localStorage.getItem("tks_pay_pk")||"";
+  }
   function renderKeyed(){
-    const pk=localStorage.getItem("tks_pay_pk")||"";
+    const pk=serverPK||localStorage.getItem("tks_pay_pk")||"";
+    if(!serverPK) getPK().then(k=>{ if(serverPK){ const r=modal&&modal.querySelector("#pnPK"); if(r){ r.previousElementSibling&&r.previousElementSibling.remove(); r.remove(); } } });
     const pkRow = pk ? "" : `<label style="font-size:12px;color:#9aa3af">Stripe publishable key (one-time)</label>
       <input id="pnPK" type="text" inputmode="text" autocomplete="off" placeholder="pk_test_…" style="width:100%;background:#11141a;border:1px solid #2a2f3a;border-radius:10px;color:#f4f5f7;padding:11px;font-size:16px;box-sizing:border-box;margin:4px 0 10px">`;
     modal.querySelector("#pnBody").innerHTML=`${pkRow}<div id="pnPE" style="background:#fff;border-radius:10px;padding:10px;margin-bottom:10px;min-height:42px"></div>${payBtn("Start card entry","pnGo")}`;
@@ -179,7 +189,7 @@
   }
   async function startKeyed(){
     if(!window.Stripe){ status("Stripe.js didn't load.","bad"); return; }
-    let pk=localStorage.getItem("tks_pay_pk")||"";
+    let pk=await getPK();
     if(!pk){ const f=modal.querySelector("#pnPK"); pk=((f&&f.value)||"").trim();
       if(pk) localStorage.setItem("tks_pay_pk",pk); else { status("Enter your publishable key (pk_test_…) to continue.","bad"); if(f) f.focus(); return; } }
     status("Preparing secure card field…");

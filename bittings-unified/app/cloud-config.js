@@ -2,7 +2,7 @@
    Turbo Keysmith — cloud connection config (staff app)
    ----------------------------------------------------------------------------
    These are the SAME Supabase project URL + publishable (anon) key already in
-   cloud-test.html. The anon key is meant to be public — every request is still
+   signin.html. The anon key is meant to be public — every request is still
    gated by Row Level Security (authenticated users only), so exposing it here
    is safe.
 
@@ -48,17 +48,7 @@ window.TKS_OWNER = {
   // EMPTY since the 2026-07-02 pre-pilot review (#12): a hardcoded default PIN
   // shipped to every shop is guessable. Set a shared PIN per shop in
   // Setup → Access ("Shared fallback PIN") instead — same behavior, per-shop.
-  QUICK_FORM_PIN: '',
-
-  // Master ON/OFF switch for the Receipts "Quick invoice" form (the fast,
-  // all-on-one-screen alternative to the guided chat). Set to false to turn it
-  // off for EVERYONE (trainees and owner) — Receipts becomes guided-chat-only.
-  QUICK_INVOICE_ENABLED: true,
-
-  // When true, Receipts opens the Quick invoice form AUTOMATICALLY for the
-  // signed-in OWNER (skip the "what are you creating?" chat). Cancelling the
-  // form drops you back into the chat. Only affects the owner when signed in;
-  // trainees and signed-out users still get the chat. Set to false to always
-  // start with the chat choice.
-  QUICK_INVOICE_DEFAULT: true
+  QUICK_FORM_PIN: ''
+  // 8j: QUICK_INVOICE_ENABLED / QUICK_INVOICE_DEFAULT retired — the guided chat is gone and the
+  // Quick invoice is the one builder for every role (bittings.html).
 };

@@ -3,14 +3,24 @@
    Does NOT rebuild the engine; every action calls a proven RPC:
      • cycle_start / cycle_save_line / cycle_complete   (reconcile)
      • warranty_replace / key_failed / return_update    (dispositions + returns)
-     • inventory_dashboard                              (value cards)
+     • inventory_dashboard                              (feeds the Inventory summary strip)
+     • unit lookup (inventory_units select)             (scan-to-unit "story" panel)
    Cloud-only (the engine is server-side). Falls back to a clear "sign in" message
    offline. Role rules are enforced server-side; the UI mirrors them for clarity.
+   Dialogs use the app's themed uiAlert / uiConfirm (index.html) — never native alert().
    ========================================================================== */
 (function () {
   'use strict';
   function sb() { try { return window.TKS && TKS._sb && TKS._sb(); } catch (e) { return null; } }
+  function demo() { try { return !!(window.TKS && TKS.isDemo && TKS.isDemo()); } catch (e) { return false; } }
   function E(s){ return (window.esc2 ? esc2(s) : String(s == null ? '' : s)); }
+  // themed dialogs (index.html exposes them on window); fall back quietly if they're missing
+  function say(msg, title){ try { if (window.uiAlert) return uiAlert({ title: title || 'Heads up', message: msg }); } catch (e) {} try { console.warn(msg); } catch (e2) {} return Promise.resolve(); }
+  function ask(opts){ try { if (window.uiConfirm) return uiConfirm(opts); } catch (e) {} return Promise.resolve(true); }
+  function money(c){ return '$' + ((c || 0) / 100).toFixed(2); }
+  function fmtDate(d){ try { var x = new Date(d); if (isNaN(x.getTime())) return ''; return x.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) { return ''; } }
+  var UNIT_RE = /^u_[0-9a-f]{32}$/i;
+  function looksLikeUnit(code){ code = String(code || '').trim(); return UNIT_RE.test(code) || /^u_/i.test(code); }
   var REASONS = [['','— pick a reason —'],['sold_from_van','Sold from van / not scanned'],
     ['failed_defective','Failed / defective'],['lost','Lost'],['miscount','Miscount'],['other','Other']];
   var PM = 'width:40px;height:40px;font-size:20px;line-height:1;border-radius:9px;border:1px solid rgba(128,128,128,.45);background:transparent;color:inherit;cursor:pointer;flex:0 0 auto';
@@ -69,7 +79,7 @@
       // Discard an open count without applying it (server: cycle_cancel, manager+).
       cancelBtn.onclick = async function (){
         var ok = true;
-        try { if (window.TKS_ACCESS && TKS_ACCESS.confirmDanger) ok = await TKS_ACCESS.confirmDanger({ title: 'Discard this count?', message: 'Nothing will be applied to stock. The count sheet is thrown away.', confirmLabel: 'Discard' }); else ok = confirm('Discard this count? Nothing will be applied.'); } catch (e) { ok = confirm('Discard this count? Nothing will be applied.'); }
+        try { if (window.TKS_ACCESS && TKS_ACCESS.confirmDanger) ok = await TKS_ACCESS.confirmDanger({ title: 'Discard this count?', message: 'Nothing will be applied to stock. The count sheet is thrown away.', confirmLabel: 'Discard' }); else ok = await ask({ title: 'Discard this count?', message: 'Nothing will be applied.', okText: 'Discard', danger: true }); } catch (e) { ok = await ask({ title: 'Discard this count?', message: 'Nothing will be applied.', okText: 'Discard', danger: true }); }
         if (!ok) return;
         cancelBtn.disabled = true;
         var r = await s.rpc('cycle_cancel', { p_count: rc.countId });
@@ -93,11 +103,22 @@
   async function rcItems(){
     var s = sb(), list = document.getElementById('rcCountList'); if (!s || !list) return;
     var rows = [];
-    try { rows = ((await s.from('inventory_locations').select('item_id,qty,inventory(name,sku,deleted_at)').eq('location', rc.loc)).data) || []; } catch (e) {}
+    try { rows = ((await s.from('inventory_locations').select('item_id,qty,inventory(name,sku,deleted_at,category,fcc_id,chip)').eq('location', rc.loc)).data) || []; } catch (e) {}
     rows = rows.filter(function (r){ return r.inventory && !r.inventory.deleted_at; });
     if (!rows.length) { list.innerHTML = '<div class="empty">No stock recorded at ' + E(locLabel()) + ' yet.</div>'; return; }
-    list.innerHTML = rows.map(function (r){
-      var exp = r.qty || 0;
+    // 8z12: which key info is missing (same rule as the Stock "missing FCC ID / chip" tile)
+    var FCC_SUBS = { 'Smart Key':1, 'Remote / Fob':1, 'Remote Head / Flip':1, 'Super Remote':1 };
+    function needs(inv){ var sub = String(inv.category || '').split('/').slice(1).join('/').trim();
+      return { fcc: !!FCC_SUBS[sub] && !String(inv.fcc_id || '').trim(), chip: sub === 'Transponder' && !String(inv.chip || '').trim() }; }
+    var missingN = rows.filter(function (r){ var n = needs(r.inventory); return n.fcc || n.chip; }).length;
+    var INP = 'height:40px;border-radius:9px;border:1px solid rgba(200,150,40,.6);background:transparent;color:inherit;padding:0 10px;font-size:16px;min-width:0;flex:1 1 160px';
+    list.innerHTML = (missingN ? '<div class="sub" style="margin:0 0 10px;padding:8px 10px;border-radius:9px;background:rgba(242,180,58,.14)">🔎 <b>' + missingN + '</b> part' + (missingN === 1 ? '' : 's') + ' here are missing an FCC ID or chip — read it off the key or package and type it in while you count. It saves on its own.</div>' : '') +
+      rows.map(function (r){
+      var exp = r.qty || 0, nd = needs(r.inventory);
+      var keyInfo = (nd.fcc || nd.chip) ? ('<div class="rckey" style="flex-basis:100%;display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+          (nd.fcc ? '<input class="rcfcc" placeholder="FCC ID (on the back of the remote)" autocapitalize="characters" spellcheck="false" style="' + INP + ';text-transform:uppercase">' : '') +
+          (nd.chip ? '<input class="rcchip" list="pChipList" placeholder="Chip (e.g. Mitsubishi N chip)" autocomplete="off" style="' + INP + '">' : '') +
+          '<span class="rckeymsg sub" style="flex:0 0 auto"></span></div>') : '';
       return '<div class="crow" data-item="' + E(r.item_id) + '" data-exp="' + exp + '" style="align-items:center;flex-wrap:wrap;gap:8px">' +
         '<div style="flex:1;min-width:140px"><div class="nm">' + E(r.inventory.name || r.item_id) + '</div>' +
           '<div class="sub">' + E(r.inventory.sku || '') + ' · expected ' + exp + '</div></div>' +
@@ -108,7 +129,7 @@
         '</div>' +
         '<select class="rcreason" style="display:none;flex:0 0 auto;min-height:40px;border-radius:9px">' +
           REASONS.map(function (o){ return '<option value="' + o[0] + '">' + o[1] + '</option>'; }).join('') + '</select>' +
-        '</div>';
+        keyInfo + '</div>';
     }).join('');
     list.querySelectorAll('.crow').forEach(function (row){
       var inp = row.querySelector('.rccount'), rs = row.querySelector('.rcreason'), exp = +row.dataset.exp;
@@ -117,6 +138,19 @@
       inp.onchange = function (){ if (+inp.value < 0) inp.value = 0; reflect(); save(row); };
       rs.onchange = function (){ save(row); };
       reflect();
+      // 8z12: FCC ID / chip typed during the count → saved to the part (only these two fields)
+      var fi = row.querySelector('.rcfcc'), ci = row.querySelector('.rcchip'), km = row.querySelector('.rckeymsg');
+      function saveKey(){
+        var s3 = sb(); if (!s3 || !rc.countId) return;
+        var fv = fi ? fi.value.trim() : '', cv = ci ? ci.value.trim() : ''; if (!fv && !cv) return;
+        km.textContent = 'Saving…';
+        s3.rpc('cycle_set_key_info', { p_count: rc.countId, p_item: row.dataset.item, p_fcc: fv || null, p_chip: cv || null }).then(function (res){
+          if (res.error) { km.textContent = '⚠ ' + res.error.message; km.style.color = '#e0555f'; return; }
+          km.style.color = ''; km.textContent = '✓ saved';
+          [fi, ci].forEach(function (x){ if (x && x.value.trim()) { x.style.borderColor = 'rgba(44,170,110,.7)'; } });
+        });
+      }
+      [fi, ci].forEach(function (x){ if (x) x.onchange = saveKey; });
     });
     async function save(row){
       var s2 = sb(); if (!s2 || !rc.countId) return;
@@ -175,28 +209,27 @@
       b.style.cssText = 'padding:9px 12px;min-height:40px;border-radius:9px;border:1px solid rgba(128,128,128,.4);background:transparent;color:inherit;cursor:pointer;font-weight:600';
       b.onclick = async function (){ b.disabled = true;
         var r = await sb().rpc('return_update', { p_id: b.dataset.id, p_status: b.dataset.s });
-        if (r.error) { b.disabled = false; alert(r.error.message); return; }
+        if (r.error) { b.disabled = false; say(r.error.message, 'Could not update'); return; }
         window.renderReturns();
       };
     });
   };
 
-  // =========================== INVENTORY DASHBOARD CARDS =====================
-  // Called from renderInventory (index.html) — manager+ only; silent for others.
+  // =========================== INVENTORY DASHBOARD → SUMMARY STRIP ============
+  // Called from renderInventory (index.html). Fetches the manager-only
+  // inventory_dashboard numbers (stock value at cost / retail, warranty + failed
+  // units, returns still to send) and hands them to the ONE summary strip
+  // (index.html: invStripSetCloud → the "stock value" / "open returns" chips).
+  // No session / demo / non-manager → hands null and the strip falls back to
+  // the locally computed value and hides the returns chip. Renders nothing itself.
   window.renderInvDash = async function () {
-    var el = document.getElementById('invDash'); if (!el) return;
-    var s = sb(); if (!s) { el.innerHTML = ''; return; }
-    var r = await s.rpc('inventory_dashboard', {});
-    if (r.error || !r.data) { el.innerHTML = ''; return; }   // non-managers get an error → hide silently
-    var d = r.data, money = function (c){ return '$' + ((c || 0) / 100).toFixed(2); };
-    function card(label, val){ return '<div style="flex:1;min-width:120px;' + CARD + '"><div class="sub">' + label + '</div><div style="font-size:20px;font-weight:700;margin-top:2px">' + val + '</div></div>'; }
-    el.innerHTML = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">' +
-      card('Stock retail value', money(d.retail_cents)) +
-      card('Stock cost', money(d.cost_cents)) +
-      card('Warranty replacements', d.warranty_replacements || 0) +
-      card('Failed keys', d.failed_keys || 0) +
-      card('Returns to send', d.returns_needed || 0) +
-      '</div>';
+    function feed(d){ try { if (window.invStripSetCloud) window.invStripSetCloud(d || null); } catch (e) {} }
+    var s = sb(); if (!s) { feed(null); return; }
+    if (demo()) { feed(null); return; }   // 8j: demo has no live session — nothing to fetch
+    var r = null;
+    try { r = await s.rpc('inventory_dashboard', {}); } catch (e) { r = { error: e }; }
+    if (!r || r.error || !r.data) { feed(null); return; }   // non-managers get an error → local numbers only
+    feed(r.data);
   };
 
   // =========================== WARRANTY / FAILED MODALS ======================
@@ -222,7 +255,7 @@
   function afterChange(){ try { if (window.renderInventory) renderInventory(); } catch (e) {} try { if (window.renderInvDash) renderInvDash(); } catch (e) {} }
 
   window.invFailed = async function (itemId, itemName) {
-    var s = sb(); if (!s) { alert('Sign in to the cloud first.'); return; }
+    var s = sb(); if (!s || demo()) { say(demo() ? 'Marking a unit failed needs the live app (the demo has no serialized units).' : 'Sign in to the cloud first.'); return; }
     var m = modal('⚠️ Mark a unit failed',
       '<div class="sub" style="margin-bottom:8px">' + E(itemName) + ' — pulls one unit from stock and adds it to the supplier-return list. No customer (this key never reached one).</div>' +
       '<label>From location</label><select id="fkLoc" style="' + INP + '">' + (await locOptions(s)) + '</select>' +
@@ -239,7 +272,7 @@
   };
 
   window.invWarranty = async function (itemId, itemName) {
-    var s = sb(); if (!s) { alert('Sign in to the cloud first.'); return; }
+    var s = sb(); if (!s || demo()) { say(demo() ? 'Warranty replacement needs the live app (the demo has no serialized units).' : 'Sign in to the cloud first.'); return; }
     var units = [];
     try { units = ((await s.from('inventory_units').select('sold_receipt_id,sold_at').eq('item_id', itemId).eq('status', 'sold').not('sold_receipt_id', 'is', null).order('sold_at', { ascending: false })).data) || []; } catch (e) {}
     var ids = []; units.forEach(function (u){ if (u.sold_receipt_id && ids.indexOf(u.sold_receipt_id) < 0) ids.push(u.sold_receipt_id); });
@@ -271,14 +304,23 @@
   // C-#16: the front door of the phase-6 traceability engine. Receiving units
   // flips the item to serialized (server: unit_ensure_serialized inside
   // unit_receive) and records supplier / batch / per-unit cost for each unit.
+  // 8i: <option>s for the shop's configured suppliers (Setup › Inventory), for datalists
+  function supplierOptions() { try { return (TKS.Config.suppliers() || []).map(function (s) { return '<option value="' + E(s.name) + '">'; }).join(''); } catch (e) { return ''; } }
+  // Supplier is prefilled from the part's own Supplier field; the order # is asked for
+  // (recommended, skippable with a themed confirm) so units can be matched to the
+  // supplier invoice later. After a successful receive, when the Zebra label printer is
+  // enabled, the button becomes "🏷️ Print N unit labels" (one Code-128 label per unit id).
   window.invReceiveUnits = async function (itemId, itemName) {
-    var s = sb(); if (!s) { alert('Sign in to the cloud first.'); return; }
+    var s = sb(); if (!s || demo()) { say(demo() ? 'Receiving serialized units needs the live app (the demo has no cloud session).' : 'Sign in to the cloud first.'); return; }
+    var part = null; try { part = TKS.Inventory.get(itemId); } catch (e) {}
+    var preSup = (part && part.supplier) ? String(part.supplier) : '';
     var m = modal('📦 Receive units (serial-tracked)',
-      '<div class="sub" style="margin-bottom:8px">' + E(itemName) + ' — records each unit individually (supplier, batch, cost), so every key can be traced from receiving to sale, warranty or return. Receiving this way turns on per-unit tracking for this item.</div>' +
+      '<div class="sub" style="margin-bottom:8px">' + E(itemName) + ' — records each unit individually (supplier, order #, cost), so every key can be traced from receiving to sale, warranty or return. Receiving this way turns on per-unit tracking for this item.</div>' +
       '<label>Into location</label><select id="ruLoc" style="' + INP + '">' + (await locOptions(s)) + '</select>' +
       '<label>How many</label><input id="ruQty" type="number" inputmode="numeric" min="1" value="1" style="' + INP + '">' +
-      '<label>Supplier (optional)</label><input id="ruSup" placeholder="e.g. American Key Supply" style="' + INP + '">' +
-      '<label>Batch / order # (optional)</label><input id="ruBatch" placeholder="e.g. PO-1042" style="' + INP + '">' +
+      '<label>Supplier' + (preSup ? ' <span class="sub">— from the part</span>' : ' (optional)') + '</label><input id="ruSup" list="ruSupList" value="' + E(preSup) + '" placeholder="e.g. American Key Supply" style="' + INP + '">' +
+      '<datalist id="ruSupList">' + supplierOptions() + '</datalist>' +   // 8i: the shop's suppliers from Setup › Inventory
+      '<label>Supplier invoice / order # <span class="sub">(recommended)</span></label><input id="ruBatch" placeholder="e.g. INV-88213 or PO-1042" style="' + INP + '">' +
       '<label>Cost per unit $ (optional — falls back to the item’s cost)</label><input id="ruCost" type="number" inputmode="decimal" step="0.01" min="0" placeholder="e.g. 12.50" style="' + INP + '">' +
       '<button id="ruGo" style="' + BTN + '">Receive into stock</button>' +
       '<div id="ruMsg" class="sub" style="margin-top:8px"></div>');
@@ -289,15 +331,163 @@
       var costRaw = (m.body.querySelector('#ruCost').value || '').trim();
       var costCents = costRaw === '' ? null : Math.round(parseFloat(costRaw) * 100);
       if (costCents !== null && (isNaN(costCents) || costCents < 0)) { msg.textContent = 'Cost must be a positive amount (or blank).'; return; }
+      var supplier = (m.body.querySelector('#ruSup').value || '').trim();
+      var batch = (m.body.querySelector('#ruBatch').value || '').trim();
+      if (!batch) {
+        var go = await ask({ title: 'Receive without an order number?', message: 'You won’t be able to match these keys to a supplier invoice later.', okText: 'Receive anyway', cancelText: 'Go back', danger: true });
+        if (!go) { try { m.body.querySelector('#ruBatch').focus(); } catch (e) {} return; }
+      }
       btn.disabled = true; msg.textContent = 'Receiving…';
       var r = await s.rpc('unit_receive', {
         p_item: itemId, p_location: m.body.querySelector('#ruLoc').value, p_qty: qty,
-        p_supplier: m.body.querySelector('#ruSup').value || '', p_batch: m.body.querySelector('#ruBatch').value || '',
+        p_supplier: supplier, p_batch: batch,
         p_unit_cost_cents: costCents
       });
       if (r.error) { msg.textContent = r.error.message; btn.disabled = false; return; }
-      msg.textContent = '✓ Received ' + ((r.data && r.data.length) || qty) + ' unit(s) — each is now individually tracked.';
-      afterChange(); setTimeout(m.close, 1100);
+      var ids = Array.isArray(r.data) ? r.data.filter(Boolean) : [];
+      msg.textContent = '✓ Received ' + (ids.length || qty) + ' unit(s) — each is now individually tracked.';
+      afterChange();
+      // Labels: one per unit when the Zebra printer is enabled on this workstation
+      var lbOn = false; try { lbOn = !!(window.TKS_HW && TKS_HW.prefs && TKS_HW.prefs().labels && TKS_HW.prefs().labels.enabled && TKS_HW.labels && TKS_HW.labels.printUnits); } catch (e) {}
+      if (!lbOn || !ids.length) { setTimeout(m.close, 1100); return; }
+      var nowIso = new Date().toISOString();
+      var units = ids.map(function (id){ return { id: id, acquired_at: nowIso, supplier: supplier, batch: batch }; });
+      var partForLabel = part || { id: itemId, name: itemName, sku: '' };
+      btn.textContent = '🏷️ Print ' + ids.length + ' unit label' + (ids.length === 1 ? '' : 's'); btn.disabled = false;
+      var done = document.createElement('button'); done.type = 'button'; done.textContent = 'Done — no labels';
+      done.style.cssText = 'width:100%;margin-top:8px;padding:12px;min-height:44px;border-radius:10px;border:1px solid rgba(128,128,128,.4);background:transparent;color:inherit;font-weight:600;cursor:pointer';
+      btn.insertAdjacentElement('afterend', done);
+      done.onclick = m.close;
+      btn.onclick = function () {
+        btn.disabled = true; msg.textContent = 'Printing ' + units.length + ' label(s)…';
+        TKS_HW.labels.printUnits(units, partForLabel).then(function (n){ msg.textContent = '✓ ' + n + ' label(s) sent to the printer.'; setTimeout(m.close, 1100); })
+          .catch(function (err){ msg.textContent = (err && err.message) || String(err); btn.disabled = false; });
+      };
     };
   };
+
+  // =========================== UNIT LOOKUP + "STORY" PANEL ====================
+  // A scanned per-unit label (Code-128 of the unit id, u_ + 32 hex) → the unit's story:
+  // part + SKU, brand + grade, supplier + order #, received when/by whom, cost, where
+  // it is now, sale (receipt / customer / date) and disposition, with the actions a
+  // tech needs on the spot. Also opened from the Inventory toolbar ("🔎 Scan a key")
+  // with a text box for shops without a scanner (unit id OR SKU).
+  // Reads inventory_units directly (staff have select). Demo mode: a clear note.
+  window.unitLookup = async function (code) {
+    code = String(code || '').trim();
+    if (demo()) throw new Error('Unit lookup needs the live app — the demo has no serialized units.');
+    var s = sb(); if (!s) throw new Error('Sign in to the cloud to look up a key.');
+    var r = await s.from('inventory_units').select('*').eq('id', code).maybeSingle();
+    if (r.error) throw new Error(r.error.message);
+    if (!r.data) throw new Error('No key with id “' + code + '” in this shop.');
+    var part = null; try { part = TKS.Inventory.get(r.data.item_id); } catch (e) {}
+    return { unit: r.data, part: part };
+  };
+  var ST_LABEL = { in_stock: 'In stock', sold: 'Sold', warranty_out: 'Out on warranty', failed: 'Failed', lost: 'Lost', written_off: 'Written off' };
+  var ST_COLOR = { in_stock: '#1c7d3e', sold: '#2b6cb0', warranty_out: '#b7791f', failed: '#a3252e', lost: '#a3252e', written_off: '#6b7280' };
+  function findPartLocal(code){
+    var all = []; try { all = TKS.Inventory.all() || []; } catch (e) {}
+    var lc = code.toLowerCase();
+    return all.find(function (p){ return String(p.sku || '').toLowerCase() === lc; }) ||
+           all.find(function (p){ return String(p.id) === code; }) ||
+           all.find(function (p){ return String(p.sku || '').toLowerCase().indexOf(lc) === 0; }) || null;
+  }
+  var ROW = 'display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid rgba(128,128,128,.22);font-size:14px';
+  var ACT = 'flex:1 1 140px;min-height:44px;padding:10px 12px;border-radius:10px;border:1px solid rgba(128,128,128,.4);background:transparent;color:inherit;font-weight:700;cursor:pointer;font-size:14px';
+  var upOpen = null;   // the panel that is open right now — a scan while it's open feeds it instead of stacking another
+  window.openUnitPanel = function (code) {
+    code = String(code || '').trim();
+    if (upOpen && document.body.contains(upOpen.ov)) { if (code) { upOpen.inp.value = code; upOpen.find(code); } else { try { upOpen.inp.focus(); } catch (e) {} } return upOpen.m; }
+    var m = modal('🔎 Key lookup',
+      '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:10px">' +
+        '<input id="upCode" placeholder="Scan or type a unit id (u_…) or SKU" autocomplete="off" autocapitalize="off" spellcheck="false" style="' + INP + 'margin:0;flex:1;min-width:0">' +
+        '<button id="upGo" type="button" style="flex:0 0 auto;min-width:72px;min-height:44px;padding:0 14px;border-radius:9px;border:none;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:700;cursor:pointer">Find</button>' +
+      '</div>' +
+      '<div id="upOut" class="sub">Scan a key’s label, or type its unit id or the part’s SKU.</div>' +
+      // 8r: phone camera (QR unit labels / SKU barcodes); hidden when the page has no camera access (plain http, desktop without camera)
+      ((window.TKS_CAM && TKS_CAM.available()) ? '<button id="upCam" type="button" style="margin-top:10px;width:100%;min-height:46px;border-radius:10px;border:1px solid rgba(128,128,128,.4);background:transparent;color:inherit;font-weight:700;font-size:15px;cursor:pointer">📷 Scan with the camera</button>' : ''));
+    var inp = m.body.querySelector('#upCode'), out = m.body.querySelector('#upOut');
+    function note(html){ out.innerHTML = '<div style="' + CARD + ';font-size:14px;line-height:1.5">' + html + '</div>'; }
+    function partHead(part, fallbackName){
+      var brand = ''; try { brand = window.partBrand ? partBrand(part) : (part.brand || ''); } catch (e) {}
+      var grade = ''; try { grade = (window.partGrade && part) ? partGrade(part) : (part.grade || ''); } catch (e) {}
+      if (grade === 'Unsorted') grade = '';
+      return '<div style="font-weight:800;font-size:16px;line-height:1.3">' + E((part && part.name) || fallbackName || '(part)') + '</div>' +
+        '<div class="sub" style="margin-top:2px">' + [part && part.sku, brand, grade].filter(Boolean).map(E).join(' · ') + '</div>';
+    }
+    async function story(unit, part){
+      var s = sb();
+      var vans = [], who = '', custName = '';
+      try { vans = ((await s.from('vans').select('id,nickname,fleet_no')).data) || []; } catch (e) {}
+      if (unit.created_by) { try { var st = await s.from('staff').select('user_id,name').eq('user_id', unit.created_by).maybeSingle(); who = (st.data && st.data.name) || ''; } catch (e) {} }
+      if (unit.sold_customer_id) { try { var c = (TKS.Customers.all() || []).find(function (x){ return x.id === unit.sold_customer_id; }); custName = (c && (c.customer || c.name)) || ''; } catch (e) {} }
+      if (!custName && unit.sold_receipt_id) { try { var rc = await s.from('receipts').select('data').eq('id', unit.sold_receipt_id).maybeSingle(); custName = (rc.data && rc.data.data && rc.data.data.customer) || ''; } catch (e) {} }
+      function locName(l){ if (l === 'shop') return '🏪 Shop'; if (String(l).indexOf('van:') === 0) { var v = vans.find(function (x){ return x.id === String(l).slice(4); }); return '🚐 ' + ((v && (v.nickname || ('Van ' + (v.fleet_no || '')))) || 'Van'); } return l || '—'; }
+      var st = unit.status || 'in_stock';
+      var pName = (part && part.name) || unit.item_id;
+      var rows = [
+        ['Status', '<b style="color:' + (ST_COLOR[st] || 'inherit') + '">' + E(ST_LABEL[st] || st) + '</b>' + (st === 'in_stock' ? ' · ' + E(locName(unit.location)) : '')],
+        ['Supplier', E(unit.supplier || (part && part.supplier) || '—')],
+        ['Invoice / order #', unit.batch ? E(unit.batch) : '<span class="sub">— not recorded</span>'],
+        ['Received', E(fmtDate(unit.acquired_at || unit.created_at) || '—') + (who ? ' · by ' + E(who) : '')],
+        ['Unit cost', unit.unit_cost_cents != null ? money(unit.unit_cost_cents) : '<span class="sub">—</span>']
+      ];
+      if (unit.sold_receipt_id || unit.sold_at) rows.push(['Sold', [fmtDate(unit.sold_at), unit.sold_receipt_id ? ('receipt ' + unit.sold_receipt_id) : '', custName].filter(Boolean).map(E).join(' · ') || '—']);
+      if (unit.disposition) rows.push([st === 'warranty_out' ? 'Warranty' : 'Disposition', E(unit.disposition)]);
+      out.innerHTML = '<div style="' + CARD + '">' + partHead(part, unit.item_id) +
+        '<div class="sub" style="margin:6px 0 8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all">' + E(unit.id) + '</div>' +
+        rows.map(function (r){ return '<div style="' + ROW + '"><span class="sub" style="flex:0 0 auto">' + r[0] + '</span><span style="text-align:right">' + r[1] + '</span></div>'; }).join('') +
+        '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
+          '<button type="button" id="upWarr" style="' + ACT + '">🛡️ Warranty replacement</button>' +
+          '<button type="button" id="upFail" style="' + ACT + '">⚠️ Mark failed → return</button>' +
+          (part && window.openStockPanel ? '<button type="button" id="upMove" style="' + ACT + '">📍 Move / stock</button>' : '') +
+          '<button type="button" id="upClose" style="' + ACT + ';border-color:transparent;font-weight:600">Close</button>' +
+        '</div>';
+      var itemId = unit.item_id;
+      out.querySelector('#upWarr').onclick = function (){ m.close(); if (window.invWarranty) invWarranty(itemId, pName); };
+      out.querySelector('#upFail').onclick = function (){ m.close(); if (window.invFailed) invFailed(itemId, pName); };
+      var mv = out.querySelector('#upMove'); if (mv) mv.onclick = function (){ m.close(); try { openStockPanel(part); } catch (e) {} };
+      out.querySelector('#upClose').onclick = m.close;
+    }
+    async function partUnits(part){
+      // SKU typed/scanned → the part, plus (live app) its most recent units to pick from
+      var head = '<div style="' + CARD + '">' + partHead(part) +
+        '<div class="sub" style="margin-top:6px">On hand: <b>' + (parseInt(part.qty, 10) || 0) + '</b>' + (part.supplier ? ' · supplier ' + E(part.supplier) : '') + '</div></div>';
+      if (demo() || !sb()) { out.innerHTML = head + '<div class="sub" style="margin-top:10px">' + (demo() ? 'Per-unit history (received / sold / warranty) needs the live app — the demo has no serialized units.' : 'Sign in to see this part’s individual units.') + '</div>'; return; }
+      out.innerHTML = head + '<div class="sub" style="margin-top:10px">Loading units…</div>';
+      var units = [];
+      try { units = ((await sb().from('inventory_units').select('id,status,location,supplier,batch,acquired_at,sold_at').eq('item_id', part.id).order('acquired_at', { ascending: false }).limit(25)).data) || []; } catch (e) {}
+      if (!units.length) { out.innerHTML = head + '<div class="sub" style="margin-top:10px">No serialized units for this part yet — use 📦 Receive units on its row to start tracking each key.</div>'; return; }
+      out.innerHTML = head + '<div class="sub" style="margin:10px 0 4px">Units (newest first) — tap one for its story</div>' +
+        units.map(function (u){ return '<button type="button" class="upU" data-id="' + E(u.id) + '" style="display:flex;width:100%;justify-content:space-between;gap:10px;align-items:center;min-height:44px;padding:8px 10px;margin-top:6px;border-radius:9px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;cursor:pointer;text-align:left;font-size:13px">' +
+          '<span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;word-break:break-all">' + E(u.id) + '</span>' +
+          '<span style="flex:0 0 auto;color:' + (ST_COLOR[u.status] || 'inherit') + ';font-weight:700">' + E(ST_LABEL[u.status] || u.status) + '</span></button>'; }).join('');
+      out.querySelectorAll('.upU').forEach(function (b){ b.onclick = function (){ inp.value = b.dataset.id; find(b.dataset.id); }; });
+    }
+    async function find(v){
+      v = String(v || '').trim(); if (!v) { out.innerHTML = '<div class="sub">Type or scan something first.</div>'; return; }
+      if (looksLikeUnit(v)) {
+        if (demo()) { note('<b>Unit lookup needs the live app.</b><br>The demo has no cloud session or serialized units. In the live app, scanning a key’s label opens its story here: part, supplier and order #, when it was received, where it is, and its sale or warranty history.'); return; }
+        if (!sb()) { note('Sign in to the cloud to look up a key by its unit id.'); return; }
+        out.innerHTML = '<div class="sub">Looking up ' + E(v) + '…</div>';
+        try { var res = await window.unitLookup(v); await story(res.unit, res.part); }
+        catch (e) { note(E((e && e.message) || String(e))); }
+        return;
+      }
+      var p = findPartLocal(v);
+      if (!p) { note('No part with SKU “' + E(v) + '”. Scan a key label (unit id) or type the exact SKU.'); return; }
+      await partUnits(p);
+    }
+    m.body.querySelector('#upGo').onclick = function (){ find(inp.value); };
+    var camBtn = m.body.querySelector('#upCam');
+    if (camBtn) camBtn.onclick = function (){ TKS_CAM.scan({ title: '📷 Scan a key', hint: 'Point the camera at the key label’s QR code (or a SKU barcode).' })
+      .then(function (code){ inp.value = code; find(code); })
+      .catch(function (e){ if (e && e.message !== 'cancelled') note(e.message || String(e)); }); };
+    inp.addEventListener('keydown', function (e){ if (e.key === 'Enter') { e.preventDefault(); find(inp.value); } });
+    upOpen = { m: m, ov: m.ov, inp: inp, find: find };
+    if (code) { inp.value = code; find(code); } else { setTimeout(function (){ try { inp.focus(); } catch (e) {} }, 40); }
+    return m;
+  };
+  window.unitPanelOpen = function (){ return !!(upOpen && document.body.contains(upOpen.ov)); };
 })();

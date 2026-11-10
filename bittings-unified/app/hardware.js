@@ -17,7 +17,9 @@
                    WebPRNT-native printer IP. Requires the Star Web SDK scripts.
 
      3) labels   — Zebra ZD421 (ZPL) for inventory part labels. Builds a Code-128
-                   SKU barcode + part-name label and sends raw ZPL via the Zebra
+                   SKU barcode + part-name label (printPart) or a per-UNIT label whose
+                   barcode is the serialized unit id (printUnit / printUnits — scanning
+                   it opens that key's story) and sends raw ZPL via the Zebra
                    BrowserPrint SDK to the locally-attached printer. Requires
                    Browser Print app + the BrowserPrint SDK scripts.
 
@@ -477,7 +479,79 @@
       return sendZPL(buildZPL(part));
     }
 
-    return { buildZPL: buildZPL, printPart: printPart, listDevices: listDevices, sendZPL: sendZPL, sdkReady: sdkReady };
+    // ---- Per-UNIT label (serialized keys, phase 6 inventory_units) ----
+    // Top: part name (1 line) + SKU · received date. Middle: Code-128 of the UNIT id
+    // (u_ + 32 hex = 34 chars → narrow 1-dot modules so it fits a 2.25" label; the
+    // scanner returns the id and the app opens that unit's story). Bottom: the id in text.
+    function fmtDate(d) {
+      try { var x = d ? new Date(d) : new Date(); if (isNaN(x.getTime())) return ''; return x.toISOString().slice(0, 10); } catch (e) { return ''; }
+    }
+    function buildUnitZPL(unit, part, opt) {
+      opt = opt || {}; unit = unit || {}; part = part || {};
+      var dpi = opt.dpi || prefs.labels.dpi || 203;
+      var wIn = opt.widthIn || prefs.labels.widthIn || 2.25;
+      var hIn = opt.heightIn || prefs.labels.heightIn || 1.25;
+      var PW = Math.round(wIn * dpi);
+      var LL = Math.round(hIn * dpi);
+      var m = Math.round(0.08 * dpi);
+      var barH = Math.round(0.36 * dpi);
+      var uid = z(unit.id || '');
+      var sku = z(part.sku || part.id || '');
+      var name = z(part.name || '');
+      var when = fmtDate(unit.acquired_at || unit.created_at);
+      var nameFont = Math.round(0.12 * dpi);
+      var subFont = Math.round(0.10 * dpi);
+      var idFont = Math.round(0.085 * dpi);
+      // 8o: QR code (owner's choice — the 34-char unit id made a Code-128 too fine to scan reliably on a 2.25" label).
+      // QR version 3 (29 modules) + a 4-module quiet zone each side = 37 modules; biggest magnification that fits the height.
+      var qrModules = 37;
+      var mag = Math.max(3, Math.min(8, Math.floor((LL - 2 * m) / qrModules)));
+      var qrSize = qrModules * mag;
+      var tx = m + qrSize + Math.round(0.06 * dpi);           // text column starts right of the QR
+      var tw = Math.max(60, PW - tx - m);
+      var nameFont2 = Math.round(0.11 * dpi), subFont2 = Math.round(0.09 * dpi), idFont2 = Math.round(0.075 * dpi);
+      void barH; void nameFont; void subFont; void idFont;
+      return [
+        '^XA',
+        '^CI28',
+        '^PW' + PW, '^LL' + LL,
+        '^MD' + (prefs.labels.darkness != null ? prefs.labels.darkness : 20),
+        '^PR' + (prefs.labels.speed || 3),
+        // QR of the unit id (error correction M, automatic encoding) — scanning it opens the unit's story in the app
+        '^FO' + m + ',' + m + '^BQN,2,' + mag + '^FDMA,' + uid + '^FS',
+        // part name (up to 2 lines)
+        '^FO' + tx + ',' + m + '^A0N,' + nameFont2 + ',' + nameFont2 + '^FB' + tw + ',2,0,L^FD' + name + '^FS',
+        // SKU, then received date on the next line
+        '^FO' + tx + ',' + Math.round(m + nameFont2 * 2.2) + '^A0N,' + subFont2 + ',' + subFont2 + '^FB' + tw + ',2,0,L^FD' + sku + (when ? '\\&rcvd ' + when : '') + '^FS',
+        // unit id in small text (manual fallback — the Scan-a-key box accepts it typed)
+        '^FO' + tx + ',' + Math.round(LL - m - idFont2 * 2.3) + '^A0N,' + idFont2 + ',' + idFont2 + '^FB' + tw + ',2,0,L^FD' + uid + '^FS',
+        '^XZ'
+      ].join('\n');
+    }
+    function printUnit(unit, part) {
+      if (!prefs.labels.enabled) return Promise.reject(new Error('Label printing is disabled in Hardware settings.'));
+      if (!unit || !unit.id) return Promise.reject(new Error('No unit id to print.'));
+      return sendZPL(buildUnitZPL(unit, part));
+    }
+    // One label per unit, sent in order on one device connection; resolves with the count printed.
+    function printUnits(units, part) {
+      if (!prefs.labels.enabled) return Promise.reject(new Error('Label printing is disabled in Hardware settings.'));
+      units = (units || []).filter(function (u) { return u && u.id; });
+      if (!units.length) return Promise.reject(new Error('No units to print.'));
+      return device().then(function (d) {
+        var i = 0;
+        function next() {
+          if (i >= units.length) return Promise.resolve(units.length);
+          var zpl = buildUnitZPL(units[i++], part);
+          return new Promise(function (resolve, reject) {
+            d.send(zpl, function () { resolve(); }, function (err) { reject(new Error('Print error: ' + err)); });
+          }).then(next);
+        }
+        return next();
+      });
+    }
+
+    return { buildZPL: buildZPL, printPart: printPart, buildUnitZPL: buildUnitZPL, printUnit: printUnit, printUnits: printUnits, listDevices: listDevices, sendZPL: sendZPL, sdkReady: sdkReady };
   })();
 
   /* ========================================================================
@@ -487,11 +561,11 @@
     var back = document.createElement('div');
     back.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:14px';
     var card = document.createElement('div');
-    card.style.cssText = 'background:#1b1f27;color:#f4f5f7;width:100%;max-width:' + (wide ? '560px' : '460px')
+    card.style.cssText = 'background:var(--card,#1b1f27);color:var(--ink,#f4f5f7);width:100%;max-width:' + (wide ? '560px' : '460px')
       + ';border-radius:16px;padding:18px;max-height:92vh;overflow:auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif';
     card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
       + '<b style="font-size:17px">' + esc(title) + '</b>'
-      + '<button type="button" data-x style="background:none;border:none;color:#9aa3af;font-size:24px;cursor:pointer;width:40px;height:40px">&times;</button></div>'
+      + '<button type="button" data-x style="background:none;border:none;color:var(--dim,#9aa3af);font-size:24px;cursor:pointer;width:40px;height:40px">&times;</button></div>'
       + bodyHTML;
     back.appendChild(card);
     document.body.appendChild(back);
@@ -501,7 +575,7 @@
     return { back: back, card: card, close: close };
   }
   function pre(text) {
-    return '<pre style="background:#0c0f14;border:1px solid #2a2f3a;border-radius:10px;padding:12px;'
+    return '<pre style="background:var(--bg,#0c0f14);border:1px solid var(--edge,#2a2f3a);color:var(--ink,#f4f5f7);border-radius:10px;padding:12px;'
       + 'overflow:auto;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;white-space:pre;color:#cfe">'
       + esc(text) + '</pre>';
   }
@@ -520,22 +594,24 @@
   function samplePart() { return { sku: 'HU101-F', name: 'Ford HU101 high-security key blank', id: 'inv_demo' }; }
 
   function field(label, html) {
-    return '<label style="display:block;font-size:12px;color:#9aa3af;margin:10px 0 4px">' + esc(label) + '</label>' + html;
+    return '<label style="display:block;font-size:12px;color:var(--dim,#9aa3af);margin:10px 0 4px">' + esc(label) + '</label>' + html;
   }
-  function inputCss() { return 'width:100%;box-sizing:border-box;background:#11141a;border:1px solid #2a2f3a;border-radius:9px;color:#f4f5f7;padding:9px;font-size:14px'; }
+  function inputCss() { return 'width:100%;box-sizing:border-box;background:var(--bg,#11141a);border:1px solid var(--edge,#2a2f3a);border-radius:9px;color:var(--ink,#f4f5f7);padding:9px;font-size:14px'; }
   function btn(label, id, kind) {
-    var bg = kind === 'go' ? 'linear-gradient(180deg,#c8323c,#8f1f27)' : '#2a2f3a';
-    return '<button type="button" id="' + id + '" style="padding:9px 12px;border-radius:9px;border:none;background:' + bg + ';color:#fff;font-weight:700;cursor:pointer;margin:4px 6px 0 0">' + esc(label) + '</button>';
+    // 8k: follows the app theme (was dark-only); the primary button stays red/white
+    var bg = kind === 'go' ? 'linear-gradient(180deg,#c8323c,#8f1f27)' : 'var(--edge,#2a2f3a)';
+    var fg = kind === 'go' ? '#fff' : 'var(--ink,#f4f5f7)';
+    return '<button type="button" id="' + id + '" style="padding:9px 12px;border-radius:9px;border:none;background:' + bg + ';color:' + fg + ';font-weight:700;cursor:pointer;margin:4px 6px 0 0">' + esc(label) + '</button>';
   }
 
   function openSettings() {
     var s = prefs.scanner, th = prefs.thermal, lb = prefs.labels;
     var starOk = thermal.sdkReady(), zebraOk = labels.sdkReady();
     var body = ''
-      + '<div style="font-size:12px;color:#9aa3af;margin-bottom:6px">Settings are saved on THIS device only (printers are per-workstation).</div>'
+      + '<div style="font-size:12px;color:var(--dim,#9aa3af);margin-bottom:6px">Settings are saved on THIS device only (printers are per-workstation).</div>'
 
       // SCANNER
-      + '<div style="border:1px solid #2a2f3a;border-radius:12px;padding:12px;margin-bottom:12px">'
+      + '<div style="border:1px solid var(--edge,#2a2f3a);border-radius:12px;padding:12px;margin-bottom:12px">'
       + '<b>1 · Barcode scanner</b>'
       + '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px"><input type="checkbox" id="hwScanEn"' + (s.enabled ? ' checked' : '') + '> Enable scan-to-ticket (keyboard-wedge)</label>'
       + field('Test — focus here and scan, or type a code + Enter:', '<input id="hwScanTest" placeholder="(last scan shows below)" style="' + inputCss() + '">')
@@ -544,7 +620,7 @@
       + '</div>'
 
       // THERMAL
-      + '<div style="border:1px solid #2a2f3a;border-radius:12px;padding:12px;margin-bottom:12px">'
+      + '<div style="border:1px solid var(--edge,#2a2f3a);border-radius:12px;padding:12px;margin-bottom:12px">'
       + '<b>2 · Star TSP100 receipt + drawer</b> <span style="font-size:11px;color:' + (starOk ? '#7fd49b' : '#f2b43a') + '">' + (starOk ? '● SDK loaded' : '● Star Web SDK not loaded') + '</span>'
       + '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px"><input type="checkbox" id="hwThEn"' + (th.enabled ? ' checked' : '') + '> Enable thermal receipts</label>'
       + field('WebPRNT endpoint', '<input id="hwThUrl" value="' + esc(th.endpoint) + '" style="' + inputCss() + '">')
@@ -559,7 +635,7 @@
       + '</div>'
 
       // LABELS
-      + '<div style="border:1px solid #2a2f3a;border-radius:12px;padding:12px;margin-bottom:8px">'
+      + '<div style="border:1px solid var(--edge,#2a2f3a);border-radius:12px;padding:12px;margin-bottom:8px">'
       + '<b>3 · Zebra ZD421 labels</b> <span style="font-size:11px;color:' + (zebraOk ? '#7fd49b' : '#f2b43a') + '">' + (zebraOk ? '● Browser Print loaded' : '● Browser Print not loaded') + '</span>'
       + '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px"><input type="checkbox" id="hwLbEn"' + (lb.enabled ? ' checked' : '') + '> Enable label printing</label>'
       + field('Printer', '<select id="hwLbDev" style="' + inputCss() + '"><option value="">(OS default)</option></select>')

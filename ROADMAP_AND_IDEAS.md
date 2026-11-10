@@ -50,3 +50,9 @@ _Last updated: 2026-07-02._
 _How to use this: when an idea strikes, tell me "add to the parking lot" and I'll drop it in **Ideas**.
 When we decide to actually do one, it moves to **Planned**, then **Now** when we start. I keep this and
 `BITTINGS_OVERVIEW.md` current as things move._
+
+## Parked for later (owner, 2026-11-08) — nothing paid until it is worth testing
+- **Customer texts** (on the way / key ready / review request) — Twilio-class provider, ~1¢ per message.
+- **Tech en-route tracking + customer countdown page** — browser GPS on status change (works while the app is on screen; true background tracking needs a store-published wrapper), a drive-time call (Google/Mapbox, cents per estimate), and a token-protected "where is my tech" page that counts down from the last estimate. Build the customer page first once texting exists.
+- **Daily low-stock / closeout email.**
+- **Receive against an order + reorder history/PDF**, bulk vendor-SKU fill screen, warranty expiry on the unit panel, offline mode, tech scoreboard, audit viewer, new-shop onboarding (see the 2026-11-08 handoff entries).

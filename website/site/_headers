@@ -18,3 +18,13 @@
 # (Bump this back up at go-live once the design is stable.)
 /assets/*
   Cache-Control: public, max-age=300, must-revalidate
+
+# Bittings staff app (published under /staff/ — private tool, not a site page)
+/staff/*
+  ! Permissions-Policy
+  X-Robots-Tag: noindex, nofollow
+  Permissions-Policy: geolocation=(self), microphone=(), camera=(self)
+  Cache-Control: no-cache
+  # never keep the staff app at the Cloudflare edge — updates must show on the next load
+  CDN-Cache-Control: no-store
+  Cloudflare-CDN-Cache-Control: no-store

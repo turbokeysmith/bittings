@@ -112,15 +112,21 @@
         unit: r.unit, cost: r.cost, sellPriceCents: r.sell_price_cents, location: r.location, notes: r.notes,
         supplier: r.supplier, reorderQty: r.reorder_qty, fitment: r.fitment,
         fccId: r.fcc_id || '', chip: r.chip || '', serialized: !!r.serialized,     // 8h: key fields (+ serialized exposed through the view)
+        grade: r.grade || '', brand: r.brand || '',                                 // 8i: owner category (Aftermarket / OEM New / OEM Refurbished / Universal) + universal-key maker
+        vendorSku: r.vendor_sku || '',                                               // 8p: the supplier's own part number
         createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
-      toRow: function (o) { return {
+      toRow: function (o) { var row = {
         id: o.id, name: o.name || '', sku: o.sku || '', category: o.category || '',
         qty: parseInt(o.qty, 10) || 0, low_at: parseInt(o.lowAt, 10) || 0, unit: o.unit || '',
         cost: o.cost === '' || o.cost == null ? null : Number(o.cost),
         sell_price_cents: (o.sellPriceCents === '' || o.sellPriceCents == null) ? null : parseInt(o.sellPriceCents, 10),
         location: o.location || '',
         notes: o.notes || '', supplier: o.supplier || '', reorder_qty: parseInt(o.reorderQty, 10) || 0,
-        fitment: o.fitment || '', fcc_id: (o.fccId || '').trim(), chip: (o.chip || '').trim() }; }   // `serialized` is never written from here (6a owns it)
+        fitment: o.fitment || '', fcc_id: (o.fccId || '').trim(), chip: (o.chip || '').trim(),
+        grade: (o.grade || '').trim(), brand: (o.brand || '').trim(), vendor_sku: (o.vendorSku || '').trim() };
+        // 8k: on a plan without 'fitment' the read view blanks these three, so never write them back (an edit would wipe the real values)
+        try { if (global.TKS_TIER && TKS_TIER.allows && !TKS_TIER.allows('fitment')) { delete row.fitment; delete row.fcc_id; delete row.chip; } } catch (e) {}
+        return row; }   // `serialized` is never written from here (6a owns it)
     },
     // bookings + receipts: keep their full (nested) shape inside jsonb `data`
     bookings: {
@@ -162,6 +168,9 @@
     // falls back to localStorage while the others sync. Nothing throws.
     function hydrateAll() {
       var keys = Object.keys(CLOUD_MAP);
+      // 8j: demo / sandbox runs on a seeded fake token — every table would just 401 and fall back to local.
+      // Skip the round-trips (and the console noise) and go straight to local for all of them.
+      if (_demoOn()) { keys.forEach(function (key) { localKeys[key] = true; }); return Promise.resolve(keys.map(function (key) { return { key: key, ok: false }; })); }
       return Promise.all(keys.map(function (key) {
         return hydrateKey(key).then(function () { return { key: key, ok: true }; })
           .catch(function (e) {
@@ -334,7 +343,7 @@
       var hits = list.filter(function (p) {
         // `fitment` = what vehicles a key/fob fits (make/model/years/FCC), so a
         // VIN search (decoded to make+model) finds the matching part.
-        return ['name', 'sku', 'category', 'location', 'notes', 'fitment', 'vin', 'fccId', 'chip']
+        return ['name', 'sku', 'vendorSku', 'category', 'location', 'notes', 'fitment', 'vin', 'fccId', 'chip']
           .some(function (f) { return (p[f] || '').toString().toLowerCase().indexOf(q) !== -1; });
       });
       // 8h: "2019 enclave" / "buick regal" typed in the box → every key whose Fits list covers
@@ -353,8 +362,8 @@
 
     // 8h: parts whose Fits list covers {year, make, model} (exact-model hits first). Empty when no
     // make/model is given. Used by the Inventory finder, Register/invoice part pickers, Start-a-job.
-    forVehicle: function (veh) {
-      try { return (window.TKS_FIT ? TKS_FIT.filter(this.all().filter(function (p) { return !p.deletedAt; }), veh) : []); } catch (e) { return []; }
+    forVehicle: function (veh, opts) {
+      try { return (window.TKS_FIT ? TKS_FIT.filter(this.all().filter(function (p) { return !p.deletedAt; }), veh, opts) : []); } catch (e) { return []; }
     },
 
     get: function (id) { return this.all().find(function (p) { return p.id === id; }) || null; },
@@ -594,14 +603,34 @@
       return Promise.reject(new Error('Enter a full 17-character VIN.'));
     }
     var url = 'https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/' + encodeURIComponent(vin) + '?format=json';
-    return global.fetch(url).then(function (r) { return r.json(); }).then(function (j) {
-      var row = (j && j.Results && j.Results[0]) || {};
-      var out = { year: row.ModelYear || '', make: row.Make || '', model: row.Model || '', vin: vin };
-      if (!out.make && !out.year) throw new Error("Couldn't read that VIN — enter the details manually.");
-      // vPIC returns ALL-CAPS make; title-case it for display.
-      if (out.make) out.make = out.make.charAt(0) + out.make.slice(1).toLowerCase();
-      return out;
-    });
+    function direct() {
+      return global.fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+        var row = (j && j.Results && j.Results[0]) || {};
+        var out = { year: row.ModelYear || '', make: row.Make || '', model: row.Model || '', vin: vin };
+        if (!out.make && !out.year) throw new Error("Couldn't read that VIN — enter the details manually.");
+        // vPIC returns ALL-CAPS make; title-case it for display.
+        if (out.make) out.make = out.make.charAt(0) + out.make.slice(1).toLowerCase();
+        return out;
+      });
+    }
+    // 8k: a signed-in shop decodes through the `vin-decode` edge function — it enforces the plan ('fitment' =
+    // Starter and up) and meters usage per shop. Demo / offline keep decoding straight from NHTSA on the device.
+    // If the function itself is unreachable we fall back to the direct call so a tech in the field is never stuck;
+    // a TIER_LOCKED answer never falls back.
+    if (authState.sb && !_demoOn()) {
+      return authState.sb.functions.invoke('vin-decode', { body: { vin: vin } }).then(function (res) {
+        if (!res.error) return res.data;
+        var ctx = res.error.context;
+        var readBody = (ctx && typeof ctx.json === 'function') ? ctx.json().catch(function () { return null; }) : Promise.resolve(null);
+        return readBody.then(function (body) {
+          var status = ctx && ctx.status;
+          if (body && body.error === 'TIER_LOCKED') { var e = new Error('Finding keys by VIN is part of the Starter plan — upgrade to turn it on.'); e.code = 'TIER_LOCKED'; throw e; }
+          if (body && body.error && (status === 400 || status === 404)) throw new Error(body.error);
+          return direct();
+        });
+      });
+    }
+    return direct();
   }
 
   var changeHandlers = [];
@@ -620,7 +649,7 @@
     editReference:  ['owner','manager'],
     jobStatus:      ['owner','manager','technician'],  // change job status (front_desk cannot); own-job enforced server-side
     invMove:        ['owner','manager','technician'],  // move stock between locations (inv_move) — front_desk cannot
-    invReceive:     ['owner','manager','front_desk'],  // receive new stock to shop (inv_receive) — technician cannot
+    invReceive:     ['owner','manager','front_desk','technician'],  // receive new stock to shop (inv_receive) — 8z9: techs too (owner)
     takePayment:    ['owner','manager','front_desk','technician'],  // take a payment / new charge — all staff
     keycodes:       ['owner','manager','technician'],  // dealer/OEM keycode portals — front_desk cannot
     vendorTools:    ['owner','manager']                // vendor list + NASTF tiles — manager/owner only
@@ -648,48 +677,8 @@
   var CONFIG_LSKEY = 'tks_shop_config';
   var DEFAULT_VENDORS = [
     { label: 'American Key Supply', url: 'https://www.americankeysupply.com/' },
-    { label: 'Key Innovations', url: 'https://keyinnovations.com/' }
-  ];
-  // Full default locksmith catalog (editable in Setup → Services; stored in config).
-  // Folds in the canonical 5 (Car lockout / key replacement / lockout / rekey / Other).
-  var DEFAULT_SERVICES = [
-    { value: 'Car lockout', cat: 'automotive' },
-    { value: 'Car key duplication / spare', cat: 'automotive' },
-    { value: 'Car key replacement (lost all keys)', cat: 'automotive' },
-    { value: 'Transponder/chip key programming', cat: 'automotive' },
-    { value: 'Key fob / remote programming', cat: 'automotive' },
-    { value: 'Smart / proximity key programming', cat: 'automotive' },
-    { value: 'Push-to-start programming', cat: 'automotive' },
-    { value: 'Ignition repair/replacement', cat: 'automotive' },
-    { value: 'Broken key extraction', cat: 'automotive' },
-    { value: 'ECU / immobilizer programming', cat: 'automotive' },
-    { value: 'High-security / laser-cut key cutting', cat: 'automotive' },
-    { value: 'Motorcycle / powersport keys', cat: 'automotive' },
-    { value: 'Fleet / commercial vehicle keys', cat: 'automotive' },
-    { value: 'House lockout', cat: 'residential' },
-    { value: 'Rekey', cat: 'residential' },
-    { value: 'Lock change / replacement', cat: 'residential' },
-    { value: 'Lock repair', cat: 'residential' },
-    { value: 'Deadbolt installation', cat: 'residential' },
-    { value: 'Smart lock installation', cat: 'residential' },
-    { value: 'Key duplication', cat: 'residential' },
-    { value: 'Master key system (residential)', cat: 'residential' },
-    { value: 'Mailbox lock', cat: 'residential' },
-    { value: 'Commercial lockout', cat: 'commercial' },
-    { value: 'Commercial rekey', cat: 'commercial' },
-    { value: 'Commercial lock change / install', cat: 'commercial' },
-    { value: 'Master key system (commercial)', cat: 'commercial' },
-    { value: 'Access control / keypad / electronic locks', cat: 'commercial' },
-    { value: 'Panic / exit device (push bar)', cat: 'commercial' },
-    { value: 'Door closer install/repair', cat: 'commercial' },
-    { value: 'File cabinet / desk locks', cat: 'commercial' },
-    { value: 'Safe opening / lockout', cat: 'safe' },
-    { value: 'Safe combination change', cat: 'safe' },
-    { value: 'Safe installation / moving', cat: 'safe' },
-    { value: '24/7 emergency lockout', cat: 'emergency' },
-    { value: 'Roadside assistance', cat: 'emergency' },
-    { value: 'Security audit / consultation', cat: 'emergency' },
-    { value: 'Other (describe)', cat: 'other' }
+    { label: 'Key Innovations', url: 'https://keyinnovations.com/' },
+    { label: 'Your Car Key Guys', url: 'https://yourcarkeyguys.com/' }   // 8z2
   ];
   // Quick-link CATEGORIES for the Home screen (common locksmith bookmark groups).
   // Pre-filled where we have known links; empty categories are hidden on Home but
@@ -702,6 +691,20 @@
     { key: 'associations', label: 'Associations',         icon: '🤝', links: [] },
     { key: 'other',        label: 'Other',                icon: '🔗', links: [] }
   ];
+  // 8i: the shop's distributors + the house brand each puts on its aftermarket keys (owner, 2026-11-08).
+  // Editable in Setup › Inventory. A part's Brand picker offers the chosen supplier's brands first, so a
+  // serialized unit (which records its supplier) traces back to brand + distributor on a warranty return.
+  var DEFAULT_SUPPLIERS = [
+    { name: 'American Key Supply', brands: ['Blue Rocket'], phone: '800-692-1898', website: 'americankeysupply.com', address: '2895 W. Capovilla Ave, Suite 100A, Las Vegas, NV 89119' },
+    { name: 'Key Innovations',     brands: ['Keyless2Go'],  phone: '640-224-0031', website: 'keyinnovations.com',    address: '633 Hickory Hill Dr, Vernon Hills, IL 60061', email: 'info@keyinnovations.com' },
+    { name: 'Your Car Key Guys',   brands: ['YCKG'],        phone: '931-451-7881', website: 'yourcarkeyguys.com',    address: 'Spring Hill, TN' }
+  ];
+  function normSupplier(s) {
+    s = s || {};
+    return { name: String(s.name || '').trim(), brands: (Array.isArray(s.brands) ? s.brands : String(s.brands || '').split(',')).map(function (b) { return String(b || '').trim(); }).filter(Boolean),
+      phone: String(s.phone || '').trim(), website: String(s.website || '').trim(), address: String(s.address || '').trim(),
+      email: String(s.email || '').trim() };   // 8n: order emails go here (Reorder list → ✉️)
+  }
   var CONFIG_DEFAULTS = {
     // tax (kept at top level for back-compat with existing tax wiring)
     taxRate: 0,
@@ -725,9 +728,11 @@
     // misc UI preferences (e.g. suppress the "save this Other service?" offer). Shop-wide, cloud-synced.
     prefs: { offerSaveOtherService: true },
     // employees: [{name,email,owner}]; ownerEmails is derived from owner=true rows.
-    access: { employees: [], ownerEmails: [], staffEmails: [], quickFormPin: '', quickInvoiceEnabled: true, quickInvoiceDefault: true },
+    access: { employees: [], ownerEmails: [], staffEmails: [], quickFormPin: '', techDiscountMaxPct: 0 },   // 8j: quickInvoiceEnabled/Default retired; 8r: techDiscountMaxPct = how much a technician may discount a line (0 = not at all; per shop)
     quickLinks: DEFAULT_QUICKLINKS.map(function (c) { return { key: c.key, label: c.label, icon: c.icon, links: c.links.slice() }; }),
     serviceCats: [],                    // categories the shop offers (Setup step 1)
+    univBrands: [],                     // 8i: universal key makers the shop stocks (Autel, Xhorse, KeyDIY, Lonsdor, …)
+    suppliers: DEFAULT_SUPPLIERS.map(normSupplier),   // 8i: distributors + their house brands (editable)
     services: [],                       // the offered services [{value,cat,price,en,es}] (Setup step 2)
     // hours: STOREFRONT/walk-in hours. per-day { mode:'open'|'closed'|'24', open:'HH:MM', close:'HH:MM' }
     hours: { mon:{mode:'open',open:'08:00',close:'17:00'}, tue:{mode:'open',open:'08:00',close:'17:00'},
@@ -791,6 +796,8 @@
       access: Object.assign({}, d.access, c.access || {}),
       quickLinks: normalizeQuickLinks(c.quickLinks, c.vendors),
       services: Array.isArray(c.services) ? c.services : [],
+      univBrands: Array.isArray(c.univBrands) ? c.univBrands.filter(function (b) { return typeof b === 'string' && b; }) : [],   // 8i
+      suppliers: Array.isArray(c.suppliers) ? c.suppliers.map(normSupplier).filter(function (s) { return s.name; }) : d.suppliers.map(normSupplier),   // 8i (an emptied list stays empty)
       // categories offered: explicit list, else derived from the saved services' cats
       serviceCats: (Array.isArray(c.serviceCats) && c.serviceCats.length) ? c.serviceCats
         : (Array.isArray(c.services) ? Object.keys(c.services.reduce(function (a, s) { if (s && s.cat) a[s.cat] = 1; return a; }, {})) : []),
@@ -806,6 +813,12 @@
     adapter: function () { return ADAPTER.name; },
     Customers: Customers, Inventory: Inventory, Bookings: Bookings,
     Services: Services, ServiceCats: ServiceCats, decodeVin: decodeVin,
+    /* 8r: running log for field events (dispatched-line changes, keys scanned out / back in). Lands in audit_log via the
+       log_activity RPC (security definer; stamps user, role, shop). Demo / offline → resolves {data:null}. */
+    Audit: { log: function (action, entityType, entityId, detail) {
+      try { if (!authState.sb || _demoOn()) return Promise.resolve({ data: null });
+            return authState.sb.rpc('log_activity', { p_action: String(action || ''), p_entity_type: String(entityType || ''), p_entity_id: String(entityId || ''), p_detail: detail || {} }); }
+      catch (e) { return Promise.resolve({ data: null, error: e }); } } },
 
     /* ---------------------------------------------------------------- *
      *  auth — who is signed in, and are they the owner?                 *
@@ -925,6 +938,10 @@
       // back-compat: the links in the "vendors" category
       vendors: function () { var q = getConfig().quickLinks.filter(function (c) { return c.key === 'vendors'; })[0]; return q ? q.links : []; },
       services: function () { return getConfig().services; },
+      univBrands: function () { return getConfig().univBrands || []; },   // 8i: brands checked in Setup › Inventory / Programmers › My tools
+      // 8r: per-shop cap on technician discounts (0 = techs cannot discount; managers/owners are never capped)
+      techDiscountMaxPct: function () { var v = parseFloat((getConfig().access || {}).techDiscountMaxPct); return (v > 0 && v <= 100) ? v : 0; },
+      suppliers: function () { return (getConfig().suppliers || []).map(normSupplier); },   // 8i: [{name, brands[], phone, website, address}]
       serviceCats: function () { return getConfig().serviceCats; },
       hours: function () { return getConfig().hours; },
       serviceHours: function () { return getConfig().serviceHours; },
@@ -946,10 +963,10 @@
           if (partial[g]) merged[g] = Object.assign({}, cur[g], partial[g]);
         });
         if (partial.taxableByCategory) merged.taxableByCategory = Object.assign({}, cur.taxableByCategory, partial.taxableByCategory);
-        ['taxRate', 'quickLinks', 'services', 'serviceCats', 'hours', 'serviceHours'].forEach(function (k) { if (partial[k] !== undefined) merged[k] = partial[k]; });
+        ['taxRate', 'quickLinks', 'services', 'serviceCats', 'hours', 'serviceHours', 'univBrands', 'suppliers'].forEach(function (k) { if (partial[k] !== undefined) merged[k] = partial[k]; });
         configCache = mergeConfig(merged);
         write(CONFIG_LSKEY, configCache);
-        if (authState.sb) {
+        if (authState.sb && !_demoOn()) {
           try {
             // Per-shop config (5g): one row per shop, keyed by shop_id (the DB
             // defaults shop_id to current_shop(), so we never send it).
@@ -964,7 +981,7 @@
         return configCache;
       },
       load: function () {
-        if (!authState.sb) return Promise.resolve(getConfig());
+        if (!authState.sb || _demoOn()) return Promise.resolve(getConfig());   // 8j: demo/sandbox never has a real session — stay local, no 401
         try {
           // Per-shop config (5g): the RLS tenant fence returns only OUR shop's row.
           return authState.sb.from('shop_config').select('*').limit(1).then(function (res) {
@@ -1114,7 +1131,8 @@
     list:    function(){ if(_demoOn()) return _demoOk(_demoGet('tks_demo_vans',[])); return _sb().from('vans').select('*').order('fleet_no', { ascending: true }); },
     save:    function(v){
       var row = { fleet_no: v.fleet_no || null, vin: (v.vin||'').toUpperCase() || null,
-                  nickname: v.nickname || null, plate: v.plate || null, status: v.status || 'active' };
+                  nickname: v.nickname || null, plate: v.plate || null, status: v.status || 'active',
+                  gps_provider: v.gps_provider || null, gps_device_id: v.gps_device_id || null };   // 8z: GPS tracker
       if(_demoOn()){ var vs=_demoGet('tks_demo_vans',[]);
         if(v.id){ var i=vs.findIndex(function(x){return x.id===v.id;}); if(i>=0) vs[i]=Object.assign(vs[i],row); }
         else { row.id='van_'+Date.now().toString(36); vs.push(row); }
@@ -1176,8 +1194,8 @@
     cancel:    function(job, reason, detail){ return _sb().rpc('job_cancel', { p_job: job, p_reason: reason, p_detail: detail || '' }); },
     // authoritative top-level job fields (the RPC-only status + accountability flags)
     meta:      function(job){ return _sb().from('bookings').select('status,reconciliation_pending,responsible_tech,cancel_reason,cancel_detail,completed_at').eq('id', job).maybeSingle(); },
-    parts:     function(job){ return _sb().from('job_parts').select('*').eq('job_id', job).order('created_at'); },
-    addPart:   function(job, desc, isCut){ return _sb().from('job_parts').insert({ job_id: job, description: desc || '', is_cut_key: !!isCut }).select(); },
+    parts:     function(job){ if(_demoOn()) return _demoOk([]); return _sb().from('job_parts').select('*').eq('job_id', job).order('created_at'); },
+    addPart:   function(job, desc, isCut){ if(_demoOn()) return _demoOk(null); return _sb().from('job_parts').insert({ job_id: job, description: desc || '', is_cut_key: !!isCut }).select(); },
     reconcilePart: function(part, state, proof){ return _sb().rpc('job_reconcile_part', { p_part: part, p_state: state, p_proof: proof || '' }); },
     assign:    function(job, userId, role){ return _sb().from('job_staff').upsert({ job_id: job, user_id: userId, job_role: role || 'lead' }); },
     unassignRole: function(job, role){ return _sb().from('job_staff').delete().eq('job_id', job).eq('job_role', role || 'lead'); },

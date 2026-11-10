@@ -85,6 +85,15 @@ Deno.serve(async (req) => {
     // money goes). body.connectedAccountId is ignored.
     if (!invoiceId) return json(400, { error: "invoiceId required" });
     if (method === "reader" && !readerId) return json(400, { error: "readerId required for reader method" });
+    // (8z13) The reader must be one THIS shop paired (at the shop's own Terminal Location) — the
+    // id comes from the browser, so never push a charge to a reader we haven't fenced.
+    if (method === "reader") {
+      const lr = await supa.from("shops").select("terminal_location_id").eq("id", auth.shopId).limit(1);
+      const shopLoc = lr.data?.[0]?.terminal_location_id as string | undefined;
+      const rd = /^tmr_[A-Za-z0-9]+$/.test(readerId!) ? await stripe.terminal.readers.retrieve(readerId!).catch(() => null) as any : null;
+      const rdLoc = rd && !rd.deleted ? (typeof rd.location === "string" ? rd.location : rd.location?.id) : null;
+      if (!shopLoc || rdLoc !== shopLoc) return json(404, { error: "That card reader isn't paired to this shop. Add it in Settings → Payments → Card readers.", code: "reader_not_found" });
+    }
 
     // Tenant scope: only act on THIS shop's rows (service_role bypasses RLS, so we
     // filter by the caller's shop explicitly). idempotency keyed within the shop.

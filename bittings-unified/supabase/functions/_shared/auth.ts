@@ -76,10 +76,10 @@ export async function requireRole(req: Request, allowed: string[]): Promise<Auth
   if (role === "manager" || role === "owner") {
     let aal = "aal1";
     try { const p = JSON.parse(atob(m[1].split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); aal = String(p?.aal ?? "aal1"); } catch (_) { /* treat as aal1 */ }
+    // (8z5) owners/managers MUST use an authenticator: without an aal2 session they have no
+    // manager powers at all (mirrors aal_ok() in the database). The app sends them to set one up.
     if (aal !== "aal2") {
-      const lf = await admin.auth.admin.mfa.listFactors({ userId: user.id });
-      const enrolled = !lf.error && (lf.data?.factors ?? []).some((f: { status?: string }) => f.status === "verified");
-      if (enrolled) throw { status: 403, error: "authenticator code required — sign in again and enter your 6-digit code", code: "mfa_required" } as AuthError & { code: string };
+      throw { status: 403, error: "authenticator code required — sign in again and enter your 6-digit code (or set up your authenticator app)", code: "mfa_required" } as AuthError & { code: string };
     }
   }
 

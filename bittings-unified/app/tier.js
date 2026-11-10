@@ -4,15 +4,19 @@
    (tier_allows / require_tier); this only MIRRORS locks in the UI so the shop
    sees "upgrade to access" on features their plan doesn't include. It never
    grants access — gated RPCs re-check require_tier() server-side.
-   Exposes window.TKS_TIER = { tier, allows, seats, applyGates, showUpgrade, load }.
+   Exposes window.TKS_TIER = { tier, allows, seats, seatsLeft, applyGates, showUpgrade, load }.
+   seatsLeft(): seats still free (allowed - used), or null when the shop has no known
+   entitlement. 0 = full — staff-invite then answers 402 {error:'SEAT_LIMIT', used, allowed, tier}.
    ========================================================================= */
 (function () {
   // Client mirror of the server CASE matrix (keep in sync with 4a_tiers.sql).
   var MATRIX = {
     lookup: ['lookup', 'keycodes', 'programmers', 'lishi'],
-    starter: ['lookup', 'keycodes', 'programmers', 'lishi', 'pos', 'receipts', 'customers', 'inventory', 'scheduler'],
-    pro: ['lookup', 'keycodes', 'programmers', 'lishi', 'pos', 'receipts', 'customers', 'inventory', 'scheduler', 'commission', 'fleet', 'reports', 'dashboard', 'nastf', 'closeout', 'move_requests']
+    starter: ['lookup', 'keycodes', 'programmers', 'lishi', 'pos', 'receipts', 'customers', 'inventory', 'scheduler', 'fitment'],
+    pro: ['lookup', 'keycodes', 'programmers', 'lishi', 'pos', 'receipts', 'customers', 'inventory', 'scheduler', 'fitment', 'commission', 'fleet', 'reports', 'dashboard', 'nastf', 'closeout', 'move_requests']
   };
+  // 8k: 'fitment' = finding keys by vehicle (VIN box, year/make/model, FCC ID / chip, fits-first pickers) — Starter and up
+  var FEATURE_LABEL = { fitment: 'Finding keys by vehicle (VIN, year / make / model, FCC ID)' };
   // nav data-go / data-links → feature key
   var NAV_FEATURE = {
     payments: 'pos', startjob: 'pos', customers: 'customers', receipts: 'receipts', schedule: 'scheduler',
@@ -29,6 +33,8 @@
   function tier() { return _tier; }
   function allows(feature) { if (!feature) return true; return (MATRIX[_tier] || MATRIX.lookup).indexOf(feature) >= 0; }
   function seats() { return _seats; }
+  // (8m) free seats; null when the entitlement is unknown (no subscriptions row / not loaded)
+  function seatsLeft() { var s = _seats || {}; if (!s.allowed) return null; return Math.max(0, Number(s.allowed) - Number(s.used || 0)); }
 
   // Resolve the current tier: demo/offline → local flag; cloud → shop_tier() RPC.
   function load() {
@@ -61,6 +67,8 @@
       if (locked) el.setAttribute('title', TIER_LABEL[tierFor(f)] + ' plan — tap to upgrade'); else if (el.getAttribute('title') && /plan — tap to upgrade/.test(el.getAttribute('title'))) el.removeAttribute('title');
     });
     renderPill();
+    // 8k: screens that gate their own controls by plan re-render once the tier is known
+    try { if (window.renderInventory && document.getElementById('view-inventory') && document.getElementById('view-inventory').offsetParent !== null) renderInventory(); } catch (e) {}
   }
 
   function renderPill() {
@@ -69,7 +77,9 @@
     if (!pill) { pill = document.createElement('div'); pill.id = 'tierPill'; pill.className = 'tier-pill'; host.parentElement.insertBefore(pill, host); }
     var s = seats();
     pill.innerHTML = '<span class="tp-tier tp-' + _tier + '">' + (TIER_LABEL[_tier] || _tier) + ' plan</span>' +
-      (s.allowed ? '<span class="tp-seats">' + s.used + '/' + s.allowed + ' seats</span>' : '') +
+      (s.allowed ? '<span class="tp-seats' + (seatsLeft() === 0 ? ' tp-seats--full' : '') + '"' +
+        (seatsLeft() === 0 ? ' style="color:var(--amber,#f2b43a);font-weight:700" title="Seats full — upgrade your plan or add a seat to invite more staff"' : '') +
+        '>' + s.used + '/' + s.allowed + ' seats' + (seatsLeft() === 0 ? ' · full' : '') + '</span>' : '') +
       (_tier !== 'pro' ? '<button class="tp-up" type="button">Upgrade ↑</button>' : '');
     var up = pill.querySelector('.tp-up'); if (up) up.onclick = function () { showUpgrade(null); };
   }
@@ -81,7 +91,8 @@
   }, true);
 
   function showUpgrade(go) {
-    var feature = go ? NAV_FEATURE[go] : null;
+    // accepts a nav target (data-go) OR a feature key such as 'fitment' (8k)
+    var feature = go ? (Object.prototype.hasOwnProperty.call(NAV_FEATURE, go) ? NAV_FEATURE[go] : go) : null;
     var need = feature ? tierFor(feature) : (_tier === 'lookup' ? 'starter' : 'pro');
     var ov = document.getElementById('tierUpOv');
     if (!ov) {
@@ -92,11 +103,11 @@
       ov.addEventListener('click', function (e) { if (e.target === ov) ov.classList.remove('open'); });
       ov.querySelector('.tu-cancel').onclick = function () { ov.classList.remove('open'); };
     }
-    var label = feature ? (feature.charAt(0).toUpperCase() + feature.slice(1)) : 'more features';
+    var label = feature ? (FEATURE_LABEL[feature] || (feature.charAt(0).toUpperCase() + feature.slice(1))) : 'more features';
     ov.querySelector('.tu-b').innerHTML = 'Your shop is on the <b>' + (TIER_LABEL[_tier] || _tier) + '</b> plan. ' +
       (feature ? '<b>' + label + '</b> is included with the <b>' + TIER_LABEL[need] + '</b> plan.' : 'Unlock more with a higher plan.') +
       '<div class="tu-grid"><div class="tu-col' + (_tier === 'lookup' ? ' cur' : '') + '"><b>Lookup</b><span>VIN · Lishi · programmers · keycodes</span></div>' +
-      '<div class="tu-col' + (_tier === 'starter' ? ' cur' : '') + '"><b>Starter</b><span>+ Register · Receipts · Customers · Inventory · Scheduler</span></div>' +
+      '<div class="tu-col' + (_tier === 'starter' ? ' cur' : '') + '"><b>Starter</b><span>+ Register · Receipts · Customers · Inventory · Scheduler · Keys by vehicle (VIN / year-make-model / FCC)</span></div>' +
       '<div class="tu-col' + (_tier === 'pro' ? ' cur' : '') + '"><b>Pro</b><span>+ Commission · Fleet · Reports · Dashboard · NASTF</span></div></div>';
     var goBtn = ov.querySelector('.tu-go'); goBtn.textContent = 'Upgrade to ' + TIER_LABEL[need];
     goBtn.onclick = function () { startCheckout(need); };
@@ -110,6 +121,6 @@
     (window.uiAlert || window.alert)('Billing is not configured yet (Stripe test keys pending). This will open Stripe Checkout for the ' + (TIER_LABEL[targetTier] || targetTier) + ' plan.');
   }
 
-  window.TKS_TIER = { tier: tier, allows: allows, seats: seats, applyGates: applyGates, showUpgrade: showUpgrade, load: load };
+  window.TKS_TIER = { tier: tier, allows: allows, seats: seats, seatsLeft: seatsLeft, applyGates: applyGates, showUpgrade: showUpgrade, load: load };
   if (document.readyState !== 'loading') load(); else document.addEventListener('DOMContentLoaded', load);
 })();

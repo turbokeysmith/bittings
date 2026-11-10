@@ -24,7 +24,7 @@
    ========================================================================== */
 (function (root) {
   var MAKES = ['Acura','Audi','BMW','Buick','Cadillac','Chevrolet','Chrysler','Dodge','Ford','GMC','Genesis','Honda','Hyundai','Infiniti','Jaguar','Jeep','Kia','Land Rover','Lexus','Lincoln','Mazda','Mercedes-Benz','MINI','Mitsubishi','Nissan','Pontiac','Ram','Saturn','Scion','Subaru','Suzuki','Toyota','Volkswagen','Volvo',
-               'Fiat','Alfa Romeo','Tesla','Porsche','Hummer','Oldsmobile','Mercury','Isuzu','Smart','Rivian','Polestar'];
+               'Fiat','Alfa Romeo','Tesla','Porsche','Hummer','Oldsmobile','Mercury','Isuzu','Smart','Rivian','Polestar','Plymouth','Saab','Lucid','Maserati'];
   var ALIAS = { chevy:'Chevrolet', chev:'Chevrolet', vw:'Volkswagen', volkswagon:'Volkswagen', mercedes:'Mercedes-Benz', benz:'Mercedes-Benz', mb:'Mercedes-Benz',
                 landrover:'Land Rover', 'land rover':'Land Rover', 'range rover':'Land Rover', mini:'MINI', 'mini cooper':'MINI', 'alfa':'Alfa Romeo', 'alfa romeo':'Alfa Romeo',
                 olds:'Oldsmobile', 'mercedes benz':'Mercedes-Benz', 'mercedes-benz':'Mercedes-Benz', gm:'GM', 'general motors':'GM', mopar:'Chrysler' };
@@ -111,11 +111,13 @@
       .replace(/\/(?=\s|$)/g,' ')                                // dangling "12-13/" → "12-13"
       .replace(/\b(\d{4})\s+(?:to|thru|through)\s+(\d{2,4})\b/ig,'$1-$2')   // "2015 to 2020"
       .replace(/\b(\d{4})\s*-\s*(up|present|current|now)\b/ig,'$1+')
-      .replace(/[,;|•·\n\r\t]+/g,' ␟ ')                        // hard separators → marker
+      .replace(/[\n\r]+/g,' ␞ ')   // 8y: a new line = a new vehicle line
+      .replace(/[,;|•·\t]+/g,' ␟ ')                        // hard separators → marker
       .replace(/\s+-\s+/g,' ␟ ')                                // " - " between vehicles
       .replace(/:/g,' ');
     var out=[]; t.split(/\s+/).forEach(function(w){ if(!w) return;
       if(w==='␟'){ out.push({t:'sep'}); return; }
+      if(w==='␞'){ out.push({t:'sep', line:true}); return; }
       var m=w.match(RANGE); if(m){ var a=+m[1], b=+m[2]; if(b<100) b=Math.floor(a/100)*100+b; if(b<a) b=a; out.push({t:'year', ys:a, ye:b, raw:w}); return; }
       m=w.match(YEAR); if(m){ out.push({t:'year', ys:+m[1], ye:(m[2]?9999:+m[1]), raw:w}); return; }
       m=w.match(RANGE2); if(m){ var a2=y2(m[1]), b2=y2(m[2]); if(b2<a2) b2=a2; out.push({t:'year', ys:a2, ye:(/\+$/.test(w)?9999:b2), raw:w}); return; }
@@ -185,17 +187,35 @@
   function parse(text){
     text=String(text||'').trim(); if(!text) return [];
     if(_cache.hasOwnProperty(text)) return _cache[text];
-    var toks=tokenize(text), segs=[], cur=null;
-    function open(){ cur={words:[], ys:0, ye:0, yearPos:'', raw:[]}; }
+    var toks=tokenize(text), segs=[], cur=null, lineNo=0;
+    function open(){ cur={words:[], ys:0, ye:0, yearPos:'', raw:[], line:lineNo}; }
     function close(){ if(cur && (cur.words.length||cur.ys)) segs.push(cur); cur=null; }
     open();
     toks.forEach(function(tk){
-      if(tk.t==='sep'){ close(); open(); return; }
+      if(tk.t==='sep'){ close(); if(tk.line) lineNo++; open(); return; }
       if(tk.t==='year'){ if(cur.ys){ close(); open(); } cur.ys=tk.ys; cur.ye=tk.ye; cur.yearPos=cur.words.length?'after':'before'; cur.raw.push(tk.raw); return; }
       if(cur.yearPos==='after'){ close(); open(); }
       cur.words.push(tk.w); cur.raw.push(tk.w);
     });
     close();
+    // 8y: a segment with no years of its own shares the years of its group. Years-first lists ("2005-2008 Dodge Magnum,
+    // Charger") carry forward; years-after lists ("Camaro, Cruze, Malibu 2016-2020") fill backward. A make-only line or a
+    // list with no years anywhere is left alone (fits any year, as before). A segment that starts with its OWN make
+    // (a separate "Chevrolet Blazer" line) is its own vehicle and keeps "any year", unless the years sit on a bare make line
+    // right next to it ("Hyundai Elantra" + "Hyundai 21-22" = one vehicle split over two lines).
+    function makeOnlySeg(x){ return x.words.length>0 && x.words.every(function(w){ return !!canonMake(w); }); }
+    segs.forEach(function(sg, i){
+      if(sg.ys || !sg.words.length) return;
+      var prev=null, next=null, j;
+      for(j=i-1;j>=0;j--){ if(segs[j].ys){ prev=segs[j]; break; } }
+      for(j=i+1;j<segs.length;j++){ if(segs[j].ys){ next=segs[j]; break; } }
+      var src=null;
+      if(prev && prev.yearPos==='before') src=prev;          // "2005-2008 Magnum, Charger"
+      else if(next && next.yearPos==='after') src=next;      // "Camaro, Cruze, Malibu 2016-2020"
+      else if(prev) src=prev;                                 // "Charger 2015-2020, Challenger"
+      if(src && src.line!==sg.line && canonMake(sg.words[0]) && !makeOnlySeg(src)) src=null;   // own make, real neighbour vehicle → independent
+      if(src){ sg.ys=src.ys; sg.ye=src.ye; sg.inherited=true; }
+    });
     var out=[], sticky='';
     segs.forEach(function(s){ resolve(s, sticky).forEach(function(e){ if(e.make) sticky=e.make; if(e.model||e.make) out.push(e); }); });
     // a year with no words = "same vehicles as the previous entry" is meaningless; dropped above (no model/make)
@@ -216,15 +236,18 @@
     if(!mk && !md) return 0;
     if(y && e.ys && (y<e.ys || y>e.ye)) return 0;
     if(mk && e.make && norm(mk)!==norm(e.make)){ if(!(GROUP[e.make] && GROUP[e.make][canonMake(mk)||mk])) return 0; }
-    if(md){ if(!e.model) return e.make ? 1 : 0;          // make-only entry ("2016-2020 Chevrolet", "GM 10-19") = weak hit for any model of that make
+    if(md){ if(!e.model) return e.make ? 0.5 : 0;        // 8v: make-only entry ("Chrysler/Dodge/Jeep 04-19") — NOT a model match; filter() drops it unless {loose:true}
              return modelMatch(e.model, md); }
     return e.make ? 1 : 0;   // make-only lookup
   }
   function itemScore(item, veh){ var es=parse(item&&item.fitment), best=0; for(var i=0;i<es.length;i++){ var s=entryFits(es[i], veh); if(s>best) best=s; } return best; }
   function itemFits(item, veh){ return itemScore(item, veh)>0; }
-  function filter(items, veh){
+  // 8v (owner): "a 2020 Charger needs the one just for the 2020 Charger" — with a model chosen, only parts whose
+  // fits name that model are returned. opts.loose also returns parts that list the make with no model.
+  function filter(items, veh, opts){
     if(!veh || !(veh.make||veh.model)) return [];
-    return (items||[]).map(function(it){ return {it:it, s:itemScore(it, veh)}; }).filter(function(x){ return x.s>0; })
+    var min=(veh.model && !(opts&&opts.loose)) ? 1 : 0.01;
+    return (items||[]).map(function(it){ return {it:it, s:itemScore(it, veh)}; }).filter(function(x){ return x.s>=min; })
       .sort(function(a,b){ return b.s-a.s; }).map(function(x){ return x.it; });
   }
   // A search-box query like "2019 enclave" / "buick encore" / "19 regal"? → vehicle, else null.

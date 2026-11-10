@@ -12,7 +12,8 @@
    ========================================================================== */
 (function () {
   // Canonical make list (kept in sync across all screens).
-  var MAKES = ['Acura','Audi','BMW','Buick','Cadillac','Chevrolet','Chrysler','Dodge','Ford','GMC','Genesis','Honda','Hyundai','Infiniti','Jaguar','Jeep','Kia','Land Rover','Lexus','Lincoln','Mazda','Mercedes-Benz','MINI','Mitsubishi','Nissan','Pontiac','Ram','Saturn','Scion','Subaru','Suzuki','Toyota','Volkswagen','Volvo'];
+  // 8x: every US make 1995–2026 (models come from app/ymm-catalog.js — NHTSA vPIC — merged into TKS_LISHI_SEED.models)
+  var MAKES = ['Acura','Alfa Romeo','Audi','BMW','Buick','Cadillac','Chevrolet','Chrysler','Dodge','Fiat','Ford','Genesis','GMC','Honda','Hummer','Hyundai','Infiniti','Isuzu','Jaguar','Jeep','Kia','Land Rover','Lexus','Lincoln','Lucid','Maserati','Mazda','Mercedes-Benz','Mercury','MINI','Mitsubishi','Nissan','Oldsmobile','Plymouth','Polestar','Pontiac','Porsche','Ram','Rivian','Saab','Saturn','Scion','smart','Subaru','Suzuki','Tesla','Toyota','Volkswagen','Volvo'];
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
   function ls(k){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):[]; }catch(e){ return []; } }
@@ -49,7 +50,7 @@
     modelList: modelList,
     // <select> option strings for each box, each honoring a current value.
     yearOptionsHTML: function(cur, lo){
-      var hi=2026, low=lo||1998, items=[]; for(var y=hi;y>=low;y--) items.push(String(y));
+      var hi=2026, low=lo||1995, items=[]; for(var y=hi;y>=low;y--) items.push(String(y));
       if(cur && items.indexOf(String(cur))<0) items.unshift(String(cur));
       return optionsHTML(items, cur, 'Year…');
     },

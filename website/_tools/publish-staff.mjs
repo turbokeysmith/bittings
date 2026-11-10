@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+// Publish the Bittings staff app under website/site/staff/ (copied from bittings-unified/) and make every
+// "Staff Login" link on the site point at /staff/signin.html. Then deploy with: node website/_tools/deploy-site.mjs
+// Usage (from the repo root):  node website/_tools/publish-staff.mjs
+// Copies only what the browser needs — no docs, supabase/, tools/, demo or sandbox pages. Re-runnable.
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const REPO = path.resolve(here, '..', '..');
+const SRC = path.join(REPO, 'bittings-unified');
+const SITE = path.join(REPO, 'website', 'site');
+const DST = path.join(SITE, 'staff');
+const FILES = ['index.html', 'bittings.html', 'signin.html', 'cloud-test.html', 'Bittings.ico', 'favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'tks_logo.png', 'tks_mark.png'];
+
+function copyDir(a, b) { fs.mkdirSync(b, { recursive: true }); for (const e of fs.readdirSync(a, { withFileTypes: true })) { const s = path.join(a, e.name), d = path.join(b, e.name); if (e.isDirectory()) copyDir(s, d); else fs.copyFileSync(s, d); } }
+
+fs.rmSync(DST, { recursive: true, force: true }); fs.mkdirSync(DST, { recursive: true });
+for (const f of FILES) if (fs.existsSync(path.join(SRC, f))) fs.copyFileSync(path.join(SRC, f), path.join(DST, f));
+copyDir(path.join(SRC, 'app'), path.join(DST, 'app'));
+try { fs.unlinkSync(path.join(DST, 'app', 'STRUCTURE_NOTES.md')); } catch {}
+
+let n = 0, bytes = 0; (function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else { n++; bytes += fs.statSync(p).size; } } })(DST);
+console.log(`staff app copied: ${n} files, ${(bytes / 1024 / 1024).toFixed(1)} MB → website/site/staff/`);
+
+let pages = 0, links = 0;
+(function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) { if (e.name !== 'staff') walk(p); continue; } if (!/\.html?$/i.test(e.name)) continue;
+  const before = fs.readFileSync(p, 'utf8');
+  const after = before.replace(/href="(?:\.\.\/)*cloud-test\.html"/g, () => { links++; return 'href="/staff/signin.html"'; });
+  if (after !== before) { fs.writeFileSync(p, after); pages++; } } })(SITE);
+console.log(`Staff Login links rewritten: ${links} in ${pages} pages (0 = already pointing at /staff/signin.html)`);
+console.log('Next: node website/_tools/deploy-site.mjs   (needs CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID in the environment)');

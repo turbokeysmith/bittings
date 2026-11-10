@@ -10,6 +10,9 @@
   var FIELDS = [
     { k: 'name', label: 'Part name', req: true, hints: ['name', 'part', 'description', 'desc', 'item'] },
     { k: 'sku', label: 'SKU / part #', hints: ['sku', 'part #', 'part no', 'partnumber', 'part number', 'number', 'code', 'mpn'] },
+    // 8i: owner category + universal-key maker. Short forms (AM / OEM / REF / UNIV) are expanded on import.
+    { k: 'grade', label: 'Category (Aftermarket / OEM New / OEM Refurbished / Universal)', hints: ['grade', 'condition', 'oem/am', 'am/oem', 'new/refurb', 'aftermarket'] },
+    { k: 'brand', label: 'Brand (maker of a universal key)', hints: ['brand', 'manufacturer', 'mfr', 'maker'] },
     // 8h: key fields sit BEFORE category so a "Chip Type" / "FCC ID" column isn't grabbed by category's 'type' hint
     { k: 'fccId', label: 'FCC ID', hints: ['fcc', 'fcc id', 'fccid', 'fcc-id'] },
     { k: 'chip', label: 'Transponder chip', hints: ['chip', 'transponder', 'chip type', 'transponder chip', 'chip id'] },
@@ -23,11 +26,22 @@
     { k: 'sellPrice', label: 'Sell price (what you charge)', hints: ['sell price', 'sell', 'retail', 'price', 'msrp', 'list price', 'sale price'] },
     { k: 'location', label: 'Location', hints: ['location', 'bin', 'shelf', 'aisle', 'spot', 'loc'] },
     { k: 'supplier', label: 'Supplier', hints: ['supplier', 'vendor', 'source'] },
+    { k: 'vendorSku', label: 'Vendor SKU (supplier part #)', hints: ['vendor sku', 'supplier sku', 'vendor part', 'supplier part', 'vendor #', 'supplier #', 'mfr part', 'distributor sku', 'aks #'] },   // 8p
     { k: 'reorderQty', label: 'Reorder qty', hints: ['reorder qty', 'reorder quantity', 'order qty', 'reorder'] },
     { k: 'fitment', label: 'Fits (vehicles / VIN)', hints: ['fit', 'fits', 'fitment', 'vehicle', 'application', 'vin', 'compatible', 'applications', 'year make model'] },
     { k: 'notes', label: 'Notes', hints: ['note', 'notes', 'comment', 'remark'] }
   ];
   var INT_FIELDS = { qty: 1, lowAt: 1, reorderQty: 1 };
+  // 8i: "AM" → Aftermarket, "OEM" → OEM New, "REF"/"REFURB" → OEM Refurbished, "UNIV" → Universal; anything else passes through
+  function normGrade(v) {
+    var u = String(v || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+    if (!u) return '';
+    if (/^(AM|AFTERMARKET)$/.test(u)) return 'Aftermarket';
+    if (/^(REF|REFURB|REFURBISHED|OEMREF|OEMREFURB|OEMREFURBISHED|RECON|RC)$/.test(u)) return 'OEM Refurbished';
+    if (/^(OEM|OEMNEW|NEWOEM|NEW)$/.test(u)) return 'OEM New';
+    if (/^(UNIV|UNIVERSAL)$/.test(u)) return 'Universal';
+    return String(v).trim();
+  }
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
   function norm(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
@@ -183,6 +197,7 @@
           if (INT_FIELDS[f.k]) part[f.k] = parseInt(String(v).replace(/[^0-9-]/g, ''), 10) || 0;
           else if (f.k === 'cost') part.cost = (v === '') ? '' : (parseFloat(String(v).replace(/[^0-9.\-]/g, '')) || 0);
           else if (f.k === 'sellPrice') { var sp = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); if (v !== '' && !isNaN(sp)) part.sellPriceCents = Math.round(sp * 100); }
+          else if (f.k === 'grade') part.grade = normGrade(v);
           else part[f.k] = v;
         }
       });

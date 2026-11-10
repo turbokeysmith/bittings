@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-11-08 (Claude Code, on the new shop PC "TK-Main") &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-11-08 15:40 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -407,6 +407,248 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-11-09 (🔎 "missing FCC ID" list)
+- **Missing FCC ID button on Stock.** A red tile counts the smart keys, remotes, flip heads and super remotes that have no
+  FCC ID yet; tap it to list only those, open each part and fill in FCC ID. Tap again to see everything. On the real stock
+  (9 Nov) that is 94 parts: 74 remotes / fobs, 15 smart keys, 5 flip heads. Transponders count when their **chip type** is blank (they go by chip, not FCC ID): 5 more, 99 in all. The tile reads "missing FCC ID / chip".
+- **FCC IDs and chips filled from American Key Supply** (owner approved "fill them", 9 Nov). Our SKUs are AKS "EZ #" codes, so
+  97 parts were matched to their AKS listing (a few from UHS / Key Innovations): FCC ID on 82, chip on 23, the 6 Autel /
+  Xhorse universal keys set to "Universal", and 5 plain transponder keys (K-B120, K-NI04, TOY48BT4, Y160, Y164) moved from
+  Remote / Fob to Transponder. Left alone: B110 AM and HU66-AM (not remotes; owner to decide). Backup of the old values and
+  the lookup results: session scratchpad aks/ (backup-before-fill-2026-11-09.json, plan.json, fill.sql).
+- **MicroBiz import (owner approved "import it", 9 Nov).** Source: MicroBiz "Qty On-Hand By SKU" + "By Description" PDFs
+  (image-only Print-to-PDF; rendered with pdf.js, transcribed twice and cross-checked: 531 items, 4,603 units, $41,919.27).
+  166 new parts added (ids mb_0001..0166, notes import:MB-2026-11-09; type/grade/FCC from AKS by EZ #), and on the 351
+  existing parts: 67 shop quantities, 23 prices, 19 costs, 259 vendor # (AKS item #), supplier = American Key Supply. Names kept.
+  Skipped 14 service SKUs (SRVC, REKEY, RMPROG, MTLKEY…). Negative MicroBiz counts set to 0. Verified: 0 mismatches; 519 parts,
+  2,681 units, $41,536.77 at cost (= MicroBiz minus the skipped service items and negatives). Backup: scratchpad mb/backup-before-microbiz-2026-11-09.json.
+- **Supplier brands + Your Car Key Guys logo.** Key Innovations keys (MicroBiz vendor KIN) → supplier Key Innovations, brand
+  Keyless2Go (15 keys; Master Lock + key hider left unbranded). MicroBiz files YCKG parts under AKS; the 22 with vendor # "YCKG#…"
+  → supplier Your Car Key Guys, brand YCKG. Your Car Key Guys added to the Home Vendors links (cloud config + store.js default).
+  Logos: app/assets/vendor-logos/yckg.png (wordmark) + yckg-icon.png, mapped by website in index.html VENDOR_LOGOS — shown
+  in the Vendors link sheet and on Setup › Inventory › Suppliers.
+- **Brand follows the supplier.** On the part form every brand is listed under its own supplier (From American Key Supply: Blue
+  Rocket · From Key Innovations: Keyless2Go · From Your Car Key Guys: YCKG). With Category = Aftermarket, typing the supplier
+  (full name or short code AKS / KIN / YCKG) picks its brand; picking a house brand first fills in the supplier. OEM keys get no auto brand.
+- **GPS tracker on each van** (groundwork for live van locations; owner is testing VitalGlow GPS, API access requested by email
+  to cs@vitalglowlink.com). Fleet › Add/Edit van has a 📡 GPS tracker section (GPS company + device serial / IMEI); the van list
+  shows it. New columns vans.gps_provider / vans.gps_device_id (supabase/phase8/8z_vans_gps.sql, applied).
+- **Email links fixed.** Supabase Auth Site URL was still http://localhost:3000 (so Forgot-password links went nowhere). Now
+  site_url = https://turbokeysmith.com/staff/signin.html and redirect allow-list = turbokeysmith.com/staff/**, www…, *.turbokeysmith.pages.dev,
+  127.0.0.1:8088 (pushed with supabase config push; diff showed only those 2 changes).
+- **Invite teammates by email (8z5).** Settings → Team logins → ✉️ Email invite (name, email, role; no temp password). staff-invite
+  calls auth.admin.inviteUserByEmail; the link opens signin.html on "Create your password". Teammates who never signed in show
+  ⏳ invite sent + **Resend invite**. Branded email templates are in bittings-unified/supabase/templates/ but Supabase only allows
+  custom templates with custom SMTP → they go live when Resend is connected (owner creating the account).
+- **2FA required for owners & managers (8z5).** aal_ok() now needs an aal2 session (or a server context); mfa_pending() is also true
+  for a manager/owner with no authenticator; _shared/auth.ts requireRole refuses manager/owner without aal2 (all 7 functions that
+  use it redeployed). The sign-in page forces setup (no "Not now"). Forgot-password: if the account has an authenticator, the
+  6-digit code (or a backup code) is required before the new password saves.
+- **Emails sent through Resend.** Domain turbokeysmith.com verified in Resend (owner added the DKIM/SPF/MX/CNAME records on the
+  send./rsend. subdomains in Cloudflare; root MX for Outlook untouched). Supabase Auth custom SMTP = smtp.resend.com:465, user resend,
+  a domain-scoped SENDING-ONLY key (not stored anywhere in the repo), from "Turbo Keysmith" <no-reply@turbokeysmith.com>. Branded
+  invite/recovery templates (supabase/templates/) now live. Test reset email delivered to the Gmail inbox 9 Nov.
+- **Chip box clearer (8z11).** Part form chip field says you can type any chip; suggestions = built-in list (+ Mitsubishi N chip, Megamos 13,
+  4D-60/61/64/68, Toyota G, Hitag AES 4A …) + every chip already used in stock.
+- **Fill FCC ID / chip during a stock count (8z12).** Technicians cannot edit parts; on Inventory → Reconcile, rows missing an FCC ID
+  (smart key/remote/flip) or chip (transponder) get input boxes that save via cycle_set_key_info (open count; manager or the assignee;
+  only fcc_id/chip; blank never erases; audit_log). Owner assigns the count to Jayden when starting it. phase8/8z12_count_key_info.sql.
+- **Card readers paired by each shop during setup (8z13).** Settings → Payments → 💳 Card readers: owner/manager taps "Add a card reader",
+  types the 3-word pairing code the WisePOS E / S700 shows (Settings → admin PIN 07139 → Generate pairing code) + a name; the first time
+  also the shop address (pre-filled from Business identity). pay-terminal (actions list/register/rename/remove/config) registers the reader
+  on the PLATFORM Stripe account (card charges are destination charges made there) at the shop's own Terminal Location
+  (shops.terminal_location_id, phase8/8z13_shop_terminal_location.sql). Every reader action and pay-create-intent now refuse a reader that
+  is not at the caller shop's location (before: the reader list looked under the shop's Connect account — wrong account — and any reader
+  id from the browser was accepted). Publishable key now comes from the server (secret STRIPE_PUBLISHABLE_KEY, set at go-live), not typed.
+  Tested 9 Nov through the live functions in Stripe TEST mode on the QA shop: pair simulated reader → list → rename → foreign reader refused
+  → charge → simulated tap → completed → refunded → removed (16/16 pass). Go-live still needs: live sk/pk + live webhook + Connect onboarding.
+- **Open issues 9 Nov:** (1) Cloudflare zone cache rule caches /staff/* HTML for a long time and ignores Cache-Control /
+  CDN-Cache-Control no-store → owner must Purge Everything + add a Bypass-cache rule for /staff/* (token here is Pages-only).
+  (2) Supabase auth email_sent rate limit is still 2/hour; raising it needs config push WITH the [auth.email.smtp] section, which needs
+  the Resend sending key (not kept anywhere). Next time: create a new sending key, push smtp + rate_limit email_sent=30 together.
+  (3) A set-password link for an invited user who never set one now opens the full invite screen (8z10); staff-invite Resend covers it.
+- **Authenticator QR fixed (8z8).** Supabase returns qr_code as a data: URL; it was written as HTML so the text data:image/svg+xml;utf-8,
+  printed above the code (off-centre, no quiet zone). Now rendered as an image in a centred white square; verified it decodes (jsQR).
+- **Technicians can receive stock (8z9).** Owner chose this over a combined tech+front-desk role. inv_receive + unit_receive role lists
+  include technician (phase8/8z9_tech_receive.sql); store.js invReceive cap too.
+- **Van map zoom (8z14).** On phones the VitalGlow login sat below a tall banner and was hard to reach in the panel. The iframe is now laid
+  out at box size / zoom and scaled down (phones start at 60%, saved per device in tks_gps_zoom); − / + buttons in the panel header.
+  "Safari ↗" renamed "Open ↗" (opens the phone's own browser — owner uses Android, tech uses iPhone).
+- **Live van map (8z7).** Fleet → 📡 Live van map → VitalGlow tracking web app in a borderless panel above the bottom menu (their site
+  allows embedding; checked headers). Close hides it (stays signed in); Safari ↗ opens it outside. Replace with our own map once VitalGlow
+  API access arrives. Test login Turbo (test technician) / turbokeysmith@gmail.com deleted 9 Nov (auth user + staff + shop_members).
+- **Invite fix + contact info (8z6).** The invite link signed the person straight in (the auth library reports the link session as
+  INITIAL_SESSION, not SIGNED_IN). Now: either event with type=invite, plus a backstop — a user with invited_at and no
+  user_metadata.password_set is sent to "Create your password" from signin.html and from the app boot. That screen also asks full name,
+  mobile phone, home address (staff.phone/address, private: not in the staff select grant; update_my_profile / my_profile /
+  staff_contacts RPCs, phase8/8z6_staff_contact.sql). Team logins shows email/phone/address to managers.
+- **Backup codes (8z5).** 10 one-time codes shown once after setup (mfa_backup_codes, SHA-256 hashed; mfa_backup_codes_new/left RPCs);
+  Settings shows codes left + Make new codes. Lost phone → "Use a backup code" on the code screen → mfa-recover edge function
+  removes the old authenticator (5 wrong codes/hour limit, audit_log) → set up the new phone. SQL: supabase/phase8/8z5_*.sql.
+
+### 2026-11-08, night (📱 Inventory readable on phones · all stock homed at the Shop)
+- **Phone layout for Inventory rows:** the part name and details now run across the top; quantity buttons and the
+  action buttons sit underneath.
+- **Every screen checked on a phone** (124 screens: two iPhone sizes, light and dark). Nothing runs off the side;
+  small buttons were made finger-sized and small dropdowns no longer make the iPhone zoom in.
+- **Bottom menu always on screen on phones**, including over pop-ups and the invoice form. Tapping it closes whatever
+  is open and switches screens. The invoice page now has the same menu (Start job · Receipts · Customers · Stock · Scheduler).
+- **Vehicle lookups are exact.** Pick 2020 / Dodge / Charger and you see only keys whose fits name the Charger. Parts
+  that just say "Dodge" (mostly blanks) sit behind a "+ N that list only Dodge" link.
+- **"Start all-keys-lost job" is now "Start new job"** on the Start-a-job vehicle screen.
+- **Swipe back stays in the app.** Each screen change is a step in the phone's back history, so swiping back from
+  Customers returns to Inventory. Past the first screen it says "Swipe back again to leave the app". Coming back from the
+  invoice page reopens the screen you were on.
+- **Guided booking keeps your place.** Picking year / make / model (or ignition) no longer jumps to the top of the sheet.
+- **Full vehicle list.** Every Year / Make / Model box now has every US make and model from 1995 to 2026 (from the
+  federal NHTSA vehicle database): 49 makes, about 600 models that were missing. Example: 2005 Chrysler went from 3 models
+  to 7 (adds 300C, Crossfire, Town & Country…). Heavy commercial trucks are left out. Refresh it yearly with
+  `node bittings-unified/tools/ymm-catalog/vpic-fetch.js` then `vpic-build.js`.
+- **Years carry across a list.** A part listed "2005-2008 Dodge Magnum, Charger" now fits only 2005-08 Chargers (it used to
+  show for every Charger). A separate line that names its own make ("Chevrolet Blazer") still counts on its own. On the real
+  stock this changed 2 parts, both for the better (CHRY-1683 → 2021-23 Jeep; HYU-1333 → 2021-22 Elantra).
+- **All stock is at the Shop and Shop is the default.** The rows used to say "Van" because of an old per-device setting;
+  the real stock table already had everything at the shop except one part (4 "ford" blanks in a van), which I folded into
+  the shop count. Rows now show the real location and quantity ("🏪 Shop 9 · 🚐 Van 12 4"), and the filter row is
+  **All / Shop / each van** from real data. New parts default to the shop.
+
+### 2026-11-08, evening (📋 Dispatched lines locked for techs · running job log · 📷 scan keys out and back in · published on the website)
+- **Dispatched job → invoice.** On the Scheduler, open a job and tap **🧾 Invoice this job**. The invoice opens with
+  the booked service (at your Setup price) and the job's parts already on it, tagged "from dispatch". A tech can add
+  lines but cannot delete or re-price a dispatched line. Instead they tap **Didn't do this** and pick a reason
+  (customer declined, wrong key sent, couldn't do it on site, other). The line stays on the receipt struck through
+  at $0 with the reason, quantity can only go down, and every change lands in the **Job log** you see on that job.
+- **Technician discounts** are a per-shop setting in Settings › Access. Yours is 0, so techs see no discount button.
+- **📷 Scan keys out and back in.** On the invoice, each line has a camera button: scan the key's QR label and that
+  exact key is attached to the sale. If the customer declines, "Didn't do this" asks the tech to scan the key back in,
+  and the key returns to stock (to the tech's van when known) with a log entry. "↩ Scan back in" is also on the
+  finished-receipt screen for a decline after the sale. Works on iPhone and Android in the browser over https; the
+  first tap asks to allow the camera once.
+- **It is published (2026-11-08 evening).** Staff Login sits bottom-right in the website footer and opens the app at
+  **turbokeysmith.com/staff** (sign-in page: turbokeysmith.com/staff/signin). Not indexed by search engines. The Cloudflare
+  deploy token + account ID you gave me are saved on the shop PC only. **One thing to do in Cloudflare:** Caching →
+  Configuration → **Purge Everything**, so phones that visited the site earlier today stop seeing the old footer link
+  (it fixes itself within a day either way). Re-publishing is two commands (see STRUCTURE_NOTES).
+- **One Supabase setting still on you:** Auth › URL Configuration → add https://turbokeysmith.com/staff/signin.html so
+  Forgot-password emails return to the right page. Signing in with a password already works.
+- Texting and tech tracking are parked in the roadmap at your request; nothing paid was added.
+
+### 2026-11-08, late afternoon (✅ "Implement all your ideas" — scan a key, reorder list, seats, server plan checks, one Services step)
+- **Brand never prints on receipts.** Checked: the brand (Blue Rocket, Autel…) shows only inside Inventory, never on a
+  customer receipt or PDF. **RC = OEM recased** (refurbished, no logo) is recorded; those 2 keys stay under OEM Refurbished.
+- **Scan a key, see its whole story.** Receiving serialized stock can now print one label per key (its own barcode).
+  Scan that barcode anywhere in the app → a panel shows the part, brand, supplier, invoice/order number, date received
+  and by whom, cost, where it is, and the sale it went out on, with Warranty replacement / Mark failed / Move buttons.
+  On the Register, scanning a unit adds its part to the ticket. Inventory has a **🔎 Scan a key** button for typing a code.
+  The label uses a **QR code** (your call) with the part name, SKU, received date and the id in small text; preview sent.
+- **Order number when receiving.** The field now reads "Supplier invoice / order # (recommended)", the supplier is
+  pre-filled from the part, and leaving the number blank asks "Receive without an order number?" first.
+- **📋 Reorder list.** One tap lists everything at or below its low-stock point, grouped by supplier with suggested
+  quantities and totals, plus Copy, Email (pre-addressed if the supplier has an **Order email** — new field in Setup ›
+  Inventory) and CSV.
+- **One summary strip on Inventory** (parts · low/out · missing cost · stock value at retail/cost · open returns).
+- **Vendor SKU.** Every part can carry the supplier's own part number (next to Supplier on the part form). It is
+  searchable, exported, importable from a spreadsheet column, and the Reorder list leads with it. **What goes to the
+  supplier (Copy / Email) is only quantity, their part number and the part name** — your SKU, on-hand counts and costs stay
+  on screen and in your own CSV. Parts that still have no vendor number are flagged in amber on the Reorder
+  screen (tap to add it) so you can fill them in before you send.
+- **Start a job carries the VIN and the customer** into the invoice (new optional Customer box on the materials step).
+- **All pop-ups look the same now** — no more raw browser alerts in Programmers or Lishi.
+- **Services are set up in one place:** Settings › Services shows the kinds of work and the priced list on one screen.
+- **Plan checks now run on the server** inside every gated action (Register, inventory, scheduler, commission, NASTF,
+  move requests). Your shop is Pro, so nothing changes for you, but a curious tech can no longer get Pro features from
+  the browser console. **Seat limits are enforced** when inviting staff (server + database); Settings shows "Seats full —
+  Upgrade" when you hit it.
+- **Sign-in page renamed** to signin.html (the old cloud-test.html address forwards). **One setting you must change in
+  Supabase:** Auth › URL Configuration currently has Site URL = localhost:3000 and no redirect list, so Forgot-password
+  emails land on the wrong page until you add http://localhost:8088/signin.html, http://127.0.0.1:8088/signin.html and
+  https://app.turbokeysmith.com/signin.html.
+- Status: all headless checks pass (owner + tech, desktop + phone, light + dark). Pending your two-phone check, the Zebra
+  label test, and "commit it".
+
+### 2026-11-08, afternoon (🧹 Big clean-up · one invoice builder · one scheduler · "keys by vehicle" becomes a plan feature)
+You said "plan it all out and start" on the review. Done this afternoon, all checked in headless Chrome (desktop and
+phone, light and dark, owner and technician), **nothing committed yet**, every file backed up before each step:
+- **Lighter and cleaner.** The PDF library was in the app three times and the Lishi key data twice — now once each
+  (about 800 KB less to download on a phone). Dead code and 39 dead style rules removed. Three old pages
+  (Lishi, Setup, Scheduler) are archived; every link to them now opens the matching screen inside the app.
+  Stale pitch and dev-server scripts and six old progress documents moved to the archive folder.
+- **One invoice builder.** The step-by-step chat flow is gone. The Quick invoice is now the builder for
+  everyone, and it learned everything the chat had: business customers with a contact name, discounts,
+  Zelle / Other payments, Partial payments with the amount paid and balance due, a category on every line,
+  your configured service types, the NASTF photo checklist, on-screen signature, and "save as common job".
+  Techs see no cost or discount controls. Editing a receipt no longer loses fields. **Start a job → Materials →
+  Continue now arrives in the invoice already filled in** (it used to arrive empty). Zelle and Other sales now
+  show in Closeout and Reports like cash.
+- **One scheduler.** The guided phone-intake script (English and Spanish — greeting, customer, job type,
+  details with VIN, schedule, upsell, confirm) now lives inside the Scheduler's **+ New job**. The plain
+  "Quick form" is one tap away for managers and owners. Jobs land on the board exactly like before.
+- **"Keys by vehicle" is a plan feature.** Year / Make / Model, the VIN box, FCC ID and chip, and the
+  fits-first pickers are included from the **Starter** plan up. The server enforces it (a Lookup-plan shop
+  never receives the fits data) and a new server function decodes VINs and counts them per shop for future
+  metering. Your shop is Pro, so nothing changed for you.
+- **Small fixes:** "Forgot password?" on the sign-in page with a set-new-password screen (one Supabase setting
+  still needed: add the app's address to Auth › Redirect URLs); the hardware window follows light/dark;
+  deep links to Reconcile and Returns work; the demo no longer spams the server; a long-standing style bug that
+  silently disabled the dark palette is fixed.
+- **Pending your two-phone check**, then say "commit it".
+
+### 2026-11-08, later (🔎 Inventory finder — Category · Sub-category · Year/Make/Model · FCC ID · VIN boxes; tap "missing cost" to list those parts)
+- **What you asked for, remotely:** a category filter; tap the "83 missing cost" box to see exactly those parts;
+  Year / Make / Model as drop-downs; an FCC ID box and a VIN box, each **separate** so nobody has to guess
+  which box does what (we can merge them later); and a sub-category filter (Remote, Smart, Mechanical…).
+- **What you get on Inventory → Stock now:** one finder card with labelled boxes —
+  **Category** (All · Aftermarket · OEM New · OEM Refurbished · Accessories · Services, each with a count),
+  **Sub-category** (only the ones you actually stock in that category, with counts), **Year · Make · Model**
+  (always on screen now; no button to find first), **FCC ID** (type any part of it, dashes and case don't
+  matter), **VIN** + **Find** (decodes the VIN and fills in Year / Make / Model for you), and **Search** (the old
+  box). A line under them says what's on ("Showing 12 of 390 · Aftermarket · Smart Key"), with **✕ Clear all
+  filters** beside it. Filters stack.
+- **"missing cost" is now a button.** Tap it → the list shows only the parts with no cost; tap it again → back to
+  everything. (Managers/owners only, as before.)
+- **How a key knows its category:** it reads the end of the SKU — **… AM** = Aftermarket, **… OEM** = OEM New,
+  **… REF / REFURB / RC** = OEM Refurbished — which is how your SKUs are already written (277 AM, 48 OEM, 7
+  refurbished in the cleaned list). Keys with none of those (about 50 — mostly plain blanks and the UNIV-IKEY
+  rows) sit under **"Keys — unsorted"** in the Category list so you can find them and add the suffix; the Add /
+  Edit part form now says this under SKU. Accessories and Services come from the part's category. **RC** on a SKU = OEM **recased** (a refurbished OEM key in a new shell, no logo) — confirmed by you, so it sorts under OEM Refurbished.
+- **Services are SKUs now:** the part form's Category picker has a Services group (Key Cutting, Programming,
+  Lockout, Rekey / Lock Work, Labor, Other Service). Setup → Services (the booking menu) is unchanged.
+- **Status:** code-complete and checked in headless Chrome at desktop and phone size, light and dark, owner and
+  technician (no sideways scroll, big tap targets, VIN decode works, every filter narrows the list). **Pending
+  your two-phone check** (iPhone Safari + Android Chrome) before it's "done". Nothing changed in the database.
+  Not committed yet — say "commit it" when you're happy.
+- **Round 2 (same day) — every SKU now has its own Category / Sub-category / Brand, and suppliers carry their
+  house brands.** You asked for a proper way to sort the unsorted keys, universal keys by maker, and brands tied to
+  suppliers so a scanned warranty return tells you brand + distributor. Done:
+  - **Add / Edit part:** **Category** (Aftermarket · OEM New · OEM Refurbished · Universal · Accessories ·
+    Services), **Sub-category** (Smart Key, Remote / Fob, Super Remote for universals, Remote Head / Flip,
+    Transponder, Key Shell, Mechanical; accessory and service lists for those), and **Brand**. Pick the
+    **Supplier** (it now suggests your suppliers) and an Aftermarket key gets that supplier's brand automatically
+    — American Key Supply → **Blue Rocket**, Key Innovations → **Keyless2Go**, Your Car Key Guys → **YCKG**. A
+    Universal key offers the makers instead (Autel, Xhorse, KeyDIY, Lonsdor first; OBDSTAR, Launch, Topdon, JMA,
+    Silca, Keyline, CGDI; or Other…).
+  - **Database:** two new columns on every part (category grade + brand), filled in from your SKUs: **186
+    Aftermarket, 34 OEM New, 4 OEM Refurbished, 6 Universal** (the five UNIV-IKEY rows = Autel; the XH-XKTO22EN
+    "universal wired" remote = Xhorse), 100 accessories as they were. **23 keys are still unsorted** (plain
+    blanks like H86/74, K-B120, the "ford" row, GM-928/925 …) — pick Category → Unsorted on Inventory, open each,
+    choose its category, Save. Supplier was blank on every row, so I did **not** stamp Blue Rocket on all the
+    Aftermarket keys; say the word and I'll do that in one go.
+  - **Setup › Inventory** has a **Suppliers & their brands** list — your three are pre-filled with phone,
+    website and address (AKS: 800-692-1898, americankeysupply.com, Las Vegas; Key Innovations: 640-224-0031,
+    keyinnovations.com, Vernon Hills IL; Your Car Key Guys: 931-451-7881, yourcarkeyguys.com, Spring Hill TN —
+    no street address published). Edit anything, add or remove suppliers; it saves as you type. Below it,
+    **Universal key brands you stock** — tick the makers you carry. The same tick-list is on **Programmers › 🧰
+    My tools**, where you pick your programmers.
+  - **Inventory finder:** Category now includes Universal, and a **Brand** box appears (Blue Rocket, Autel …).
+    Receiving serialized units suggests your suppliers too, so each unit knows its distributor.
+- **Your test (both phones, owner then a staff login):** open Inventory → Stock. 1) Category → OEM New: only OEM
+  rows, status line appears. 2) Sub-category → Smart Key. 3) ✕ Clear all filters → everything back. 4) Year 2019,
+  Make Buick, Model Enclave → the HYQ4EA key. 5) FCC ID box: type hyq4 → same key. 6) VIN box: paste a real VIN,
+  Find → Year/Make/Model fill in. 7) Tap the "missing cost" box → only no-cost parts; tap again → all. 8) Staff
+  login: no "missing cost" box, everything else identical. 9) Open an Aftermarket key, type "American Key Supply"
+  in Supplier → Brand shows Blue Rocket; change Category to Universal → Brand lists the makers. 10) Settings →
+  Inventory: your three suppliers are listed; tick Autel → Programmers › My tools shows Autel ticked too.
 
 ### 2026-11-08 (🔑 Inventory knows which vehicles a key fits — FCC ID, transponder chip, year/make/model finder; the real stock list cleaned up)
 - **The owner's idea:** type the distributor's fits list once ("2018-2021 enclave 2020-2021 encore

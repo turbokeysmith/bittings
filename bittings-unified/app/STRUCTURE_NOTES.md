@@ -8,6 +8,400 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 - **Staff app** (dark): http://127.0.0.1:8088/  → Customers · Receipts · Scheduler · Payments · Inventory
 - **Public site** (light): http://127.0.0.1:8099/  → contact form `/contact/`, language toggle 🌐 in the header
 
+## 2026-11-09 — 8z13: each shop pairs its own card reader (Settings → Payments → Card readers)
+- **Why:** a new shop must be able to set up its reader itself instead of sending ids/keys to anyone.
+- **Server:** `pay-terminal` actions `list` (this shop's readers only), `register` {code,label,address?} (owner/manager; first time
+  creates the shop's Terminal Location on the platform account, claimed with a compare-and-set on `shops.terminal_location_id`),
+  `rename`, `remove`, `config` (publishable key from secret `STRIPE_PUBLISHABLE_KEY`). `ownReader()` fence: reader must be at the
+  shop's location — used by simulate/cancel/cancel_intent/rename/remove. `pay-create-intent` checks the same before creating the PI.
+  Readers live on the PLATFORM account because charges are destination charges (on_behalf_of + transfer_data) created there; the old
+  list used `stripeAccount: <connect id>`, which would never have found the real reader.
+- **DB:** phase8/8z13_shop_terminal_location.sql (`shops.terminal_location_id`; browser can't write it — column grant is name only).
+- **UI:** index.html `TKS_readersRender` / `TKS_readersForm` / `TKS_rdParseAddr`; app/pay.js `TKPay.readers(action, body)`, `getPK()`
+  (server key first, old localStorage key as fallback); empty reader list says "add one in Settings → Payments".
+- **Verified:** live functions, Stripe TEST, QA shop — 16/16 (incl. charge → webhook completed → refund). Phone sweep 124 / 0 issues.
+
+## 2026-11-08 (night) — 8s: stock lives at the shop · real location labels · phone layout for part rows
+
+**Owner (from a phone screenshot):** the part rows were unreadable on mobile (text squeezed between the qty controls and
+4–5 buttons) and every row said "🚐 Van" although all stock is at the shop. Findings: the cloud truth is
+`inventory_locations` (353 items / 2,210 units at `shop`, one item with 4 units in a van) while the row label came from the
+legacy per-device `p.loc` flag via `defaultLoc()` (= van whenever van+shop were both enabled).
+- **SQL `phase8/8s_inventory_locations_all.sql` (APPLIED):** `inv_locations_all()` (staff; every item/location/qty row
+  for the caller's shop in one call — the client has no grant on the table) + a one-time fold of the van-held stock into the
+  shop row (item "ford": 5 → 9; logged in audit_log). Now 336 items / 2,214 units at `shop`, 0 in vans.
+- **index.html:** `defaultLoc()` → `shop` whenever the shop exists; signed-in mode (`invCloudLoc()`) loads
+  `inv_locations_all` + `TKS.Fleet.list()` (30 s cache, `window.invLocRefresh(true)` after a stock change), rows show
+  "🏪 Shop 9 · 🚐 <van nickname> 4" from real data (`invRowLocText`), and the location segment is **All / 🏪 Shop /
+  each active van** filtering on real stock (`invAtLoc`); offline keeps the legacy flag with Shop listed first.
+- **Phone layout (≤600px, was ≤480px):** `.crow.part .pinfo{order:-1;flex:1 1 100%}` — name + details full-width on
+  top, qty controls left / action buttons right underneath, price tag last; `.sub` wraps anywhere.
+- **8t phone sweep:** script walks 15 views + part form, Reorder, Scan-a-key, guided booking, customer form, all 10
+  Settings steps, the invoice builder and the read-only Receipts page at 375 and 430 px, light and dark (124 screens):
+  zero horizontal overflow / nothing past the right edge before or after; fixed every control under 44px and every
+  dropdown under 16px (`#signOutBtn`, `#backBtn`, Start-a-job VIN / Y-M-M toggle, Fleet selects, Reports metric chips,
+  Commission/Timesheets reload + Rules, `#roX`, Services "Select all", Hours "Copy to…", builder header buttons,
+  `#roSearch`). Phone rules only (`@media (max-width:600px)`). After: 124/124 clean, 0 page errors.
+- **8u always-visible bottom menu on phones:** `.bt-bottomnav` z-index above every overlay; sheets / pop-ups / camera
+  stop above it; a capture-phase listener closes any open full-screen layer (and the camera) before switching screens
+  (`window.closeAllOverlays`). bittings.html `#appnav` is now pinned (fixed, above the builder) on ≤720px with the same
+  tabs as the app: Start job · Receipts · Customers · Stock · Scheduler.
+- **8v strict vehicle match (owner: "a 2020 Charger needs the one just for the 2020 Charger"):** `fitment.js` scores a
+  make-only fits entry ("Chrysler/Dodge/Jeep 04-19", "GM") as 0.5 when a model is chosen and `filter(items, veh, {loose})`
+  drops it unless `loose`; `Inventory.forVehicle(veh, opts)` passes it through. The finder status line shows "+ N that
+  list only “Dodge” (no model)" to opt in, and "pick the model to see only its keys" while only year/make are set. Live
+  data: 2020 Dodge Charger 3 → 1 (CHRY-1604); 52 of 352 parts (mostly transponder blanks) list only a make.
+- **8w swipe-back + booking scroll (owner, phone):** `show(name)` pushes `history.pushState({tksView})` per screen change
+  (skipped while `window._tksPopping`); a `popstate` listener closes overlays and re-fires that view's `[data-go]`/sub-tab
+  button (editor screens part/form/matsvc fall back to their parent). The first history entry is a `__root` guard: swiping
+  back past the first screen shows "Swipe back again to leave the app". Returning from bittings.html with a `tksView` state
+  reopens that screen. Guided booking `wzRender()` keeps `.wz-body` scroll when the same step redraws (year/make/model,
+  ignition, sub-type); only a new step scrolls to the top.
+- **8x vehicle catalog:** `app/ymm-catalog.js` (generated, ~24 KB) is loaded right after `lishi-seed.js` in index.html and
+  bittings.html and APPENDS NHTSA vPIC rows (1995–2026) to `TKS_LISHI_SEED.models` — the hand-made rows stay first and keep
+  their names (vPIC "Silverado HD" → "Silverado 2500/3500", BMW "328i" → "3 Series", Mercedes "GLC-Class" ↔ "GLC"), so
+  TKS_YMM, the Start-a-job cascade and the fitment matcher all read the same list. `TKS_YMM.MAKES` (49 makes) is the one
+  make list; Start-a-job reads it. Years 1995–2026. Rebuild: `tools/ymm-catalog/vpic-fetch.js` (~15 min) → `vpic-build.js`
+  (filters heavy trucks, aliases, year runs). Fitment results are unchanged with/without the catalog (checked).
+- **8z3 brand by supplier:** index.html `supplierFind(txt)` (name / initials / first+last-word code e.g. KIN / website) + `supplierOfBrand(brand)`; `pBrandFill` groups brands per supplier; pBrand change fills pSupplier; pSupplier change normalizes a code to the full name.
+- **8z2 vendor logos:** index.html `VENDOR_LOGOS` {host:{icon,wide}} + `vendorLogo(url)`; `llRow` uses the icon as the row image and shows the wordmark (`.ll-wide`) above the label; `supRowHTML` shows `.sup-logo`. Files in app/assets/vendor-logos/.
+- **8z missing FCC chip:** index.html `invNoFccOnly` + `invNeedsFcc(p)` (category sub in `INV_FCC_SUBS` = same list as the part form FCC box, empty `fccId`; a Transponder counts when `chip` is empty); chip `#invFccNudge` in `renderInvStrip`, hidden without the fitment plan; part of Clear all.
+- **8y list years:** `fitment.js` tokenizer marks a NEW LINE (`␞`, `{t:'sep',line:true}`) apart from commas/semicolons (`␟`);
+  `parse()` gives each segment a `line` index and, after building segments, a segment with no years inherits: from the
+  previous years-FIRST segment ("2005-2008 Dodge Magnum, Charger"), else the next years-AFTER segment ("Camaro, Cruze,
+  Malibu 2016-2020"), else the previous one. Not across lines when the segment starts with its own make, unless the source
+  is a bare make line ("Hyundai Elantra" + "Hyundai 21-22"). Real-data diff: 2 of 352 items changed (both fixes).
+- Start-a-job vehicle result: **"Start all-keys-lost job" → "Start new job"** (no preset service; the tech picks it).
+
+## 2026-11-08 (evening) — 8r: dispatched lines, running log, camera scan out / back in, tech-discount cap · published under /staff/
+
+**Owner decisions:** techs get the dispatched job and may ADD lines but not remove dispatched ones ("Didn't do this" +
+reason instead); every such change goes to a running log; techs cannot discount in THIS shop but that is a per-shop
+setting; keys are scanned OUT with the phone camera when sold and BACK IN when a customer declines; texting / tech
+tracking parked (ROADMAP_AND_IDEAS.md); no paid services for testing.
+
+**Server (`supabase/phase8/8r_field_log_scan_units.sql`, APPLIED live):** `log_activity(action, entity_type, entity_id,
+detail)` (any staff → audit_log row; the client has no table grant on audit_log so this is the one door);
+`unit_return_to_stock(unit, location, reason)` (staff; a SOLD unit → in_stock at a location, sale fields cleared,
+logged, idempotent); `pos_decrement_stock` now sells the units listed in a line's `unitIds` first (FIFO for the rest)
+and skips `declined:true` lines. `ALLOWED_ORIGINS` secret set to turbokeysmith.com / www / turbokeysmith.pages.dev.
+
+**Data layer (store.js):** `access.techDiscountMaxPct` (default 0) + `Config.techDiscountMaxPct()`; `TKS.Audit.log()`
+→ `log_activity` (no-op demo/offline).
+
+**Camera (`app/camera-scan.js`, `window.TKS_CAM`):** full-screen themed scanner; BarcodeDetector (Chrome/Android: QR +
+Code-128) else jsQR (`app/vendor/jsqr-1.4.0.js`; iPhone Safari: QR only); typed-code fallback; needs https/localhost.
+Loaded by index.html and bittings.html. Scan-a-key panel has "📷 Scan with the camera". The site's `_headers` grant
+`camera=(self)` for `/staff/*` (the rest of the site stays `camera=()`).
+
+**Scheduler → invoice:** the Edit-job sheet (board card) and the Customers job modal gained **🧾 Invoice this job**
+(`jobToInvoiceDraft(b)` → `sessionStorage.tks_job_draft` with `jobId`, customer/customerInfo, vehicle/vin, address,
+tech, the booked service priced from Setup › Services, the job's parts (TKS.Jobs.parts) — all `fromDispatch:true`) and a
+**Job log** (audit_log rows with entity_type 'job' / entity_id = jobId: Not done / Added / Key scanned out / back in).
+
+**Builder (bittings.html):** dispatched lines show "📋 from dispatch"; for non-`canEditPricing()` users desc / category /
+price / cost / tax are read-only, × becomes **Didn't do this**, qty can only go down (partial → `declinedQty`, amount
+re-derived from `dispatchAmount × qty / dispatchQty`); themed reason prompt (Customer declined · Wrong key sent ·
+Couldn't do it on site · Other+text). Receipt item fields: `fromDispatch, jobId, dispatchQty, dispatchAmount, unitIds[],
+declined, declineReason, declinedQty` (+ `declineLoggedQty/addLogged/unitIdsLogged` bookkeeping). Totals skip declined
+lines (builder, `receipts-engine.js`, server). Card + PDF render them struck at $0 with "— not done (reason)" (Spanish
+"no realizado"). Tech discounts: hidden at cap 0, else percent-only up to the cap, validated on submit; a tech's
+dispatched price is re-derived so it can never be discounted. **📷 per line**: unit label → `inventory_units` lookup
+(must be in_stock) → attached (`unitIds`, "🔑 N scanned" chips, qty follows); SKU barcode → like 📦; wedge `tks-scan`
+listener. **Scan back in**: after a decline on a line with units, or "↩ Scan back in" on the result screen → must match
+one of that line's ids → removed; if stock was already applied → `unit_return_to_stock` (location = the tech's van
+when known) + log. Camera button shows on touch devices / when permission was already granted (headless/desktop hide
+it; typed-code fallback everywhere). Audit actions: `dispatch_line_declined`, `dispatch_line_added` (entity job),
+`unit_scanned_out`, `unit_scanned_in` (entity inventory_units).
+
+**Setup › Access:** "Technician discounts — up to __ %" (0 = none; this shop 0).
+
+**Published under the website:** `website/site/staff/` = index.html, bittings.html, signin.html, cloud-test.html (stub),
+icons, `app/` (no docs/supabase/tools/demo pages); every "Staff Login" link (239 pages) → `/staff/signin.html`,
+pinned bottom-right in the footer; `_headers`: `/staff/*` noindex + camera allowed + no-cache; `ga-tag.mjs` skips
+`/staff`. Re-publish = `node website/_tools/publish-staff.mjs` (copies + rewrites links) then `node website/_tools/deploy-site.mjs`
+(wrangler needs `CLOUDFLARE_API_TOKEN` — a Pages:Edit user token — AND `CLOUDFLARE_ACCOUNT_ID`; both are saved in this PC's user
+environment via setx on 2026-11-08; the token cannot list accounts/zones, so cache purges are done in the dashboard).
+Cloudflare Pages serves clean URLs: `/staff/signin.html` 308 → `/staff/signin`; the app's relative links survive it.
+A root `website/site/cloud-test.html` forwarder catches old cached pages / bookmarks → `/staff/signin.html`. `_headers` detaches
+the site-wide `Permissions-Policy` on `/staff/*` (`! Permissions-Policy`) before re-adding it with camera=(self).
+DEPLOYED 2026-11-08 ~19:15 CST (deploys aafd3999 / 6cbcd52f); the edge cache still had the pre-deploy HTML for URLs already
+visited — purge in Cloudflare (Caching → Configuration → Purge Everything) or wait for it to expire.
+**Supabase Auth → URL configuration still needs** https://turbokeysmith.com/staff/signin.html (+ pages.dev) for the
+Forgot-password link to land back on the page; password sign-in itself works from the new origin.
+
+**Verified:** builder dispatch suite 41/41; invoice-this-job draft (tech, demo) carries the dispatched service at the
+Setup price; final app regression zero page errors; QR label previewed via Labelary. Live-cloud paths (unit lookup,
+return RPC, log) exercised with stubs only — the owner's phone test on /staff is the first real run.
+
+## 2026-11-08 (late afternoon) — "implement all your ideas": 8l/8m server gates & seats · 8n inventory + app upgrades
+
+**Owner:** "implement all your ideas" (the list at the end of the clean-up report) + "don't type the aftermarket name on
+the receipt" (checked: `brand` is never rendered by bittings.html / receipts-engine.js / receipts-view.js — it stays on the
+part row, the Unit panel and the finder only) + "RC = OEM recased (refurbished, no logo)" (recorded; stays OEM Refurbished).
+
+**8l — plan checks INSIDE the gated RPCs (APPLIED live).** `supabase/phase8/8l_require_tier_in_rpcs.sql` adds
+`perform public.require_tier('<feature>');` as the first statement of 25 plpgsql functions (pos: pos_checkout,
+pos_decrement_stock, pos_restock · inventory: inv_adjust, inv_move, inv_receive, unit_receive, unit_move, unit_set_status,
+unit_ensure_serialized, cycle_start/save_line/complete/cancel, key_failed, return_update, warranty_replace · scheduler:
+job_set_status, job_cancel, job_reconcile_part, job_release_hold · move_requests: move_request_approve/deny · commission:
+commission_day_rows · nastf: nastf_worklist). Originals saved verbatim in `8l_rollback_original_rpcs.sql`. Verified all 25
+now contain require_tier; no edge function calls them as service_role; both live shops are Pro → no behavior change.
+A locked shop gets `TIER_LOCKED: <feature> requires a higher plan` from the server even if the UI is bypassed.
+
+**8m — seat limits (APPLIED + DEPLOYED).** `staff-invite` refuses a new active member when used ≥ allowed:
+`402 {error:'SEAT_LIMIT', used, allowed, tier, message}` (re-invites still 409; shops with no subscription row are not
+limited). DB guard `8m_seat_limit_guard.sql`: BEFORE INSERT/UPDATE trigger `trg_staff_seat_limit` → `staff_seat_guard()`
+raises `42501 SEAT_LIMIT: …` when a non-owner row becomes active past the entitlement (owners, de-activations, already-active
+edits pass). `tier.js`: `TKS_TIER.seatsLeft()`, pill shows "x/y seats · full" in amber. Settings › Access shows "Seats full —
+… Upgrade ↑" on that error (index.html).
+
+**Sign-in page renamed:** `cloud-test.html` → **`signin.html`**; the old name is a forwarding stub (keeps query + hash)
+so the ~240 public-site "Staff Login" links and old bookmarks keep working. All app references switched (index.html,
+pay.js, bittings.html/cloud-config.js comments). **Supabase Auth URL config (read via `config pull --dry-run`): Site URL
+= http://localhost:3000, redirect list EMPTY → Forgot-password links currently land on localhost:3000.** Owner must add
+http://localhost:8088/signin.html, http://127.0.0.1:8088/signin.html and https://app.turbokeysmith.com/signin.html (and any
+tunnel URL) in Dashboard › Auth › URL Configuration.
+
+**8n — Inventory upgrades (index.html, inventory-traceability.js, hardware.js):**
+- **Per-unit labels + scan-to-unit.** `TKS_HW.labels.buildUnitZPL/printUnit/printUnits` — **QR code** of the unit id (owner's call, 8o: Code-128
+  of 34 chars was too fine), QR left / name · SKU · rcvd date · id text right; previewed via Labelary at 2.25×1.25 in, 203 dpi. After a
+  serialized receive: "🏷️ Print N unit labels". `window.openUnitPanel(code)` / `unitLookup(code)`: the unit's story
+  (part, SKU, brand + grade, unit id, status/location, supplier, invoice/order #, received date + staff, cost, sale
+  receipt/customer/date, disposition) with 🛡️ warranty / ⚠️ failed / 📍 move. `tks-scan` of a `u_…` id opens it from any
+  screen; on the Register it adds the unit's PART. Toolbar **🔎 Scan a key** `#invScanKey` (type/paste a unit id or SKU;
+  SKU → part + last 25 units). Demo → "Unit lookup needs the live app".
+- **Receiving:** "Supplier invoice / order # (recommended)", supplier prefilled from the part, blank order # → themed
+  confirm before receiving.
+- **Reorder list** `#invReorder` (inventoryWrite): low/out parts grouped by supplier, suggested qty (`reorderQty` or
+  max(lowAt*2−qty,1)), cost, line + supplier totals, contact line, **Copy list**, **✉️ Email** (pre-addressed to the
+  supplier's new **Order email** — `Config.suppliers[].email`, editable in Setup › Inventory; Key Innovations seeded with
+  info@keyinnovations.com), **⇩ CSV**.
+- **One summary strip:** `#invDash` removed; `#invSummary` = fit-vehicle · parts · low/out · missing cost (tap-to-filter) ·
+  stock value at retail / cost (`#invValueChip`, cloud `inventory_dashboard` via `invStripSetCloud`, else local; editPricing
+  roles) · open returns (`#invRetChip`, cloud only, tap → Reports › Returns).
+- **Start-a-job draft** now carries `vin` and the customer (`customer` name string + `customerInfo{id,name,phone,email}`;
+  new optional Customer block `#msCustName/#msCustPick` on the materials step); bittings.html `jobDraftToPrefill` reads
+  both → name, phone, email, customerId prefilled.
+- **Dialogs:** zero native alert/confirm/prompt left in index.html (Programmers ×6, Lishi ×9, Scheduler ×1 → uiAlert /
+  uiConfirm / uiPrompt) and in inventory-traceability.js.
+- **Services in ONE place:** the Setup "Service types" step is folded into **Services** (categories on top, priced list
+  below, one save); review row renamed "Kinds of work". Register, invoice builder and Scheduler all read the same config.
+
+**8p — vendor SKU (APPLIED live):** `inventory.vendor_sku text default ''` (+ `inventory_safe`), `store.js` `vendorSku` in fromRow/toRow and
+in `Inventory.search`; part form `#pVendorSku` next to Supplier (Reorder qty moved to its own row); row sub-line shows
+"vendor # …"; Reorder list shows it bold before our SKU in the modal, the Copy/Email text
+and the CSV (`vendor_sku` + `our_sku` columns); CSV export column; importer field (hints: vendor sku / supplier part / aks #).
+
+**8q — supplier-facing reorder text:** `reorderText()` (Copy / ✉️ Email) now sends only "Order request - <shop> - <date> / To: <supplier>"
++ "qty x <vendor SKU>  <part name>" lines + a closing line. Our SKU, on-hand and cost appear only on screen and in the CSV (ours).
+Lines without a vendor SKU are flagged on screen (`.ro-missing`, tap → `openPart`) with a count note (`.ro-note`) so the owner fills them in before sending.
+
+**Verified:** inventory batch 62/62 Puppeteer checks (owner + tech, 1280/375, light/dark); final app regression zero page
+errors / zero overflow across all views; builder suite 0 fails; stub redirect keeps query+hash; staff-invite anon → 401.
+Not possible here: a real Zebra print of the unit label, real phones.
+
+## 2026-11-08 (afternoon) — 8j clean-up · 8k "vehicle fitment" plan gate · ONE invoice builder · ONE scheduler
+
+**Owner (remote):** "plan it all out and start" on the review findings (dead/duplicate code, chat invoice → delete
+or rework, guided scheduler, fitment as a paid feature). Nothing committed; the owner commits when happy.
+Backups of every file before each phase sit in %TEMP%\bittings-bak-phase{A,C,D,E}\.
+
+### 8j — de-duplication and dead code (no behavior change)
+- **jsPDF 2.5.1 once:** `app/vendor/jspdf.umd.min.js` (extracted byte-identical from the embedded copy). index.html
+  loads it instead of the CDN; `app/receipts-engine.js` (396 KB → 32 KB) and `bittings.html` lost their embedded
+  copies (−364 KB each). The engine still reads `window.jspdf`.
+- **Lishi seed once:** the native Lishi view in index.html no longer carries a second copy of the tool/vehicle seed
+  (−85 KB); it reads `TKS_LISHI_SEED` (`lishi-seed.js` now also exports `toolFields, vehFields, mk, inferKeyway`).
+  The one label the view had changed ("Lishi picks (door / ignition / trunk — optional override)") is re-applied in the shim.
+- `cloud-config.js` loaded once (was twice). Removed: `posManageServices`, `ownerVisible`, `setupLinkHTML`,
+  Scheduler `doStatus`, `_btApp`, `DEVKEYS`, the dead global `[data-open]` handler, `store.js DEFAULT_SERVICES`
+  (never read), 39 CSS rules whose selectors appear nowhere (grep-verified, `.pl-*`/`.tile` kept).
+- **Deep links** `?go=reconcile` / `?go=returns` now open Inventory › Reconcile / Reports › Returns (their nav
+  buttons stay hidden); `_tryGo` runs after the script has defined the renderers (it used to hit a TDZ on
+  `invSearchEl`).
+- **Pages archived to `_archive/`:** `lishi.html` (fully ported), `setup.html` (Settings lives in index.html;
+  bittings.html's ⚙ now goes to `index.html?go=settings`), `scheduler.html` (see Phase D). Nav tabs in
+  `appnav.js` + bittings.html point at `index.html?go=lishi|schedule`. Also archived: `_devserver.py` ×2 (the
+  launcher uses `_devserver.js`), the pitch scripts/screenshots, and six historical docs → `_archive/docs/`.
+- **Dark palette bug fixed:** the comment above `html[data-bt-theme="dark"]{…}` contained `--surface-*/--text-*`;
+  the `*/` closed the comment early and Chrome discarded the whole dark palette rule, so `--card/--ink/--bg`
+  never flipped. Fixed; the many explicit white-card dark overrides still win where they exist, so the look is unchanged
+  except where tokens were relied on (Scheduler modals now theme).
+- **Demo noise:** demo/sandbox no longer makes cloud round-trips (hydrate, shop_config load/save, Stripe-connect
+  status, mfa_pending, inventory_dashboard, job_parts). Only the fake token's `auth/v1/user` 403 remains.
+- cloud-test.html (the real sign-in page): **Forgot password?** → `resetPasswordForEmail` (redirect back to the
+  page) and a `PASSWORD_RECOVERY` → "Set a new password" view (`updateUser`). **Needs the app's address in
+  Supabase Auth › URL configuration › Redirect URLs** before the email link will land here.
+- `hardware.js` settings window uses `var(--card/--ink/--bg/--edge/--dim)` (was dark-only hard-coded colors).
+
+### 8k — "finding keys by vehicle" is a plan feature (Starter and up)
+- SQL `supabase/phase8/8k_fitment_tier.sql` (APPLIED live 14:0x CST): `tier_allows('fitment')` = starter/pro;
+  `inventory_safe` returns `fitment`, `fcc_id`, `chip` as '' unless the plan allows it; new table
+  `public.vin_decodes` (per-shop usage log; managers read their own shop). Both live shops are Pro → unchanged.
+- Edge function **`vin-decode`** (DEPLOYED, `functions deploy vin-decode --yes --project-ref …` from
+  bittings-unified/): `requireStaff`, reads the shop's subscription, 402 `TIER_LOCKED` for lookup plans,
+  proxies NHTSA vPIC, logs to `vin_decodes`. `store.js decodeVin`: signed-in shops call the function; a
+  `TIER_LOCKED` answer surfaces as `err.code==='TIER_LOCKED'` (never falls back); an unreachable function falls
+  back to the direct NHTSA call; demo/offline go direct. `toRow` omits `fitment/fcc_id/chip` while locked so a
+  Lookup-plan edit can't wipe them.
+- `tier.js`: `fitment` in the client matrix, `FEATURE_LABEL`, `showUpgrade('fitment')` accepts a feature key,
+  Starter copy mentions keys-by-vehicle, and `applyGates()` re-renders Inventory when the tier arrives.
+- index.html: `fitmentAllowed()` / `invFitmentGate()` replace the Year-Make-Model, VIN and FCC rows with a
+  🔒 lock + Upgrade button; the part form hides Fits / FCC / chip; the VIN box shows the upgrade prompt on
+  `TIER_LOCKED`. (On a Lookup plan Inventory itself is locked, so today the in-finder lock only shows if the owner
+  later moves `fitment` to Pro.)
+
+### Phase C — ONE invoice builder (bittings.html 297 KB → 218 KB)
+The Quick invoice is the only builder for every role; the field-by-field chat flow, its undo stack, bubbles,
+signature pad screen, HEAD_FLOW/VEHICLE_MAKES/decodeVIN, the unreachable in-page Settings + Welcome tour, backup/restore
+and the 19 KB base64 default logo are deleted. Added to the builder: role-based hiding of **Cost $ / Discount /
+tax-rate override** (`canEditPricing()` = `TKS.auth.can('editPricing')`), Individual/Business + Contact person +
+📇 contracting-shop picker, discount rows (chat shape `{isDiscount, discountMode, discountValue}`), payment
+Cash/Card/Zelle/Check/Other + status Paid in full / Partial (`amountPaid`, new) / Unpaid, per-line **Category**
+(Labor/Materials/Travel/Programming/AfterHours — fixes the old "Automotive" bug), service types from
+`TKS.ServiceCats.invoiceActive()`, VIN required for Auction/Fleet D1, NASTF photo checklist (`nastfChecklist`,
+new), ✍ signature modal, ☆ Save as common job, legacy free-text vehicle. **Edit merges** into the existing receipt
+(deep copy; only form-owned fields change). `boot()` reads + clears `sessionStorage.tks_job_draft` (Start-a-job
+handoff finally works). `recordCashSale` + edge `pay-record` (REDEPLOYED) now accept **zelle/other** paid sales so
+Closeout/Reports see them; `receipts-engine.js` shows "Paid: $x · Balance due: $y" on Partial receipts (card + PDF).
+Retired everywhere: `access.quickInvoiceEnabled/quickInvoiceDefault`, `TKS_OWNER.QUICK_INVOICE_*`, the Settings
+toggles, demo seeds. QA: 55 Puppeteer checks (owner + technician, 1280/375, light/dark) pass.
+
+### Phase D — ONE scheduler (guided booking inside index.html)
+`+ New job` opens the ported guided wizard in a `.sch-modal` sheet: Greeting → Customer → Job type (Setup) →
+Sub-type → Details (VIN via `TKS.decodeVin` or Y/M/M, ignition, address) → Schedule (date/time/duration/tech from the
+board roster) → Upsell → Confirm → Done; EN/ES script library ported; progress bar; Back everywhere; "⚡ Quick form"
+(the old plain form) for `can('setup')`/owner only, no PIN. Both paths write through `persistJob(rec)`
+(TKS.Bookings.save → TKS.Jobs.assign); the wizard also upserts the caller into Customers. Record shape adds
+`addr{street,city,state,zip}`, `vehicle.ignition`, `upsell{offered,accepted}`, `bookedVia:'guided'`.
+`?go=schedule` self-renders. `scheduler.html` archived (`TKS.Jobs.meta/unassignRole/staffOnJob` now unused).
+QA: 50 checks pass, 0 page errors, no overflow at 375px.
+
+**Verified overall (final regression, demo, owner light + dark 1280px, technician dark 375px):** all 12 main views
+render, zero page errors, zero horizontal overflow, wizard opens EN/ES, bittings.html opens the builder, no
+chat remnants. Real-phone sign-off still pending.
+
+## 2026-11-08 (later) — 8i: Inventory finder — Category / Sub-category / Year-Make-Model / FCC ID / VIN boxes + tap-to-filter "missing cost"
+
+**Why (owner, remote session):** "on inventory we need a filter by category … select this box [83 missing cost]
+and filter to all of those … we carry aftermarket, OEM new, OEM refurbished, accessories and services — all of
+these are SKUs … a drop box for year make and model, a search for FCC ID, a search for VIN — separate the
+searches, each in their own box (merge later) … a subcategory filter like remote, smart, mechanical."
+
+**UI (`index.html`, Inventory → Stock):** the toolbar keeps Import / Export / + Add / Hardware; the
+🔎 VIN and 🚗 Fits vehicle buttons are gone. Below it sits one card, `.invfind`, with labelled boxes:
+- **Category** `#invCatSel` — All / Aftermarket / OEM New / OEM Refurbished / Accessories / Services, each
+  with a live count; a "Keys — unsorted (no AM / OEM / REF on the SKU)" option appears only when such rows exist.
+- **Sub-category** `#invSubSel` — built from what is actually in stock inside the chosen category (Smart Key,
+  Remote / Fob, Remote Head / Flip, Transponder, Key Shell, Mechanical, the accessory subs, the new service subs),
+  in `INV_SUB_ORDER`, with counts. A pick that no longer exists after the category changes resets to All.
+- **Year / Make / Model** `#invFitYear/#invFitMake/#invFitModel` — the 8h fits finder, now always visible
+  (`invFitActive()` no longer depends on a hidden bar; `invFitFill()` runs at load).
+- **FCC ID** `#invFcc` — substring match on `fccId` with spaces/dashes/case ignored (`invFccNorm`), so
+  "tq8rke" finds "TQ8-RKE-4F25" and "HYQ1ES" finds "HYQ1EA / HYQ1ES".
+- **VIN** `#invVinBox` + **Find** `#invVinGo` (Enter works too) — validates 17 chars, calls `TKS.decodeVin`,
+  writes the result into Year / Make / Model and says "Decoded: 2019 Buick Enclave — showing the keys that fit."
+  Replaces the old `openVinModal` (deleted).
+- **Search** `#invSearch` — unchanged free-text box (still understands "2019 enclave").
+- A status line `#invFiltOn` ("Showing 12 of 390 · Aftermarket · Smart Key · fits … · FCC … · missing cost")
+  and **✕ Clear all filters** `#invFitClear` show only while something is filtering; the empty state offers the
+  same Clear button. All filters AND together, on top of the existing van/shop segment.
+- **"missing cost" chip** `#invCostNudge` is now a button (`role=button`, Enter/Space): tap → the list shows
+  only parts with no cost (`invNoCostOnly`), chip reads "showing only these · tap to show all"; tap again →
+  everything. It resets itself when the count hits 0 or the viewer can't see cost (`editPricing`).
+
+**How a key's Category is decided (`partGrade(p)`, no schema change):** Accessories / Services come from the
+stored category's top half ("Accessories/…", "Services/…"). For keys the grade is read from the SKU (then the
+part name) as whole tokens: `REF | REFURB | REFURBISHED | RECON | RC` → OEM Refurbished, `OEM` → OEM New,
+`AM | AFTERMARKET` → Aftermarket, else **Unsorted**. An explicit `p.grade` field wins if a row ever has one
+(there is no such column yet — adding `inventory.grade` + a form field is the clean follow-up if the owner wants
+it instead of the SKU convention). Of the 390 SKUs in the 2026-11-08 cleanup list: 277 AM, 48 OEM, 7 REF/REFURB/RC,
+~52 with no marker (mostly transponder/mechanical blanks and "UNIV-IKEY*" — these show under Unsorted until the
+SKU gets a suffix). The part form now says so under SKU. **Owner confirmed:** "RC" = OEM **recased** (refurbished OEM internals in a new shell, no logo) → OEM Refurbished; 2 rows.
+
+**Services as SKUs:** `INV_CATEGORIES` gained `Services → Key Cutting / Programming / Lockout / Rekey & Lock
+Work / Labor / Other Service` (+ `INV_TOP_ORDER/LABEL/SUB_ORDER`), so service SKUs can be added like parts.
+This is separate from Setup → Services (the booking catalog); nothing there changed.
+
+**Verified (headless Chrome, demo seed + 6 synthetic rows, owner & technician, 1280px and 375px, light & dark):**
+every category and sub-category pick narrows the list and the status line; FCC "tq8rke" → 1 row; 2019 / Buick /
+Enclave → 1 row; VIN 5GAEVCKW4KJ123456 → "Decoded: 2019 Buick Enclave", boxes filled; the cost chip toggles
+2 ↔ 28 rows; Clear all and the empty-state Clear reset everything; technician sees no cost chip; phone:
+no horizontal overflow at 375px, every control 44–45px tall, Year/Make share a row with Model full-width
+below. 0 page errors. **Real iPhone Safari / Android Chrome not run here → code-complete, pending the owner's
+two-phone sign-off.** QA scripts live in the session scratchpad (`qa-8i.js`, `qa-8i-phone.js`), not the repo.
+
+### 8i round 2 (same day) — every SKU gets its own Category / Sub-category / Brand; suppliers with house brands
+
+**Owner, remotely:** "on each SKU we need a category / sub-category option … UNIV = universal keys, category +
+sub-category smart key / remote / super remote …, mainly which company they are from (Xhorse, Autel, KeyDIY …)
+— make those selectable in setup like the programmers … all UNIV IKEY are Autel universals." Then: "each supplier
+has their own brand — American Key Supply → Blue Rocket (most of our keys), Key Innovations → Keyless2Go, Your Car
+Key Guys → YCKG … add their address / phone / website … so a key scanned out for warranty tells us brand +
+distributor (units are serialized)."
+
+**Data — migration `supabase/phase8/8i_inventory_grade_brand.sql` (APPLIED live 2026-11-08 ~12:05 CST via
+`npx supabase@3.0.0 db query --remote --yes -f …` from the repo root):** `inventory.grade text not null default ''`
+('Aftermarket' | 'OEM New' | 'OEM Refurbished' | 'Universal'; blank for Accessories / Services) and
+`inventory.brand text not null default ''`; `inventory_safe` recreated with `grade, brand` appended (same
+additive pattern as 8h; no RLS change). Sub-category stays inside `category` ("Keys/<sub>" etc.).
+`store.js` CLOUD_MAP: fromRow/toRow carry `grade`/`brand`. CSV export + importer (`TKImport` fields
+`grade` — AM/OEM/REF/UNIV short forms expanded — and `brand`) updated.
+
+**Backfill — `supabase/phase8/8i_backfill_grade_brand_2026-11-08.sql` (APPLIED, owner shop only, idempotent,
+rollback = set both columns back to ''):** whole-token rule on SKU+name → 186 Aftermarket, 34 OEM New, 4 OEM
+Refurbished, 6 Universal (5 × UNIV-IKEY → brand Autel; XH-XKTO22EN "UNIVERSAL WIRED RHK FOR VVDI" → brand
+Xhorse, by hand), 100 accessories untouched, **23 keys left blank** (plain blanks / H86, K-B120, "ford", the
+GM-928 pair …) → "Keys — unsorted" in the finder until the owner picks a category on the form. `supplier` is
+blank on every row, so no brand was assumed for Aftermarket keys (the owner says most are Blue Rocket — a one-line
+bulk update is ready if he wants it).
+
+**Part form (`#view-part`):** the old single Category select is now **Category** `#pGrade` (Aftermarket / OEM
+New / OEM Refurbished / Universal / Accessories / Services) + **Sub-category** `#pSub` (per category: key subs;
+Universal adds **Super Remote**; accessory subs; service subs; "Other…" keeps free text) + **Brand** `#pBrand`
+(hidden for Services). `pTaxFill(p)` seeds from `p.grade`, else the stored category top, else `partGrade`.
+`pCategoryValue()` still returns "Keys/<sub>" etc.; `pGradeValue()`, `pBrandValue()` feed save. Supplier
+`#pSupplier` is now a datalist of the configured suppliers; on supplier change `pBrandFill` regroups: "From
+<supplier>" → (Universal only) "Universal key makers [you stock]" / "Other universal makers" → other suppliers'
+brands → Other…. An Aftermarket key whose supplier has exactly one house brand gets it auto-selected when brand is
+blank **or** currently another supplier's brand. `.form select` got the input styling (was a 19px native select;
+caused horizontal overflow on phones). FCC/chip visibility (`FCC_SUBS`/`CHIP_SUBS`) includes Super Remote.
+
+**Finder:** Category list gains **Universal**; `partGrade()` now prefers the stored grade, then tokens
+(UNIV/UNIVERSAL/IKEY → Universal, REF… → Refurb, OEM, AM); a **Brand** box `#invBrandSel` appears once any
+part has a brand (counts, within the chosen category); rows show the brand after the SKU. `partBrand()` =
+stored brand, else IKEY → Autel.
+
+**Shop config (`shop_config.data`, `TKS.Config`):** `univBrands: string[]` (makers ticked) and
+`suppliers: [{name, brands[], phone, website, address}]` — defaults seeded with the owner's three distributors
+(AKS → Blue Rocket, 800-692-1898, americankeysupply.com, 2895 W. Capovilla Ave Ste 100A Las Vegas NV 89119;
+Key Innovations → Keyless2Go, 640-224-0031, keyinnovations.com, 633 Hickory Hill Dr Vernon Hills IL 60061;
+Your Car Key Guys → YCKG, 931-451-7881, yourcarkeyguys.com, Spring Hill TN — street address not published).
+Both whitelisted in `mergeConfig` + `Config.save`; accessors `Config.univBrands()`, `Config.suppliers()`.
+Defaults apply until the owner edits (then the saved list wins; an emptied list stays empty).
+
+**Where the owner edits them:** Setup › **Inventory** step renders `suppliersBlockHTML()` (card per supplier:
+name, brands comma-separated, phone, website, address, Remove; "+ Add supplier"; debounced save on type) and
+`univBrandsBlockHTML()` (checkbox tiles for the 11 makers; the big four first). The same brand checklist is
+mounted in **Programmers › My tools** (`#univBrandsHost`, `data-cap="editReference"`) by
+`window.renderProgrammers`. Receive-units modal (`inventory-traceability.js`) suggests the configured
+suppliers on its Supplier field — units already store supplier/batch per unit (6a), so warranty/failed returns
+resolve brand (part) + distributor (unit).
+
+**Universal makers list (`UNIV_BRANDS`, index.html):** Autel (IKEY), Xhorse (VVDI / XM38 / XS), KeyDIY (KD /
+ZB), Lonsdor (LT20) as the majors — every US distributor sweep returned those four; also OBDSTAR, Launch, Topdon,
+JMA, Silca, Keyline, CGDI as lesser universal lines (vendor/distributor pages, not independently verified) —
+"Other…" covers the rest.
+
+**Verified (headless Chrome, demo + 4 synthetic rows, owner, 1280px + 375px):** AKS Aftermarket key opens with
+Brand = Blue Rocket; switching supplier to Key Innovations flips it to Keyless2Go; switching Category to Universal
+lists Super Remote + the makers; saving stores grade/category/brand; an unsorted key opens on "— pick a category —"
+and saves OEM New / Transponder (finder Unsorted count drops); Setup editor saves ticks and typed edits to config
+(`TKS.Config.univBrands()` / `suppliers()`), add + remove supplier works; Programmers › My tools shows the same
+ticks; finder Brand box filters (Keyless2Go → 1 row). Phone: no horizontal overflow, selects 46px tall.
+**Real iPhone / Android not run → code-complete, pending the owner's two-phone sign-off.**
+
 ## 2026-11-08 — 8h: vehicle fitment for keys (FCC ID · transponder chip · year/make/model matching)
 
 **Why:** the owner wants to paste a distributor fits list ("2018-2021 enclave 2020-2021 encore 2018-2020

@@ -771,5 +771,5 @@ function ensureSeed(){
 ensureSeed();
 applyCodeSeries();   // fill sourced code series onto matching vehicles (never clobbers edits)
 
-  try{ window.TKS_LISHI_SEED = { tools:(typeof ALL_TOOLS!=='undefined'?ALL_TOOLS:[]), veh:(typeof ALL_VEH!=='undefined'?ALL_VEH:[]), models:(typeof MODELS!=='undefined'?MODELS:{}), codeSeries:(typeof CODE_SERIES_SRC!=='undefined'?CODE_SERIES_SRC:[]) }; }catch(e){}
+  try{ window.TKS_LISHI_SEED = { toolFields:TOOL_FIELDS, vehFields:VEH_FIELDS, mk:MK, inferKeyway:inferKeyway, /* 8j: the native Lishi view in index.html reads these instead of carrying a second copy */ tools:(typeof ALL_TOOLS!=='undefined'?ALL_TOOLS:[]), veh:(typeof ALL_VEH!=='undefined'?ALL_VEH:[]), models:(typeof MODELS!=='undefined'?MODELS:{}), codeSeries:(typeof CODE_SERIES_SRC!=='undefined'?CODE_SERIES_SRC:[]) }; }catch(e){}
 })();

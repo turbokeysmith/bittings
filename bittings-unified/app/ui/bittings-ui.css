@@ -130,7 +130,7 @@
   .bt-main { padding-bottom:76px; }            /* room for the fixed bottom nav */
   .bt-pagewrap { padding:18px 16px 28px; }
   .bt-bottomnav {
-    display:flex; position:fixed; left:0; right:0; bottom:0; z-index:80;
+    display:flex; position:fixed; left:0; right:0; bottom:0; z-index:2147483000;   /* 8u: always on top on phones, even over pop-ups */
     border-top:1px solid var(--border-subtle); background:var(--surface-card-2);
     padding:8px 6px calc(8px + env(safe-area-inset-bottom));
   }

@@ -34,8 +34,8 @@
     { label:'Home',      ic:'🏠', href:'index.html',              page:'index.html'    },
     { label:'Receipts',  ic:'🧾', href:'bittings.html',           page:'bittings.html' },
     { label:'Customers', ic:'👤', href:'index.html?go=customers',  page:'__customers'   },
-    { label:'Scheduler', ic:'📅', href:'scheduler.html',          page:'scheduler.html'},
-    { label:'Lishi',     ic:'🔑', href:'lishi.html',              page:'lishi.html'    }
+    { label:'Scheduler', ic:'📅', href:'index.html?go=schedule',  page:'__schedule'    },   // Phase D: scheduler.html archived; the Scheduler (guided booking + board) lives in index.html
+    { label:'Lishi',     ic:'🔑', href:'index.html?go=lishi',      page:'__lishi'       }   // 8j: lishi.html archived; the view lives in index.html
   ];
 
   var css = [

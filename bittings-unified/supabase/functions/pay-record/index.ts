@@ -67,11 +67,12 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const invoiceId = String(body.invoiceId || "").trim();
-    const method = body.method === "check" ? "check" : body.method === "cash" ? "cash" : "";
+    // 8j: Zelle and Other are non-card, fully-paid-at-sale methods too — log them so Closeout/Reports see every dollar
+    const method = ["cash", "check", "zelle", "other"].includes(String(body.method || "").toLowerCase()) ? String(body.method).toLowerCase() : "";
     const orgId = body.orgId ?? null;
     const connectedAccountId = body.connectedAccountId ?? null;
     if (!invoiceId) return json(400, { error: "invoiceId required" });
-    if (!method) return json(400, { error: "method must be cash or check" });
+    if (!method) return json(400, { error: "method must be cash, check, zelle or other" });
 
     // Tenant scope: only act on THIS shop's rows (service_role bypasses RLS, so we
     // filter by the caller's shop explicitly). idempotency keyed within the shop.

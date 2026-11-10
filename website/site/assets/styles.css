@@ -271,7 +271,8 @@ footer.site .cols{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:26px;
 .foot a:hover,footer.site a:hover{color:var(--ink)}
 .legal,footer.site .legal{border-top:1px solid var(--line);margin-top:36px;padding-top:22px;color:var(--mut2);font-size:12.5px;
   display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
-.staff-login{color:var(--mut2);font-size:12.5px}
+.staff-login{color:var(--mut2);font-size:12.5px;margin-left:auto;white-space:nowrap}   /* bottom-right corner of the footer (owner) */
+.legal,footer.site .legal{display:flex;justify-content:space-between;align-items:center;gap:10px 16px;flex-wrap:wrap}
 .staff-login:hover{color:var(--ink)}
 @media(max-width:760px){.foot{grid-template-columns:1fr} footer.site .cols{grid-template-columns:1fr 1fr;gap:18px 20px}}
 
