@@ -27,7 +27,11 @@
                'Fiat','Alfa Romeo','Tesla','Porsche','Hummer','Oldsmobile','Mercury','Isuzu','Smart','Rivian','Polestar','Plymouth','Saab','Lucid','Maserati'];
   var ALIAS = { chevy:'Chevrolet', chev:'Chevrolet', vw:'Volkswagen', volkswagon:'Volkswagen', mercedes:'Mercedes-Benz', benz:'Mercedes-Benz', mb:'Mercedes-Benz',
                 landrover:'Land Rover', 'land rover':'Land Rover', 'range rover':'Land Rover', mini:'MINI', 'mini cooper':'MINI', 'alfa':'Alfa Romeo', 'alfa romeo':'Alfa Romeo',
-                olds:'Oldsmobile', 'mercedes benz':'Mercedes-Benz', 'mercedes-benz':'Mercedes-Benz', gm:'GM', 'general motors':'GM', mopar:'Chrysler' };
+                olds:'Oldsmobile', 'mercedes benz':'Mercedes-Benz', 'mercedes-benz':'Mercedes-Benz', gm:'GM', 'general motors':'GM', mopar:'Chrysler',
+                // 8z16: distributor shorthand seen in the shop's MicroBiz names (CHVRLT BLZR, FRD/LNCLN/MRC, NSSN DA34, LXS LXP90 …)
+                chvrlt:'Chevrolet', chvy:'Chevrolet', frd:'Ford', lncln:'Lincoln', lnc:'Lincoln', mrc:'Mercury', merc:'Mercury', nssn:'Nissan', niss:'Nissan',
+                lxs:'Lexus', jag:'Jaguar', toy:'Toyota', hnd:'Honda', hyun:'Hyundai', hyund:'Hyundai', mits:'Mitsubishi', mitsu:'Mitsubishi', chrys:'Chrysler', chry:'Chrysler',
+                dodg:'Dodge', vlvo:'Volvo', cadi:'Cadillac', cad:'Cadillac', infin:'Infiniti', acu:'Acura' };
   // Brand groups: a 'GM' entry covers every GM make (a "GM 10-19" key fits Chevy/GMC/Buick/Cadillac lookups)
   var GROUP={ GM:{ Chevrolet:1, GMC:1, Buick:1, Cadillac:1, Pontiac:1, Saturn:1, Oldsmobile:1, Hummer:1 } };
   // words that are never part of a model name (distributor noise: "FCC ID HYQ4EA", "smart key w/ remote start")

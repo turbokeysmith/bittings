@@ -454,6 +454,20 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
 - **Fill FCC ID / chip during a stock count (8z12).** Technicians cannot edit parts; on Inventory → Reconcile, rows missing an FCC ID
   (smart key/remote/flip) or chip (transponder) get input boxes that save via cycle_set_key_info (open count; manager or the assignee;
   only fcc_id/chip; blank never erases; audit_log). Owner assigns the count to Jayden when starting it. phase8/8z12_count_key_info.sql.
+- **Makes for every part (8z16).** Count filter groups Accessories (category Accessories/*) and Universal (brand Universal / IKEY /
+  Maxiim) instead of "no make"; fitment.js ALIAS knows MicroBiz shorthand (CHVRLT, FRD, LNCLN, MRC, NSSN, LXS, JAG, TOY …). Parts still without
+  a make get a "Pick make…" box in the count (cycle_set_key_info p_make → make put in front of Fits). Data: 22 keys filled from key codes
+  (8z16b_fill_makes.sql, old Fits kept in audit_log fill_make). Left: Y170-PT ID46, H128-PT HITAG, Metal Key, BAF IYZ, 17-25 SUV 5BTN.
+- **Technicians edit part info (8z17).** Tap a part (Stock list or the name in a count) → part screen; a technician can change everything
+  except name, sell price, cost and qty (those are read-only; qty changes go through a count). Save → inv_update_info (whitelisted columns,
+  audit_log part_info_edit before/after) and TKS.Inventory.applyServerPatch mirrors it into cache+shadow. New inventory.link (+ view) with
+  Open ↗; Notes relabelled "Description / notes". Cap partInfoEdit = owner/manager/technician. phase8/8z17_part_info_edit.sql.
+- **Stock count: Done button, edit any FCC/chip, filter by make (8z15).** Counts now remember their location (cycle_start p_location).
+  The assignee taps "Done — send to manager" → cycle_submit fills every untouched part as counted = expected and stamps
+  submitted_at/by; "Make more changes" reopens (p_done=false) until a manager applies. Managers see "Counts in progress" (✅ done /
+  ⏳ started) after a reload and open one to Finish & apply. Every row has editable FCC ID + Chip (yellow = missing; blank never
+  erases; only changed values are sent). Make filter from fits/name via TKS_FIT (+ Other), plus "Only missing FCC / chip".
+  phase8/8z15_count_submit.sql (applied; tested in a rolled-back transaction on the QA shop).
 - **Card readers paired by each shop during setup (8z13).** Settings → Payments → 💳 Card readers: owner/manager taps "Add a card reader",
   types the 3-word pairing code the WisePOS E / S700 shows (Settings → admin PIN 07139 → Generate pairing code) + a name; the first time
   also the shop address (pre-filled from Business identity). pay-terminal (actions list/register/rename/remove/config) registers the reader

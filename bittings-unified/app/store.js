@@ -114,6 +114,7 @@
         fccId: r.fcc_id || '', chip: r.chip || '', serialized: !!r.serialized,     // 8h: key fields (+ serialized exposed through the view)
         grade: r.grade || '', brand: r.brand || '',                                 // 8i: owner category (Aftermarket / OEM New / OEM Refurbished / Universal) + universal-key maker
         vendorSku: r.vendor_sku || '',                                               // 8p: the supplier's own part number
+        link: r.link || '',                                                          // 8z17: product page URL
         createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
       toRow: function (o) { var row = {
         id: o.id, name: o.name || '', sku: o.sku || '', category: o.category || '',
@@ -123,7 +124,8 @@
         location: o.location || '',
         notes: o.notes || '', supplier: o.supplier || '', reorder_qty: parseInt(o.reorderQty, 10) || 0,
         fitment: o.fitment || '', fcc_id: (o.fccId || '').trim(), chip: (o.chip || '').trim(),
-        grade: (o.grade || '').trim(), brand: (o.brand || '').trim(), vendor_sku: (o.vendorSku || '').trim() };
+        grade: (o.grade || '').trim(), brand: (o.brand || '').trim(), vendor_sku: (o.vendorSku || '').trim(),
+        link: (o.link || '').trim() || null };
         // 8k: on a plan without 'fitment' the read view blanks these three, so never write them back (an edit would wipe the real values)
         try { if (global.TKS_TIER && TKS_TIER.allows && !TKS_TIER.allows('fitment')) { delete row.fitment; delete row.fcc_id; delete row.chip; } } catch (e) {}
         return row; }   // `serialized` is never written from here (6a owns it)
@@ -246,6 +248,14 @@
       // reads/writes for a table that didn't hydrate go to localStorage instead,
       // so the app keeps working table-by-table as you bring the cloud online.
       listRaw: function (key) { return isLocal(key) ? LocalAdapter.listRaw(key) : (cache[key] || []); },
+      // 8z17: the server already changed this row (an RPC) — mirror it into the cache AND the shadow so the next
+      // flush doesn't try to write it again (a technician's direct update would be refused anyway).
+      patchServer: function (key, id, fields) {
+        if (isLocal(key)) return false;
+        [cache, shadow].forEach(function (store) { var r = (store[key] || []).find(function (x) { return x.id === id; }); if (r) Object.assign(r, fields); });
+        changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
+        return true;
+      },
       saveRaw: function (key, arr) {
         if (isLocal(key)) return LocalAdapter.saveRaw(key, arr);
         cache[key] = arr; scheduleFlush(key); return true;
@@ -378,6 +388,14 @@
       list.push(rec);
       ADAPTER.saveRaw('inventory', list);
       return rec;
+    },
+
+    // 8z17: after inv_update_info succeeded on the server
+    applyServerPatch: function (id, fields) {
+      if (ADAPTER.patchServer && ADAPTER.patchServer('inventory', id, fields)) return true;
+      var list = this.all(), p = list.find(function (x) { return x.id === id; });
+      if (p) { Object.assign(p, fields); ADAPTER.saveRaw('inventory', list); }
+      return !!p;
     },
 
     adjustQty: function (id, delta) {
@@ -641,6 +659,7 @@
     softDelete:     ['owner','manager'],
     refundVoid:     ['owner','manager'],
     inventoryWrite: ['owner','manager'],
+    partInfoEdit:   ['owner','manager','technician'],  // 8z17: edit a part's info except name / price / cost / qty (inv_update_info)
     inventoryAdjust:['owner','manager'],               // start/finish/discard a cycle count (cycle_* RPCs are manager-gated)
     editPricing:    ['owner','manager'],
     manageStaff:    ['owner'],

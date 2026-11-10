@@ -1864,11 +1864,15 @@ window.tksDemoOn = function(){
         <div><label>Add a vehicle</label><div style="display:flex;gap:6px"><select id="pFitY1" aria-label="From year" style="flex:1"></select><select id="pFitY2" aria-label="To year" style="flex:1"></select></div></div>
         <div><div style="display:flex;gap:6px;align-items:end"><select id="pFitMake" aria-label="Make" style="flex:1"></select><select id="pFitModel" aria-label="Model" style="flex:1.2"></select><button type="button" class="btn ghostbtn" id="pFitAddBtn" title="Add this vehicle to the Fits list" style="min-width:44px">+</button></div></div>
       </div>
-      <label for="pNotes">Notes</label>
-      <textarea id="pNotes" placeholder="Part link, cross-reference, etc…"></textarea>
+      <!-- 8z17: product page link + description -->
+      <label for="pLink">Link <span style="font-weight:400;color:var(--dim)">— the product page (supplier / maker)</span></label>
+      <div style="display:flex;gap:8px"><input id="pLink" type="url" inputmode="url" placeholder="https://…" autocomplete="off" style="flex:1;min-width:0"><a id="pLinkOpen" class="btn ghostbtn" target="_blank" rel="noopener" style="display:none;width:auto;flex:0 0 auto;align-items:center;padding:0 12px;text-decoration:none">Open ↗</a></div>
+      <label for="pNotes">Description / notes</label>
+      <textarea id="pNotes" placeholder="What it is, cross-reference, tips…"></textarea>
       <div class="actions">
         <button class="btn del" id="pDelete" data-cap="hardDelete" style="display:none;">Delete</button>
         <button class="btn save" id="pSave" data-cap="inventoryWrite">Save part</button>
+        <button class="btn save" id="pSaveInfo" style="display:none">Save changes</button>
       </div>
       <p class="note" id="partNote"></p>
     </div>
@@ -3452,6 +3456,7 @@ function pFitAddFill(){
 
 let editPartId = null;
 function openPart(id){
+  if(!window.__partFromSet) partReturnView = 'inventory'; window.__partFromSet = false;   // 8z17: back goes to where it was opened
   try{ window.pChipSuggestRefresh && pChipSuggestRefresh(); }catch(_){}   // 8z11
   editPartId = id;
   const p = id ? TKS.Inventory.get(id) : {};
@@ -3474,11 +3479,53 @@ function openPart(id){
   document.getElementById('pFitment').value = p.fitment || '';
   pFitPreviewRender();
   document.getElementById('pNotes').value = p.notes || '';
+  document.getElementById('pLink').value = p.link || ''; pLinkSync();   // 8z17
   document.getElementById('pDelete').style.display = id ? 'block' : 'none';
   document.getElementById('partNote').textContent = id ? '' : 'New part. Saved on this device.';
+  // 8z17: a technician edits everything except name, price, cost and quantity (server: inv_update_info)
+  var full = !(TKS.auth && TKS.auth.can) || TKS.auth.can('inventoryWrite');
+  var infoOnly = !full && !!id && TKS.auth.can('partInfoEdit');
+  ['pName','pSell','pQty','pCost'].forEach(function(k){ var el=document.getElementById(k); if(el){ el.readOnly = infoOnly; el.style.opacity = infoOnly ? '.6' : ''; } });
+  document.getElementById('pSaveInfo').style.display = infoOnly ? '' : 'none';
+  if(infoOnly) document.getElementById('partNote').textContent = 'You can change everything except the name, price and quantity. Quantities change through a stock count.';
   show('part');
-  document.getElementById('pName').focus();
+  if(!infoOnly) document.getElementById('pName').focus();
 }
+// 8z17: where to go after saving / backing out of a part (the stock count opens parts too)
+var partReturnView = 'inventory';
+window.openPartFrom = function(id, back){ partReturnView = back || 'inventory'; window.__partFromSet = true; openPart(id); };
+function partBack(){ var v = partReturnView || 'inventory'; partReturnView = 'inventory';
+  if(v==='reconcile'){ show('reconcile'); try{ window.renderReconcile && window.renderReconcile(); }catch(e){} } else { renderInventory(); show('inventory'); } }
+function pLinkSync(){ var v=(document.getElementById('pLink').value||'').trim(), a=document.getElementById('pLinkOpen');
+  if(/^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/\S*)?$/i.test(v)){ a.href=/^https?:/i.test(v)?v:'https://'+v; a.style.display='inline-flex'; } else { a.removeAttribute('href'); a.style.display='none'; } }
+document.getElementById('pLink').addEventListener('input', pLinkSync);
+document.getElementById('pSaveInfo').onclick = async function(){
+  var btn=this, note=document.getElementById('partNote'), id=editPartId; if(!id) return;
+  var p = TKS.Inventory.get(id) || {};
+  var g = function(k){ return (document.getElementById(k).value||'').trim(); };
+  var link = g('pLink'); if(link && !/^https?:\/\//i.test(link)) link = 'https://' + link;
+  var now = { sku:g('pSku'), category:pCategoryValue(), grade:pGradeValue(), brand:pBrandValue(), fcc_id:g('pFcc').toUpperCase(), chip:g('pChip'),
+              location:g('pLocation'), supplier:g('pSupplier'), vendor_sku:g('pVendorSku'), fitment:g('pFitment'), notes:g('pNotes'), link:link,
+              low_at:parseInt(g('pLowAt'),10)||0, reorder_qty:parseInt(g('pReorderQty'),10)||0 };
+  var was = { sku:p.sku||'', category:p.category||'', grade:p.grade||'', brand:p.brand||'', fcc_id:(p.fccId||'').toUpperCase(), chip:p.chip||'',
+              location:p.location||'', supplier:p.supplier||'', vendor_sku:p.vendorSku||'', fitment:(p.fitment||'').trim(), notes:(p.notes||'').trim(), link:p.link||'',
+              low_at:parseInt(p.lowAt,10)||0, reorder_qty:parseInt(p.reorderQty,10)||0 };
+  var patch = {}; Object.keys(now).forEach(function(k){ if(String(now[k])!==String(was[k])) patch[k]=now[k]; });
+  ['category','grade','brand'].forEach(function(k){ if(patch[k]==='' && was[k]) delete patch[k]; });   // a dropdown that can't show the old value never erases it
+  if(!Object.keys(patch).length){ partBack(); return; }
+  var sb=null; try{ sb=TKS._sb && TKS._sb(); }catch(e){}
+  if(!sb){ note.textContent='Sign in to the cloud to save changes.'; return; }
+  btn.disabled=true; note.textContent='Saving…';
+  var r = await sb.rpc('inv_update_info', { p_item:id, p_patch:patch });
+  btn.disabled=false;
+  if(r.error){ note.textContent='⚠ '+r.error.message; return; }
+  var map = { sku:'sku', category:'category', grade:'grade', brand:'brand', fcc_id:'fccId', chip:'chip', location:'location', supplier:'supplier',
+              vendor_sku:'vendorSku', fitment:'fitment', notes:'notes', link:'link', low_at:'lowAt', reorder_qty:'reorderQty' };
+  var local = {}; Object.keys(patch).forEach(function(k){ local[map[k]] = patch[k]; });
+  try{ TKS.Inventory.applyServerPatch(id, local); }catch(e){}
+  note.textContent='✓ Saved';
+  setTimeout(partBack, 500);
+};
 
 document.getElementById('pSave').onclick = ()=>{
   const name = document.getElementById('pName').value.trim();
@@ -3501,12 +3548,12 @@ document.getElementById('pSave').onclick = ()=>{
     vendorSku: document.getElementById('pVendorSku').value.trim(),   // 8p
     reorderQty: parseInt(document.getElementById('pReorderQty').value,10) || 0,
     fitment: document.getElementById('pFitment').value.trim(),
-    notes: document.getElementById('pNotes').value.trim()
+    notes: document.getElementById('pNotes').value.trim(),
+    link: (function(v){ v=v.trim(); return v && !/^https?:\/\//i.test(v) ? 'https://'+v : v; })(document.getElementById('pLink').value)   // 8z17
   };
   if(editPartId) part.id = editPartId;
   TKS.Inventory.save(part);
-  renderInventory();
-  show('inventory');
+  partBack();
 };
 
 document.getElementById('pDelete').onclick = ()=>{

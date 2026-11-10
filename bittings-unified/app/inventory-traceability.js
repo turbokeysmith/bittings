@@ -30,7 +30,10 @@
   var isMgr = function(r){ return r === 'manager' || r === 'owner'; };
 
   // =========================== RECONCILE / CYCLE COUNT ======================
-  var rc = { countId: null, loc: 'shop', role: '' };
+  var rc = { countId: null, loc: 'shop', role: '', count: null, staff: [], make: '', onlyMissing: false };
+  function staffName(id){ var p = (rc.staff || []).filter(function (x){ return x.user_id === id; })[0]; return p ? (p.name || p.role) : 'someone'; }
+  function hhmm(t){ try { return new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; } }
+  function locName(loc){ var l = document.getElementById('rcLoc'); if (l) { for (var i = 0; i < l.options.length; i++) if (l.options[i].value === loc) return l.options[i].textContent; } return loc === 'shop' ? '🏪 Shop' : '🚐 Van'; }
   window.renderReconcile = async function () {
     var s = sb();
     var status = document.getElementById('rcStatus'), list = document.getElementById('rcCountList'), sum = document.getElementById('rcSummary');
@@ -45,36 +48,75 @@
     var mgr = isMgr(rc.role);
     // locations: shop + vans
     var vans = []; try { vans = ((await s.from('vans').select('id,nickname,fleet_no')).data) || []; } catch (e) {}
-    locSel.style.display = '';
     locSel.innerHTML = '<option value="shop">🏪 Shop</option>' + vans.map(function (v){
       return '<option value="van:' + v.id + '">🚐 ' + E(v.nickname || v.fleet_no || 'Van') + '</option>'; }).join('');
-    locSel.value = rc.loc;
-    locSel.onchange = function (){ rc.loc = locSel.value; if (rc.countId) rcItems(); };
+    try { rc.staff = ((await s.from('staff').select('user_id,name,role').eq('active', true)).data) || []; } catch (e) { rc.staff = []; }
+    var me = null; try { me = (await s.auth.getUser()).data.user.id; } catch (e) {}
+    // 8z15: open counts carry their own location + "sent to manager" stamp
+    var open = []; try { open = ((await s.from('cycle_counts').select('id,assigned_to,created_at,location,submitted_at,submitted_by').eq('status', 'open').order('created_at', { ascending: false })).data) || []; } catch (e) {}
+
+    function enterCount(c){
+      rc.countId = c.id; rc.count = c; rc.loc = c.location || 'shop'; rc.make = ''; rc.onlyMissing = false;
+      locSel.value = rc.loc; locSel.style.display = 'none'; assignSel.style.display = 'none'; startBtn.style.display = 'none';
+      finishBtn.style.display = mgr ? '' : 'none'; cancelBtn.style.display = mgr ? '' : 'none';
+      showCount();
+    }
+    function showCount(){
+      var c = rc.count || {};
+      var who = c.assigned_to ? staffName(c.assigned_to) : '';
+      if (c.submitted_at) {
+        status.innerHTML = '✅ <b>' + E(staffName(c.submitted_by)) + '</b> finished counting ' + E(locName(rc.loc)) + ' (' + E(hhmm(c.submitted_at)) + ').' +
+          (mgr ? ' Check it below, then tap <b>Finish &amp; apply</b> to update stock.' : ' Your manager will review and apply it.');
+      } else {
+        status.innerHTML = 'Counting <b>' + E(locName(rc.loc)) + '</b>' + (who ? ' · assigned to ' + E(who) : '') + '. Every change saves on its own.' +
+          (mgr ? '' : ' When you\'re done, tap <b>Done — send to manager</b> at the bottom.');
+      }
+      if (!mgr && c.submitted_at) {   // tech already sent it: show a calm "done" card, with a way back in
+        list.innerHTML = '<div style="' + CARD + ';text-align:center"><div style="font-size:34px">✅</div><b>Sent to your manager</b>' +
+          '<div class="sub" style="margin:6px 0 12px">Nothing else to do. If you need to fix something, you can reopen it until your manager applies it.</div>' +
+          '<button type="button" id="rcReopen" class="btn ghostbtn" style="width:auto;padding:0 18px">✏️ Make more changes</button></div>';
+        document.getElementById('rcReopen').onclick = async function (){
+          this.disabled = true; var r = await s.rpc('cycle_submit', { p_count: rc.countId, p_done: false }); this.disabled = false;
+          if (r.error) { status.textContent = 'Could not reopen: ' + r.error.message; return; }
+          rc.count.submitted_at = null; showCount(); };
+        return;
+      }
+      rcItems(showCount);
+    }
+
     if (mgr) {
-      var staff = []; try { staff = ((await s.from('staff').select('user_id,name,role').eq('active', true)).data) || []; } catch (e) {}
-      assignSel.style.display = '';
-      assignSel.innerHTML = '<option value="">— assign to (optional) —</option>' + staff.map(function (p){
+      assignSel.innerHTML = '<option value="">— assign to (optional) —</option>' + rc.staff.map(function (p){
         return '<option value="' + p.user_id + '">' + E(p.name || p.role) + '</option>'; }).join('');
-      startBtn.style.display = rc.countId ? 'none' : '';
-      finishBtn.style.display = rc.countId ? '' : 'none';
-      cancelBtn.style.display = rc.countId ? '' : 'none';
-      status.textContent = rc.countId ? ('Counting ' + locLabel() + ' — changes save automatically.')
-        : 'Pick a location, optionally assign someone, then Start count.';
-      if (rc.countId) rcItems(); else list.innerHTML = '';
+      var cur = rc.countId && open.filter(function (c){ return c.id === rc.countId; })[0];
+      if (cur) { enterCount(cur); }
+      else {
+        rc.countId = null; rc.count = null;
+        locSel.style.display = ''; locSel.value = rc.loc; locSel.onchange = function (){ rc.loc = locSel.value; };
+        assignSel.style.display = ''; startBtn.style.display = ''; finishBtn.style.display = 'none'; cancelBtn.style.display = 'none';
+        status.textContent = 'Pick a location, optionally assign someone, then Start count.';
+        // counts already going (yours or ones you assigned) — tap to open
+        list.innerHTML = open.length ? ('<div class="sub" style="margin:4px 0 8px"><b>Counts in progress</b></div>' + open.map(function (c){
+            return '<button type="button" class="rcOpen" data-id="' + c.id + '" style="' + CARD + ';display:flex;align-items:center;gap:10px;width:100%;text-align:left;cursor:pointer;color:inherit;margin-bottom:8px">' +
+              '<span style="font-size:22px">' + (c.submitted_at ? '✅' : '⏳') + '</span><span style="flex:1;min-width:0"><b>' + E(locName(c.location || 'shop')) + '</b>' +
+              '<span class="sub" style="display:block">' + (c.assigned_to ? E(staffName(c.assigned_to)) + ' · ' : '') +
+              (c.submitted_at ? 'done ' + E(hhmm(c.submitted_at)) + ', ready for you to apply' : 'started ' + E(hhmm(c.created_at))) + '</span></span>' +
+              '<span style="font-weight:700">Open ›</span></button>'; }).join('')) : '';
+        list.querySelectorAll('.rcOpen').forEach(function (b){ b.onclick = function (){ var c = open.filter(function (x){ return x.id === b.dataset.id; })[0]; if (c) enterCount(c); }; });
+      }
       startBtn.onclick = async function (){
         startBtn.disabled = true;
-        var r = await s.rpc('cycle_start', { p_assigned: assignSel.value || null, p_note: '' });
+        var r = await s.rpc('cycle_start', { p_assigned: assignSel.value || null, p_note: '', p_location: locSel.value || 'shop' });
         startBtn.disabled = false;
         if (r.error) { status.textContent = 'Could not start: ' + r.error.message; return; }
-        rc.countId = r.data; startBtn.style.display = 'none'; finishBtn.style.display = ''; cancelBtn.style.display = '';
-        status.textContent = 'Counting ' + locLabel() + ' — changes save automatically.'; rcItems();
+        enterCount({ id: r.data, assigned_to: assignSel.value || null, location: locSel.value || 'shop', created_at: new Date().toISOString() });
       };
       finishBtn.onclick = async function (){
         finishBtn.disabled = true;
         var r = await s.rpc('cycle_complete', { p_count: rc.countId });
         finishBtn.disabled = false;
         if (r.error) { status.textContent = 'Could not finish: ' + r.error.message; return; }
-        rcSummary(r.data); rc.countId = null; finishBtn.style.display = 'none'; cancelBtn.style.display = 'none'; startBtn.style.display = ''; list.innerHTML = '';
+        rcSummary(r.data); rc.countId = null; rc.count = null; finishBtn.style.display = 'none'; cancelBtn.style.display = 'none'; list.innerHTML = '';
+        startBtn.style.display = ''; locSel.style.display = ''; assignSel.style.display = '';
       };
       // Discard an open count without applying it (server: cycle_cancel, manager+).
       cancelBtn.onclick = async function (){
@@ -85,80 +127,171 @@
         var r = await s.rpc('cycle_cancel', { p_count: rc.countId });
         cancelBtn.disabled = false;
         if (r.error) { status.textContent = 'Could not discard: ' + r.error.message; return; }
-        rc.countId = null; cancelBtn.style.display = 'none'; finishBtn.style.display = 'none'; startBtn.style.display = ''; list.innerHTML = '';
+        rc.countId = null; rc.count = null; window.renderReconcile();
         status.textContent = 'Count discarded — nothing was applied. Start another anytime.';
       };
     } else {
-      // assigned-staff view: resume an open count assigned to me
-      startBtn.style.display = 'none'; assignSel.style.display = 'none'; finishBtn.style.display = 'none'; cancelBtn.style.display = 'none';
-      var me = null; try { me = (await s.auth.getUser()).data.user.id; } catch (e) {}
-      var open = []; try { open = ((await s.from('cycle_counts').select('id').eq('status','open').eq('assigned_to', me).order('created_at',{ascending:false}).limit(1)).data) || []; } catch (e) {}
-      if (open && open[0]) { rc.countId = open[0].id;
-        status.textContent = 'You have a count to complete. Enter each count; a reason is required for anything that doesn’t match. Your manager finalizes it.';
-        rcItems();
-      } else { rc.countId = null; status.textContent = 'No count is assigned to you right now.'; list.innerHTML = ''; }
+      // assigned-staff view: resume the open count assigned to me (its location comes with it)
+      startBtn.style.display = 'none'; assignSel.style.display = 'none'; finishBtn.style.display = 'none'; cancelBtn.style.display = 'none'; locSel.style.display = 'none';
+      var mine = open.filter(function (c){ return c.assigned_to === me; })[0];
+      if (mine) enterCount(mine);
+      else { rc.countId = null; rc.count = null; status.textContent = 'No count is assigned to you right now.'; list.innerHTML = ''; }
     }
   };
-  function locLabel(){ var l = document.getElementById('rcLoc'); return (l && l.selectedOptions[0]) ? l.selectedOptions[0].textContent : 'stock'; }
-  async function rcItems(){
+  function locLabel(){ return locName(rc.loc); }
+  // 8z15: which makes a part is for — from its "fits" text, then its name (e.g. "REMOTE SKIN FORD" → Ford)
+  // 8z16: parts that aren't for one car get a group instead of "no make": Accessories (lanyards, rings, locks…) and
+  // Universal (Xhorse / Autel / Maxiim programmable keys). Shorthand like CHVRLT / FRD / NSSN is understood (fitment.js).
+  var GROUP_ACC = 'Accessories', GROUP_UNI = 'Universal';
+  function partMakes(inv){
+    var out = {}, F = window.TKS_FIT;
+    if (/^accessor/i.test(String(inv.category || ''))) return [GROUP_ACC];
+    if (F) {
+      [inv.fitment, inv.name].forEach(function (t){ if (!t) return; try { F.parse(typeof t === 'string' ? t : JSON.stringify(t)).forEach(function (e){ if (e.make) out[e.make] = 1; }); } catch (e) {} });
+      if (!Object.keys(out).length) String(inv.name || '').split(/[\s\/,.()-]+/).forEach(function (w){ var m = F.canonMake(w); if (m) out[m] = 1; });
+    }
+    if (!Object.keys(out).length && (/^universal$/i.test(String(inv.brand || '')) || /universal|univsl|ikey|maxiim/i.test(String(inv.name || '') + ' ' + String(inv.fitment || '')))) return [GROUP_UNI];
+    return Object.keys(out);
+  }
+  function makeList(){ var m = (window.TKS_YMM && TKS_YMM.MAKES) || (window.TKS_FIT && TKS_FIT.MAKES) || []; return m.slice(); }
+  async function rcItems(onSubmitted){
     var s = sb(), list = document.getElementById('rcCountList'); if (!s || !list) return;
-    var rows = [];
-    try { rows = ((await s.from('inventory_locations').select('item_id,qty,inventory(name,sku,deleted_at,category,fcc_id,chip)').eq('location', rc.loc)).data) || []; } catch (e) {}
-    rows = rows.filter(function (r){ return r.inventory && !r.inventory.deleted_at; });
+    var rows = [], saved = {};
+    try { rows = ((await s.from('inventory_locations').select('item_id,qty,inventory(name,sku,deleted_at,category,fcc_id,chip,fitment,brand)').eq('location', rc.loc)).data) || []; } catch (e) {}
+    try { (((await s.from('cycle_count_lines').select('item_id,counted_qty,reason').eq('count_id', rc.countId)).data) || []).forEach(function (l){ saved[l.item_id] = l; }); } catch (e) {}
+    rows = rows.filter(function (r){ return r.inventory && !r.inventory.deleted_at; })
+      .sort(function (a, b){ return String(a.inventory.name || '').localeCompare(String(b.inventory.name || '')); });
     if (!rows.length) { list.innerHTML = '<div class="empty">No stock recorded at ' + E(locLabel()) + ' yet.</div>'; return; }
-    // 8z12: which key info is missing (same rule as the Stock "missing FCC ID / chip" tile)
+    // 8z12/8z15: FCC ID + chip editable on EVERY part; the ones a key type should have are flagged when empty
     var FCC_SUBS = { 'Smart Key':1, 'Remote / Fob':1, 'Remote Head / Flip':1, 'Super Remote':1 };
     function needs(inv){ var sub = String(inv.category || '').split('/').slice(1).join('/').trim();
       return { fcc: !!FCC_SUBS[sub] && !String(inv.fcc_id || '').trim(), chip: sub === 'Transponder' && !String(inv.chip || '').trim() }; }
-    var missingN = rows.filter(function (r){ var n = needs(r.inventory); return n.fcc || n.chip; }).length;
-    var INP = 'height:40px;border-radius:9px;border:1px solid rgba(200,150,40,.6);background:transparent;color:inherit;padding:0 10px;font-size:16px;min-width:0;flex:1 1 160px';
-    list.innerHTML = (missingN ? '<div class="sub" style="margin:0 0 10px;padding:8px 10px;border-radius:9px;background:rgba(242,180,58,.14)">🔎 <b>' + missingN + '</b> part' + (missingN === 1 ? '' : 's') + ' here are missing an FCC ID or chip — read it off the key or package and type it in while you count. It saves on its own.</div>' : '') +
-      rows.map(function (r){
-      var exp = r.qty || 0, nd = needs(r.inventory);
-      var keyInfo = (nd.fcc || nd.chip) ? ('<div class="rckey" style="flex-basis:100%;display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
-          (nd.fcc ? '<input class="rcfcc" placeholder="FCC ID (on the back of the remote)" autocapitalize="characters" spellcheck="false" style="' + INP + ';text-transform:uppercase">' : '') +
-          (nd.chip ? '<input class="rcchip" list="pChipList" placeholder="Chip (e.g. Mitsubishi N chip)" autocomplete="off" style="' + INP + '">' : '') +
-          '<span class="rckeymsg sub" style="flex:0 0 auto"></span></div>') : '';
-      return '<div class="crow" data-item="' + E(r.item_id) + '" data-exp="' + exp + '" style="align-items:center;flex-wrap:wrap;gap:8px">' +
-        '<div style="flex:1;min-width:140px"><div class="nm">' + E(r.inventory.name || r.item_id) + '</div>' +
-          '<div class="sub">' + E(r.inventory.sku || '') + ' · expected ' + exp + '</div></div>' +
-        '<div style="display:flex;align-items:center;gap:6px">' +
-          '<button class="rcpm" data-d="-1" aria-label="minus" style="' + PM + '">−</button>' +
-          '<input class="rccount" type="number" inputmode="numeric" value="' + exp + '" style="width:64px;height:40px;text-align:center;border-radius:9px;border:1px solid rgba(128,128,128,.45);background:transparent;color:inherit;font-size:16px">' +
-          '<button class="rcpm" data-d="1" aria-label="plus" style="' + PM + '">+</button>' +
-        '</div>' +
-        '<select class="rcreason" style="display:none;flex:0 0 auto;min-height:40px;border-radius:9px">' +
-          REASONS.map(function (o){ return '<option value="' + o[0] + '">' + o[1] + '</option>'; }).join('') + '</select>' +
-        keyInfo + '</div>';
-    }).join('');
+    var makeCount = {}, other = 0;
+    rows.forEach(function (r){ r._makes = partMakes(r.inventory); if (!r._makes.length) other++; r._makes.forEach(function (m){ makeCount[m] = (makeCount[m] || 0) + 1; }); var n = needs(r.inventory); r._miss = n.fcc || n.chip; });
+    var missingN = rows.filter(function (r){ return r._miss; }).length;
+    var makes = Object.keys(makeCount).sort();
+    var INP = 'height:40px;border-radius:9px;border:1px solid rgba(128,128,128,.45);background:transparent;color:inherit;padding:0 10px;font-size:16px;min-width:0;flex:1 1 150px';
+    var NEED = 'border-color:rgba(200,150,40,.85);background:rgba(242,180,58,.10)';
+    var mgr = isMgr(rc.role);
+    list.innerHTML =
+      // filter bar: make + only-missing
+      '<div class="rcbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px">' +
+        '<select id="rcMake" class="search" style="flex:1 1 180px;min-height:42px">' +
+          '<option value="">All makes (' + rows.length + ')</option>' +
+          makes.map(function (m){ return '<option value="' + E(m) + '">' + E(m) + ' (' + makeCount[m] + ')</option>'; }).join('') +
+          (other ? '<option value="__other">❓ No make yet (' + other + ')</option>' : '') + '</select>' +
+        (missingN ? '<label style="display:flex;align-items:center;gap:6px;font-size:14px;flex:0 0 auto;cursor:pointer"><input type="checkbox" id="rcMissOnly" style="width:20px;height:20px"> Only missing FCC / chip (' + missingN + ')</label>' : '') +
+        '<span id="rcShown" class="sub" style="flex-basis:100%"></span>' +
+      '</div>' +
+      (missingN || other ? '<div class="sub" style="margin:0 0 10px;padding:8px 10px;border-radius:9px;background:rgba(242,180,58,.14)">🔎 ' +
+        (missingN ? '<b>' + missingN + '</b> part' + (missingN === 1 ? ' is' : 's are') + ' missing an FCC ID or chip' : '') + (missingN && other ? ' and ' : '') +
+        (other ? '<b>' + other + '</b> ' + (missingN ? '' : 'part' + (other === 1 ? ' has' : 's have')) + (missingN ? 'have' : '') + ' no make' : '') +
+        ' (yellow boxes). You can fix any FCC ID, chip or make, and it saves on its own.</div>' : '') +
+      '<div id="rcRows">' + rows.map(function (r){
+        var exp = r.qty || 0, nd = needs(r.inventory), sv = saved[r.item_id];
+        var cnt = sv && sv.counted_qty != null ? sv.counted_qty : exp;
+        return '<div class="crow" data-item="' + E(r.item_id) + '" data-exp="' + exp + '" data-makes="' + E(r._makes.join('|')) + '" data-miss="' + (r._miss ? 1 : 0) + '" style="align-items:center;flex-wrap:wrap;gap:8px">' +
+          '<div style="flex:1;min-width:140px"><div class="nm"><a href="#" class="rcopen" style="color:inherit;text-decoration:underline;text-decoration-color:rgba(128,128,128,.5);text-underline-offset:3px">' + E(r.inventory.name || r.item_id) + '</a>' + (sv ? ' <span class="rcok" style="color:#2caa6e">✓</span>' : '') + '</div>' +
+            '<div class="sub">' + E(r.inventory.sku || '') + ' · expected ' + exp + '</div></div>' +
+          '<div style="display:flex;align-items:center;gap:6px">' +
+            '<button class="rcpm" data-d="-1" aria-label="minus" style="' + PM + '">−</button>' +
+            '<input class="rccount" type="number" inputmode="numeric" value="' + cnt + '" style="width:64px;height:40px;text-align:center;border-radius:9px;border:1px solid rgba(128,128,128,.45);background:transparent;color:inherit;font-size:16px">' +
+            '<button class="rcpm" data-d="1" aria-label="plus" style="' + PM + '">+</button>' +
+          '</div>' +
+          '<select class="rcreason" style="display:none;flex:0 0 auto;min-height:40px;border-radius:9px">' +
+            REASONS.map(function (o){ return '<option value="' + o[0] + '"' + (sv && sv.reason === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
+          '<div class="rckey" style="flex-basis:100%;display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+            '<input class="rcfcc" value="' + E(r.inventory.fcc_id || '') + '" data-orig="' + E(r.inventory.fcc_id || '') + '" placeholder="FCC ID" aria-label="FCC ID" autocapitalize="characters" spellcheck="false" style="' + INP + ';text-transform:uppercase' + (nd.fcc ? ';' + NEED : '') + '">' +
+            '<input class="rcchip" value="' + E(r.inventory.chip || '') + '" data-orig="' + E(r.inventory.chip || '') + '" list="pChipList" placeholder="Chip" aria-label="Chip" autocomplete="off" style="' + INP + (nd.chip ? ';' + NEED : '') + '">' +
+            (r._makes.length ? '' : '<select class="rcmake" aria-label="Make" style="' + INP + ';' + NEED + ';height:42px"><option value="">Pick make…</option>' +
+              makeList().map(function (m){ return '<option>' + E(m) + '</option>'; }).join('') + '</select>') +
+            '<span class="rckeymsg sub" style="flex:0 0 auto"></span></div></div>';
+      }).join('') + '</div>' +
+      (mgr ? '' : '<div style="position:sticky;bottom:calc(72px + env(safe-area-inset-bottom));padding:10px 0 4px;background:linear-gradient(transparent,var(--bg,#fff) 30%)">' +
+        '<button type="button" id="rcDone" class="add" style="width:100%;min-height:52px;font-size:17px">✅ Done — send to manager</button></div>');
+
+    function applyFilter(){
+      var mk = (document.getElementById('rcMake') || {}).value || '', mo = document.getElementById('rcMissOnly');
+      rc.make = mk; rc.onlyMissing = !!(mo && mo.checked); var shown = 0;
+      list.querySelectorAll('.crow').forEach(function (row){
+        var ms = row.dataset.makes ? row.dataset.makes.split('|') : [];
+        var ok = (!mk || (mk === '__other' ? !ms.length : ms.indexOf(mk) >= 0)) && (!rc.onlyMissing || row.dataset.miss === '1');
+        row.style.display = ok ? '' : 'none'; if (ok) shown++; });
+      var lab = document.getElementById('rcShown'); if (lab) lab.textContent = (mk || rc.onlyMissing) ? ('Showing ' + shown + ' of ' + rows.length + ' parts') : '';
+    }
+    var mkSel = document.getElementById('rcMake'), mo = document.getElementById('rcMissOnly');
+    if (mkSel) { mkSel.value = rc.make && (rc.make === '__other' || makeCount[rc.make]) ? rc.make : ''; mkSel.onchange = applyFilter; }
+    if (mo) { mo.checked = rc.onlyMissing; mo.onchange = applyFilter; }
+    applyFilter();
+
     list.querySelectorAll('.crow').forEach(function (row){
       var inp = row.querySelector('.rccount'), rs = row.querySelector('.rcreason'), exp = +row.dataset.exp;
+      // 8z17: tap the part name → full part screen (a technician can edit everything but name / price / qty)
+      var op = row.querySelector('.rcopen');
+      if (op) op.onclick = function (ev){ ev.preventDefault();
+        if (window.TKS && TKS.Inventory && TKS.Inventory.get(row.dataset.item) && window.openPartFrom) window.openPartFrom(row.dataset.item, 'reconcile');
+        else { var km0 = row.querySelector('.rckeymsg'); if (km0) km0.textContent = 'Part not loaded yet. Pull down to refresh, then try again.'; } };
       function reflect(){ rs.style.display = ((+inp.value || 0) - exp) !== 0 ? '' : 'none'; }
       row.querySelectorAll('.rcpm').forEach(function (b){ b.onclick = function (){ inp.value = Math.max(0, (+inp.value || 0) + (+b.dataset.d)); reflect(); save(row); }; });
       inp.onchange = function (){ if (+inp.value < 0) inp.value = 0; reflect(); save(row); };
       rs.onchange = function (){ save(row); };
       reflect();
-      // 8z12: FCC ID / chip typed during the count → saved to the part (only these two fields)
+      // FCC ID / chip → saved to the part (only these two fields; blank never erases)
       var fi = row.querySelector('.rcfcc'), ci = row.querySelector('.rcchip'), km = row.querySelector('.rckeymsg');
       function saveKey(){
         var s3 = sb(); if (!s3 || !rc.countId) return;
-        var fv = fi ? fi.value.trim() : '', cv = ci ? ci.value.trim() : ''; if (!fv && !cv) return;
-        km.textContent = 'Saving…';
-        s3.rpc('cycle_set_key_info', { p_count: rc.countId, p_item: row.dataset.item, p_fcc: fv || null, p_chip: cv || null }).then(function (res){
+        var fv = fi.value.trim().toUpperCase(), cv = ci.value.trim();
+        if (!fv && fi.dataset.orig) { fi.value = fi.dataset.orig; km.textContent = 'Can\'t clear here: ask a manager'; return; }
+        if (!cv && ci.dataset.orig) { ci.value = ci.dataset.orig; km.textContent = 'Can\'t clear here: ask a manager'; return; }
+        var pf = fv && fv !== fi.dataset.orig.toUpperCase() ? fv : null, pc = cv && cv !== ci.dataset.orig ? cv : null;
+        if (!pf && !pc) return;
+        km.style.color = ''; km.textContent = 'Saving…';
+        s3.rpc('cycle_set_key_info', { p_count: rc.countId, p_item: row.dataset.item, p_fcc: pf, p_chip: pc }).then(function (res){
           if (res.error) { km.textContent = '⚠ ' + res.error.message; km.style.color = '#e0555f'; return; }
-          km.style.color = ''; km.textContent = '✓ saved';
-          [fi, ci].forEach(function (x){ if (x && x.value.trim()) { x.style.borderColor = 'rgba(44,170,110,.7)'; } });
+          km.textContent = '✓ saved';
+          if (pf) { fi.dataset.orig = pf; fi.value = pf; fi.style.borderColor = 'rgba(44,170,110,.7)'; fi.style.background = 'transparent'; }
+          if (pc) { ci.dataset.orig = pc; ci.style.borderColor = 'rgba(44,170,110,.7)'; ci.style.background = 'transparent'; }
+          if (fi.value.trim() || ci.value.trim()) row.dataset.miss = '0';
         });
       }
-      [fi, ci].forEach(function (x){ if (x) x.onchange = saveKey; });
+      fi.onchange = saveKey; ci.onchange = saveKey;
+      var ms = row.querySelector('.rcmake');
+      if (ms) ms.onchange = function (){
+        var mk = ms.value; if (!mk) return; var s4 = sb(); if (!s4 || !rc.countId) return;
+        km.style.color = ''; km.textContent = 'Saving…';
+        s4.rpc('cycle_set_key_info', { p_count: rc.countId, p_item: row.dataset.item, p_fcc: null, p_chip: null, p_make: mk }).then(function (res){
+          if (res.error) { km.textContent = '⚠ ' + res.error.message; km.style.color = '#e0555f'; return; }
+          km.textContent = '✓ ' + mk; row.dataset.makes = mk; ms.style.borderColor = 'rgba(44,170,110,.7)'; ms.style.background = 'transparent';
+          // move it into the right make in the filter list
+          var sel = document.getElementById('rcMake'); if (sel) {
+            var o = [].filter.call(sel.options, function (x){ return x.value === mk; })[0], ot = [].filter.call(sel.options, function (x){ return x.value === '__other'; })[0];
+            var bump = function (opt, d){ if (!opt) return; var m = /\((\d+)\)\s*$/.exec(opt.textContent); if (m) opt.textContent = opt.textContent.replace(/\(\d+\)\s*$/, '(' + Math.max(0, +m[1] + d) + ')'); };
+            if (o) bump(o, 1); else { var no = document.createElement('option'); no.value = mk; no.textContent = mk + ' (1)'; sel.insertBefore(no, ot || null); }
+            bump(ot, -1);
+          }
+        });
+      };
     });
     async function save(row){
       var s2 = sb(); if (!s2 || !rc.countId) return;
       var item = row.dataset.item, cnt = +row.querySelector('.rccount').value || 0, reason = row.querySelector('.rcreason').value || null;
       var r = await s2.rpc('cycle_save_line', { p_count: rc.countId, p_item: item, p_location: rc.loc, p_counted: cnt, p_reason: reason });
       var nm = row.querySelector('.nm');
-      if (r.error) { nm.style.color = '#e0555f'; row.title = r.error.message; } else { nm.style.color = ''; row.title = 'saved ✓'; }
+      if (r.error) { nm.style.color = '#e0555f'; row.title = r.error.message; }
+      else { nm.style.color = ''; row.title = 'saved ✓'; if (!nm.querySelector('.rcok')) nm.insertAdjacentHTML('beforeend', ' <span class="rcok" style="color:#2caa6e">✓</span>'); }
     }
+    // 8z15: the assignee marks the count done → manager sees it ready to apply
+    var done = document.getElementById('rcDone');
+    if (done) done.onclick = async function (){
+      var ok = await ask({ title: 'Send this count to your manager?', message: 'Any part you didn\'t change counts as matching what was expected. You can still reopen it until your manager applies it.', okText: 'Send' });
+      if (!ok) return;
+      done.disabled = true; done.textContent = 'Sending…';
+      var r = await sb().rpc('cycle_submit', { p_count: rc.countId, p_done: true });
+      done.disabled = false; done.textContent = '✅ Done — send to manager';
+      if (r.error) { document.getElementById('rcStatus').textContent = 'Could not send: ' + r.error.message; return; }
+      if (rc.count) { rc.count.submitted_at = new Date().toISOString(); try { rc.count.submitted_by = (await sb().auth.getUser()).data.user.id; } catch (e) {} }
+      if (onSubmitted) onSubmitted();
+    };
   }
   function rcSummary(d){
     var sum = document.getElementById('rcSummary'); if (!sum || !d) return;
