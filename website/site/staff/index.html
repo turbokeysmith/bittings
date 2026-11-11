@@ -1282,6 +1282,7 @@ window.tksDemoOn = function(){
     </nav>
     <div class="bt-sidefoot">
       <button class="bt-nav__item" data-go="timesheets" id="navTimesheets" style="display:none"><span class="bt-nav__ic">⏱</span>Timesheets</button>
+      <button class="bt-nav__item pos-mobile-only" id="navEditBar" type="button"><span class="bt-nav__ic">✏️</span>Edit bottom bar</button>
       <button class="bt-nav__item" id="sideLockNow" style="display:none"><span class="bt-nav__ic">🔒</span>Lock now</button>
       <button class="bt-nav__item owner-soft" id="sideSettings" data-go="settings" style="display:none"><span class="bt-nav__ic">⚙</span>Settings</button>
       <div class="bt-sidestat" id="sideSignedIn">Not signed in</div>
@@ -2214,7 +2215,9 @@ const KEYCODES = [
   { make:'Chrysler / Jeep / Dodge / Ram',   slug:'mopar',      url:'https://www.moparkeycode.com/app/public/landing' },
   { make:'Kia',                             slug:'kia',        url:'https://kiatechinfo.snapon.com/' },
   { make:'Mitsubishi',                      slug:'mitsubishi', url:'https://mitsubishitechinfo.com/epacarb/' },
-  { make:'Subaru',                          slug:'subaru',     url:'https://subaru.locksmithsdrm.com/SubaruSDRM/' }
+  { make:'Subaru',                          slug:'subaru',     url:'https://subaru.locksmithsdrm.com/SubaruSDRM/' },
+  { make:'Volkswagen (erWin / ODIS)',       slug:'vw',         url:'https://erwin.vw.com/' },
+  { make:'Audi (erWin / ODIS)',             slug:'audi',       url:'https://erwin.audiusa.com/' }
 ];
 function hostOf(u){ try{ return new URL(u).hostname; }catch(e){ return ''; } }
 function faviconOf(u){ return 'https://www.google.com/s2/favicons?sz=64&domain=' + encodeURIComponent(hostOf(u)); }
@@ -8658,6 +8661,83 @@ gid('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') gid('vinBtn').c
   }
   window.closeAllOverlays=closeOverlays;
   document.addEventListener('click', function(e){ var b=e.target.closest && e.target.closest('.bt-bottomnav__item'); if(b) closeOverlays(); }, true);
+})();
+</script>
+<script>
+/* 8z38: editable phone bottom bar. Up to 4 favourites per person (saved on this device per signed-in email), "More" always last.
+   Only screens this person can open are offered. A bottom button just clicks the matching side-menu item, so every screen
+   opens exactly as it does from the menu (role / plan gates included). Edit: More → "Edit bottom bar", or press and hold the bar. */
+(function(){
+  var DEF=['startjob','receipts','customers','inventory'], MAX=4;
+  var SHORT={startjob:'Start job',inventory:'Stock',schedule:'Schedule',programmers:'Programs',history:'Closeout',lishi:'Lishi',timesheets:'Hours',commission:'Commission'};
+  function who(){ try{ return (TKS.auth&&TKS.auth.email&&TKS.auth.email())||''; }catch(e){ return ''; } }
+  function key(){ return 'tks_bottombar:'+(who()||'_'); }
+  function saved(){ try{ var v=JSON.parse(localStorage.getItem(key())||'null'); return Array.isArray(v)?v:null; }catch(e){ return null; } }
+  function side(go){ return document.querySelector('.bt-sidebar .bt-nav__item[data-go="'+go+'"]') || document.querySelector('.bt-nav__item[data-go="'+go+'"]'); }
+  function usable(go){ var el=side(go); if(!el) return false; if(el.style.display==='none') return false; try{ if(getComputedStyle(el).display==='none') return false; }catch(e){} return true; }
+  function options(){ var out=[], seen={}; document.querySelectorAll('.bt-nav__item[data-go]').forEach(function(el){ var g=el.dataset.go; if(seen[g]||!usable(g)) return; seen[g]=1;
+      var ic=el.querySelector('.bt-nav__ic'); out.push({go:g, ic:ic?ic.textContent:'•', label:el.textContent.replace(ic?ic.textContent:'','').trim()}); }); return out; }
+  function current(){ var opts=options(), ok={}; opts.forEach(function(o){ ok[o.go]=o; });
+    var sv=saved(), list=(sv||DEF).filter(function(g){ return ok[g]; });
+    return list.slice(0,MAX).map(function(g){ return ok[g]; }); }
+  var lastSig='';
+  function render(force){
+    var nav=document.querySelector('.bt-bottomnav'); if(!nav) return; var items=current();
+    var sig=who()+'|'+items.map(function(o){ return o.go; }).join(','); if(!force && sig===lastSig) return; lastSig=sig;
+    var more=document.getElementById('btMore');
+    [].slice.call(nav.querySelectorAll('.bt-bottomnav__item')).forEach(function(b){ if(b!==more) b.remove(); });
+    var act=document.querySelector('.bt-nav__item.is-active[data-go]'), active=act?act.dataset.go:'';
+    items.forEach(function(o){ var b=document.createElement('button'); b.type='button'; b.className='bt-bottomnav__item'+(o.go===active?' is-active':''); b.dataset.go=o.go;
+      var ic=document.createElement('span'); ic.className='bt-nav__ic'; ic.textContent=o.ic; b.appendChild(ic); b.appendChild(document.createTextNode(SHORT[o.go]||o.label));
+      b.onclick=function(){ var el=side(o.go); if(el) el.click(); };
+      nav.insertBefore(b, more); });
+  }
+  function editor(){
+    var opts=options(), pick=current().map(function(o){ return o.go; });
+    var old=document.getElementById('bbEdit'); if(old) old.remove();
+    var ov=document.createElement('div'); ov.id='bbEdit';
+    ov.style.cssText='position:fixed;inset:0;z-index:2147482000;background:rgba(10,12,16,.55);display:flex;align-items:flex-end;justify-content:center';
+    var sh=document.createElement('div'); sh.style.cssText='background:var(--card,#fff);color:var(--ink,#111);width:100%;max-width:520px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))';
+    ov.appendChild(sh); document.body.appendChild(ov);
+    function opt(g){ return opts.filter(function(x){ return x.go===g; })[0]||{go:g,ic:'•',label:g}; }
+    function draw(){
+      sh.innerHTML='<div style="display:flex;align-items:center;gap:8px"><b style="font-size:18px;flex:1">Edit bottom bar</b><button type="button" data-x style="border:0;background:none;color:inherit;font-size:22px;cursor:pointer" aria-label="Close">✕</button></div>'+
+        '<div class="meta" style="margin:4px 0 10px">Tap to add or remove — up to '+MAX+'. They show in the order you pick them. "More" always stays last.</div>'+
+        '<div data-prev style="display:flex;gap:6px;margin-bottom:12px;padding:8px;border-radius:12px;background:rgba(128,128,128,.12);min-height:58px"></div>'+
+        '<div data-list></div>'+
+        '<div style="display:flex;gap:8px;margin-top:10px"><button type="button" data-reset style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(128,128,128,.4);background:none;color:inherit;font-weight:700;font-size:15px;cursor:pointer">Reset</button>'+
+        '<button type="button" data-save style="flex:2;padding:12px;border-radius:12px;border:0;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;font-size:16px;cursor:pointer">Save</button></div>';
+      var prev=sh.querySelector('[data-prev]');
+      pick.concat(['__more']).forEach(function(g,i){ var o=g==='__more'?{ic:'⋯',label:'More'}:opt(g); var d=document.createElement('div');
+        d.style.cssText='flex:1;min-width:0;text-align:center;font-size:12px;font-weight:700'+(g==='__more'?';opacity:.5':'');
+        var a=document.createElement('div'); a.style.fontSize='20px'; a.textContent=o.ic; d.appendChild(a); d.appendChild(document.createTextNode(g==='__more'?'More':(SHORT[g]||o.label))); prev.appendChild(d); });
+      var list=sh.querySelector('[data-list]');
+      opts.forEach(function(o){ var n=pick.indexOf(o.go), on=n>=0, full=!on&&pick.length>=MAX; var b=document.createElement('button'); b.type='button';
+        b.style.cssText='display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px;margin-bottom:6px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;'+
+          (on?'border:2px solid #22994a;background:#eaf7ee;color:#156632':'border:1px solid rgba(128,128,128,.3);background:var(--card,#fff);color:inherit')+(full?';opacity:.45':'');
+        var i1=document.createElement('span'); i1.style.cssText='font-size:20px;width:28px;text-align:center'; i1.textContent=o.ic;
+        var i2=document.createElement('span'); i2.style.flex='1'; i2.textContent=o.label;
+        var i3=document.createElement('span'); i3.textContent=on?('✓ '+(n+1)):'';
+        b.appendChild(i1); b.appendChild(i2); b.appendChild(i3);
+        b.onclick=function(){ var k=pick.indexOf(o.go); if(k>=0) pick.splice(k,1); else if(pick.length<MAX) pick.push(o.go); else { try{ toast('Up to '+MAX+' — remove one first'); }catch(e){} return; } draw(); };
+        list.appendChild(b); });
+      sh.querySelector('[data-x]').onclick=function(){ ov.remove(); };
+      sh.querySelector('[data-reset]').onclick=function(){ pick=DEF.filter(usable); draw(); };
+      sh.querySelector('[data-save]').onclick=function(){ try{ localStorage.setItem(key(), JSON.stringify(pick)); }catch(e){} ov.remove(); render(true); try{ toast('Bottom bar saved'); }catch(e){} };
+    }
+    ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+    draw();
+  }
+  window.TKS_BOTTOMBAR={ render:render, edit:editor };
+  var eb=document.getElementById('navEditBar'); if(eb) eb.addEventListener('click', function(){ setTimeout(editor, 50); });
+  // press and hold the bar to edit
+  var nav=document.querySelector('.bt-bottomnav'), t=null;
+  if(nav){ nav.addEventListener('touchstart', function(){ t=setTimeout(function(){ t=null; editor(); }, 650); }, {passive:true});
+    ['touchend','touchmove','touchcancel'].forEach(function(ev){ nav.addEventListener(ev, function(){ if(t){ clearTimeout(t); t=null; } }, {passive:true}); });
+    nav.addEventListener('contextmenu', function(e){ e.preventDefault(); }); }
+  // role / plan gates show and hide menu items after sign-in: re-check now and then (cheap; only rebuilds on change)
+  render(true); [300,1200,3000,6000].forEach(function(ms){ setTimeout(function(){ render(false); }, ms); });
+  setInterval(function(){ if(!document.getElementById('bbEdit')) render(false); }, 4000);
 })();
 </script>
 </body>
