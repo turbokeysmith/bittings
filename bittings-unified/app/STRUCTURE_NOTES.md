@@ -8,6 +8,52 @@ data layer (`app/store.js`, `window.TKS`) with a single **CLOUD SWAP POINT**.
 - **Staff app** (dark): http://127.0.0.1:8088/  → Customers · Receipts · Scheduler · Payments · Inventory
 - **Public site** (light): http://127.0.0.1:8099/  → contact form `/contact/`, language toggle 🌐 in the header
 
+## 2026-11-11 — bittings.app · 8z36 fee by tier · 8z37 direct charges · connect-oauth
+Supersedes the destination-charge routing described further down (Phase 5 Connect section). Full payment
+detail: `supabase/PAYMENTS.md` (2026-11-11 section).
+- **Second address.** The app is served from its own Pages project `bittings-app` → `https://bittings.app`
+  (app at the site root: `/`, `/signin`) as well as `turbokeysmith.com/staff/`. Deploy:
+  `node website/_tools/publish-staff.mjs && node website/_tools/deploy-app.mjs` (`--dry-run` builds
+  `.build/bittings-app/` only; `.build/` is git-ignored). It ships the same published copy
+  (`website/site/staff/`) and writes its own `_headers`. No GA on the app, so the GA deploy guard does not apply.
+- **`_shared/auth.ts` → `appBase(req)`:** maps the request `Origin` to the app base
+  (`https://bittings.app` | `https://turbokeysmith.com/staff`), else `APP_URL` (now `https://bittings.app`).
+  Used for every return link (connect-onboard, connect-oauth, billing-checkout, billing-portal), so a person
+  lands back on the address they started from, still signed in. CORS allow-headers now include
+  `x-client-info, x-supabase-api-version, x-region` (supabase-js `functions.invoke()` sends them; without
+  them the preflight failed). `staff-invite` accepts bittings.app.
+- **8z36 `shops.platform_fee_bps`** (int, 0–1000, NULL = by tier: starter 1%, pro 0%). Turbo Keysmith LLC = 100.
+  Read by `pay-create-intent` (service_role); owners cannot change it (5e column grant).
+- **8z39 Register completion + receipts paging.** (a) `posCheckoutThen` `done()` called `TKS.POS.decrementStock(rid).catch(...)`; a supabase-js builder is thenable but has no `.catch`, so it threw, and `pay.js` swallowed the throw in `try{onDoneCb(j)}catch(_){}` → no stock RPC, no `posClear()`, no `showChgSend`. Now wrapped in a real promise; `pay.js` reports a failed after-payment step in the sheet. **Never chain `.catch` straight onto a Supabase call.** (b) `hydrateKey` (store.js) did one unpaged `select(*)`; PostgREST caps at 1000 rows, receipts has 1,763 → now pages with `.order(id).range()`. (c) `receipts-view.js` sorts by `savedAt` else `paidAt` (number ms on POS receipts) and labels the date from `paidAt`. Receipt `pos_f49f…` (2026-11-11) never had `pos_decrement_stock` run (`posStockApplied` unset).
+- **8z38 staff pay-plan read grant** (`phase8/8z38_staff_pay_plan_read_grant.sql`, applied 2026-11-11). Phase 1a uses column-level SELECT on `staff` for `authenticated`; 8z22 added `pay_plan`/`after_hours_pct` and `renderCloudTeam` selected them without a grant → PostgREST 42501 on the whole query → card rendered "No staff rows yet.". Now granted (pin_hash/phone/address still not readable; those go through `staff_contacts()`). `renderCloudTeam` shows `r.error` instead of an empty list. Scheduler `fin()` re-renders when staff/vans resolve after the 1.6 s fallback. **Any new staff column the client selects needs its own column grant.**
+- **8z38 roster merge.** `TKS_rosterMergeStaff(rows, contact)` (index.html, settings closure) runs inside `renderCloudTeam` once the `staff` rows + `staff_contacts` arrive: every ACTIVE staff row missing from `cfg.access.employees` is appended (match by email, else full/first name; `owner` = role owner/manager). Working copy only — persisted by the normal settings Save. Never removes or renames.
+- **8z37 direct charges.** PaymentIntent, Terminal Location and readers live on the shop's connected account
+  (every Stripe call carries `Stripe-Account`); Bittings gets only `application_fee_amount` (on the
+  pre-surcharge base). `payment_transactions.charge_type` (`destination` | `direct`, default `destination`)
+  tells pay-refund / pay-status / pay-terminal which account the intent is on. The migration nulls every
+  `shops.terminal_location_id` (readers must be paired again) and clears Turbo Keysmith's unfinished TEST
+  Express account. `pay.js` opens Stripe.js with `{stripeAccount}` when the server returns one.
+- **`connect-onboard`:** new accounts use `controller` settings (fees.payer=account, losses.payments=stripe,
+  full dashboard, Stripe collects requirements) instead of legacy Express; `{action:"status"}` reports
+  `none | needs_info | verifying | connected` (+ what is missing) without creating or redirecting.
+  UI: `TKS_BILLING.connectStatus()`.
+- **`connect-oauth` (new):** link an existing Stripe account. `available` / `start` / `finish`; `state` is an
+  HMAC over shop + user + time (30 min), nothing stored in between. Needs `STRIPE_CONNECT_CLIENT_ID`;
+  redirect URI is `${appBase(req)}/`, so both addresses are registered in the platform's OAuth settings.
+  UI: `TKS_BILLING.connectExistingAvailable/Start/Finish`.
+- **`stripe-webhook`:** verifies with `STRIPE_WEBHOOK_SECRET` (account scope) or
+  `STRIPE_CONNECT_WEBHOOK_SECRET` (connected-accounts scope). Without the Connect endpoint, card charges
+  authorize but never capture.
+- **Stale-copy guard.** `_headers`: `/staff/` and `/staff/signin` are `Cache-Control: no-store` (same on
+  bittings.app); `signin.html` appends `?_=<time>` to the post-sign-in address.
+- **Print helper** (`tools/print-helper/helper.js`): `ALLOWED` includes `https://bittings.app`. The copy
+  installed on the counter PC is NOT updated yet.
+- **Open:** Supabase Site URL still `turbokeysmith.com/staff/signin.html` (switch at cutover); public-site
+  "Staff Login" links still `/staff/`; Turbo Keysmith live connection not charge-enabled, reader not re-paired,
+  no live charge + refund yet; typed-card path untested (no publishable key set); OAuth path untested with an
+  owner login from bittings.app; `billing-webhook` reuses `STRIPE_WEBHOOK_SECRET` and has no price IDs.
+- **Status:** sandbox-tested; code-complete, pending mobile sign-off. Uncommitted.
+
 ## 2026-11-09 — 8z13: each shop pairs its own card reader (Settings → Payments → Card readers)
 - **Why:** a new shop must be able to set up its reader itself instead of sending ids/keys to anyone.
 - **Server:** `pay-terminal` actions `list` (this shop's readers only), `register` {code,label,address?} (owner/manager; first time
@@ -791,7 +837,7 @@ charges are **destination charges** on the platform with a **1% application fee*
 - **`pay-create-intent` (v11):** resolves the shop's connected account SERVER-SIDE (ignores client
   input); **blocks card with 409 `connect_required`** when the shop isn't charge-enabled (cash/check
   still work via pay-record); on a connected shop creates a destination charge with
-  `application_fee_amount` (1% of base, tier-based: 0 for a `*flat` tier), `transfer_data.destination`,
+  `application_fee_amount` (tier-based since 8z36: Starter 1%, Pro 0%; `shops.platform_fee_bps` pins a shop to its own rate — Turbo Keysmith LLC is pinned to 1%), `transfer_data.destination`,
   and `on_behalf_of`. Stores `connected_account_id` on the txn.
 - **`pay-refund` (v11):** for Connect (destination) charges, refunds on the platform with
   `reverse_transfer` + `refund_application_fee` (pulls money back from the shop + returns our fee).

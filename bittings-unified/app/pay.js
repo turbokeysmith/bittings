@@ -199,7 +199,9 @@
     const j=await call("pay-create-intent",{invoiceId:S.receipt.id,method:"keyed",attempt:S.attempt});
     if(j.error||!j.clientSecret){ status(j.error||"no client secret","bad"); return; }
     S.pi=j.paymentIntentId;
-    try{ stripe=Stripe(pk); elements=stripe.elements({clientSecret:j.clientSecret}); elements.create("payment").mount("#pnPE"); }
+    // 8z37: the charge lives on the shop's own Stripe account (direct charge), so Stripe.js
+    // must be opened "as" that account or it can't find the PaymentIntent.
+    try{ stripe=j.stripeAccount?Stripe(pk,{stripeAccount:j.stripeAccount}):Stripe(pk); elements=stripe.elements({clientSecret:j.clientSecret}); elements.create("payment").mount("#pnPE"); }
     catch(e){ status("Card field error: "+(e.message||e),"bad"); return; }
     const go=modal.querySelector("#pnGo"); go.textContent="Pay (credit +2%)"; go.onclick=confirmKeyed; status("Enter the card, then Pay.");
   }
@@ -219,7 +221,7 @@
       if(j.error && j.network){ netFails++; if(netFails<=5 && polls<40){ status("Connection hiccup — retrying… ("+netFails+")"); setTimeout(tick,2000); return; } status(j.error+" The charge may still have gone through — check Transaction History before retrying.","bad"); return; }
       netFails=0;
       if(j.error){ status(j.error,"bad"); return; }
-      if(j.status==="completed"){ S.completed=true; status("✓ Approved — "+m(j.captured_cents)+(j.surcharge_applied?" (incl. 2% credit surcharge)":" (no surcharge)"),"ok"); if(onDoneCb){ try{onDoneCb(j);}catch(_){} } return; }
+      if(j.status==="completed"){ S.completed=true; status("✓ Approved — "+m(j.captured_cents)+(j.surcharge_applied?" (incl. 2% credit surcharge)":" (no surcharge)"),"ok"); if(onDoneCb){ try{onDoneCb(j);}catch(e){ console.error("[pay] after-payment step failed",e); status("✓ Approved — "+m(j.captured_cents)+". The card WAS charged — do not charge again. The screen could not finish up ("+((e&&e.message)||e)+"); find the receipt under Receipts.","ok"); } } return; }
       if(j.status==="failed"){ status("✗ "+(j.failure_reason||"failed")+" — try again.","bad"); S.attempt++; return; }
       if(j.status==="canceled"){ status("Canceled — try again.","bad"); S.attempt++; return; }
       if(polls<40) setTimeout(tick,2000); else status("Still waiting — check the reader.","bad");

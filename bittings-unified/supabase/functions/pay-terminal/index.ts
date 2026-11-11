@@ -3,9 +3,11 @@
 //
 // Hardened (2026-07-02, pre-pilot review #6): CORS uses the shared origin allow-list (not "*").
 //
-// (8z13, 2026-11-09) Readers are registered on the PLATFORM Stripe account — card charges are
-// destination charges created there (pay-create-intent: on_behalf_of + transfer_data → the
-// shop's Connect account), and a reader can only process a PaymentIntent on its own account.
+// (8z37, 2026-11-11) Card charges are DIRECT charges on the shop's connected Stripe account, and
+// a reader can only process a PaymentIntent on its own account — so the Terminal Location and
+// the readers are created ON THE SHOP'S CONNECTED ACCOUNT (every Stripe call below carries the
+// Stripe-Account header via `ao`). A shop must finish "Connect your Stripe account" before it
+// can add a reader. (8z13 had them on the platform account, for destination charges.)
 // Each shop gets its OWN Terminal Location (shops.terminal_location_id, created on the first
 // "Add a reader"); every action below is fenced to readers at THAT location, so a shop can
 // never see, charge on, or remove another shop's reader. The shop pairs its reader itself in
@@ -37,27 +39,31 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = body.action || "list";
-    const shopRow = await supa.from("shops").select("name, terminal_location_id").eq("id", auth.shopId).limit(1);
+    const shopRow = await supa.from("shops").select("name, terminal_location_id, stripe_connect_id, connect_charges_enabled").eq("id", auth.shopId).limit(1);
     if (shopRow.error) return json(503, { error: "shop lookup failed, try again" });
-    const shop = (shopRow.data?.[0] ?? {}) as { name?: string; terminal_location_id?: string | null };
-    let loc: string | null = shop.terminal_location_id ?? null;
+    const shop = (shopRow.data?.[0] ?? {}) as { name?: string; terminal_location_id?: string | null; stripe_connect_id?: string | null; connect_charges_enabled?: boolean | null };
+    const acct: string | null = shop.stripe_connect_id ?? null;
+    // No connected account yet → no location/readers can exist for this shop.
+    let loc: string | null = acct ? (shop.terminal_location_id ?? null) : null;
+    const ao: Stripe.RequestOptions | undefined = acct ? { stripeAccount: acct } : undefined;
+    const needConnect = () => json(409, { error: "Connect your Stripe account first (Settings → Payments), then add your card reader.", code: "connect_required" });
 
     // Is this reader at THIS shop's location? Reader ids come from the browser, so this is the fence.
     const ownReader = async (id: unknown): Promise<Stripe.Terminal.Reader | null> => {
       const rid = String(id ?? "");
       if (!loc || !/^tmr_[A-Za-z0-9]+$/.test(rid)) return null;
-      const r = await stripe.terminal.readers.retrieve(rid).catch(() => null) as (Stripe.Terminal.Reader & { deleted?: boolean }) | null;
+      const r = await stripe.terminal.readers.retrieve(rid, {}, ao).catch(() => null) as (Stripe.Terminal.Reader & { deleted?: boolean }) | null;
       if (!r || r.deleted) return null;
       return locId(r) === loc ? r : null;
     };
 
     if (action === "config") {   // publishable key for the typed-card field (public by design)
-      return json(200, { mode: isTest ? "test" : "live", publishableKey: PK || null });
+      return json(200, { mode: isTest ? "test" : "live", publishableKey: PK || null, stripeAccount: acct });
     }
 
     if (action === "list") {
-      const readers = loc ? (await stripe.terminal.readers.list({ limit: 100, location: loc })).data.map(out) : [];
-      return json(200, { mode: isTest ? "test" : "live", hasLocation: !!loc, readers, canSetup: SETUP_ROLES.includes(auth.role) });
+      const readers = loc ? (await stripe.terminal.readers.list({ limit: 100, location: loc }, ao)).data.map(out) : [];
+      return json(200, { mode: isTest ? "test" : "live", hasLocation: !!loc, connected: !!(acct && shop.connect_charges_enabled), readers, canSetup: SETUP_ROLES.includes(auth.role) });
     }
 
     if (action === "register") {
@@ -65,6 +71,7 @@ Deno.serve(async (req) => {
       const code = String(body.code ?? "").trim().toLowerCase().replace(/\s+/g, "-");
       const label = String(body.label ?? "").trim().slice(0, 60) || "Card reader";
       if (!code) return json(400, { error: "Type the pairing code your reader shows." });
+      if (!acct || !shop.connect_charges_enabled) return needConnect();
       if (!loc) {   // first reader → this shop's Terminal Location (Stripe needs the shop's address once)
         const a = (body.address ?? {}) as Record<string, unknown>;
         const address = {
@@ -74,19 +81,19 @@ Deno.serve(async (req) => {
         if (!address.line1 || !address.city || !/^[A-Z]{2}$/.test(address.state) || !/^\d{5}(-\d{4})?$/.test(address.postal_code)) {
           return json(400, { error: "Enter the shop's street, city, 2-letter state and ZIP. Stripe needs them once to set up your reader.", code: "address_required" });
         }
-        const l = await stripe.terminal.locations.create({ display_name: String(shop.name || "Shop").slice(0, 100), address, metadata: { shop_id: auth.shopId } });
+        const l = await stripe.terminal.locations.create({ display_name: String(shop.name || "Shop").slice(0, 100), address, metadata: { shop_id: auth.shopId } }, ao);
         // Only claim it if nobody else did in the meantime (two people adding readers at once).
         const up = await supa.from("shops").update({ terminal_location_id: l.id }).eq("id", auth.shopId).is("terminal_location_id", null).select("terminal_location_id");
         if (up.data?.[0]) loc = l.id;
         else {
-          await stripe.terminal.locations.del(l.id).catch(() => null);
+          await stripe.terminal.locations.del(l.id, {}, ao).catch(() => null);
           const again = await supa.from("shops").select("terminal_location_id").eq("id", auth.shopId).limit(1);
           loc = (again.data?.[0]?.terminal_location_id as string | null) ?? null;
           if (!loc) return json(503, { error: "could not save the reader location, try again" });
         }
       }
       try {
-        const r = await stripe.terminal.readers.create({ registration_code: code, label, location: loc, metadata: { shop_id: auth.shopId } });
+        const r = await stripe.terminal.readers.create({ registration_code: code, label, location: loc, metadata: { shop_id: auth.shopId } }, ao);
         await supa.from("audit_log").insert({ user_id: auth.user.id, role: auth.role, action: "reader_add", entity_type: "terminal_reader", entity_id: r.id, shop_id: auth.shopId, detail: { label, device_type: r.device_type } });
         return json(200, { ok: true, reader: out(r) });
       } catch (e) {
@@ -104,9 +111,9 @@ Deno.serve(async (req) => {
       if (action === "rename") {
         const label = String(body.label ?? "").trim().slice(0, 60);
         if (!label) return json(400, { error: "name required" });
-        return json(200, { ok: true, reader: out(await stripe.terminal.readers.update(r.id, { label }) as Stripe.Terminal.Reader) });
+        return json(200, { ok: true, reader: out(await stripe.terminal.readers.update(r.id, { label }, ao) as Stripe.Terminal.Reader) });
       }
-      await stripe.terminal.readers.del(r.id);
+      await stripe.terminal.readers.del(r.id, {}, ao);
       await supa.from("audit_log").insert({ user_id: auth.user.id, role: auth.role, action: "reader_remove", entity_type: "terminal_reader", entity_id: r.id, shop_id: auth.shopId, detail: { label: r.label } });
       return json(200, { ok: true });
     }
@@ -116,13 +123,13 @@ Deno.serve(async (req) => {
       const r = await ownReader(body.readerId);
       if (!r) return json(404, { error: "reader not found at this shop" });
       const pan = body.declined ? "4000000000000002" : body.debit ? "4000056655665556" : "4242424242424242";
-      await stripe.testHelpers.terminal.readers.presentPaymentMethod(r.id, { type: "card_present", card_present: { number: pan } });
+      await stripe.testHelpers.terminal.readers.presentPaymentMethod(r.id, { type: "card_present", card_present: { number: pan } }, ao);
       return json(200, { ok: true, simulated: pan.slice(-4) });
     }
     if (action === "cancel") {
       const r = await ownReader(body.readerId);
       if (!r) return json(404, { error: "reader not found at this shop" });
-      await stripe.terminal.readers.cancelAction(r.id);
+      await stripe.terminal.readers.cancelAction(r.id, {}, ao);
       return json(200, { ok: true });
     }
     // (C6) The Pay Now sheet was closed with a charge still live. Cancel the PaymentIntent (so a
@@ -131,18 +138,20 @@ Deno.serve(async (req) => {
     if (action === "cancel_intent") {
       const piId = String(body.paymentIntentId || "");
       if (!piId) return json(400, { error: "paymentIntentId required" });
-      const q = await supa.from("payment_transactions").select("id,status,method,reader_id").eq("stripe_payment_intent_id", piId).eq("shop_id", auth.shopId).limit(1);
+      const q = await supa.from("payment_transactions").select("id,status,method,reader_id,charge_type,connected_account_id").eq("stripe_payment_intent_id", piId).eq("shop_id", auth.shopId).limit(1);
       const t = q.data?.[0];
       if (!t) return json(404, { error: "transaction not found" });
       if (!["pending", "authorized"].includes(t.status)) return json(200, { ok: true, skipped: true, status: t.status });
       const r = await ownReader(body.readerId || t.reader_id);
-      if (r) { try { await stripe.terminal.readers.cancelAction(r.id); } catch (_) { /* reader may already be idle */ } }
+      if (r) { try { await stripe.terminal.readers.cancelAction(r.id, {}, ao); } catch (_) { /* reader may already be idle */ } }
+      // The intent lives on the shop's account for a direct charge, on the platform for an old destination charge.
+      const po: Stripe.RequestOptions | undefined = t.charge_type === "direct" && t.connected_account_id ? { stripeAccount: t.connected_account_id as string } : undefined;
       let piStatus = "canceled";
-      try { piStatus = (await stripe.paymentIntents.cancel(piId)).status; }
+      try { piStatus = (await stripe.paymentIntents.cancel(piId, {}, po)).status; }
       catch (e) {
         // Already captured/succeeded? Then it is NOT abandoned — leave the row for the webhook.
         const msg = String((e as any)?.message ?? e);
-        const live = await stripe.paymentIntents.retrieve(piId).catch(() => null);
+        const live = await stripe.paymentIntents.retrieve(piId, {}, po).catch(() => null);
         if (live && (live.status === "succeeded" || live.status === "processing")) return json(200, { ok: true, skipped: true, status: live.status });
         return json(400, { error: "could not cancel: " + msg });
       }

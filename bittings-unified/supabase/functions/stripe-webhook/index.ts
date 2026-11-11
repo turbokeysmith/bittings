@@ -4,6 +4,10 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20", httpClient: Stripe.createFetchHttpClient() });
 const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const whSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
+// (8z37) Card charges are DIRECT charges on the shops' connected accounts, so their events
+// arrive through a second Stripe endpoint with the "Connected accounts" scope, which signs
+// with its own secret. Both endpoints point at this same URL; accept either signature.
+const whConnectSecret = Deno.env.get("STRIPE_CONNECT_WEBHOOK_SECRET") ?? "";
 
 async function setTxn(piId: string, patch: Record<string, unknown>) {
   await supa.from("payment_transactions").update(patch).eq("stripe_payment_intent_id", piId);
@@ -15,10 +19,19 @@ Deno.serve(async (req) => {
   let event: Stripe.Event;
   try {
     // MUST use the async variant in Deno (no sync crypto). Verifies the signature.
-    event = await stripe.webhooks.constructEventAsync(raw, sig, whSecret);
+    let ev: Stripe.Event | null = null, lastErr: unknown = null;
+    for (const sec of [whSecret, whConnectSecret]) {
+      if (!sec) continue;
+      try { ev = await stripe.webhooks.constructEventAsync(raw, sig, sec); break; } catch (e) { lastErr = e; }
+    }
+    if (!ev) throw lastErr ?? new Error("no webhook secret configured");
+    event = ev;
   } catch (e) {
     return new Response("bad signature: " + String((e as any)?.message ?? e), { status: 400 });
   }
+  // Events about a connected account's own objects carry `account`; the object lives THERE,
+  // so every follow-up Stripe call must be made as that account.
+  const ao: Stripe.RequestOptions | undefined = (event as any).account ? { stripeAccount: String((event as any).account) } : undefined;
 
   // Idempotency + audit: record the event; duplicate event id => already handled.
   const piId = (event.data.object as any)?.id ?? (event.data.object as any)?.payment_intent ?? null;
@@ -29,7 +42,7 @@ Deno.serve(async (req) => {
     if (event.type === "payment_intent.amount_capturable_updated") {
       // Card authorized (requires_capture). Read funding, then capture per the CREDIT-only rule.
       const pi = event.data.object as Stripe.PaymentIntent;
-      const full = await stripe.paymentIntents.retrieve(pi.id, { expand: ["latest_charge"] });
+      const full = await stripe.paymentIntents.retrieve(pi.id, { expand: ["latest_charge"] }, ao);
       const det: any = (full.latest_charge as any)?.payment_method_details || {};
       const pmType = det.type ?? "unknown";                       // card | card_present | link | klarna | afterpay_clearpay | zip | amazon_pay | cashapp | ...
       const funding = det.card_present?.funding ?? det.card?.funding ?? "unknown";
@@ -48,7 +61,7 @@ Deno.serve(async (req) => {
       const captureAmount = isCredit ? base + surcharge : base;
       if (full.status === "requires_capture") {
         try {
-          await stripe.paymentIntents.capture(pi.id, { amount_to_capture: captureAmount });
+          await stripe.paymentIntents.capture(pi.id, { amount_to_capture: captureAmount }, ao);
         } catch (capErr) {
           // (C5) A transient Stripe error used to be swallowed with a 200 — the intent stayed
           // authorized-but-uncaptured, the row 'pending', and Stripe never retried. Forget this
@@ -84,6 +97,15 @@ Deno.serve(async (req) => {
       const reader = event.data.object as any;
       const pid = reader.action?.process_payment_intent?.payment_intent;
       if (pid) await setTxn(pid, { status: "failed", failure_reason: reader.action?.failure_message ?? "reader action failed" });
+    } else if (event.type === "account.application.deauthorized") {
+      // The shop removed Bittings from its Stripe account (or Stripe revoked it). We can no
+      // longer charge on that account — turn card payments off for the shop and forget the
+      // account + its reader location so the owner can connect again cleanly.
+      const gone = String((event as any).account ?? "");
+      if (gone) await supa.from("shops").update({
+        stripe_connect_id: null, connect_charges_enabled: false, connect_payouts_enabled: false,
+        connect_onboarded_at: null, terminal_location_id: null,
+      }).eq("stripe_connect_id", gone);
     } else if (event.type === "account.updated") {
       // Connect: a shop's connected account changed (onboarding progress / capability
       // toggle). Cache the authoritative charges/payouts flags on the shop so the

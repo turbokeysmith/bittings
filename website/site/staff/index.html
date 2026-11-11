@@ -8,7 +8,11 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="tks_mark.png">
 <!-- Bittings design system: apply remembered theme before paint, then load the shared stylesheet -->
-<script>try{if(localStorage.getItem('bt_theme')==='dark')document.documentElement.setAttribute('data-bt-theme','dark');}catch(e){}</script>
+<script>try{if(localStorage.getItem('bt_theme')==='dark')document.documentElement.setAttribute('data-bt-theme','dark');}catch(e){}
+try{if(/[?&]connect=(done|refresh)/.test(location.search))sessionStorage.setItem('tks_connect_return','1');}catch(e){}
+try{(function(){var q=new URLSearchParams(location.search),st=q.get('state')||'';if(st.indexOf('tkoa_')!==0)return;
+sessionStorage.setItem('tks_oauth_return',JSON.stringify({code:q.get('code')||'',state:st,error:q.get('error_description')||q.get('error')||''}));
+sessionStorage.setItem('tks_connect_return','1');history.replaceState(null,'',location.pathname);})();}catch(e){}</script>
 <link rel="stylesheet" href="app/ui/bittings-ui.css">
 <link rel="icon" type="image/svg+xml" href="app/ui/assets/favicon.svg">
 <style>
@@ -892,9 +896,9 @@
   #view-dashboard .dash-period{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:-4px 0 16px;}
   #view-dashboard .dp-chips{display:flex;gap:4px;padding:4px;border-radius:12px;background:rgba(128,128,128,.12);flex:1 1 auto;min-width:0}
   #view-dashboard .dp-chips button{flex:1;border:0;background:none;color:var(--ds-2);font-weight:800;font-size:13.5px;padding:9px 4px;border-radius:9px;cursor:pointer;white-space:nowrap}
-  #view-dashboard .dp-chips button.on{background:var(--card,#fff);color:var(--ds-ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  #view-dashboard .dp-chips button.on{background:#fff;color:#14171b;box-shadow:0 1px 3px rgba(0,0,0,.12)}
   #view-dashboard .dp-step{display:flex;align-items:center;gap:6px;flex:1 1 auto;justify-content:space-between}
-  #view-dashboard .dp-step button{width:40px;height:38px;border-radius:10px;border:1px solid rgba(128,128,128,.3);background:var(--card,#fff);color:var(--ds-ink);font-size:20px;font-weight:800;cursor:pointer}
+  #view-dashboard .dp-step button{width:40px;height:38px;border-radius:10px;border:1px solid rgba(128,128,128,.3);background:#fff;color:#14171b;font-size:20px;font-weight:800;cursor:pointer}
   #view-dashboard .dp-step button:disabled{opacity:.35;cursor:default}
   #view-dashboard .dp-step span{flex:1;text-align:center;font-weight:800;font-size:14.5px;color:var(--ds-ink)}
   #view-dashboard .dash-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
@@ -3928,7 +3932,28 @@ function TKS_isOwner(){
   try{ if(window.TKS && TKS.auth && TKS.auth.role) return String(TKS.auth.role()).toLowerCase()==='owner'; }catch(e){}
   return true; /* fall back to visible — connect-onboard is owner-gated server-side anyway */
 }
-function TKS_CONNECT_START(){ if(window.TKS_BILLING && TKS_BILLING.connectOnboard) TKS_BILLING.connectOnboard(); }
+function TKS_CONNECT_START(){ window._tksPayoutTries=0; if(window.TKS_BILLING && TKS_BILLING.connectOnboard) TKS_BILLING.connectOnboard(); }
+/* Back from Stripe's onboarding (?go=settings&connect=done|refresh): land on Settings → Payments so
+   the owner sees the connection status straight away, then drop the marker from the address bar. */
+(function(){
+  try{
+    // The marker is stashed by the first script in <head> — the router rewrites the address bar
+    // (dropping ?connect=…) before this code runs.
+    if(sessionStorage.getItem('tks_connect_return')!=='1') return;
+    var tries=0, opened=false;
+    (function open(){
+      if(!opened){   // open Settings once its menu button is shown for this role
+        var nav=document.querySelector('[data-go="settings"]');
+        if(nav && !(nav.style.display==='none' || nav.classList.contains('tks-cap-hidden'))){ nav.click(); opened=true; }
+      }
+      var items=opened?document.querySelectorAll('#view-settings .railItem'):[], hit=null;
+      items.forEach(function(b){ if(!hit && /payments/i.test(b.textContent||'')) hit=b; });
+      if(hit){ hit.click(); try{ sessionStorage.removeItem('tks_connect_return'); }catch(e){}
+        setTimeout(function(){ var c=document.getElementById('payoutConnectCard'); if(c&&c.scrollIntoView) c.scrollIntoView({block:'center'}); },150); return; }
+      if(++tries<80) setTimeout(open,250); else { try{ sessionStorage.removeItem('tks_connect_return'); }catch(e){} }
+    })();
+  }catch(e){}
+})();
 async function TKS_refreshPayoutStatus(){
   var el=document.getElementById('payoutConnectStatus'), btn=document.getElementById('payoutConnectBtn');
   if(!el) return;
@@ -3936,14 +3961,54 @@ async function TKS_refreshPayoutStatus(){
   var sb=null; try{ sb=window.TKS && TKS._sb && TKS._sb(); }catch(e){}
   if(!sb){ el.textContent='Sign in to the cloud to set up card payouts.'; if(btn) btn.style.display='none'; return; }
   if(TKS.isDemo && TKS.isDemo()){ el.textContent='Card payouts are set up in the live app (this is the demo).'; if(btn) btn.style.display='none'; return; }   // 8j
+  var exB=document.getElementById('payoutExistingBtn'), exH=document.getElementById('payoutExistingHint');
+  if(exB) exB.style.display='none'; if(exH) exH.style.display='none';
+  // Back from signing in to an existing Stripe account: finish the hand-off once, then show the result.
+  try{
+    var ret=sessionStorage.getItem('tks_oauth_return');
+    if(ret && owner && window.TKS_BILLING && TKS_BILLING.connectExistingFinish){
+      sessionStorage.removeItem('tks_oauth_return');
+      var o=JSON.parse(ret)||{};
+      if(o.error){ (window.uiAlert||alert)('Stripe did not connect the account: '+o.error+'. Nothing was changed.'); }
+      else if(o.code){
+        el.textContent='Connecting your Stripe account…';
+        var fin=await TKS_BILLING.connectExistingFinish(o.code,o.state);
+        if(fin && fin.error) (window.uiAlert||alert)(fin.error);
+      }
+    }
+  }catch(e){}
   try{
     var r=await sb.from('shops').select('stripe_connect_id,connect_charges_enabled').limit(1).maybeSingle();
     var s=(r&&r.data)||{};
     var connected = !!s.stripe_connect_id && !!s.connect_charges_enabled;
     var started   = !!s.stripe_connect_id && !s.connect_charges_enabled;
-    if(connected){ el.innerHTML='<b style="color:#7fd49b">✓ Connected</b> — card charges deposit into your Stripe account (Bittings fee 1%).'; if(btn) btn.textContent='Re-check / manage'; }
-    else if(started){ el.innerHTML='<b style="color:#f2b43a">Setup incomplete</b> — Stripe still needs a few details before you can take card payments.'; if(btn) btn.textContent='Finish Stripe setup'; }
-    else { el.innerHTML='<b style="color:#f0a0a6">Not connected</b> — card payments are off until you connect a payout account. Cash &amp; check still work.'; if(btn) btn.textContent='Connect your Stripe account'; }
+    clearTimeout(window._tksPayoutPoll);
+    if(connected){ el.innerHTML='<b style="color:#7fd49b">✓ Connected</b> — card payments are on and deposit into your Stripe account.'; if(btn) btn.textContent='Re-check'; if(window._tksPayoutWasPending){ window._tksPayoutWasPending=false; try{ TKS_readersRender(); }catch(e){} } }
+    else if(started){
+      // Ask Stripe (through the server) WHY it isn't live yet, so the owner isn't left guessing:
+      // "Stripe is checking" (nothing to do, we re-check by ourselves) vs "Stripe needs X from you".
+      window._tksPayoutWasPending=true;
+      var st=null; try{ if(owner && window.TKS_BILLING && TKS_BILLING.connectStatus) st=await TKS_BILLING.connectStatus(); }catch(e){}
+      if(st && st.connected){ return TKS_refreshPayoutStatus(); }
+      if(st && st.state==='verifying'){
+        el.innerHTML='<b style="color:#f2b43a">Stripe is checking your details…</b> This usually takes a minute or two. You don’t need to do anything; this updates on its own.';
+        if(btn) btn.textContent='Check again';
+        window._tksPayoutTries=(window._tksPayoutTries||0)+1;
+        if(window._tksPayoutTries<=45) window._tksPayoutPoll=setTimeout(function(){ if(document.getElementById('payoutConnectStatus')) TKS_refreshPayoutStatus(); }, 8000);
+      } else if(st && st.state==='needs_info'){
+        var nd=(st.needs||[]).join(', ');
+        el.innerHTML='<b style="color:#f2b43a">Stripe needs one more thing'+(nd?':</b> '+esc(nd)+'.':'.</b>')+' Tap the button to finish. Card payments turn on once Stripe has it.';
+        if(btn) btn.textContent='Finish Stripe setup';
+      } else {
+        el.innerHTML='<b style="color:#f2b43a">Setup incomplete</b> — Stripe still needs a few details before you can take card payments.'; if(btn) btn.textContent='Finish Stripe setup';
+      }
+    }
+    else { el.innerHTML='<b style="color:#f0a0a6">Not connected</b> — card payments are off until you connect a payout account. Cash &amp; check still work.'; if(btn) btn.textContent='Set up a new Stripe account'; }
+    if(owner && !connected && exB && window.TKS_BILLING && TKS_BILLING.connectExistingAvailable){
+      TKS_BILLING.connectExistingAvailable().then(function(ok){ if(!ok) return;
+        var b=document.getElementById('payoutExistingBtn'), h=document.getElementById('payoutExistingHint'); if(!b) return;
+        b.style.display=''; if(h) h.style.display=''; b.onclick=function(){ TKS_BILLING.connectExistingStart(); }; });
+    }
     if(btn){
       if(owner){ btn.style.display=''; btn.onclick=TKS_CONNECT_START; }
       else { btn.style.display='none'; el.innerHTML += ' <span class="hint">(Only the owner can set this up.)</span>'; }
@@ -3976,8 +4041,9 @@ async function TKS_readersRender(){
         '<div style="flex:1 1 140px;min-width:0"><b>'+esc(r.label||'Card reader')+'</b><div class="hint" style="margin:0">'+esc(TKS_rdDevice(r.device_type))+' · '+(on?'online':'offline: turn it on and check WiFi / hotspot')+'</div></div>'+
         (can?'<button type="button" class="btn ghost rdRen" style="padding:6px 10px">Rename</button><button type="button" class="btn ghost rdDel" style="padding:6px 10px">Remove</button>':'')+
       '</div>'; }).join('') + (j.mode==='test'?'<div class="hint">Test mode: pairing code <b>simulated-wpe</b> adds a pretend reader.</div>':'')
-    : '<div>No card reader yet.'+(can?' Tap <b>Add a card reader</b> to pair yours.':' Ask the owner or a manager to pair one.')+'</div>';
-  if(add){ add.style.display=can?'':'none'; add.onclick=function(){ TKS_readersForm(!j.hasLocation); }; }
+    : (j.connected===false ? '<div>Connect your Stripe account first (the card above). Your reader is paired to your own Stripe account, so that has to be done before a reader can be added.</div>'
+      : '<div>No card reader yet.'+(can?' Tap <b>Add a card reader</b> to pair yours.':' Ask the owner or a manager to pair one.')+'</div>');
+  if(add){ add.style.display=(can&&j.connected!==false)?'':'none'; add.onclick=function(){ TKS_readersForm(!j.hasLocation); }; }
   list.querySelectorAll('.rdRen').forEach(function(b){ b.onclick=async function(){
     var row=b.closest('.rdRow'), cur=row.querySelector('b').textContent, nm=prompt('Reader name',cur); if(!nm||nm.trim()===cur) return;
     var r=await TKPay.readers('rename',{readerId:row.dataset.id,label:nm.trim()}); if(r.error) alert(r.error); TKS_readersRender(); }; });
@@ -4372,7 +4438,7 @@ function posCheckoutThen(method){
           TKS_HW.thermal.printReceipt(_rcpt).then(()=>{}, ()=>{});
         }
       }catch(_){/* never block the sale */}
-      TKS.POS.decrementStock(rid).catch(()=>{}); posClear();
+      /* 8z39: a Supabase call has .then but NO .catch, so the old ".catch" here threw, and everything after an approved charge was skipped without a word (stock not taken, ticket not cleared, no receipt buttons). */ Promise.resolve().then(()=>TKS.POS.decrementStock(rid)).then(r=>{ if(r&&r.error) console.warn("[pos] stock not taken for "+rid+": "+r.error.message); }, e=>console.warn("[pos] stock not taken for "+rid, e)); posClear();
       chgSay('✓ '+(method==='card' ? 'Card charge complete — '+money(capt)+(sur?' (incl. 2% credit surcharge)':'') : (payLabel+' recorded — '+money(capt)+'.')),true);
       showChgSend({ id:rid, number:rid, email:cust.email, items:[{desc:'Register sale'}], totals:{ total:capt/100, surcharge:sur/100 }, payment:payLabel }); };
     if(method==='card'){ if(!TKPay.openForReceipt){ posSetBusy(false); chgSay('Payment engine not loaded.',false); return; }
@@ -6248,7 +6314,9 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
           '<label style="margin:0">Card payouts — your Stripe account</label>'+
           '<div id="payoutConnectStatus" class="sub" style="margin:8px 0">Checking payout connection…</div>'+
           '<button type="button" class="btn" id="payoutConnectBtn" style="display:none"></button>'+
-          '<div class="hint">Card charges deposit straight into your own bank via Stripe Connect. Bittings takes a <b>1%</b> platform fee; Stripe’s standard processing fee applies. Cash &amp; check don’t need a connected account.</div>'+
+          '<button type="button" class="btn ghost" id="payoutExistingBtn" style="display:none;margin-left:8px">I already have a Stripe account</button>'+
+          '<div id="payoutExistingHint" class="hint" style="display:none">Already take cards with Stripe? Sign in to that account and your customers and payment history stay where they are.</div>'+
+          '<div class="hint">Card charges go to your own Stripe account and pay out to your bank. Stripe’s standard processing fee applies; Bittings’ platform fee depends on your plan (Starter 1%, Pro none). Cash &amp; check don’t need a connected account.</div>'+
         '</div>'+
         // 8z13: card readers — paired by the shop itself (no ids or keys sent to anyone)
         '<div class="card" id="readerCard" data-addr="'+esc((cfg.identity&&cfg.identity.address)||'')+'" style="margin-top:14px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:12px">'+
@@ -6547,6 +6615,26 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     el.querySelectorAll('.e_owner').forEach(x=> x.onchange=()=>{ cfg.access.employees[+x.dataset.i].owner=x.checked; renderEmployees(); });
     el.querySelectorAll('.del').forEach(b=> b.onclick=()=>{ cfg.access.employees.splice(+b.dataset.i,1); renderEmployees(); });
   }
+  /* 8z38: the Employees list is typed by hand, so a teammate added through "Email invite" never showed up in it
+     (Jayden, 2026-11-11). Add every active login that is missing, matched by email, else by full or first name.
+     Nothing is removed or renamed; the additions are stored with the next Save. */
+  function TKS_rosterMergeStaff(rows, contact){
+    if(!cfg.access.employees) cfg.access.employees=[];
+    const emps=cfg.access.employees, norm=function(v){ return String(v||'').trim().toLowerCase(); }, first=function(v){ return norm(v).split(/\s+/)[0]; };
+    let added=0;
+    (rows||[]).forEach(function(s){ if(!s || s.active===false) return;
+      const em=norm(contact && contact[s.user_id] && contact[s.user_id].email), nm=norm(s.name); if(!em && !nm) return;
+      const hit=emps.some(function(e){ const ee=norm(e.email), en=norm(e.name);
+        if(em && ee) return em===ee;
+        return !!nm && !!en && (en===nm || first(en)===first(nm)); });
+      if(hit) return;
+      const blank=emps.filter(function(e){ return !norm(e.name) && !norm(e.email); })[0];
+      const rec={ name:s.name||'', email:em, owner:(s.role==='owner'||s.role==='manager') };
+      if(blank){ blank.name=rec.name; blank.email=rec.email; blank.owner=rec.owner; } else emps.push(rec);
+      added++; });
+    if(added) renderEmployees();
+    return added;
+  }
   /* Cloud team — REAL sign-ins from the staff table (owner-only Add teammate).
      Calls the staff-invite edge function: creates the login with a temp password
      the owner hands over; the server inserts the staff row for THIS shop only. */
@@ -6576,7 +6664,8 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       const r=res[0], mfaRows=(res[1]&&res[1].data)||[]; const mfa={}; mfaRows.forEach(function(m){ mfa[m.user_id]=!!m.has_mfa; });
       const signed={}; ((res[2]&&res[2].data)||[]).forEach(function(x){ signed[x.user_id]=!!x.signed_in; });   // 8z5
       const el=gid('ctList'); if(!el) return;
-      const rows=(r&&r.data)||[];
+      if(r&&r.error){ el.textContent='Could not load the team list ('+(r.error.message||'error')+'). Nobody was removed — close and reopen the app, and tell support if it stays.'; return; }   /* 8z38: a refused query used to read as "No staff rows yet." */
+      const rows=(r&&r.data)||[]; try{ TKS_rosterMergeStaff(rows, contact); }catch(_){}   /* 8z38: everyone with a real login also shows in the Employees list above */
       let myId=null; try{ myId = TKS.auth.user && TKS.auth.user() && TKS.auth.user().id; }catch(_){}
       el.innerHTML = rows.length ? rows.map(function(s){
         const isMgr = (s.role==='manager'||s.role==='owner');
@@ -7446,7 +7535,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
   window.renderSchedule=function(){
     if(loaded){ render(); return; }
     var body=document.getElementById('schBody'); if(body) body.innerHTML='<div class="sch-empty">Loading roster…</div>';
-    var n=0; function fin(){ if(++n>=2 && !loaded){ loaded=true; render(); } }
+    var n=0; function fin(){ if(++n>=2){ loaded=true; render(); } }   /* 8z38: also redraw when the team arrives after the 1.6 s fallback, so a slow connection no longer leaves the picker on the typed list */
     try{ (TKS.Fleet && TKS.Fleet.staff) ? TKS.Fleet.staff().then(function(r){ STAFF=((r&&r.data)||[]).filter(function(s){return s.active!==false;}); fin(); }).catch(function(){ STAFF=[]; fin(); }) : (function(){STAFF=[];fin();})(); }catch(e){ STAFF=[]; fin(); }
     try{ (TKS.Fleet && TKS.Fleet.list) ? TKS.Fleet.list().then(function(r){ VANS=((r&&r.data)||[]); fin(); }).catch(function(){ VANS=[]; fin(); }) : (function(){VANS=[];fin();})(); }catch(e){ VANS=[]; fin(); }
     setTimeout(function(){ if(!loaded){ loaded=true; render(); } }, 1600);
@@ -8748,7 +8837,9 @@ gid('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') gid('vinBtn').c
     return fetch('version.json?ts='+Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ busy=false;
       if(!j || !j.v) return false; if(!loaded){ loaded=j.v; return false; } if(j.v!==loaded){ bar(); return true; } return false; }).catch(function(){ busy=false; return false; });
   }
-  function update(){ try{ sessionStorage.setItem('tks_just_updated','1'); }catch(e){} location.reload(); }
+  // Load under a fresh address rather than location.reload(): iPhone Safari / home-screen apps can
+  // answer a reload from their saved copy, which left some phones stuck on an old version.
+  function update(){ try{ sessionStorage.setItem('tks_just_updated','1'); }catch(e){} try{ location.replace(location.pathname+'?_='+Date.now()); }catch(e){ location.reload(); } }
   function bar(){
     if(shown) return; shown=true;
     var b=document.createElement('div'); b.id='tksUpdBar';
@@ -8765,6 +8856,9 @@ gid('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') gid('vinBtn').c
   setInterval(function(){ if(document.visibilityState==='visible') check(); }, 120000);
   document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') check(); });
   window.addEventListener('focus', check);
+  // A page restored from the phone's back/forward cache or re-opened from the home screen never
+  // re-downloads itself — check for a newer version the moment it is shown again.
+  window.addEventListener('pageshow', function(e){ check(); });
   var mi=document.getElementById('navUpdateApp');
   if(mi) mi.addEventListener('click', function(){ try{ toast('Getting the latest version…'); }catch(e){} setTimeout(update, 300); });
   try{ if(sessionStorage.getItem('tks_just_updated')){ sessionStorage.removeItem('tks_just_updated'); setTimeout(function(){ try{ toast('✓ Updated to the latest version'); }catch(e){} }, 1200); } }catch(e){}

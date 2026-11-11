@@ -22,7 +22,9 @@
     if (tab === 'nastf') hist = hist.filter(function (r) { return r.nastf && r.nastf.type; });
     var q = query.trim().toLowerCase();
     if (q && tab === 'all') hist = hist.filter(function (r) { return [r.number, r.customer, r.date, r.address, r.vin, vehStr(r), (r.items || []).map(function (i) { return i.desc; }).join(' ')].join(' ').toLowerCase().indexOf(q) >= 0; });
-    hist.sort(function (a, b) { return (b.savedAt || 0) - (a.savedAt || 0); });
+    // 8z39: Register sales carry paidAt, not savedAt — without this they sorted to the very bottom of the list.
+    function when(r) { var p = r.paidAt; return Number(r.savedAt) || (typeof p === 'number' ? p : Date.parse(p || '')) || 0; }   // paidAt is a millisecond number on Register sales
+    hist.sort(function (a, b) { return when(b) - when(a); });
     if (!hist.length) { list.innerHTML = '<div class="rc-empty">' + (tab === 'nastf' ? 'No NASTF jobs yet — tag a job NASTF on the register or Start-a-Job.' : (q ? 'No receipts match that search.' : 'No receipts yet — charge a job on the register or Start-a-Job.')) + '</div>'; return; }
     var E = window.TKS_RECEIPTS || {};
     list.innerHTML = hist.map(function (r) {
@@ -35,7 +37,7 @@
       return '<div class="ro-item" data-id="' + esc(r.id || '') + '"><div class="ro-open" tabindex="0" role="button" title="Tap to view">' +
         '<div class="ro-top"><span class="ro-num">' + esc(r.number || r.id || '') + '</span>' + warrC + '<span class="ro-amt">' + money(total) + '</span></div>' +
         '<div class="ro-cust">' + esc(r.customer || '(no name)') + '</div>' +
-        '<div class="ro-desc">' + esc(r.date || '') + ' · ' + esc(desc(r)) + '</div>' + badges + '</div>' +
+        '<div class="ro-desc">' + esc(r.date || (r.paidAt && !isNaN(new Date(r.paidAt).getTime()) ? new Date(r.paidAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '')) + ' · ' + esc(desc(r)) + '</div>' + badges + '</div>' +
         '<div class="rc-rowactions"><button class="rcv" data-act="view">👁 View</button><button class="rcv" data-act="send">📤 Send</button><button class="rcv" data-act="pdf">⬇ PDF</button></div></div>';
     }).join('');
     list.querySelectorAll('.ro-item').forEach(function (it) {

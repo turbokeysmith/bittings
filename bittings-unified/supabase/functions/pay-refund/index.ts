@@ -38,13 +38,25 @@ Deno.serve(async (req) => {
     // reverse_transfer pulls the money back from the shop's balance and
     // refund_application_fee returns Bittings' platform fee proportionally. For a
     // non-Connect charge these are simply omitted. Client connectedAccountId ignored.
+    // (8z37) DIRECT charge: the refund is issued ON the shop's connected account (the money
+    // comes back out of the shop's balance) and refund_application_fee returns Bittings'
+    // fee proportionally — there is no transfer to reverse.
     const isConnect = !!t.connected_account_id;
+    const isDirect = isConnect && t.charge_type === "direct";
     const params: Stripe.RefundCreateParams = { payment_intent: paymentIntentId, reason: "requested_by_customer", amount: reqAmt };
-    if (isConnect) { params.reverse_transfer = true; params.refund_application_fee = true; }
+    if (isDirect) {
+      // Stripe rejects refund_application_fee on a charge that never had one (a 0% Pro shop),
+      // so only ask for it when this payment actually carried a Bittings fee.
+      const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {}, { stripeAccount: t.connected_account_id as string });
+      if (Number(pi.application_fee_amount ?? 0) > 0) params.refund_application_fee = true;
+    }
+    else if (isConnect) { params.reverse_transfer = true; params.refund_application_fee = true; }
+    const ropts: Stripe.RequestOptions = { idempotencyKey: `refund_${paymentIntentId}_${already}_${reqAmt}` };
+    if (isDirect) ropts.stripeAccount = t.connected_account_id as string;
     // (C5) Idempotency key: a timeout after Stripe already refunded + a retry must NOT refund twice.
     // Keyed on the PI + the refunded-so-far total + the requested amount, so a *different* later
     // partial refund still goes through.
-    const refund = await stripe.refunds.create(params, { idempotencyKey: `refund_${paymentIntentId}_${already}_${reqAmt}` });
+    const refund = await stripe.refunds.create(params, ropts);
     const newRefunded = already + Number(refund.amount ?? reqAmt);
     const fully = newRefunded >= captured;
     const upd = await supa.from("payment_transactions")

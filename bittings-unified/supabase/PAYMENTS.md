@@ -133,6 +133,29 @@ No third-party email/SMS service, no API key, no cost — it uses the phone's ow
 All take optional `orgId` / `connectedAccountId` (ignored single-shop) so multi-tenant + Connect are
 a clean add-on later.
 
+## 2026-11-11 — DIRECT charges + fee by tier (8z36, 8z37) — supersedes the routing described above
+- **Card charges are direct charges on the shop's own connected Stripe account.** The
+  PaymentIntent, the Terminal Location and the readers all live on that account (every Stripe
+  call carries the `Stripe-Account` header). Stripe bills the **shop** its processing fee;
+  Bittings receives only `application_fee_amount`. Before this, destination charges made
+  Bittings pay Stripe's fee (found in test: −$2.80 on a $102 charge).
+- **Platform fee:** Starter 1%, Pro 0%; `shops.platform_fee_bps` pins a shop (Turbo Keysmith
+  LLC = 100 = 1%). Fee is on the pre-surcharge base.
+- **New connected accounts** are created with `controller` settings (fees.payer=account,
+  losses.payments=stripe, full Stripe dashboard) instead of legacy Express.
+- **`payment_transactions.charge_type`** (`destination` | `direct`) tells refund / status /
+  cancel which account the intent lives on. Old rows are `destination`.
+- **Two webhook endpoints, same URL:** the account-scope one (`STRIPE_WEBHOOK_SECRET`) and a
+  **"Connected accounts"-scope** one (`STRIPE_CONNECT_WEBHOOK_SECRET`) with events
+  `payment_intent.amount_capturable_updated|succeeded|payment_failed|canceled`,
+  `terminal.reader.action_failed`, `account.updated`. Without the Connect one, card charges
+  authorize but never capture. **Go-live needs both created in LIVE mode.**
+- A shop must finish "Connect your Stripe account" **before** it can pair a reader; readers
+  paired before 8z37 (platform account) must be paired again.
+- Tested in the sandbox (QA shop, simulated reader): credit $102 / fee $0 (Pro) and $1.00
+  (pinned 1%), debit $100 no surcharge, partial + full refunds. Stripe fee $2.80 was billed to
+  the connected account each time. **Not tested:** the typed-card path (no publishable key set).
+
 ## Secrets (Supabase → Edge Functions → Secrets)
 - `STRIPE_SECRET_KEY` = `sk_test_…`  **(set ✓)**. At cutover, replace with `sk_live_…` in this same slot.
 - `STRIPE_WEBHOOK_SECRET` = `whsec_…`  **(TODO — see below)**.

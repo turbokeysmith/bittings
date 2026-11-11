@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-11-08 15:40 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-11-11 15:22 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -407,6 +407,56 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-11-11 (🌐 Bittings gets its own address · 💳 card money goes straight to the shop)
+- **The staff app now also lives at `https://bittings.app`** (sign-in at `https://bittings.app/signin`). The old address,
+  `turbokeysmith.com/staff/`, still works and shows the very same app; both are kept identical until the switch-over.
+  `www.bittings.app`, `getbittings.com` and `www.getbittings.com` forward to it.
+- **Card payments are now taken on the shop's own Stripe account** (owner decision, 11 Nov). Stripe charges its processing
+  fee to the shop, and Bittings only receives its own small fee. Before this, Bittings was paying Stripe's fee
+  (seen in testing: $2.80 lost on a $102 charge).
+- **Bittings' fee depends on the plan:** Starter 1%, Pro 0%. A shop can be pinned to its own rate; Turbo Keysmith LLC is
+  pinned to 1%. The fee is worked out before any card surcharge.
+- **"I already have a Stripe account".** A shop owner can link the Stripe account they already use (keeping its customers
+  and history) instead of opening a new one. Settings → Payments.
+- **Stripe is in LIVE mode.** Settings → Payments now shows where the Stripe connection stands (not connected / needs
+  information / Stripe is checking / connected) and what is still missing.
+- **Phones can no longer sit on an old copy of the app.** The two app pages are never saved by the browser, and every
+  sign-in opens a fresh address.
+- **Fixed:** "Failed to send a request to the Edge Function" when the app called the cloud from the new address.
+- **First real card sale on the shop's own Stripe account: $185.33, Visa debit, on the reader (3:12 PM).** Stripe held
+  $189.04 in case the card was credit, then released the $3.71 because it was debit. Stripe fee $5.05, Bittings fee $1.85,
+  $178.43 to the shop. The sale exposed three faults, all fixed the same afternoon:
+  1. **The Register did nothing after an approved card or cash sale** (no "approved" line, ticket not cleared, no
+     send/print buttons, and the part was not taken out of stock). A coding mistake dating from June. Fixed; and if the
+     finishing step ever fails again the payment sheet now says the card WAS charged and not to charge again.
+  2. **Receipts only showed 1,000 of the shop's 1,763 receipts**, so the newest ones could be missing. The app now loads all of them.
+  3. **Register sales sorted to the bottom of Receipts and had no date.** They now sort by when they were paid.
+  **Still owed for that sale:** the SOUL 10-13 key (1) was never taken out of stock, so adjust it by hand. Fixes 2 and 3
+  were not seen working with an owner login (the account was signed out everywhere mid-check); **pending owner + phone sign-off.**
+- **Fixed: Team logins said "No staff rows yet." and Jayden could not be seen.** The Team logins card was asking the
+  cloud for each person's pay plan, which signed-in users were never given permission to read, so the cloud refused the
+  whole list and the app showed that as an empty team. Nobody was ever removed. The permission is now in place
+  (pay plan only; PINs, phone numbers and addresses stay hidden), the card now says so plainly if the list cannot be
+  loaded, and the scheduler now picks up the team even when it arrives late on a slow connection.
+  Checked in the owner's browser on the shop PC: Team logins shows Samer and Jayden, and the scheduler has a Jayden column.
+- **Fixed: an invited teammate was missing from the Employees list** (Settings → Access & managers). The list was only
+  ever typed by hand, so Jayden, who was added with "Email invite", had a working login but was not on it. Now everyone
+  with an active login is added to the list automatically when the screen opens (tap **Save** to keep it). Nobody is
+  removed or renamed. Checked at iPhone and Android screen sizes in the test browser; **pending sign-off on real phones**.
+- **Tested in Stripe's sandbox** (test shop, simulated reader): credit $102 with fee $0 (Pro) and $1.00 (1%), debit $100
+  with no surcharge, part and full refunds. **Not tested:** typing a card number in by hand.
+- **Still to do before the switch-over (needs the owner):**
+  1. Finish Turbo Keysmith LLC's live Stripe connection (started, not yet able to take cards), then pair the card reader
+     again (readers paired before today must be paired once more) and run one small real charge and refund.
+  2. Try "I already have a Stripe account" from bittings.app with an owner login.
+  3. Update the print helper on the counter PC; until then, printing from bittings.app does not work there
+     (printing from the old address still does).
+  4. At switch-over: point the website's "Staff Login" links (about 240 pages) at bittings.app, forward the old address,
+     and change the sign-in email links to bittings.app. Staff then sign in once more and re-add their home-screen icon.
+  5. Subscription billing (shops paying for Bittings plans) is not set up yet.
+- **Status:** code-complete and published to both addresses; **pending mobile sign-off** on iPhone and Android for an
+  owner and a staff member. Nothing from today is committed yet.
 
 ### 2026-11-09 (🔎 "missing FCC ID" list)
 - **Missing FCC ID button on Stock.** A red tile counts the smart keys, remotes, flip heads and super remotes that have no

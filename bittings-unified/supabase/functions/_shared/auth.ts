@@ -26,6 +26,20 @@ function allowedOrigins(): string[] {
   return [...DEFAULT_ORIGINS, ...extra];
 }
 
+// Where the app lives, WITHOUT a trailing slash — used for every link that sends someone back
+// to the app (Stripe onboarding / OAuth / billing returns). The app is served at two addresses
+// during the move to bittings.app; a person is sent back to the address they started from, so
+// they are still signed in when they land. Anything else falls back to APP_URL.
+// (Both "<base>/" values must be listed as OAuth redirect URIs in the Stripe platform account.)
+const APP_BASES: Record<string, string> = {
+  "https://bittings.app": "https://bittings.app",
+  "https://turbokeysmith.com": "https://turbokeysmith.com/staff",
+};
+export function appBase(req: Request): string {
+  const o = req.headers.get("origin") ?? "";
+  return APP_BASES[o] ?? (Deno.env.get("APP_URL") || "https://bittings.app").replace(/\/+$/, "");
+}
+
 export function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
   const ok = allowedOrigins().includes(origin);
@@ -33,7 +47,9 @@ export function corsHeaders(req: Request): Record<string, string> {
   // origin a file:// page sends, so the allow-list didn't actually block file:// launches.
   // Omit the header entirely when the origin isn't allowed: the browser then blocks the response.
   const h: Record<string, string> = {
-    "Access-Control-Allow-Headers": "authorization, content-type, apikey",
+    // x-client-info etc. are sent by supabase-js functions.invoke(); without them here the browser
+    // fails the preflight and the app shows "Failed to send a request to the Edge Function".
+    "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info, x-supabase-api-version, x-region",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Vary": "Origin",
   };

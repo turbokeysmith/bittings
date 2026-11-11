@@ -30,6 +30,16 @@
   Cloudflare-CDN-Cache-Control: no-store
 
 
+# The app's two PAGES are never stored by the browser at all — a phone that kept an old saved copy
+# (iPhone home-screen app / restored tab) could otherwise sit on a stale version indefinitely.
+# Scripts and images keep "no-cache" (stored, but re-checked every load).
+/staff/
+  ! Cache-Control
+  Cache-Control: no-store
+/staff/signin
+  ! Cache-Control
+  Cache-Control: no-store
+
 # 8z28: the staff app's vendor libraries have versioned file names — the browser may keep them a week
 /staff/app/vendor/*
   ! Cache-Control

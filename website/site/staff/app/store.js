@@ -156,11 +156,23 @@
     // load one logical key into the cache
     function hydrateKey(key) {
       var cfg = CLOUD_MAP[key];
-      var q = sb.from(cfg.readTable || cfg.table).select('*');   // reads may use a role-safe view; writes still target cfg.table
-      if (cfg.filter) Object.keys(cfg.filter).forEach(function (k) { q = q.eq(k, cfg.filter[k]); });
-      return q.then(function (res) {
-        if (res.error) throw res.error;
-        cache[key] = (res.data || []).map(cfg.fromRow);
+      // 8z39: the cloud hands back at most 1000 rows per request. Receipts passed 1000 (1,763 on 2026-11-11), so a
+      // single request silently dropped the rest — including a sale taken minutes earlier. Read in pages of 1000,
+      // in id order so pages never overlap, until a short page says we have everything.
+      var PAGE = 1000, rows = [];
+      function page(from) {
+        var q = sb.from(cfg.readTable || cfg.table).select('*');   // reads may use a role-safe view; writes still target cfg.table
+        if (cfg.filter) Object.keys(cfg.filter).forEach(function (k) { q = q.eq(k, cfg.filter[k]); });
+        return q.order('id', { ascending: true }).range(from, from + PAGE - 1).then(function (res) {
+          if (res.error) throw res.error;
+          var got = res.data || [];
+          rows = rows.concat(got);
+          if (got.length < PAGE || from >= 49000) return rows;   // safety stop at 50,000 rows
+          return page(from + PAGE);
+        });
+      }
+      return page(0).then(function (all) {
+        cache[key] = all.map(cfg.fromRow);
         shadow[key] = snapshot(cache[key]);
         return cache[key];
       });

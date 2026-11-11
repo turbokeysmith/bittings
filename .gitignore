@@ -26,3 +26,4 @@ package-lock.json
 
 # Supabase CLI link state (per machine)
 **/supabase/.temp/
+.build/

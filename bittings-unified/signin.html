@@ -198,8 +198,10 @@ function clearMsg(el){ el.className = 'msg'; el.textContent=''; }
    (no open redirects). Defaults to the app home. */
 function safeNext(){
   const n = new URLSearchParams(location.search).get('next');
-  if(!n || /^https?:|^\/\//i.test(n)) return 'index.html';
-  return n;
+  const u = (!n || /^https?:|^\/\//i.test(n)) ? 'index.html' : n;
+  // A fresh address every sign-in, so the phone can never open an old saved copy of the app
+  // (iPhone home-screen apps and restored tabs otherwise keep showing a stale version).
+  return u + (u.indexOf('?') < 0 ? '?' : '&') + '_=' + Date.now();
 }
 /* ---- two-factor (8e) ---------------------------------------------------------------
    Supabase TOTP MFA. A session that entered the code carries aal2; the database only grants

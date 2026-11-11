@@ -14,12 +14,11 @@
 //      SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, APP_URL.
 import Stripe from "npm:stripe@16";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, requireRole } from "../_shared/auth.ts";
+import { appBase, corsHeaders, requireRole } from "../_shared/auth.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20", httpClient: Stripe.createFetchHttpClient() });
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const PRICE: Record<string, string | undefined> = { starter: Deno.env.get("STRIPE_PRICE_STARTER"), pro: Deno.env.get("STRIPE_PRICE_PRO") };
-const APP = Deno.env.get("APP_URL") || "https://app.turbokeysmith.com";
 
 Deno.serve(async (req) => {
   const cors = corsHeaders(req);
@@ -57,8 +56,8 @@ Deno.serve(async (req) => {
       mode: "subscription",
       customer,
       line_items: [{ price, quantity: 1 }],
-      success_url: `${APP}/?billing=success`,
-      cancel_url: `${APP}/?billing=cancel`,
+      success_url: `${appBase(req)}/?billing=success`,
+      cancel_url: `${appBase(req)}/?billing=cancel`,
       metadata: { shop_id: auth.shopId, tier: String(tier) },
       subscription_data: { metadata: { shop_id: auth.shopId, tier: String(tier) } },
     });

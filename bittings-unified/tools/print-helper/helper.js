@@ -1,4 +1,4 @@
-// Bittings Print Helper — lets the Bittings web app (https://turbokeysmith.com/staff/) print on this PC:
+// Bittings Print Helper — lets the Bittings web app (https://bittings.app, formerly https://turbokeysmith.com/staff/) print on this PC:
 //   • receipts → the Star TSP100/TSP143 through its Windows driver (GDI), then cash-drawer kick
 //   • labels   → the Zebra ZD420/ZD421 as raw ZPL
 // Listens on 127.0.0.1 only (nothing on the network can reach it) and only answers the Bittings origins.
@@ -7,7 +7,7 @@
 'use strict';
 const http = require('http'), { execFile } = require('child_process'), path = require('path'), fs = require('fs'), os = require('os');
 const PORT = 8765;
-const ALLOWED = [/^https:\/\/turbokeysmith\.com$/, /^https:\/\/www\.turbokeysmith\.com$/, /^https:\/\/[a-z0-9-]+\.turbokeysmith\.pages\.dev$/, /^http:\/\/(127\.0\.0\.1|localhost):8088$/];
+const ALLOWED = [/^https:\/\/bittings\.app$/, /^https:\/\/turbokeysmith\.com$/, /^https:\/\/www\.turbokeysmith\.com$/, /^https:\/\/[a-z0-9-]+\.turbokeysmith\.pages\.dev$/, /^http:\/\/(127\.0\.0\.1|localhost):8088$/];
 const PS1 = path.join(__dirname, 'print.ps1');
 const LOG = path.join(__dirname, 'helper.log');
 function log(m) { try { fs.appendFileSync(LOG, new Date().toISOString() + ' ' + m + os.EOL); } catch (e) {} }

@@ -8,11 +8,10 @@
 // Env: STRIPE_SECRET_KEY (sk_test_…), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, APP_URL.
 import Stripe from "npm:stripe@16";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, requireRole } from "../_shared/auth.ts";
+import { appBase, corsHeaders, requireRole } from "../_shared/auth.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20", httpClient: Stripe.createFetchHttpClient() });
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-const APP = Deno.env.get("APP_URL") || "https://app.turbokeysmith.com";
 
 Deno.serve(async (req) => {
   const cors = corsHeaders(req);
@@ -27,7 +26,7 @@ Deno.serve(async (req) => {
     const sub = (await admin.from("subscriptions").select("stripe_customer_id").eq("shop_id", auth.shopId).maybeSingle()).data;
     const customer = sub?.stripe_customer_id as string | undefined;
     if (!customer) return json(409, { error: "This shop hasn't started billing yet — pick a plan first (Upgrade), then the portal can manage it." });
-    const session = await stripe.billingPortal.sessions.create({ customer, return_url: `${APP}/?billing=portal` });
+    const session = await stripe.billingPortal.sessions.create({ customer, return_url: `${appBase(req)}/?billing=portal` });
     return json(200, { url: session.url });
   } catch (e) {
     return json(500, { error: String((e as Error)?.message || e) });

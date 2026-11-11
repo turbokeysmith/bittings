@@ -23,7 +23,9 @@ Deno.serve(async (req) => {
     // UI feedback only — the authoritative paid state is set by the verified webhook.
     let live: string | null = null;
     if (["pending", "authorized"].includes(t.status)) {
-      try { live = (await stripe.paymentIntents.retrieve(paymentIntentId)).status; } catch (_) {}
+      // (8z37) a direct charge lives on the shop's connected account.
+      const po = t.charge_type === "direct" && t.connected_account_id ? { stripeAccount: t.connected_account_id as string } : undefined;
+      try { live = (await stripe.paymentIntents.retrieve(paymentIntentId, {}, po)).status; } catch (_) {}
     }
     return json(200, {
       status: t.status, pi_status: live, method: t.method,

@@ -43,9 +43,9 @@ Deno.serve(async (req) => {
     const role = String(body.role ?? "").trim();
     const password = String(body.password ?? "");
     // (8z5) where the email link lands — the app's sign-in page. Supabase Auth only accepts URLs
-    // on its redirect allow-list (turbokeysmith.com/staff/**, *.turbokeysmith.pages.dev, local test).
-    const redirectTo = /^https:\/\/([a-z0-9-]+\.)*(turbokeysmith\.com|turbokeysmith\.pages\.dev)\/|^http:\/\/127\.0\.0\.1:8088\//i.test(String(body.redirectTo ?? ""))
-      ? String(body.redirectTo) : "https://turbokeysmith.com/staff/signin.html";
+    // on its redirect allow-list (bittings.app/**, turbokeysmith.com/staff/**, *.pages.dev previews, local test).
+    const redirectTo = /^https:\/\/([a-z0-9-]+\.)*(turbokeysmith\.com|turbokeysmith\.pages\.dev|bittings-app\.pages\.dev)\/|^https:\/\/bittings\.app\/|^http:\/\/127\.0\.0\.1:8088\//i.test(String(body.redirectTo ?? ""))
+      ? String(body.redirectTo) : "https://bittings.app/signin.html";
 
     // (8z5) RESEND an invite to someone already on this shop's team who never finished setting up.
     if (body.resend) {
