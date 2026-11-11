@@ -140,7 +140,7 @@
         customer_name: (o.customer && o.customer.name) || null }; }
     },
     receipts: {
-      table: 'receipts', readTable: 'receipts_safe', idStrategy: 'text', filter: null,   // read via cost-masking view (per-line cost null for non-managers); writes still target receipts
+      table: 'receipts', readTable: 'receipts_safe', idStrategy: 'text', filter: null, hideDeleted: true,   // 8z45: a removed receipt (deleted_at) is still sent to managers — keep it out of every list   // read via cost-masking view (per-line cost null for non-managers); writes still target receipts
       fromRow: function (r) { return Object.assign({}, r.data, { id: r.id }); },
       toRow: function (o) { return { id: o.id, data: o }; }
     }
@@ -172,6 +172,7 @@
         });
       }
       return page(0).then(function (all) {
+        if (cfg.hideDeleted) all = all.filter(function (r) { return !r.deleted_at; });
         cache[key] = all.map(cfg.fromRow);
         shadow[key] = snapshot(cache[key]);
         return cache[key];

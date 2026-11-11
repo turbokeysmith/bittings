@@ -10,6 +10,9 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function money(v) { return '$' + (Number(v) || 0).toFixed(2); }
   function getHistory() { try { return (window.TKS && TKS.list && TKS.list('receipts')) || []; } catch (e) { try { return JSON.parse(localStorage.getItem('tks_receipts') || '[]'); } catch (_) { return []; } } }
+  // 8z48: closed (paid) receipts are edit-locked for anyone who is not a manager / owner — mirrors receiptClosed() in bittings.html
+  function closed(r) { if (!r || (r.docType || '') === 'estimate') return false; if (r.status !== 'Paid in Full') return false; if (/^card$/i.test(String(r.payment || '')) && !r.paidAt) return false; return true; }
+  function canEditClosed() { try { var role = (window.TKS && TKS.auth && TKS.auth.staffRole) ? TKS.auth.staffRole() : null; if (role) return role === 'owner' || role === 'manager'; return !!(TKS.auth.isOwner && TKS.auth.isOwner()); } catch (e) { return false; } }
   function vehStr(r) { var v = r.vehicle || {}; return [r.vehYear || v.year, r.vehMake || v.make, r.vehModel || v.model].filter(Boolean).join(' '); }
   function desc(r) { var it = r.items || []; if (it.length) return it[0].desc + (it.length > 1 ? (' +' + (it.length - 1) + ' more') : ''); return r.serviceType || 'Service'; }
 
@@ -37,8 +40,8 @@
       return '<div class="ro-item" data-id="' + esc(r.id || '') + '"><div class="ro-open" tabindex="0" role="button" title="Tap to view">' +
         '<div class="ro-top"><span class="ro-num">' + esc(r.number || r.id || '') + '</span>' + warrC + '<span class="ro-amt">' + money(total) + '</span></div>' +
         '<div class="ro-cust">' + esc(r.customer || '(no name)') + '</div>' +
-        '<div class="ro-desc">' + esc(r.date || (r.paidAt && !isNaN(new Date(r.paidAt).getTime()) ? new Date(r.paidAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '')) + ' · ' + esc(desc(r)) + '</div>' + badges + '</div>' +
-        '<div class="rc-rowactions"><button class="rcv" data-act="view">👁 View</button><button class="rcv" data-act="send">📤 Send</button><button class="rcv" data-act="pdf">⬇ PDF</button></div></div>';
+        (String(r.internalNotes || '').trim() ? '<div class="ro-desc" style="font-style:italic">🔒 ' + esc(String(r.internalNotes).trim().slice(0, 140)) + '</div>' : '') + '<div class="ro-desc">' + esc(r.date || (r.paidAt && !isNaN(new Date(r.paidAt).getTime()) ? new Date(r.paidAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '')) + ' · ' + esc(desc(r)) + '</div>' + badges + '</div>' +
+        '<div class="rc-rowactions"><button class="rcv" data-act="view">👁 View</button><button class="rcv" data-act="send">📤 Send</button><button class="rcv" data-act="pdf">⬇ PDF</button>' + ((r.id && !(closed(r) && !canEditClosed())) ? '<button class="rcv" data-act="edit">✏️ Edit</button>' : '') + '</div></div>';
     }).join('');
     list.querySelectorAll('.ro-item').forEach(function (it) {
       var r = hist.find(function (x) { return (x.id || '') === it.getAttribute('data-id'); });
@@ -46,6 +49,8 @@
       it.querySelectorAll('.rcv').forEach(function (b) {
         b.onclick = function (e) {
           e.stopPropagation(); var a = b.dataset.act;
+          /* 8z46: Edit opens THIS document in the builder (same number, saved in place — never a new receipt) */
+          if (a === 'edit') { try { sessionStorage.setItem('tks_edit_receipt', JSON.stringify(r)); } catch (_) {} location.href = 'bittings.html'; return; }
           try { if (a === 'view') openViewer(r); else if (a === 'send') { window.TKS_RECEIPTS && TKS_RECEIPTS.share(r, 'en', true); } else if (a === 'pdf') { window.TKS_RECEIPTS && TKS_RECEIPTS.makePDF(r, 'en', false); } }
           catch (err) { (window.uiAlert || window.alert)((err && err.message) || 'Action failed.'); }
         };

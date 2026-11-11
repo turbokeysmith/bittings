@@ -416,7 +416,7 @@
   <img id="hdrLogo" alt="logo">
   <div class="ht">
     <h1 id="hdrName">Bittings</h1>
-    <div class="sub">Locksmith Document Builder</div>
+    <div class="sub">Receipts &amp; invoices</div>
   </div>
   <a class="hdr-btn" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center" title="Back to all apps">‹ Apps</a>
   <button class="hdr-btn" onclick="openHist()">History</button>
@@ -606,8 +606,26 @@ function configWarranty(){
 }
 // expiry timestamp = start date + N calendar months
 function warrantyUntilTs(startMs, months){ const d=new Date(startMs||Date.now()); d.setMonth(d.getMonth()+(Number(months)||0)); return d.getTime(); }
+// 8z44 (owner, 2026-11-11): a warranty is only offered when HARDWARE was sold — a stocked part (partId / Register part line)
+// or a Materials / Parts line. Service calls, programming and labor alone carry none.
+function receiptHasHardware(its){
+  return (its||[]).some(function(it){ if(!it || it.isDiscount || it.declined) return false;
+    return !!it.partId || it.lineType==="part" || (it.category||"")==="Materials"; });
+}
+// Register sales are written by the server without warranty fields. Give one with hardware the shop's standard warranty,
+// counted from the day it was paid, so it shows and prints like any other receipt.
+function warrantyView(r){
+  if(!r) return r;
+  if(r.warranty==null && r.source==="pos" && r.docType!=="estimate" && receiptHasHardware(r.items)){
+    let m=0; try{ const w=(window.TKS&&TKS.Config&&TKS.Config.warranty)?TKS.Config.warranty():null; m=w?(Number(w.months)||0):0; }catch(e){}
+    const start=Number(r.paidAt)||Number(r.savedAt)||0;
+    if(m>0 && start) return Object.assign({}, r, { warranty:true, warrantyMonths:m, warrantyStart:start });
+  }
+  return r;
+}
 // {until, days, expired, months} for a saved receipt, or null if it carries no warranty
 function warrantyInfo(r){
+  r=warrantyView(r);
   if(!r || !r.warranty || !Number(r.warrantyMonths)) return null;
   const start=r.warrantyStart||r.savedAt; if(!start) return null;
   const until=r.warrantyUntil||warrantyUntilTs(start, r.warrantyMonths);
@@ -616,6 +634,7 @@ function warrantyInfo(r){
 }
 // Customer-facing warranty term, e.g. "6 months limited warranty" (no dates). "" if none.
 function warrantyTermText(r){
+  r=warrantyView(r);
   if(!r || !r.warranty || !Number(r.warrantyMonths) || r.docType==="estimate") return "";
   const m=Number(r.warrantyMonths);
   return m+" month"+(m===1?"":"s")+" limited warranty";
@@ -731,7 +750,11 @@ function nextDocNumber(type){
   const ymd=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
   const prefix=docPrefix(type)+"-"+ymd;
   const used=getHistory().filter(r=>r.number && r.number.startsWith(prefix));
-  return prefix+String.fromCharCode(65+used.length);
+  // 8z45: count-based numbering reused a letter once an earlier receipt of the day was removed, and saving then
+  // overwrote the receipt that already had it. Step forward to the first letter nobody has.
+  const taken={}; used.forEach(r=>{ taken[r.number]=1; });
+  let i=used.length; while(taken[prefix+String.fromCharCode(65+i)]) i++;
+  return prefix+String.fromCharCode(65+i);
 }
 function docLabel(type){
   return type==="invoice" ? "INVOICE" : type==="estimate" ? "ESTIMATE" : "RECEIPT";
@@ -800,6 +823,8 @@ function jobDraftToPrefill(d){
   if(d.jobId) p.jobId=String(d.jobId);
   if(d.fromDispatch) p.fromDispatch=true;
   if(d.customer) p.customer=String(d.customer);
+  if(d.address) p.address=String(d.address);
+  if(d.internalNotes) p.internalNotes=String(d.internalNotes);   // 8z45   // 8z41: the job's address was handed over but never used
   // 8n: Start-a-job can also pass the chosen customer record → phone / email ride along (name wins if both given)
   if(d.customerInfo && typeof d.customerInfo==="object"){ const ci=d.customerInfo; if(!p.customer && ci.name) p.customer=String(ci.name); if(ci.phone) p.phone=String(ci.phone); if(ci.email) p.email=String(ci.email); if(ci.id) p.customerId=String(ci.id); }
   return p;
@@ -1107,6 +1132,7 @@ function finish(){
       if(receipt.warranty===undefined) receipt.warranty = (w.defaultOn && w.months>0);
       if(!receipt.warrantyMonths) receipt.warrantyMonths = w.months;
       if(isLockoutOnly(items)) receipt.warranty=false;   // lockouts carry no warranty
+      if(!receiptHasHardware(items)) receipt.warranty=false;   // 8z44: no hardware sold → no warranty
       if(receipt.warranty && receipt.warrantyMonths){ receipt.warrantyStart=receipt.savedAt; receipt.warrantyUntil=warrantyUntilTs(receipt.savedAt, receipt.warrantyMonths); }
       else receipt.warranty=false;
     }
@@ -1157,7 +1183,10 @@ function finish(){
   }
   try{ logDispatchEvents(receipt); }catch(e){}   // 8r: per-job running log (declines, added lines, keys scanned out) — once per event
   const hist=getHistory();
-  const _exIdx=hist.findIndex(x=> (receipt.id&&x.id===receipt.id) || (receipt.number&&x.number===receipt.number));
+  // 8z59: two phones can hand out the same number (each numbers from its own copy of the list). Matching on the NUMBER then
+  // treated a different document as "this one" and replaced it. Match on id; fall back to the number only for old records with no id.
+  let _exIdx=hist.findIndex(x=> receipt.id && x.id===receipt.id);
+  if(_exIdx<0) _exIdx=hist.findIndex(x=> !x.id && receipt.number && x.number===receipt.number);
   if(_exIdx>=0) hist[_exIdx]=receipt; else hist.unshift(receipt);   // update on edit, add when new
   saveHistory(hist);
   // A paid sale (cash/check/marked-paid receipt) consumes its parts now.
@@ -1174,7 +1203,8 @@ function finish(){
   }
 
   chat.innerHTML="";
-  resultNote("Done! Here's "+receipt.number+":");
+  /* 8z44: plain status line instead of the old chat-style "Done! Here's …" */
+  resultNote("✓ "+(receipt.docType==="estimate"?"Estimate":receipt.docType==="invoice"?"Invoice":"Receipt")+" "+receipt.number+" saved"+(receipt.docType==="receipt"&&receipt.status?(" — "+receipt.status):""));
   renderReceiptCard(receipt);
 
   // Contracting D1 — remind user to delete photos per NASTF rules
@@ -1188,11 +1218,13 @@ function finish(){
 }
 /* 8r: the result-screen buttons (also rebuilt after a "Scan back in"). */
 function finishedActions(r){
+  if(r && String(r.internalNotes||"").trim()) resultNote("🔒 Internal note (staff only): "+String(r.internalNotes).trim());   // 8z45
   const _acts=[];
-  if(r.docType!=="estimate") _acts.push({label:"💳 Pay Now", primary:true, onClick:()=>openPayNow(r)});
-  _acts.push({label:"✏️ Edit", onClick:()=>editReceipt(r)});
+  if(r.docType!=="estimate" && !receiptClosed(r)) _acts.push({label:"💳 Pay Now", primary:true, onClick:()=>openPayNow(r)});   // 8z48: nothing left to pay on a closed receipt
+  if(!receiptLockedForMe(r)) _acts.push({label:"✏️ Edit", onClick:()=>editReceipt(r)});   // 8z48
   if(receiptScannedUnits(r).length) _acts.push({label:"↩ Scan back in", onClick:()=>scanBackInFromReceipt(r)});
   _acts.push({label:"New Document", primary:_acts.length===1, onClick:()=>openNewDocument()});
+  if(r.jobId) _acts.push({label:"← Back to Scheduler", onClick:()=>{ location.href="index.html?go=schedule"; }});   // 8z44: came from a job → one tap back to the board
   resultActions(_acts);
 }
 function renderFinished(r){ renderReceiptCard(r); finishedActions(r); }
@@ -1856,9 +1888,29 @@ function renderHistList(){
 }
 
 /* ---------- Edit an existing document — always through the Quick invoice (merge-save) ---------- */
+/* 8z48 (owner, 2026-11-11): once a receipt is CLOSED, only a manager or the owner may change it.
+   Closed = marked Paid in Full and the money is actually in: any non-card payment, or a card payment that was charged
+   (paidAt is stamped when the charge clears). A card receipt that has not been charged yet is still open, so a
+   technician can fix a mistake before taking the payment. Estimates and unpaid invoices are never closed. */
+function receiptClosed(r){
+  if(!r || (r.docType||"")==="estimate") return false;
+  if(r.status!=="Paid in Full") return false;
+  if(/^card$/i.test(String(r.payment||"")) && !r.paidAt) return false;
+  return true;
+}
+function canEditClosed(){
+  try{ const role=(window.TKS&&TKS.auth&&TKS.auth.staffRole)?TKS.auth.staffRole():null;
+       if(role) return role==="owner"||role==="manager";
+       return !!(window.TKS&&TKS.auth&&TKS.auth.isOwner&&TKS.auth.isOwner()); }catch(e){ return false; }
+}
+function receiptLockedForMe(r){ return receiptClosed(r) && !canEditClosed(); }
 function editReceipt(r){
   closeHist();
   chat.innerHTML="";
+  if(receiptLockedForMe(r)){   // show it, but no editing
+    resultNote("🔒 "+(r.number||"This receipt")+" is closed (paid). Only a manager or the owner can change it.");
+    renderFinished(r); return;
+  }
   openQuickInvoice(showHome, r);
 }
 
@@ -2168,9 +2220,15 @@ function boot(){
   if(window.RO_RECEIPTS) roOpen();
   else {
     // Start-a-job handoff: index.html writes a one-shot sessionStorage draft → pre-fill the builder.
+    // 8z46: the app's Receipts list (or a job that already has a receipt) hands over ONE existing document to edit in place
+    let editDoc=null;
+    try{ const er=sessionStorage.getItem('tks_edit_receipt'); if(er){ sessionStorage.removeItem('tks_edit_receipt'); editDoc=JSON.parse(er); } }catch(e){ editDoc=null; }
+    if(editDoc && (editDoc.id||editDoc.number)){ try{ sessionStorage.removeItem('tks_job_draft'); }catch(e){} editReceipt(editDoc); }
+    else {
     let draft=null;
     try{ const raw=sessionStorage.getItem('tks_job_draft'); if(raw){ sessionStorage.removeItem('tks_job_draft'); draft=JSON.parse(raw); } }catch(e){ draft=null; }
     openNewDocument(draft ? jobDraftToPrefill(draft) : null);
+    }
   }
   // When the cloud config finishes loading (async), re-pull identity in case it changed.
   try{ if(window.TKS && TKS.Config && TKS.Config.load){ TKS.Config.load().then(function(){ try{ hydrateIdentityFromConfig(); saveSettingsObj(SETTINGS); }catch(e){} }); } }catch(e){}
@@ -2323,23 +2381,30 @@ function _receiptsRefresh(){
     const j=await call("pay-terminal",body); if(j.error) status("Simulate: "+j.error,"bad");
   }
 
+  // 8z47: staff are never asked for a Stripe key (a technician taking a real payment got a "Stripe publishable key
+  // (one-time) pk_test_…" box on 2026-11-11). The key comes from the server, the same for every shop.
+  let serverPK=null;
+  async function getPK(){
+    if(serverPK) return serverPK;
+    try{ const j=await call("pay-terminal",{action:"config"}); if(j&&j.publishableKey){ serverPK=j.publishableKey; return serverPK; } }catch(e){}
+    return "";
+  }
   function renderKeyed(){
-    const pk=localStorage.getItem("tks_pay_pk")||"";
-    const pkRow = pk ? "" : `<label style="font-size:12px;color:#5a616c">Stripe publishable key (one-time)</label>
-      <input id="pnPK" type="text" inputmode="text" autocomplete="off" placeholder="pk_test_…" style="width:100%;background:#f3f4f6;border:1px solid #e3e6ea;border-radius:10px;color:#14171b;padding:11px;font-size:16px;box-sizing:border-box;margin:4px 0 10px">`;
-    modal.querySelector("#pnBody").innerHTML=`${pkRow}<div id="pnPE" style="background:#fff;border-radius:10px;padding:10px;margin-bottom:10px;min-height:42px"></div>${payBtn("Start card entry","pnGo")}`;
+    modal.querySelector("#pnBody").innerHTML=`<div id="pnPE" style="background:#fff;border-radius:10px;padding:10px;margin-bottom:10px;min-height:42px"></div>${payBtn("Start card entry","pnGo")}`;
     modal.querySelector("#pnGo").onclick=startKeyed;
+    getPK();   // warm it up so the card field opens faster
   }
   async function startKeyed(){
     if(!window.Stripe){ status("Stripe.js didn't load.","bad"); return; }
-    let pk=localStorage.getItem("tks_pay_pk")||"";
-    if(!pk){ const f=modal.querySelector("#pnPK"); pk=((f&&f.value)||"").trim();
-      if(pk) localStorage.setItem("tks_pay_pk",pk); else { status("Enter your publishable key (pk_test_…) to continue.","bad"); if(f) f.focus(); return; } }
+    status("Preparing secure card field…");
+    const pk=await getPK();
+    if(!pk){ status("Typed-card entry could not start (no connection to the payment service). Check the signal and try again, or use the card reader.","bad"); return; }
     status("Preparing secure card field…");
     const j=await call("pay-create-intent",{invoiceId:S.receipt.id,method:"keyed",attempt:S.attempt});
     if(j.error||!j.clientSecret){ status(j.error||"no client secret","bad"); return; }
     S.pi=j.paymentIntentId;
-    try{ stripe=Stripe(pk); elements=stripe.elements({clientSecret:j.clientSecret}); elements.create("payment").mount("#pnPE"); }
+    // 8z37: the charge lives on the shop's own Stripe account (direct charge), so Stripe.js must be opened "as" that account.
+    try{ stripe=j.stripeAccount?Stripe(pk,{stripeAccount:j.stripeAccount}):Stripe(pk); elements=stripe.elements({clientSecret:j.clientSecret}); elements.create("payment").mount("#pnPE"); }
     catch(e){ status("Card field error: "+(e.message||e),"bad"); return; }
     const go=modal.querySelector("#pnGo"); go.textContent="Pay (credit +2%)"; go.onclick=confirmKeyed; status("Enter the card, then Pay.");
   }
@@ -2351,10 +2416,16 @@ function _receiptsRefresh(){
   }
 
   async function poll(){
-    polls=0;
+    polls=0; let netFails=0;
     const tick=async()=>{ polls++;
+      if(!modal || !S.pi) return;
       const j=await call("pay-status",{paymentIntentId:S.pi});
-      if(j.error){ status(j.error,"bad"); return; }
+      // 8z59: a single failed status check (weak signal) used to stop here with a red error while the card was in fact
+      // charged. Keep checking, and if it still cannot be confirmed say plainly NOT to charge again.
+      if(j.error){ netFails++;
+        if(netFails<=6 && polls<45){ status("Checking the payment… ("+netFails+")"); setTimeout(tick,2000); return; }
+        status("Could not confirm the payment from this phone ("+j.error+"). The card MAY have been charged — do NOT charge again. Check Reports or ask the office first.","bad"); return; }
+      netFails=0;
       if(j.status==="completed"){
         S.completed=true;
         status("✓ Approved — "+m(j.captured_cents)+(j.surcharge_applied?" (incl. 2% credit surcharge)":" (no surcharge)"),"ok");
@@ -2632,6 +2703,9 @@ function canEditPricing(){
     if(/mileage|travel|trip charge/.test(n)) return "Travel";
     if(/after.?hours|emergency fee/.test(n)) return "AfterHours";
     if(svc==="Automotive" && PROG_RX.test(n)) return "Programming";
+    // 8z50: "Car lockout" matched the word "lock" and was filed as Materials / Parts (taxable, warranty). Opening, unlocking,
+    // rekeying, service calls and installs are labor.
+    if(/lock\s*-?\s*out|locked out|unlock|re-?key|service call|trip|labor|install|diagnos/.test(n)) return "Labor";
     if(presetTaxable(n)) return "Materials";
     return "Labor";
   }
@@ -2727,7 +2801,8 @@ function canEditPricing(){
       <input type="hidden" id="qiTech"><div class="qi-note" style="margin-top:8px">Credited to <b id="qiTechName">you</b> · the logged-in user</div>
       <div id="qiTaxWrap"${pricing?"":' style="display:none"'}><label class="qi-l">Tax rate % <span class="m">(this receipt — blank uses the shop default)</span></label><input id="qiTaxRate" class="qi-i" type="number" step="0.001" inputmode="decimal" placeholder="shop default"></div>
       <div id="qiWarrantyWrap" style="display:none;margin:10px 0 2px"><label class="qi-chk"><input type="checkbox" id="qiWarranty"> <span id="qiWarrantyLabel">Include standard warranty</span></label></div>
-      <label class="qi-l">Notes</label><textarea id="qiNotes" class="qi-i"></textarea>
+      <label class="qi-l">Notes <span style="font-weight:400;opacity:.7">— printed on the customer's copy</span></label><textarea id="qiNotes" class="qi-i"></textarea>
+      <label class="qi-l">🔒 Internal notes <span style="font-weight:400;opacity:.7">— staff only, never printed or sent</span></label><textarea id="qiINotes" class="qi-i" placeholder="Only your team sees this"></textarea>
       <div id="qiSigWrap"><label class="qi-l">Customer signature <span class="m">(optional)</span></label>
         <div class="qi-sig"><div class="qi-seg"><button type="button" class="qiSG" data-sg="none">None</button><button type="button" class="qiSG" data-sg="LINE">Signature line</button><button type="button" class="qiSG" data-sg="draw">✍ Sign on screen</button></div><img id="qiSigImg" alt="signature" style="display:none"></div></div>
       <div class="qi-err" id="qiErr" role="alert"></div>
@@ -3085,6 +3160,7 @@ function canEditPricing(){
     // ---- Pre-fill (edit = every field from the receipt; prefill = the Start-a-job draft) ----
     $q("#qiName").value=src.customer||""; $q("#qiContact").value=src.contact||"";
     $q("#qiPhone").value=src.phone||""; $q("#qiEmail").value=src.email||""; $q("#qiAddr").value=src.address||"";
+    try{ $q("#qiINotes").value=src.internalNotes||""; }catch(e){}   // 8z45
     if(hasVehData()){
       const ok=modal._qiApplyVeh(src.vehYear, src.vehMake, src.vehModel);
       $q("#qiVin").value=src.vin||"";
@@ -3180,6 +3256,7 @@ function canEditPricing(){
     R.vin=vin; R.vehicle=($q("#qiVehText").value||"").trim();
     R.technician=($q("#qiTech").value||"").trim() || R.technician || currentTechnician();
     R.notes=($q("#qiNotes").value||"").trim();
+    R.internalNotes=(($q("#qiINotes")||{}).value||"").trim();   // 8z45: staff only — no print / PDF / share path reads this field
     if(S.src && S.src.jobId && !R.jobId) R.jobId=String(S.src.jobId);   // 8r: ties the receipt to the Scheduler job (log entries key on it)
     if(S.src && S.src.fromDispatch) R.fromDispatch=true;
     if(S.pricing){ const v=($q("#qiTaxRate").value||"").trim(); R.taxRate = v!=="" ? (parseFloat(v)||0) : configTaxRate(); }

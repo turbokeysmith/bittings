@@ -410,6 +410,8 @@ sessionStorage.setItem('tks_connect_return','1');history.replaceState(null,'',lo
   #view-schedule .sch-lane .lh .ct{font-size:11px;font-weight:800;color:var(--dim);background:var(--card);border:1px solid var(--edge);border-radius:999px;padding:1px 7px;}
   #view-schedule .sch-lane .lempty{color:var(--dim);font-size:12px;text-align:center;padding:14px 4px;margin:auto 4px;}
   /* job card (board) */
+  #view-schedule .sch-card.sch-paid{opacity:.6;} #view-schedule .sch-card.sch-paid .cn{text-decoration:line-through;text-decoration-thickness:2px;}
+  #view-schedule .sch-card .paidtick{display:inline-block;padding:2px 8px;border-radius:999px;background:#1f9d55;color:#fff;font-weight:800;font-size:12px;}
   #view-schedule .sch-card{background:var(--card);border:1px solid var(--edge);border-left:4px solid var(--stc,#888);border-radius:10px;padding:9px 10px;cursor:pointer;}
   #view-schedule .sch-card[draggable="true"]{cursor:grab;}
   #view-schedule .sch-card.dragging{opacity:.45;}
@@ -1195,7 +1197,7 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
   #view-receipts .ro-desc{font-size:12.5px;color:var(--dim);margin-top:2px;}
   #view-receipts .ro-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
   #view-receipts .rc-rowactions{display:flex;gap:8px;margin-top:10px;border-top:1px solid var(--edge);padding-top:10px;}
-  #view-receipts .rc-rowactions button{flex:1;padding:9px;border-radius:9px;border:1px solid var(--edge);background:transparent;color:var(--ink);font-weight:700;font-size:12.5px;cursor:pointer;}
+  #view-receipts .rc-rowactions button{flex:1;min-height:44px;padding:9px 4px;border-radius:9px;border:1px solid var(--edge);background:transparent;color:var(--ink);font-weight:700;font-size:12.5px;cursor:pointer;}
   #view-receipts .rc-empty{color:var(--dim);text-align:center;padding:40px 10px;}
   #view-receipts .rc-viewer{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;z-index:1000;padding:20px;overflow:auto;}
   #view-receipts .rc-viewer.open{display:flex;}
@@ -1286,7 +1288,7 @@ window.tksDemoOn = function(){
       <button class="bt-nav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
       <button class="bt-nav__item" data-go="receipts"><span class="bt-nav__ic">🧾</span>Receipts</button>
       <button class="bt-nav__item" data-go="schedule"><span class="bt-nav__ic">📅</span>Scheduler</button>
-      <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Commission</button>
+      <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Salary / Commission</button>
       <button class="bt-nav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Inventory</button>
       <button class="bt-nav__item" data-go="reconcile" style="display:none"><span class="bt-nav__ic">🔢</span>Reconcile</button><!-- moved under the Inventory screen (Stock | Reconcile sub-tabs) -->
       <button class="bt-nav__item" data-go="returns" style="display:none"><span class="bt-nav__ic">↩</span>Returns</button><!-- folded into Reports → Returns tab -->
@@ -1723,7 +1725,7 @@ window.tksDemoOn = function(){
   </div>
 
   <div class="view" id="view-reports">
-    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports" class="on">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button><button type="button" data-reptab="commission">💰 Commission</button></div>
+    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports" class="on">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button><button type="button" data-reptab="commission">💰 Salary / Commission</button></div>
     <div class="rep-controls">
       <select id="repPeriod" class="rep-select" aria-label="Time period">
         <option value="today">Today</option>
@@ -1760,7 +1762,9 @@ window.tksDemoOn = function(){
   </div>
 
   <div class="view" id="view-commission">
-    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button><button type="button" data-reptab="commission" class="on">💰 Commission</button></div>
+    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button><button type="button" data-reptab="commission" class="on">💰 Salary / Commission</button></div>
+    <div id="payrollBox"></div>
+    <div id="contractBox"></div>
     <div class="rep-controls">
       <select id="comPeriod" class="rep-select" aria-label="Period">
         <option value="week">This week</option><option value="month" selected>This month</option>
@@ -1837,14 +1841,14 @@ window.tksDemoOn = function(){
   </div>
 
   <div class="view" id="view-returns">
-    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns" class="on">↩ Returns</button><button type="button" data-reptab="commission">💰 Commission</button></div>
+    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns" class="on">↩ Returns</button><button type="button" data-reptab="commission">💰 Salary / Commission</button></div>
     <div class="bar"><div class="seg" id="retSeg"></div></div>
     <div class="note" id="retStatus"></div>
     <div class="clist" id="retList"></div>
   </div>
 
   <div class="view" id="view-invreport">
-    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport" class="on">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button><button type="button" data-reptab="commission">💰 Commission</button></div>
+    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport" class="on">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button><button type="button" data-reptab="commission">💰 Salary / Commission</button></div>
     <div class="invsummary" id="invRepCards"></div>
     <div class="clist" id="invRepList"></div>
     <p class="note">Live stock value from your current inventory (all locations). Cost totals fill in once each part's cost is entered.</p>
@@ -2381,6 +2385,21 @@ function setType(t){
 document.getElementById('tIndividual').onclick = ()=> setType('individual');
 document.getElementById('tBusiness').onclick = ()=> setType('business');
 
+/* 8z55: Reports / Closeout → tap a sale → that customer's page (their details + every invoice), with the tapped invoice open on top.
+   No customer record for it (walk-in / no name) → just the invoice. */
+function openCustomerForReceipt(invId){
+  let r=null; try{ r=(TKS.list('receipts')||[]).filter(function(x){ return x && (x.id===invId || x.number===invId); })[0]||null; }catch(e){}
+  if(!r){ uiAlert({ title:'No invoice for this sale', message:'This payment has no receipt on this device (older imported sales and quick charges do not have one).' }); return; }
+  const nm=String(r.customer||'').trim().toLowerCase();
+  const find=function(list){ list=list||[]; for(let i=0;i<list.length;i++){ const c=list[i]; if(!c || c.deletedAt) continue; if((r.customerId && c.id===r.customerId) || (nm && String(c.customer||'').trim().toLowerCase()===nm)) return i; } return -1; };
+  let i=find(getCustomers()), m='people';
+  if(i<0){ try{ i=find(getShops()); if(i>=0) m='shops'; }catch(e){} }
+  if(i<0){ openInvoiceModal(r, null); return; }
+  mode=m; try{ segShops.classList.toggle('on', m==='shops'); segPeople.classList.toggle('on', m!=='shops'); }catch(e){}
+  openForm(i);
+  const c=currentList()[i]; setTimeout(function(){ try{ openInvoiceModal(r, c); }catch(e){} }, 200);
+}
+document.addEventListener('click', function(e){ const row=e.target.closest && e.target.closest('.repRow'); if(!row || e.target.closest('button')) return; if(row.dataset.inv) openCustomerForReceipt(row.dataset.inv); });
 function openForm(idx){
   editIndex = idx;
   const isShop = mode==='shops';
@@ -2456,7 +2475,7 @@ function openJobModal(b){
     '</div>';
   ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
   ov.querySelector('#jobClose').onclick=function(){ ov.remove(); };
-  ov.querySelector('#jobInvoice').onclick=function(){ const btn=this; btn.disabled=true; btn.textContent='Preparing…'; jobToInvoiceDraft(b).then(function(){ location.href='bittings.html'; }).catch(function(e){ btn.disabled=false; btn.textContent='🧾 Invoice this job'; uiAlert((e&&e.message)||'Could not prepare the invoice.'); }); };
+  ov.querySelector('#jobInvoice').onclick=function(){ const btn=this; btn.disabled=true; btn.textContent='Preparing…'; ov.style.display='none'; /* this popup sits above the confirm box */ jobInvoiceGuard(b).then(function(go){ if(!go){ ov.remove(); return new Promise(function(){}); } ov.style.display='flex'; return jobToInvoiceDraft(b); }).then(function(){ location.href='bittings.html'; }).catch(function(e){ btn.disabled=false; btn.textContent='🧾 Invoice this job'; uiAlert((e&&e.message)||'Could not prepare the invoice.'); }); };
   document.body.appendChild(ov);
   // 8r: running log for this job (declined / added lines, keys scanned) — managers see the shop log, techs their own entries
   try{ const sb=(window.TKS&&TKS._sb)?TKS._sb():null; const logEl=ov.querySelector('#jobLog');
@@ -2468,16 +2487,38 @@ function openJobModal(b){
 }
 /* 8r: turn a scheduled job into the invoice draft the builder opens with. Lines are tagged fromDispatch so a
    technician can add to the order but not remove what was dispatched ("Didn't do this" + reason instead). */
+/* 8z44: a job that already has a receipt must not quietly get a second one (2026-11-11: TKS-2026-1111A and -1111B for the
+   same job doubled the day's sales). Resolves true = go ahead and build a new invoice, false = stop (the existing receipt was opened). */
+function jobInvoiceGuard(b){
+  let ex=null;
+  try{ ex=(TKS.list('receipts')||[]).filter(function(r){ return r && !r.deletedAt && r.jobId && String(r.jobId)===String(b.id) && (r.docType||'')!=='estimate'; })
+        .sort(function(x,y){ return (Number(y.savedAt)||0)-(Number(x.savedAt)||0); })[0]||null; }catch(e){}
+  if(!ex) return Promise.resolve(true);
+  const tot=(ex.totals&&ex.totals.total!=null)?('$'+Number(ex.totals.total).toFixed(2)):'';
+  return uiConfirm({ title:'This job already has a receipt',
+    message:(ex.number||ex.id)+(tot?(' — '+tot):'')+(ex.status?(' — '+ex.status):'')+'. Making another one would count this job twice. Open it instead? (It keeps the same number.)',
+    okText:'Open it', cancelText:'Close' }).then(function(ok){
+      if(ok){ try{ sessionStorage.setItem('tks_edit_receipt', JSON.stringify(ex)); location.href='bittings.html'; return false; }catch(e){}   /* 8z46: straight into the builder on that receipt */
+        try{ document.querySelectorAll('.sch-modal').forEach(function(x){ x.remove(); }); }catch(e){}
+        try{ const nb=document.querySelector('.bt-nav__item[data-go="receipts"]'); if(nb) nb.click(); else if(window.show) window.show('receipts'); }catch(e){}
+        setTimeout(function(){ try{ const s=document.querySelector('#view-receipts #rcSearch'); if(s){ s.value=String(ex.number||ex.id); s.dispatchEvent(new Event('input',{bubbles:true})); } }catch(e){} }, 250); }
+      return false; });
+}
 function jobToInvoiceDraft(b){
   const items=[];
   // the booked service, priced from Setup › Services when a standard price exists
-  const svcLabel=b.serviceLabel||b.jobType||''; let price='';
+  /* 8z41: the job form stores the kind of job as a code (jobType 'auto') and what was asked for in subType ('ESL', 'lockout'). The invoice used to get a line called 'auto' and no service type; use the real service text, and the category name the builder knows. */
+  const svcLabel=String(b.serviceLabel||b.subType||'').trim(); let price='';
   try{ const hit=(TKS.Config.services()||[]).find(function(s){ return String(s.value||'').toLowerCase()===String(svcLabel).toLowerCase(); }); if(hit && hit.price!=null && String(hit.price).trim()!=='') price=String(hit.price).trim(); }catch(e){}
-  if(svcLabel) items.push({ name:svcLabel, price:price, qty:1, fromDispatch:true });
+  // 8z42: charges the office listed on the job win — each arrives with its price, qty and tax flag
+  const jobLines=(Array.isArray(b.items)?b.items:[]).filter(function(x){ return x && (x.desc || Number(x.amount)>0); });
+  if(jobLines.length) jobLines.forEach(function(x){ items.push({ name:String(x.desc||'Service'), price:String(Number(x.amount)||0), qty:parseInt(x.qty,10)||1, taxable:!!x.taxable, fromDispatch:true }); });
+  else if(svcLabel) items.push({ name:svcLabel, price:price, qty:1, fromDispatch:true });
   const veh=b.vehicle?[b.vehicle.year,b.vehicle.make,b.vehicle.model].filter(Boolean).join(' '):(b.vehicleText||'');
-  const draft={ jobId:b.id, category:b.serviceCategory||b.jobType||'automotive', vehicle:veh, vin:(b.vehicle&&b.vehicle.vin)||'',
+  let catKey=b.serviceCategory||b.jobType||'automotive'; try{ if(TKS.ServiceCats && !TKS.ServiceCats.byKey(catKey)) catKey=TKS.ServiceCats.codeToKey(catKey)||catKey; }catch(e){}
+  const draft={ jobId:b.id, category:catKey, vehicle:veh, vin:(b.vehicle&&b.vehicle.vin)||'',
     customer:(b.customer&&b.customer.name)||'', customerInfo:{ id:b.customerId||'', name:(b.customer&&b.customer.name)||'', phone:(b.customer&&b.customer.phone)||'', email:(b.customer&&b.customer.email)||'' },
-    technician:b.technician||'', address:b.address||'', items:items, fromDispatch:true, ts:Date.now() };
+    technician:b.technician||'', address:b.address||'', internalNotes:b.internalNotes||'', items:items, fromDispatch:true, ts:Date.now() };
   const parts=(window.TKS&&TKS.Jobs&&TKS.Jobs.parts&&TKS.auth&&TKS.auth.isSignedIn()&&!(TKS.isDemo&&TKS.isDemo()))?TKS.Jobs.parts(b.id):Promise.resolve({data:[]});
   return parts.then(function(r){ ((r&&r.data)||[]).filter(function(p){ return p.state!=='returned'; }).forEach(function(p){
       const part=p.item_id?TKS.Inventory.get(p.item_id):null;
@@ -4496,7 +4537,7 @@ async function renderHistory(){
     const time=new Date(t.created_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
     const ml=payMethodLabel(t);
     const cls=t.status==='completed'?'amt-ok':(t.status==='refunded'||t.status==='partially_refunded')?'amt-ref':t.status==='pending'?'amt-pend':'amt-bad';
-    return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
+    return '<div class="crow repRow" data-inv="'+esc2(t.invoice_id||'')+'" style="cursor:pointer" title="Open the customer and this invoice"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
       '<div class="sub">'+time+' · '+ml+(t.card_funding?(' · '+t.card_funding):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
       '<span class="tag '+cls+'">'+money(t.captured_cents||t.base_cents)+'</span></div>';
   }).join('');
@@ -4853,7 +4894,163 @@ function comPeriodRange(p){
   return { from:iso(start), to:iso(d) };
 }
 function comIsManager(){ try{ return !!(TKS.auth.can && TKS.auth.can('viewAudit')); }catch(e){ return false; } }
+/* ============ 8z49: HOURLY PAY (owner only) — top of the Salary / Commission tab ============
+   Numbers come from payroll_overview() (hours from the time clock, the person's hourly rate, weekly overtime), so the
+   rate never reaches a non-owner device. "Mark paid" freezes that period's hours, rate and amount in pay_runs. */
+var _payStart=null;
+function payMoney(c){ return (c==null)?'—':('$'+(Number(c)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})); }
+function payHM(min){ min=Math.max(0,Math.round(min||0)); return Math.floor(min/60)+'h '+String(min%60).padStart(2,'0')+'m'; }
+function payDate(iso, long){ var p=String(iso||'').split('-'); if(p.length<3) return ''; var d=new Date(+p[0],+p[1]-1,+p[2]); return d.toLocaleDateString('en-US', long?{weekday:'short',month:'short',day:'numeric'}:{month:'short',day:'numeric'}); }
+function payIsOwner(){ try{ return !!(TKS.auth && TKS.auth.staffRole && TKS.auth.staffRole()==='owner' && TKS._sb && TKS._sb() && !(TKS.isDemo&&TKS.isDemo())); }catch(e){ return false; } }
+async function renderPayroll(){
+  var box=document.getElementById('payrollBox'); if(!box) return;
+  if(!payIsOwner()){ box.innerHTML=''; return; }
+  var sb=TKS._sb(), res;
+  try{ res=await sb.rpc('payroll_overview',{ p_start:_payStart }); }catch(e){ res={error:e}; }
+  if(!res || res.error){ box.innerHTML='<div class="note" style="margin:0 0 12px">Hourly pay could not be loaded ('+esc2((res&&res.error&&res.error.message)||'error')+').</div>'; return; }
+  var o=res.data||{}, P=o.period||{}, S=o.settings||{}, staff=(o.staff||[]);
+  var hourly=staff.filter(function(x){ return x.rate_cents!=null || x.pay_plan==='hourly' || x.pay_plan==='hourly_after_hours'; });
+  var otOn=Number(S.ot_multiplier)>1;
+  var head='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<b style="font-size:17px;flex:1 1 180px">💵 Hourly pay</b>'+
+    '<button type="button" class="add" id="payPrev" aria-label="Earlier pay period" style="background:#e7e9ee;color:#14171b;min-width:44px;min-height:44px">‹</button>'+
+    '<span style="font-weight:700">'+esc2(payDate(P.start))+' – '+esc2(payDate(P.end))+'</span>'+
+    '<button type="button" class="add" id="payNext" aria-label="Later pay period" style="background:#e7e9ee;color:#14171b;min-width:44px;min-height:44px">›</button></div>'+
+    '<div class="sub" style="margin:0 0 10px">Pay day: <b>'+esc2(payDate(P.payday,true))+'</b>'+(P.due?'':' (not due yet — hours still being worked)')+' · <a href="#" id="paySched" class="nav-link" style="display:inline-block;padding:10px 0">⚙ Change pay schedule</a></div>';
+  var rows=hourly.map(function(x){
+    var wk=(x.weeks||[]).map(function(w){ return 'Week of '+payDate(w.start)+': '+payHM(w.minutes); }).join(' · ');
+    var paid=x.paid;
+    var amount=(x.rate_cents==null)?'<span class="tag amt-ref">no rate set</span>':('<b style="font-size:20px">'+payMoney(x.gross_cents)+'</b>');
+    return '<div class="crow" style="align-items:flex-start;flex-wrap:wrap;gap:8px">'+
+      '<div style="flex:1 1 220px;min-width:0"><div class="nm">'+esc2(x.name||'')+(x.rate_cents!=null?(' <span class="sub" style="font-weight:400">· '+payMoney(x.rate_cents)+' / hour</span>'):'')+'</div>'+
+        '<div class="sub">'+payHM(x.minutes)+' worked'+((x.overtime && x.overtime_minutes>0)?(' = '+payHM(x.regular_minutes)+' regular + '+payHM(x.overtime_minutes)+' overtime'):'')+'</div>'+
+        (wk?('<div class="sub">'+esc2(wk)+'</div>'):'')+
+        /* 8z51: every shift, so the total can be checked line by line */
+        ((x.entries||[]).length?('<details style="margin-top:6px"><summary style="cursor:pointer;font-weight:700;min-height:36px;display:flex;align-items:center">See every shift ('+x.entries.length+')</summary><div style="margin-top:4px">'+x.entries.map(function(en){ var di=new Date(en.in), dout=en.out?new Date(en.out):null; var tm=function(d){ return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); };
+            return '<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid var(--edge);font-size:13.5px"><span>'+esc2(di.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}))+' · '+esc2(tm(di))+' – '+(dout?esc2(tm(dout)):'<b style="color:#c8323c">not clocked out</b>')+(en.edited?' <span title="'+esc2(en.note||'Corrected or entered by a manager')+'">✎</span>':'')+'</span><b>'+(en.minutes==null?'—':payHM(en.minutes))+'</b></div>'; }).join('')+'<div class="sub" style="margin-top:4px">✎ = entered or corrected by hand. To change a shift, use Timesheets.</div></div></details>'):'')+
+        /* 8z52: overtime is a per-person choice (1099 contractor = none) */
+        '<div style="margin-top:6px"><select class="rep-select payOtSel" data-uid="'+esc2(x.user_id)+'" aria-label="Overtime for '+esc2(x.name||'')+'" style="min-height:44px;max-width:100%"><option value="0"'+(x.overtime?'':' selected')+'>No overtime — every hour at the normal rate (1099)</option><option value="1"'+(x.overtime?' selected':'')+'>Overtime — over '+(Number(S.ot_after_minutes)/60)+' h a week at '+Number(S.ot_multiplier)+'×</option></select></div>'+
+        (Number(x.open_entries)>0?('<div class="sub" style="color:#c8323c">⚠ '+x.open_entries+' shift'+(x.open_entries>1?'s':'')+' in this period never clocked out — not counted. Fix it under Timesheets.</div>'):'')+
+        (x.rate_cents==null?'<div class="sub">Set the hourly rate in Settings → Access &amp; managers → Team logins.</div>':'')+
+        (paid?('<div class="sub" style="color:#1f9d55;font-weight:700">✓ Paid '+esc2(new Date(paid.paid_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}))+' — '+payMoney(paid.gross_cents)+(Number(paid.gross_cents)!==Number(x.gross_cents)?' (hours changed since: now '+payMoney(x.gross_cents)+')':'')+'</div>'):'')+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'+amount+
+        (x.rate_cents==null?'':(paid?('<button type="button" class="btn ghost" data-payundo="'+esc2(x.user_id)+'" style="min-height:44px">Undo paid</button>')
+                                    :('<button type="button" class="btn save" data-paymark="'+esc2(x.user_id)+'" data-nm="'+esc2(x.name||'')+'" data-amt="'+esc2(payMoney(x.gross_cents))+'" style="min-height:44px">✓ Mark paid</button>')))+
+      '</div></div>';
+  }).join('');
+  box.innerHTML='<div style="border:1px solid var(--edge);border-radius:14px;padding:12px;margin:0 0 14px">'+head+
+    (hourly.length?('<div class="clist">'+rows+'</div>'):'<div class="empty">Nobody has an hourly rate yet. Set one in Settings → Access &amp; managers → Team logins.</div>')+
+    '<p class="note" style="margin:8px 0 0">Hours come from the time clock (Timesheets). This is gross pay before any taxes or deductions.</p></div>';
+  var step=function(iso){ _payStart=iso; renderPayroll(); };
+  var pv=document.getElementById('payPrev'), nx=document.getElementById('payNext'), ot=document.getElementById('payOt');
+  if(pv) pv.onclick=function(){ step(P.prev_start); };
+  if(nx) nx.onclick=function(){ step(P.next_start); };
+  if(ot) ot.onclick=function(e){ e.preventDefault();
+    uiConfirm({ title:'Overtime', message: otOn?'Overtime is ON: hours over 40 in a week are paid at 1.5×. Turn it OFF and pay every hour at the normal rate?':'Overtime is OFF. Turn it ON so hours over 40 in a week are paid at 1.5×?', okText: otOn?'Turn overtime off':'Turn overtime on', cancelText:'Keep as is' })
+      .then(function(ok){ if(!ok) return; sb.rpc('payroll_set_schedule',{ p_anchor:S.period_anchor, p_days:S.period_days, p_lag:S.payday_lag_days, p_ot_after_minutes:S.ot_after_minutes, p_ot_multiplier: otOn?1:1.5 })
+        .then(function(r){ if(r.error){ uiAlert({ title:'Could not change', message:r.error.message }); return; } renderPayroll(); payReminder(); }); }); };
+  // 8z54: the owner picks the pay schedule here — when a pay period starts, how often, and which day is pay day
+  var sc=document.getElementById('paySched'); if(sc) sc.onclick=function(e){ e.preventDefault();
+    var ov=document.createElement('div'); ov.className='chg-modal-ov';
+    var fld='width:100%;box-sizing:border-box;min-height:46px;font-size:16px;padding:8px 10px;border:1px solid var(--edge);border-radius:10px;background:var(--bg2,#f3f4f6);color:inherit';
+    ov.innerHTML='<div class="chg-modal" style="max-width:420px">'+
+      '<div class="chg-modal-h"><b>Pay schedule</b><button type="button" class="chg-modal-x" data-x aria-label="Close">×</button></div>'+
+      '<div class="ui-msg" style="text-align:left">'+
+        '<label style="display:block;font-weight:700;margin:0 0 4px">A pay period starts on</label><input type="date" id="psStart" value="'+esc2(P.start)+'" style="'+fld+'">'+
+        '<label style="display:block;font-weight:700;margin:12px 0 4px">How often</label><select id="psDays" style="'+fld+'"><option value="7"'+(Number(S.period_days)===7?' selected':'')+'>Every week</option><option value="14"'+(Number(S.period_days)===14?' selected':'')+'>Every 2 weeks</option></select>'+
+        '<label style="display:block;font-weight:700;margin:12px 0 4px">Pay day for that period</label><input type="date" id="psPay" value="'+esc2(P.payday)+'" style="'+fld+'">'+
+        '<div id="psHint" class="sub" style="margin-top:10px"></div></div>'+
+      '<div class="ui-actions"><button type="button" class="btn ghostbtn" data-x>Cancel</button><button type="button" class="btn save" id="psSave">Save schedule</button></div></div>';
+    document.body.appendChild(ov);
+    var toD=function(v){ var p=String(v||'').split('-'); return p.length===3?new Date(+p[0],+p[1]-1,+p[2]):null; };
+    var iso=function(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+    var q=function(id){ return ov.querySelector('#'+id); };
+    function calc(){ var st=toD(q('psStart').value), pd=toD(q('psPay').value), n=Number(q('psDays').value)||14; if(!st||!pd) return null;
+      var end=new Date(st); end.setDate(st.getDate()+n-1); var lag=Math.round((pd-end)/86400000); return { start:iso(st), end:end, lag:lag, days:n, pay:pd }; }
+    function hint(){ var c=calc(), h=q('psHint'); if(!c){ h.textContent='Pick both dates.'; return false; }
+      if(c.lag<0){ h.innerHTML='<span style="color:#c8323c">Pay day has to be on or after the last day of the period ('+esc2(c.end.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}))+').</span>'; return false; }
+      if(c.lag>14){ h.innerHTML='<span style="color:#c8323c">Pay day can be at most 14 days after the period ends.</span>'; return false; }
+      var nextPay=new Date(c.pay); nextPay.setDate(c.pay.getDate()+c.days);
+      h.textContent='Period: '+toD(c.start).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' – '+c.end.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+'. Paid '+c.pay.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})+', then every '+(c.days===7?'week':'2 weeks')+' (next: '+nextPay.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+').'; return true; }
+    ['psStart','psDays','psPay'].forEach(function(id){ q(id).onchange=hint; q(id).oninput=hint; }); hint();
+    var close=function(){ ov.remove(); };
+    ov.querySelectorAll('[data-x]').forEach(function(b){ b.onclick=close; });
+    ov.addEventListener('mousedown',function(ev){ if(ev.target===ov) close(); });
+    q('psSave').onclick=function(){ if(!hint()) return; var c=calc(); q('psSave').disabled=true;
+      sb.rpc('payroll_set_schedule',{ p_anchor:c.start, p_days:c.days, p_lag:c.lag, p_ot_after_minutes:S.ot_after_minutes, p_ot_multiplier:S.ot_multiplier })
+        .then(function(r){ if(r.error){ q('psSave').disabled=false; q('psHint').innerHTML='<span style="color:#c8323c">'+esc2(r.error.message)+'</span>'; return; } close(); _payStart=null; renderPayroll(); payReminder(); }); };
+  };
+  box.querySelectorAll('.payOtSel').forEach(function(sel){ sel.onchange=function(){ sel.disabled=true;
+    sb.rpc('staff_set_overtime',{ p_user:sel.dataset.uid, p_on: sel.value==='1' }).then(function(r){ if(r.error){ sel.disabled=false; uiAlert({ title:'Could not change', message:r.error.message }); return; } renderPayroll(); payReminder(); }); }; });
+  box.querySelectorAll('[data-paymark]').forEach(function(b){ b.onclick=function(){
+    uiConfirm({ title:'Mark '+b.dataset.nm+' as paid?', message:b.dataset.amt+' for '+payDate(P.start)+' – '+payDate(P.end)+'. This only records that you paid — it does not send any money.', okText:'Mark paid' })
+      .then(function(ok){ if(!ok) return; b.disabled=true; sb.rpc('payroll_mark_paid',{ p_user:b.dataset.paymark, p_start:P.start, p_note:'' }).then(function(r){ if(r.error){ b.disabled=false; uiAlert({ title:'Could not save', message:r.error.message }); return; } renderPayroll(); payReminder(); }); }); }; });
+  box.querySelectorAll('[data-payundo]').forEach(function(b){ b.onclick=function(){
+    uiConfirm({ title:'Undo "paid"?', message:'This period will show as not paid again.', okText:'Undo', danger:true })
+      .then(function(ok){ if(!ok) return; sb.rpc('payroll_unmark',{ p_user:b.dataset.payundo, p_start:P.start }).then(function(r){ if(r.error){ uiAlert({ title:'Could not undo', message:r.error.message }); return; } renderPayroll(); payReminder(); }); }); }; });
+}
+/* Pay-day reminder: a bar at the top of the app (owner only) while the latest due period has anyone unpaid. "Later" hides it until tomorrow. */
+async function payReminder(){
+  var old=document.getElementById('payDueBar'); if(old) old.remove();
+  if(!payIsOwner()) return;
+  var res; try{ res=await TKS._sb().rpc('payroll_overview',{ p_start:null }); }catch(e){ return; }
+  if(!res || res.error || !res.data) return;
+  var o=res.data, P=o.period||{}; if(!P.due) return;
+  var owed=(o.staff||[]).filter(function(x){ return x.rate_cents!=null && !x.paid && Number(x.minutes)>0; }); if(!owed.length) return;
+  var key='tks_pay_snooze_'+P.start; try{ if(localStorage.getItem(key)===String(o.today)) return; }catch(e){}
+  var total=owed.reduce(function(a,x){ return a+(Number(x.gross_cents)||0); },0);
+  var bar=document.createElement('div'); bar.id='payDueBar';
+  bar.style.cssText='position:fixed;left:10px;right:10px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:8000;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:#14532d;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:14.5px;font-weight:700;max-width:560px;margin:0 auto';
+  bar.innerHTML='<span style="font-size:20px">💵</span><span style="flex:1;min-width:0">Pay day: '+esc2(owed.map(function(x){ return x.name; }).join(', '))+' — '+payMoney(total)+' for '+esc2(payDate(P.start))+' – '+esc2(payDate(P.end))+'</span>'+
+    '<button type="button" data-open style="border:0;border-radius:10px;background:#fff;color:#14532d;font-weight:800;font-size:15px;padding:10px 14px;min-height:44px;cursor:pointer">Open</button>'+
+    '<button type="button" data-later aria-label="Remind me tomorrow" style="border:0;background:none;color:#cfe;font-size:13px;padding:10px 6px;min-height:44px;cursor:pointer">Later</button>';
+  bar.querySelector('[data-open]').onclick=function(){ _payStart=null; var b=document.querySelector('.bt-nav__item[data-go="commission"]'); if(b) b.click(); else if(window.show) window.show('commission'); bar.remove(); };
+  bar.querySelector('[data-later]').onclick=function(){ try{ localStorage.setItem(key, String(o.today)); }catch(e){} bar.remove(); };
+  document.body.appendChild(bar);
+}
+try{ window.renderPayroll=renderPayroll; window.payReminder=payReminder; setTimeout(payReminder, 6000); document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') payReminder(); }); }catch(e){}
+/* ============ 8z56: CONTRACTORS — what the shop owes outside contractors (owner / manager) ============
+   Built from the jobs themselves (booking.contract). Owed = the job is Completed and not marked paid; "coming up" = not
+   finished yet; canceled jobs never count. "Mark paid" stamps contract.paidAt on that job. */
+function renderContractors(){
+  var box=document.getElementById('contractBox'); if(!box) return;
+  var role=null; try{ role=TKS.auth.staffRole&&TKS.auth.staffRole(); }catch(e){}
+  if(role!=='owner' && role!=='manager'){ box.innerHTML=''; return; }
+  var jobs=[]; try{ jobs=(TKS.list('bookings')||[]).filter(function(b){ return b && b.contract && Number(b.contract.amount)>0 && !/cancel/i.test(String(b.status||'')); }); }catch(e){}
+  if(!jobs.length){ box.innerHTML=''; return; }
+  var by={}; jobs.forEach(function(b){ var n=String(b.contract.name||'Contractor').trim()||'Contractor'; (by[n]=by[n]||[]).push(b); });
+  var money=function(d){ return '$'+(Number(d)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  var done=function(b){ return /complete/i.test(String(b.status||'')); };
+  var owedAll=0;
+  var html=Object.keys(by).sort().map(function(n){ var list=by[n].slice().sort(function(a,c){ return String(c.date||'').localeCompare(String(a.date||'')); });
+    var owed=0, coming=0, paid=0; list.forEach(function(b){ var a=Number(b.contract.amount)||0; if(b.contract.paidAt) paid+=a; else if(done(b)) owed+=a; else coming+=a; }); owedAll+=owed;
+    var open=list.filter(function(b){ return !b.contract.paidAt; }), old=list.filter(function(b){ return b.contract.paidAt; }).slice(0,5);
+    var line=function(b){ var a=Number(b.contract.amount)||0, tot=(b.quote&&Number(b.quote.total))||0, cust=(b.customer&&b.customer.name)||'(no name)';
+      var d=String(b.date||'').split('-'), ds=d.length===3?new Date(+d[0],+d[1]-1,+d[2]).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+      return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--edge)">'+
+        '<div style="flex:1 1 180px;min-width:0"><div style="font-weight:700">'+esc2(cust)+' <span class="sub" style="font-weight:400">· '+esc2(ds)+' · '+esc2(String(b.status||''))+'</span></div>'+
+          '<div class="sub">'+(tot?('Job total '+money(tot)+' · you keep '+money(tot-a)):'No job total entered')+'</div></div>'+
+        '<b>'+money(a)+'</b>'+
+        (b.contract.paidAt?('<button type="button" class="btn ghost" data-conundo="'+esc2(b.id)+'" style="min-height:44px">Paid '+esc2(new Date(b.contract.paidAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}))+' · undo</button>')
+                          :('<button type="button" class="btn save" data-conpay="'+esc2(b.id)+'" data-nm="'+esc2(n)+'" data-amt="'+esc2(money(a))+'" style="min-height:44px">✓ Mark paid</button>'))+'</div>'; };
+    return '<div class="crow" style="display:block">'+
+      '<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap"><div class="nm">'+esc2(n)+'</div><div><b style="font-size:20px">'+money(owed)+'</b> <span class="sub">owed now</span></div></div>'+
+      '<div class="sub">'+(coming?('Coming up (job not finished): '+money(coming)+' · '):'')+'Paid so far: '+money(paid)+'</div>'+
+      open.map(line).join('')+(old.length?('<details style="margin-top:6px"><summary style="cursor:pointer;font-weight:700;min-height:36px;display:flex;align-items:center">Already paid ('+list.filter(function(b){ return b.contract.paidAt; }).length+')</summary>'+old.map(line).join('')+'</details>'):'')+'</div>';
+  }).join('');
+  box.innerHTML='<div style="border:1px solid var(--edge);border-radius:14px;padding:12px;margin:0 0 14px">'+
+    '<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px"><b style="font-size:17px">🤝 Contractors</b><span>You owe <b>'+money(owedAll)+'</b></span></div>'+
+    '<div class="clist">'+html+'</div>'+
+    '<p class="note" style="margin:8px 0 0">From jobs marked “Contracted out” on the Scheduler. A job counts as owed once it is Completed. Mark paid only records it — no money moves.</p></div>';
+  var setPaid=function(id, on){ try{ var b=TKS.Bookings.get(id); if(!b || !b.contract) return; if(on) b.contract.paidAt=Date.now(); else delete b.contract.paidAt; TKS.Bookings.save(b); }catch(e){ uiAlert({ title:'Could not save', message:String((e&&e.message)||e) }); } renderContractors(); };
+  box.querySelectorAll('[data-conpay]').forEach(function(b){ b.onclick=function(){ uiConfirm({ title:'Mark '+b.dataset.nm+' as paid?', message:b.dataset.amt+' for this job. This only records that you paid — it does not send any money.', okText:'Mark paid' }).then(function(ok){ if(ok) setPaid(b.dataset.conpay, true); }); }; });
+  box.querySelectorAll('[data-conundo]').forEach(function(b){ b.onclick=function(){ uiConfirm({ title:'Undo "paid"?', message:'This job will show as owed again.', okText:'Undo', danger:true }).then(function(ok){ if(ok) setPaid(b.dataset.conundo, false); }); }; });
+}
+try{ window.renderContractors=renderContractors; }catch(e){}
 async function renderCommission(){
+  try{ renderPayroll(); }catch(e){}
+  try{ renderContractors(); }catch(e){}
   const cards=document.getElementById('comCards'), list=document.getElementById('comList'), note=document.getElementById('comNote'), holds=document.getElementById('comHolds');
   cards.innerHTML=''; list.innerHTML='<div class="empty">Loading…</div>'; holds.innerHTML=''; note.textContent='';
   if(!(window.TKS && TKS.auth && TKS.auth.isSignedIn())){ list.innerHTML='<div class="empty">Sign in to see commission.</div>'; return; }
@@ -5151,6 +5348,18 @@ async function renderReports(){
     const val = x.kind==='money' ? repMoney(tot[x.key]) : String(tot[x.key]);
     return '<div class="chip m-'+x.key+'">'+x.label+'<b>'+val+'</b></div>';
   }).join('');
+  // 8z58: NET REVENUE for the period = sales (tax already left out) − what the parts cost − what outside contractors get.
+  // A contractor's amount comes from the job (booking.contract) behind the sale's receipt (receipt.jobId); each job counts once.
+  try{
+    let contract=0; const seenJob={}, recBy={}; (TKS.list('receipts')||[]).forEach(r=>{ if(r && r.id) recBy[r.id]=r; });
+    rows.forEach(t=>{ if(t.status!=='completed' && t.status!=='partially_refunded') return;
+      const r=recBy[t.invoice_id]; const jid=r && r.jobId; if(!jid || seenJob[jid]) return; seenJob[jid]=1;
+      let b=null; try{ b=TKS.Bookings.get(jid); }catch(e){} const a=b && b.contract ? Math.round((Number(b.contract.amount)||0)*100) : 0; if(a>0) contract+=a; });
+    const net=tot.sales-tot.cost-contract;
+    cards.insertAdjacentHTML('beforeend',
+      '<div class="chip" style="flex:1 1 100%;text-align:left">Net revenue<b style="'+(net<0?'color:#c8323c':'')+'">'+(net<0?'− ':'')+repMoney(Math.abs(net))+'</b>'+
+      '<div class="sub" style="margin-top:4px;font-weight:400">Sales '+repMoney(tot.sales)+' − costs '+repMoney(tot.cost)+' − contractors '+repMoney(contract)+'. Sales tax is not counted as sales.</div></div>');
+  }catch(e){}
   drawRepChart(v.chart, buckets, agg, m, byMethod);
   repBreakdown(rows, start, end);   // 8z23
   // Transaction list (period rows, newest first)
@@ -5162,7 +5371,7 @@ async function renderReports(){
     const cls=t.status==='completed'?'amt-ok':(t.status==='refunded'||t.status==='partially_refunded')?'amt-ref':t.status==='pending'?'amt-pend':'amt-bad';
     const refund = ((t.status==='completed'||t.status==='partially_refunded') && payCanRefund(t)) ?
       '<button class="repRefund" data-cap="refundVoid" data-id="'+esc2(t.id)+'" data-pi="'+esc2(t.stripe_payment_intent_id||'')+'" data-method="'+esc2(t.method)+'" data-inv="'+esc2(t.invoice_id||'')+'">↩︎ Refund</button>' : '';
-    return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
+    return '<div class="crow repRow" data-inv="'+esc2(t.invoice_id||'')+'" style="cursor:pointer" title="Open the customer and this invoice"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
       '<div class="sub">'+when+' · '+ml+(t.technician?(' · '+esc2(t.technician)):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
       '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'+
         '<span class="tag '+cls+'">'+repMoney(t.captured_cents||t.base_cents)+'</span>'+refund+'</div></div>';
@@ -6682,14 +6891,15 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
             return bits.length?'<div class="hint" style="flex-basis:100%;margin:2px 0 0">'+bits.join(' · ')+'</div>':''; })()+
           // 8z22: pay plan (owner sets it; everyone else just sees it). The owner isn't paid commission.
           (s.role==='owner' ? '' : (function(){ const plan=s.pay_plan||'commission', pct=(s.after_hours_pct!=null?s.after_hours_pct:25);
-            const lbl = plan==='hourly'?'Hourly — no commission':plan==='hourly_after_hours'?('Hourly + '+pct+'% after hours (off the clock)'):'Commission (shop rule)';
+            const lbl = plan==='hourly'?'Hourly — no commission':plan==='hourly_after_hours'?('Hourly + '+pct+'% after hours (shop closed and clocked out)'):'Commission (shop rule)';
             if(role!=='owner') return '<div class="hint" style="flex-basis:100%;margin:2px 0 0">💵 '+esc(lbl)+'</div>';
             return '<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px"><span class="hint" style="margin:0">💵 Pay</span>'+
               '<select class="search ctPlan" data-uid="'+esc(s.user_id)+'" style="flex:1 1 200px;min-height:38px">'+
                 '<option value="commission"'+(plan==='commission'?' selected':'')+'>Commission (shop rule)</option>'+
-                '<option value="hourly_after_hours"'+(plan==='hourly_after_hours'?' selected':'')+'>Hourly + commission after hours</option>'+
+                '<option value="hourly_after_hours"'+(plan==='hourly_after_hours'?' selected':'')+'>Hourly + commission after hours (shop closed and clocked out)</option>'+
                 '<option value="hourly"'+(plan==='hourly'?' selected':'')+'>Hourly — no commission</option></select>'+
               '<span class="ctPctWrap" style="display:'+(plan==='hourly_after_hours'?'inline-flex':'none')+';align-items:center;gap:4px"><input class="tx ctPct" type="number" min="0" max="100" step="1" value="'+esc(pct)+'" style="width:64px;min-height:38px">%</span>'+
+              '<span style="display:inline-flex;align-items:center;gap:4px"><span class="hint" style="margin:0">Hourly $</span><input class="tx ctRate" data-uid="'+esc(s.user_id)+'" type="number" inputmode="decimal" min="0" step="0.25" placeholder="0.00" style="width:92px;min-height:38px"></span>'+   // 8z49
               '<span class="hint ctPlanMsg" style="margin:0"></span></div>';
           })())+'</div>';
       }).join('') : 'No staff rows yet.';
@@ -6698,6 +6908,13 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
         const save=function(){ pw.style.display = sel.value==='hourly_after_hours' ? 'inline-flex' : 'none'; m.textContent='Saving…';
           sb.rpc('staff_set_pay_plan',{ p_user:sel.dataset.uid, p_plan:sel.value, p_pct:Number(pin.value)||25 }).then(function(r){ m.textContent = r.error ? ('⚠ '+r.error.message) : '✓ saved'; }); };
         sel.onchange=save; if(pin) pin.onchange=save; });
+      // 8z49: hourly rates — read and written only through owner-only functions (other staff can never see a rate)
+      if(role==='owner'){ sb.rpc('payroll_overview',{ p_start:null }).then(function(pr){ var by={}; ((pr&&pr.data&&pr.data.staff)||[]).forEach(function(x){ by[x.user_id]=x.rate_cents; });
+          el.querySelectorAll('.ctRate').forEach(function(inp){ var c=by[inp.dataset.uid]; if(c!=null) inp.value=(Number(c)/100).toFixed(2);
+            inp.onchange=function(){ var m=inp.closest('div').parentNode.querySelector('.ctPlanMsg'); var v=String(inp.value||'').trim(); var cents=(v==='')?null:Math.round(parseFloat(v)*100);
+              if(cents!=null && (isNaN(cents)||cents<0)){ if(m) m.textContent='⚠ enter a dollar amount'; return; }
+              if(m) m.textContent='Saving…';
+              sb.rpc('staff_set_hourly_rate',{ p_user:inp.dataset.uid, p_cents:cents }).then(function(r){ if(m) m.textContent = r.error ? ('⚠ '+r.error.message) : (cents==null?'✓ rate cleared':'✓ $'+(cents/100).toFixed(2)+' / hour saved'); try{ payReminder(); }catch(_){} }); }; }); }, function(){}); }
       el.querySelectorAll('[data-resend]').forEach(function(b){ b.onclick=function(){   // 8z5
         b.disabled=true; b.textContent='Sending…';
         sb.auth.getSession().then(function(x){ const tok=x&&x.data&&x.data.session&&x.data.session.access_token;
@@ -7533,13 +7750,30 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
   function memberById(id){ return teamMembers().find(function(t){return t.user_id===id;})||null; }
 
   window.renderSchedule=function(){
-    if(loaded){ render(); return; }
+    if(loaded){ render(); teamRetry(); return; }
     var body=document.getElementById('schBody'); if(body) body.innerHTML='<div class="sch-empty">Loading roster…</div>';
     var n=0; function fin(){ if(++n>=2){ loaded=true; render(); } }   /* 8z38: also redraw when the team arrives after the 1.6 s fallback, so a slow connection no longer leaves the picker on the typed list */
     try{ (TKS.Fleet && TKS.Fleet.staff) ? TKS.Fleet.staff().then(function(r){ STAFF=((r&&r.data)||[]).filter(function(s){return s.active!==false;}); fin(); }).catch(function(){ STAFF=[]; fin(); }) : (function(){STAFF=[];fin();})(); }catch(e){ STAFF=[]; fin(); }
     try{ (TKS.Fleet && TKS.Fleet.list) ? TKS.Fleet.list().then(function(r){ VANS=((r&&r.data)||[]); fin(); }).catch(function(){ VANS=[]; fin(); }) : (function(){VANS=[];fin();})(); }catch(e){ VANS=[]; fin(); }
     setTimeout(function(){ if(!loaded){ loaded=true; render(); } }, 1600);
+    [2500,7000,15000].forEach(function(ms){ setTimeout(teamRetry, ms); });
   };
+  /* 8z40: the team was fetched ONCE per page load. If that one request ran before the sign-in was restored (or failed), it came
+     back empty and the scheduler stayed on the typed Employees list for good — so a technician with a real login (Jayden,
+     2026-11-11) was missing from the board and from the Technician dropdown. Ask again whenever the team is still empty. */
+  var teamBusy=false;
+  function teamRetry(){
+    if(teamBusy || (STAFF && STAFF.length) || !(window.TKS && TKS.Fleet && TKS.Fleet.staff)) return;
+    teamBusy=true;
+    Promise.resolve().then(function(){ return TKS.Fleet.staff(); }).then(function(r){ teamBusy=false;
+      var rows=((r&&r.data)||[]).filter(function(x){ return x.active!==false; });
+      if(!rows.length) return;
+      STAFF=rows;
+      var redraw=function(){ loaded=true; render(); };
+      if(VANS && VANS.length){ redraw(); return; }
+      Promise.resolve().then(function(){ return TKS.Fleet.list(); }).then(function(v){ if(v&&v.data&&v.data.length) VANS=v.data; redraw(); }, redraw);
+    }, function(){ teamBusy=false; });
+  }
 
   function render(){ var body=document.getElementById('schBody'); if(!body) return;
     body.innerHTML=toolbar()+(view==='board'?boardView():view==='month'?monthView():view==='week'?weekView():dayView());
@@ -7560,7 +7794,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       '<div class="sch-nav"><button data-nav="-1" title="Previous">‹</button>'+
         '<button class="sch-today" data-today title="Jump to today">'+esc(navLabel())+'</button>'+
         '<button data-nav="1" title="Next">›</button></div>'+
-      '<button class="sch-new" data-new>+ New job</button>'+
+      '<button class="sch-new" data-new>'+(jobDraftAny()?'📝 Continue job':'+ New job')+'</button>'+
     '</div>';
   }
 
@@ -7581,14 +7815,26 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       '<div class="lh">'+av+'<span class="nm">'+esc(name)+'</span>'+(role?'<span class="ro">'+esc(role)+'</span>':'')+'<span class="ct">'+list.length+'</span></div>'+
       cards+'</div>';
   }
+  /* 8z43: a job that is Completed AND has a Paid-in-Full receipt tied to it (receipt.jobId) is visibly finished:
+     dimmed, name crossed out, green "Paid" tick. Looked up from the receipts already on the device (re-read at most every 3 s). */
+  var _paidAt=0, _paidMap={};
+  function jobPaid(b){
+    var now=Date.now();
+    if(now-_paidAt>3000){ _paidAt=now; _paidMap={};
+      try{ (TKS.list('receipts')||[]).forEach(function(r){ if(!r || !r.jobId || r.deletedAt) return; if((r.docType||'')==='estimate') return; if(r.status==='Paid in Full') _paidMap[String(r.jobId)]=true; }); }catch(e){} }
+    return stKey(b.status)==='completed' && !!_paidMap[String(b.id)];
+  }
   function card(b){
-    var k=stKey(b.status);
-    return '<div class="sch-card '+stCls(b.status)+'" data-open="'+esc(b.id)+'"'+(canReassign()?' draggable="true"':'')+'>'+
+    var k=stKey(b.status), paid=jobPaid(b);
+    return '<div class="sch-card '+stCls(b.status)+(paid?' sch-paid':'')+'" data-open="'+esc(b.id)+'"'+(canReassign()?' draggable="true"':'')+'>'+
       '<div class="ct"><span class="dot"></span><span class="tm">'+esc(fmtTime(b.time)||'—')+'</span></div>'+
       '<div class="cn">'+jobIcon(b)+' '+esc(custName(b))+'</div>'+
       '<div class="cm">'+esc(typeWord(b))+(vehStr(b)?(' · '+esc(vehStr(b))):'')+'</div>'+
       (addrStr(b)?('<div class="cm">'+esc(addrStr(b))+'</div>'):'')+
-      '<div class="cf"><span class="pill">'+esc(stLabel(k))+'</span>'+
+      (String(b.internalNotes||'').trim()?('<div class="cm" style="font-style:italic">🔒 '+esc(String(b.internalNotes).trim().slice(0,90))+(String(b.internalNotes).trim().length>90?'…':'')+'</div>'):'')+   // 8z45
+      ((b.quote && Number(b.quote.total)>0)?('<div class="cm" style="font-weight:800">💵 $'+Number(b.quote.total).toFixed(2)+'</div>'):'')+   // 8z42
+      ((b.contract && (b.contract.name || Number(b.contract.amount)>0) && (function(){ try{ var r=TKS.auth.staffRole(); return r==='owner'||r==='manager'; }catch(e){ return false; } })())?('<div class="cm">🤝 '+esc(b.contract.name||'Contractor')+(Number(b.contract.amount)>0?(' · $'+Number(b.contract.amount).toFixed(2)):'')+(b.contract.paidAt?' · paid':'')+'</div>'):'')+   // 8z56
+      '<div class="cf"><span class="pill">'+esc(stLabel(k))+'</span>'+(paid?'<span class="paidtick">✓ Paid</span>':'')+
         (navUrl(b)?('<a class="nav" href="'+esc(navUrl(b))+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">📍 Navigate</a>'):'')+
         '<span class="warn" data-vanflag="'+esc(b.id)+'"></span></div>'+
     '</div>';
@@ -7812,7 +8058,19 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     if(ign==='keyed'){ list=list.filter(function(p){ return kfvSub(p)!=='Smart Key'; }); hidden='smart keys hidden — turn-key ignition'; }
     if(ign==='push'){ list=list.filter(function(p){ return ['Remote Head / Flip','Transponder'].indexOf(kfvSub(p))<0; }); hidden='flip & transponder keys hidden — push-to-start'; }
     var groups=[]; KFV_GROUPS.concat([['__other','Other']]).forEach(function(g){ var items=list.filter(function(p){ var sb=kfvSub(p); return g[0]==='__other' ? !KFV_GROUPS.some(function(k){ return k[0]===sb; }) : sb===g[0]; }); if(items.length) groups.push([g[1], items]); });
-    return { groups:groups, count:list.length, hidden:hidden, list:list };
+    // 8z57: keys that list this make and year but NOT this model (or have no Fits at all and only say it in their name) used
+    // to be invisible here — a 2013 Jetta showed "no keys" while VW 2011–2016 remotes sat on the shelf. They are offered
+    // separately as "might fit", never mixed in with the confirmed ones.
+    var maybe=[]; try{
+      var seen2={}; list.forEach(function(p){ seen2[p.id]=1; });
+      var veh={ year:y, make:mk, model:md }, all=(TKS.list('inventory')||[]).filter(function(p){ return p && !p.deletedAt && /^keys\//i.test(String(p.category||'')); });
+      loose.forEach(function(p){ if(!seen2[p.id] && /^keys\//i.test(String(p.category||''))){ maybe.push(Object.assign({}, p, { _kfvNote:'Lists '+mk+' for this year, no model — check it fits' })); seen2[p.id]=1; } });
+      if(window.TKS_FIT) all.forEach(function(p){ if(seen2[p.id] || String(p.fitment||'').trim()) return;
+        if(TKS_FIT.filter([{ fitment:String(p.name||'') }], veh, { loose:true }).length){ maybe.push(Object.assign({}, p, { _kfvNote:'No Fits saved — the name says '+mk+' for this year. Check it fits' })); seen2[p.id]=1; } });
+      if(ign==='keyed') maybe=maybe.filter(function(p){ return kfvSub(p)!=='Smart Key'; });
+      if(ign==='push') maybe=maybe.filter(function(p){ return ['Remote Head / Flip','Transponder'].indexOf(kfvSub(p))<0; });
+    }catch(e){ maybe=[]; }
+    return { groups:groups, count:list.length, hidden:hidden, list:list, maybe:maybe };
   }
   function kfvMoney(c){ return (c==null||c==='')?'':'$'+(Number(c)/100).toFixed(2); }
   function kfvCard(p, added){
@@ -7847,6 +8105,13 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     box.querySelectorAll('.kfvDel').forEach(function(bt){ bt.onclick=function(){ b.keyParts=b.keyParts.filter(function(x){ return x!==bt.dataset.id; }); wzKeysFill(); }; });
   }
 
+  /* 8z57: an unfinished NEW job is kept as a draft on this device, so stepping away never means typing it all again.
+     One draft for the Quick form (tks_sj_draft), one for the guided booking (tks_wiz_draft); dropped when the job is created,
+     when the owner chooses to start over, or after 14 days. */
+  function jobDraftGet(key){ try{ var d=JSON.parse(localStorage.getItem(key)||'null'); if(d && d.b && d.ts && (Date.now()-d.ts)<14*86400000) return d; }catch(e){} return null; }
+  function jobDraftSet(key, b, step){ try{ localStorage.setItem(key, JSON.stringify({ b:b, step:step, ts:Date.now() })); }catch(e){} }
+  function jobDraftClear(key){ try{ localStorage.removeItem(key); }catch(e){} }
+  function jobDraftAny(){ return jobDraftGet('tks_sj_draft') || jobDraftGet('tks_wiz_draft'); }
   function persistJob(rec){
     if(!rec.status) rec.status='Scheduled';
     var saved; try{ saved=TKS.Bookings.save(rec); }catch(e){ return {error:(e&&e.message)||'Save failed.'}; }
@@ -8007,21 +8272,32 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
   function visibleSteps(b){ return STEPS.filter(function(s){ return !skip(s,b); }); }
 
   // "+ New job": guided wizard for everyone; the plain form stays one tap away for managers/owners.
-  function openNewJob(presetDate){ openWizard(presetDate); }
-  function openWizard(presetDate){
+  function openNewJob(presetDate){
+    var d1=jobDraftGet('tks_sj_draft'), d2=jobDraftGet('tks_wiz_draft'), d=d1||d2;
+    if(!d){ openWizard(presetDate); return; }
+    var nm=String((d.b.customer&&d.b.customer.name)||'').trim();
+    uiConfirm({ title:'Continue your unfinished job?', message:'You started a job'+(nm?(' for '+nm):'')+' and did not finish it. Everything you typed is still here.', okText:'Continue it', cancelText:'Delete it, start new' })
+      .then(function(ok){ if(ok){ if(d1) openForm(null, presetDate); else openWizard(presetDate, d2); }
+        else { jobDraftClear('tks_sj_draft'); jobDraftClear('tks_wiz_draft'); try{ render(); }catch(e){} openWizard(presetDate); } });
+  }
+  function openWizard(presetDate, draft){
     if(W){ try{ W.ov.remove(); }catch(e){} }
     var ov=document.createElement('div'); ov.className='sch-modal sch-wizmodal';
     ov.innerHTML='<div class="sheet sch-wiz" role="dialog" aria-label="Guided booking"></div>';
     document.body.appendChild(ov);
     W={ ov:ov, step:0, b:freshBooking(presetDate), lineIdx:{}, presetDate:presetDate||'' };
+    if(draft && draft.b){ W.b=draft.b; if(typeof draft.step==='number' && draft.step>=0 && draft.step<STEPS.length) W.step=draft.step; }   // 8z57: pick up where it was left
+    var _wzT=null; ov.addEventListener('input', function(){ clearTimeout(_wzT); _wzT=setTimeout(function(){ if(W && W.step!=='done' && W.step>0) jobDraftSet('tks_wiz_draft', W.b, W.step); }, 400); });
     wzRender();
   }
   function wzClose(){ if(!W) return; try{ W.ov.remove(); }catch(e){} W=null; }
   function wzAskClose(){
     if(!W) return;
     if(W.step===0 || W.step==='done'){ wzClose(); return; }
-    if(window.TKS_ACCESS && TKS_ACCESS.confirmDanger){ TKS_ACCESS.confirmDanger({title:t('discard'), message:'', confirmLabel:t('close')}).then(function(ok){ if(ok) wzClose(); }); }
-    else uiConfirm({ title:t('discard'), okText:t('close'), danger:true }).then(function(ok){ if(ok) wzClose(); });
+    // 8z57: closing no longer throws the booking away — it is kept as a draft
+    jobDraftSet('tks_wiz_draft', W.b, W.step);
+    uiConfirm({ title:'Save this for later?', message:'It is kept as a draft on this device. Tap “+ New job” to pick it up again.', okText:'Save draft & close', cancelText:'Keep editing' })
+      .then(function(ok){ if(ok){ wzClose(); try{ render(); }catch(e){} toast('Draft saved.'); } });
   }
   function wzMsg(txt){ var m=W&&W.ov.querySelector('#wzMsg'); if(m) m.textContent=txt||''; }
   function stepName(s){ return t('s_'+s); }
@@ -8029,6 +8305,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
   function wzRender(){
     try{ var _wb=W.ov && W.ov.querySelector('.wz-body'); if(_wb) W._lastScroll=_wb.scrollTop; }catch(e){}
     if(!W) return;
+    if(W.step!=='done' && W.step>0) jobDraftSet('tks_wiz_draft', W.b, W.step);   // 8z57: keep the draft current at every step
     var sheet=W.ov.querySelector('.sch-wiz'), b=W.b, done=(W.step==='done');
     var step=done?'done':STEPS[W.step], vis=visibleSteps(b), pos=vis.indexOf(step), n=vis.length;
     var pct=done?100:Math.round((pos/(n-1))*100);
@@ -8219,7 +8496,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     // 3) ONE write path (shared with the plain form): TKS.Bookings.save + TKS.Jobs.assign (signed in)
     var pr=persistJob(rec); if(pr.error){ wzMsg(pr.error); return; }
     if(b.jobType==='auto') kfvFlush(pr.saved && pr.saved.id, (b.keyParts||[]).slice());   // 8z33
-    W.saved=pr.saved; W.step='done'; wzRender();
+    W.saved=pr.saved; W.step='done'; jobDraftClear('tks_wiz_draft'); wzRender();
     if(b.date){ cursor=fromISO(b.date); }   // land the board on the booked day
     render(); toast('Job created.');
   }
@@ -8227,11 +8504,13 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
   // ---------- create / edit job form (the "Quick form": one plain form, all fields, no steps) ----------
   function openForm(b, presetDate){
     var isNew=!b; b=b||{};
+    var sjDraft=isNew?jobDraftGet('tks_sj_draft'):null; if(sjDraft){ b=sjDraft.b; if(b.date) presetDate=b.date; }   // 8z57: unfinished Quick form comes back as it was
     var jt=b.jobType||'auto', sel=stKey(b.status), veh=b.vehicle||{}, cust=b.customer||{}, custId=b.customerId||null;
     var JT=[['auto','🚗 Auto'],['res','🏠 Residential'],['com','🏢 Commercial']];
     var ov=document.createElement('div'); ov.className='sch-modal';
     ov.innerHTML='<div class="sheet">'+
       '<h3>'+(isNew?'Quick form — new job':'Edit job')+'</h3>'+
+      (sjDraft?'<div class="hint" style="margin:0 0 8px;font-weight:700">📝 Your unfinished job is back. <a href="#" id="sjDraftDrop" class="nav-link">Clear it and start over</a></div>':'')+
       '<label>Job type</label><div class="seg2" id="sjJt">'+JT.map(function(j){return '<button data-jt="'+j[0]+'"'+(j[0]===jt?' class="on"':'')+'>'+j[1]+'</button>';}).join('')+'</div>'+
       '<label>Customer</label><div class="vinrow"><input id="sjName" placeholder="Customer name" value="'+esc(cust.name||'')+'"><button type="button" id="sjPick" title="Pull from customers">👤</button></div>'+
       '<div class="custlist" id="sjCustList" style="display:none"></div>'+
@@ -8249,12 +8528,17 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
         '<div class="row2"><div><label>Model</label><select id="sjModel">'+TKS_YMM.modelOptionsHTML(veh.make||'', veh.year||'', veh.model||'')+'</select></div><div><label>Ignition</label><select id="sjIgn"><option value="">—</option><option value="push"'+(veh.ignition==='push'?' selected':'')+'>Push-to-start</option><option value="keyed"'+(veh.ignition==='keyed'?' selected':'')+'>Keyed</option></select></div></div>'+
       '</div>'+
       '<div id="sjKeys"></div>'+   // 8z32: keys for this vehicle
+      '<div id="sjCharges"></div>'+   // 8z42: what to charge (lines + total), set by the office
+      '<div id="sjContract"></div>'+   // 8z56: job handed to an outside contractor
+      '<label>🔒 Internal notes <span style="font-weight:400;color:var(--dim)">— staff only, never on the customer\'s receipt</span></label>'+   // 8z45
+      '<textarea id="sjINotes" rows="3" placeholder="Gate code, what the customer said, what to bring…" style="width:100%;box-sizing:border-box;min-height:76px">'+esc(b.internalNotes||'')+'</textarea>'+
       '<label>Technician</label><select id="sjTech"><option value="">Unassigned</option>'+teamMembers().map(function(t){return '<option value="'+esc(t.user_id)+'"'+(techOf(b)===t.user_id?' selected':'')+'>'+esc(t.name)+(t.role?(' — '+esc(t.role)):'')+'</option>';}).join('')+'</select>'+
       '<label>Status</label><div class="stbtns" id="sjSt">'+STATUSES.map(function(s){return '<button class="'+('st-'+s.k.replace(/_/g,''))+(s.k===sel?' on':'')+'" data-s="'+s.k+'">'+esc(s.L)+'</button>';}).join('')+'</div>'+
       '<div class="msg" id="sjMsg"></div>'+
       // 8r: the dispatched job becomes the invoice — its lines arrive locked for a technician (add yes, remove no)
       (isNew?'':'<button type="button" class="btn save" id="sjInvoice" style="width:100%;margin:4px 0 10px;background:linear-gradient(180deg,#22994a,#156632)">🧾 Invoice this job</button><div id="sjJobLog" style="font-size:12.5px;color:var(--dim);margin:0 0 10px"></div>')+
-      '<div class="acts">'+(isNew?'':'<button class="btn ghost" id="sjCancelJob">Cancel job</button>')+'<button class="btn save" id="sjSave">'+(isNew?'Create job':'Save changes')+'</button></div>'+
+      '<div class="acts">'+(isNew?'<button type="button" class="btn ghost" id="sjDraftBtn">💾 Save draft</button>':'<button class="btn ghost" id="sjCancelJob">Cancel job</button>')+'<button class="btn save" id="sjSave">'+(isNew?'Create job':'Save changes')+'</button></div>'+
+      (isNew?'<div class="hint" style="text-align:center;margin-top:6px">Not ready to schedule it? Save draft keeps what you typed. It is also kept if you just close this.</div>':'')+
       (isNew?'':'<div style="text-align:center;margin-top:8px"><a href="#" id="sjDelete" class="nav-link" style="color:#c8323c">Delete this job</a></div>')+
     '</div>';
     document.body.appendChild(ov);
@@ -8279,6 +8563,90 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     // ---------- 8z32: Keys for this vehicle ----------
     var KEY_GROUPS=[['Smart Key','Smart keys'],['Remote Head / Flip','Flip keys'],['Remote / Fob','Remotes'],['Super Remote','Super remotes'],['Transponder','Transponder keys'],['Key Shell','Shells'],['Mechanical','Blades / mechanical']];
     var jobParts=[], pendingParts=[], keysBusy=false;
+    // ---------- 8z42: Charges for this job ----------
+    // The office lists what will be charged (description, qty, price each, taxable) and sees the total with tax and with
+    // any keys picked above. It is saved on the job (items + quote) and "Invoice this job" opens with these lines and
+    // prices already in place, so the technician only takes the payment. A technician sees the lines but cannot edit them.
+    var chargeLines=(Array.isArray(b.items)?b.items:[]).map(function(x){ return { desc:String(x.desc||''), qty:parseInt(x.qty,10)||1, each:(x.each!=null&&x.each!=='')?String(x.each):'', taxable:!!x.taxable }; });
+    var chargeLock=false; try{ chargeLock=(TKS.auth && TKS.auth.staffRole && TKS.auth.staffRole()==='technician'); }catch(e){}
+    function chTaxRate(){ try{ return Number(TKS.Config.get().taxRate)||0; }catch(e){ return 0; } }
+    function chSvcs(){ try{ return (TKS.Config.services()||[]).filter(function(x){ return x && x.value; }); }catch(e){ return []; } }
+    function chCents(v){ var n=Math.round(parseFloat(v)*100); return isNaN(n)||n<0?0:n; }
+    function chPartsCents(){ var c=0;
+      try{ jobParts.forEach(function(x){ if(x.state==='returned'||!x.item_id) return; var pt=TKS.Inventory.get(x.item_id); if(pt&&pt.sellPriceCents!=null) c+=Number(pt.sellPriceCents)||0; });
+           pendingParts.forEach(function(id){ var pt=TKS.Inventory.get(id); if(pt&&pt.sellPriceCents!=null) c+=Number(pt.sellPriceCents)||0; }); }catch(e){}
+      return c; }
+    function chTotals(){ var taxable=0, nontax=0;
+      chargeLines.forEach(function(l){ var a=chCents(l.each)*(parseInt(l.qty,10)||1); if(l.taxable) taxable+=a; else nontax+=a; });
+      var parts=chPartsCents(), partsTaxed=true; try{ partsTaxed=!!TKS.Config.taxableDefault('Materials'); }catch(e){}
+      var rate=chTaxRate(), tax=Math.round((taxable+(partsTaxed?parts:0))*rate/100);
+      return { lines:taxable+nontax, parts:parts, tax:tax, rate:rate, total:taxable+nontax+parts+tax }; }
+    function chMoney(c){ return '$'+(Math.round(c||0)/100).toFixed(2); }
+    // ---------- 8z56: Contracted out ----------
+    // The job is done by an outside contractor who gets a fixed amount; the shop keeps the rest. Saved on the job as
+    // contract {name, amount, paidAt}. Managers / owner only — a technician neither sees nor changes it.
+    var conName=String((b.contract&&b.contract.name)||''), conAmt=(b.contract&&b.contract.amount!=null&&b.contract.amount!=='')?String(b.contract.amount):'';
+    var conLock=true; try{ var _cr=TKS.auth.staffRole&&TKS.auth.staffRole(); conLock=!(_cr==='owner'||_cr==='manager'); }catch(e){}   // 8z57: owner / manager only (not technicians, not front desk)
+    function conCents(){ return String(conName).trim()||chCents(conAmt)>0 ? chCents(conAmt) : 0; }
+    function conNames(){ var seen={}, out=[]; try{ (TKS.list('bookings')||[]).forEach(function(x){ var n=String((x&&x.contract&&x.contract.name)||'').trim(); if(n && !seen[n.toLowerCase()]){ seen[n.toLowerCase()]=1; out.push(n); } }); }catch(e){} return out.sort(); }
+    function renderContract(){ var box=q('sjContract'); if(!box) return; if(conLock){ box.innerHTML=''; return; }
+      box.innerHTML='<div style="border:1px solid var(--edge);border-radius:14px;padding:12px;margin:10px 0">'+
+        '<div style="font-weight:800;margin-bottom:2px">🤝 Contracted out</div>'+
+        '<div class="hint" style="margin:0 0 8px">Sent this job to an outside contractor? Put who and what they get. It comes off your total and shows under Salary / Commission as money you owe.</div>'+
+        '<datalist id="sjConList">'+conNames().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>'+
+        '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">'+
+          '<div style="flex:2 1 160px;min-width:0"><label style="margin:0">Contractor</label><input id="sjConName" list="sjConList" placeholder="Name" autocomplete="off" value="'+esc(conName)+'"></div>'+
+          '<div style="flex:1 1 110px;min-width:0"><label style="margin:0">They get $</label><input id="sjConAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="'+esc(conAmt)+'"></div>'+
+        '</div>'+
+        ((b.contract&&b.contract.paidAt)?'<div class="hint" style="margin:8px 0 0;color:#1f9d55;font-weight:700">✓ You marked this contractor as paid on '+esc(new Date(b.contract.paidAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}))+'.</div>':'')+
+      '</div>';
+      q('sjConName').oninput=function(){ conName=q('sjConName').value; chSyncTotals(); };
+      q('sjConAmt').oninput=function(){ conAmt=q('sjConAmt').value; chSyncTotals(); };
+    }
+    function contractForSave(){ var n=String(conName||'').trim(), c=chCents(conAmt); if(!n && !c) return null;
+      var o={ name:n, amount:c/100 }; if(b.contract && b.contract.paidAt && Number(b.contract.amount)===o.amount && String(b.contract.name||'')===n) o.paidAt=b.contract.paidAt; return o; }
+    function chTotalsHTML(){ var t=chTotals(), row=function(a,v,bold){ return '<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0'+(bold?';font-weight:800;font-size:17px;border-top:1px solid var(--edge);margin-top:4px;padding-top:6px':'')+'"><span>'+a+'</span><span>'+v+'</span></div>'; };
+      if(!chargeLines.length && !t.parts && !(!conLock && conCents()>0)) return '<div class="hint" style="margin:0">No charges yet. Add what the customer will pay for and the technician just takes the payment.</div>';
+      var con=conLock?0:conCents();
+      return row('Charges', chMoney(t.lines))+(t.parts?row('Keys picked above', chMoney(t.parts)):'')+row('Tax'+(t.rate?(' ('+t.rate+'%)'):''), chMoney(t.tax))+row('Total', chMoney(t.total), true)+
+        (con>0?(row('Contractor'+(String(conName).trim()?(' ('+esc(String(conName).trim())+')'):''), '− '+chMoney(con))+row('You keep', (t.total-con<0?'− ':'')+chMoney(Math.abs(t.total-con)), true)):''); }
+    function chSyncTotals(){ var el=q('sjChTot'); if(el) el.innerHTML=chTotalsHTML(); }
+    function renderCharges(){ var box=q('sjCharges'); if(!box) return;
+      var ro=chargeLock?' disabled':'';
+      box.innerHTML='<div style="border:1px solid var(--edge);border-radius:14px;padding:12px;margin:10px 0">'+
+        '<div style="font-weight:800;margin-bottom:2px">💵 Charges for this job</div>'+
+        '<div class="hint" style="margin:0 0 8px">'+(chargeLock?'Set by the office. Tap “Invoice this job” to charge the customer.':'List what to charge. The technician opens the invoice with these lines and prices already filled in.')+'</div>'+
+        '<datalist id="sjSvcList">'+chSvcs().map(function(x){ return '<option value="'+esc(x.value)+'">'; }).join('')+'</datalist>'+
+        chargeLines.map(function(l,i){ return '<div data-chrow="'+i+'" style="padding:8px 0;border-top:1px solid var(--edge)">'+
+          '<input class="chD" list="sjSvcList" placeholder="What is being done — type or pick a service" value="'+esc(l.desc)+'" autocomplete="off"'+ro+'>'+
+          '<div style="display:flex;gap:8px;align-items:center;margin-top:6px">'+
+            '<div style="flex:0 0 68px"><label style="margin:0">Qty</label><input class="chQ" type="number" inputmode="numeric" min="1" step="1" value="'+esc(String(l.qty||1))+'"'+ro+'></div>'+
+            '<div style="flex:1;min-width:0"><label style="margin:0">Price each $</label><input class="chE" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="'+esc(l.each)+'"'+ro+'></div>'+
+            '<label style="flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:16px 0 0;min-height:44px"><input class="chT" type="checkbox" style="width:22px;height:22px"'+(l.taxable?' checked':'')+ro+'>Tax</label>'+
+            (chargeLock?'':'<button type="button" class="chX" aria-label="Remove line" style="flex:0 0 44px;height:44px;margin-top:16px;border:1px solid var(--edge);border-radius:10px;background:transparent;color:#c8323c;font-size:20px;cursor:pointer">&times;</button>')+
+          '</div></div>'; }).join('')+
+        (chargeLock?'':'<button type="button" class="btn ghost" id="sjChAdd" style="width:100%;margin:8px 0 0;min-height:44px">+ Add a charge</button>')+
+        '<div id="sjChTot" style="margin-top:10px">'+chTotalsHTML()+'</div>'+
+      '</div>';
+      box.querySelectorAll('[data-chrow]').forEach(function(row){ var l=chargeLines[+row.dataset.chrow]; if(!l) return;
+        var d=row.querySelector('.chD'), qy=row.querySelector('.chQ'), ea=row.querySelector('.chE'), tx=row.querySelector('.chT'), x=row.querySelector('.chX');
+        d.oninput=function(){ l.desc=d.value; };
+        d.onchange=function(){ l.desc=d.value.trim();   // picked a standard service → use its price when none was typed
+          var hit=chSvcs().filter(function(v){ return String(v.value).toLowerCase()===l.desc.toLowerCase(); })[0];
+          if(hit && hit.price!=null && String(hit.price).trim()!=='' && String(l.each).trim()===''){ l.each=String(hit.price).trim(); ea.value=l.each; chSyncTotals(); } };
+        qy.oninput=function(){ l.qty=Math.max(1, parseInt(qy.value,10)||1); chSyncTotals(); };
+        ea.oninput=function(){ l.each=ea.value; chSyncTotals(); };
+        tx.onchange=function(){ l.taxable=tx.checked; chSyncTotals(); };
+        if(x) x.onclick=function(){ chargeLines.splice(+row.dataset.chrow,1); renderCharges(); };
+      });
+      var add=q('sjChAdd'); if(add) add.onclick=function(){ chargeLines.push({ desc:'', qty:1, each:'', taxable:false }); renderCharges(); var all=box.querySelectorAll('.chD'); if(all.length) all[all.length-1].focus(); };
+    }
+    function chargesForSave(){ var t=chTotals();
+      return { items: chargeLines.filter(function(l){ return String(l.desc||'').trim() || chCents(l.each)>0; }).map(function(l){ var qy=parseInt(l.qty,10)||1, e=chCents(l.each);
+                 return { desc:String(l.desc||'').trim()||'Service', qty:qy, each:e/100, amount:(e*qy)/100, taxable:!!l.taxable }; }),
+               quote: { subtotal:(t.lines+t.parts)/100, tax:t.tax/100, total:t.total/100, taxRate:t.rate } }; }
+    setTimeout(function(){ renderContract(); renderCharges();   // keys are added / removed in #sjKeys → keep the total in step
+      try{ var kb=q('sjKeys'); if(kb && window.MutationObserver) new MutationObserver(chSyncTotals).observe(kb, { childList:true, subtree:true }); }catch(e){} }, 0);
     var canRemove=false; try{ canRemove=!!(TKS.auth && TKS.auth.can && TKS.auth.can('inventoryWrite')); }catch(e){}
     var cloud=false; try{ cloud=signedIn() && !(TKS.isDemo&&TKS.isDemo()) && TKS._sb && TKS._sb(); }catch(e){}
     function kMoney(c){ return (c==null||c==='')?'':'$'+(Number(c)/100).toFixed(2); }
@@ -8295,14 +8663,17 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       var y=(q('sjYear')&&q('sjYear').value)||'', mk=(q('sjMake')&&q('sjMake').value)||'', md=(q('sjModel')&&q('sjModel').value)||'', ign=(q('sjIgn')&&q('sjIgn').value)||'';
       var head='<div style="margin-top:14px;border:2px solid rgba(34,153,74,.25);border-radius:14px;padding:12px;background:rgba(34,153,74,.05)"><div style="font-weight:800;font-size:16px">🔑 Keys for this vehicle</div>';
       if(!mk || !md){ box.innerHTML=head+'<div class="sub" style="margin-top:4px">Pick the year, make and model to see the keys you stock for it.</div></div>'; return; }
-      var KL=kfvList(y, mk, md, ign), list=KL.list||[], hidden=KL.hidden?' ('+KL.hidden+')':'';   // 8z35: shared matching (incl. make-level transponders by chip)
+      var KL=kfvList(y, mk, md, ign), list=KL.list||[], maybe=KL.maybe||[], hidden=KL.hidden?' ('+KL.hidden+')':'';   // 8z35: shared matching (incl. make-level transponders by chip)
       var van=kVan(), vanName=van?((typeof invVanName==='function')?invVanName(van).replace(/^🚐\s*/,''):'the van'):'';
       var techName=''; try{ var mm=memberById(q('sjTech').value||''); techName=mm&&mm.name||''; }catch(e){}
       var onJob={}; jobParts.forEach(function(x){ if(x.item_id) onJob[x.item_id]=(onJob[x.item_id]||[]).concat([x]); }); pendingParts.forEach(function(id){ onJob[id]=(onJob[id]||[]).concat([{pending:true}]); });
       var html=head+'<div class="sub" style="margin-top:2px">'+esc([y,mk,md].filter(Boolean).join(' '))+' — from your stock'+esc(hidden)+'</div>';
-      if(!list.length) html+='<div class="sub" style="margin-top:8px">No keys in stock list this vehicle in their "Fits". Add the vehicle to a part\'s Fits (Stock → part) and it shows up here.</div>';
+      if(!list.length) html+='<div class="sub" style="margin-top:8px">No keys in stock list this exact vehicle in their "Fits"'+(maybe.length?'. See “Might fit” below.':'. Add the vehicle to a part\'s Fits (Stock → part) and it shows up here.')+'</div>';
       var missingVan=0;
-      KEY_GROUPS.concat([['__other','Other']]).forEach(function(g){
+      var kGroupsOf=function(src, prefix){ return KEY_GROUPS.concat([['__other','Other']]).map(function(g){ return [g[0], prefix+g[1], src]; }); };
+      kGroupsOf(list, '').concat(maybe.length?[['__maybeHead','',maybe]].concat(kGroupsOf(maybe, 'Might fit · ')):[]).forEach(function(g){
+        if(g[0]==='__maybeHead'){ html+='<div style="margin:14px 0 2px;padding-top:10px;border-top:2px dashed rgba(183,121,31,.45);font-weight:800;color:#b7791f">Might fit — not confirmed for this model</div><div class="sub" style="margin:0">These list the make and year only. To confirm one for good, add this vehicle to its Fits (Stock → part).</div>'; return; }
+        var list=g[2];
         var items=list.filter(function(p){ var sb=kSub(p); return g[0]==='__other' ? !KEY_GROUPS.some(function(k){ return k[0]===sb; }) : sb===g[0]; });
         if(!items.length) return;
         html+='<div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--dim);text-transform:uppercase;margin:12px 0 6px">'+esc(g[1])+'</div>';
@@ -8363,7 +8734,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     var cj=q('sjCancelJob'); if(cj) cj.onclick=function(){ close(); doCancel(b.id); };
     // 8r: invoice this job (writes the dispatched draft → bittings.html) + the job's running log
     var inv=q('sjInvoice'); if(inv) inv.onclick=function(){ inv.disabled=true; inv.textContent='Preparing…';
-      jobToInvoiceDraft(TKS.Bookings.get(b.id)||b).then(function(){ location.href='bittings.html'; })
+      jobInvoiceGuard(b).then(function(go){ if(!go){ inv.disabled=false; inv.textContent='🧾 Invoice this job'; return new Promise(function(){}); } return jobToInvoiceDraft(TKS.Bookings.get(b.id)||b); }).then(function(){ location.href='bittings.html'; })
         .catch(function(e){ inv.disabled=false; inv.textContent='🧾 Invoice this job'; toast((e&&e.message)||'Could not prepare the invoice'); }); };
     try{ var logEl=q('sjJobLog'); var sbl=(window.TKS&&TKS._sb)?TKS._sb():null;
       if(logEl && sbl && b.id && !(TKS.isDemo&&TKS.isDemo())){ sbl.from('audit_log').select('action,detail,created_at').eq('entity_type','job').eq('entity_id',String(b.id)).order('created_at',{ascending:false}).limit(12).then(function(r){
@@ -8371,12 +8742,34 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
         var lbl={dispatch_line_declined:'Not done',dispatch_line_added:'Added',unit_scanned_out:'Key scanned out',unit_scanned_in:'Key scanned back in'};
         logEl.innerHTML='<div style="font-weight:700;margin-bottom:4px;color:var(--ink)">Job log</div>'+rows.map(function(x){ var d=x.detail||{}; return '<div>• '+esc(lbl[x.action]||x.action)+(d.desc?(': '+esc(d.desc)):'')+(d.reason?(' — '+esc(d.reason)):'')+' <span style="opacity:.7">'+esc(new Date(x.created_at).toLocaleString())+'</span></div>'; }).join('');
       }); } }catch(e){}
+    // 8z57: draft of a NEW job — collected the same way Save reads the form, but never written to the schedule
+    function sjCollect(){
+      var r={ jobType:jt, customer:{ name:q('sjName').value.trim(), phone:q('sjPhone').value.trim() }, customerId:custId||null, subType:q('sjSvc').value.trim(),
+        addr:{ street:q('sjStreet').value.trim(), unit:q('sjUnit').value.trim(), city:q('sjCity').value.trim(), state:q('sjState').value, zip:q('sjZip').value.trim() },
+        date:q('sjDate').value||'', time:q('sjTime').value||'', status:stLabel(sel), internalNotes:((q('sjINotes')||{}).value||'').trim() };
+      r.address=composeAddress(r.addr);
+      if(jt==='auto') r.vehicle={ year:(q('sjYear').value||'').trim(), make:(q('sjMake').value||'').trim(), model:(q('sjModel').value||'').trim(), vin:(q('sjVin').value||'').trim().toUpperCase(), ignition:(q('sjIgn')||{}).value||'' };
+      var tv=q('sjTech').value||''; if(tv){ var tm=memberById(tv); r.technician=tm?tm.name:''; r.technicianId=(tv.indexOf('name:')===0)?null:tv; }
+      if(!chargeLock){ var cs=chargesForSave(); r.items=cs.items; r.quote=cs.quote; }
+      if(!conLock) r.contract=contractForSave();
+      return r; }
+    function sjHasContent(r){ return !!(r.customer.name || r.customer.phone || r.subType || r.addr.street || (r.items&&r.items.length) || r.internalNotes || (r.vehicle&&(r.vehicle.vin||r.vehicle.make))); }
+    var sjDead=false;   // set once the form is finished with (created / draft saved / cleared) so a late timer cannot write a stale draft
+    function sjSaveDraft(){ if(sjDead) return; try{ var r=sjCollect(); if(sjHasContent(r)) jobDraftSet('tks_sj_draft', r); }catch(e){} }
+    if(isNew){ var _sjT=null, _sjLater=function(){ clearTimeout(_sjT); _sjT=setTimeout(sjSaveDraft, 400); };
+      ov.addEventListener('input', _sjLater); ov.addEventListener('change', _sjLater); ov.addEventListener('click', _sjLater);
+      var dbtn=q('sjDraftBtn'); if(dbtn) dbtn.onclick=function(){ clearTimeout(_sjT); var r=sjCollect(); if(!sjHasContent(r)){ q('sjMsg').textContent='Nothing to save yet.'; return; }
+        jobDraftSet('tks_sj_draft', r); sjDead=true; ov.remove(); try{ render(); }catch(e){} toast('Draft saved. Tap “Continue job” to finish it.'); };
+      var drop=q('sjDraftDrop'); if(drop) drop.onclick=function(e){ e.preventDefault(); clearTimeout(_sjT); sjDead=true; jobDraftClear('tks_sj_draft'); ov.remove(); try{ render(); }catch(_){} openForm(null, presetDate); }; }
     q('sjSave').onclick=function(){
       var rec=isNew?{}:(TKS.Bookings.get(b.id)||b);
       rec.jobType=jt;
       rec.customer=rec.customer||{}; rec.customer.name=q('sjName').value.trim(); rec.customer.phone=q('sjPhone').value.trim();
       if(custId)rec.customerId=custId;
       rec.subType=q('sjSvc').value.trim();
+      if(!chargeLock){ var chS=chargesForSave(); rec.items=chS.items; rec.quote=chS.quote; }   // 8z42
+      if(!conLock) rec.contract=contractForSave();   // 8z56
+      rec.internalNotes=(q('sjINotes').value||'').trim();   // 8z45
       rec.addr={ street:q('sjStreet').value.trim(), unit:q('sjUnit').value.trim(), city:q('sjCity').value.trim(), state:q('sjState').value, zip:q('sjZip').value.trim() };   // 8z31
       rec.address=composeAddress(rec.addr);
       if(jt==='auto'){ rec.vehicle={year:(q('sjYear').value||'').trim(),make:(q('sjMake').value||'').trim(),model:(q('sjModel').value||'').trim(),vin:(q('sjVin').value||'').trim().toUpperCase(),ignition:(q('sjIgn')||{}).value||''}; }
@@ -8394,6 +8787,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       rec.status = stLabel(sel);
       var pr=persistJob(rec); if(pr.error){ q('sjMsg').textContent=pr.error; return; }   // same write path as the guided wizard
       jid=pr.saved.id||jid;
+      if(isNew){ sjDead=true; jobDraftClear('tks_sj_draft'); }   // 8z57: created → no draft left behind
       try{ if(window.__sjFlushPending) window.__sjFlushPending(jid); }catch(e){}   // 8z32: keys picked before the job existed
       // The SERVER owns the status (role rules, reconciliation gate, 8g terminal-state guard). If it
       // refuses, roll the local label back so the board never shows a status the cloud rejected.
@@ -8870,7 +9264,7 @@ gid('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') gid('vinBtn').c
    opens exactly as it does from the menu (role / plan gates included). Edit: More → "Edit bottom bar", or press and hold the bar. */
 (function(){
   var DEF=['startjob','receipts','customers','inventory'], MAX=4;
-  var SHORT={startjob:'Start job',inventory:'Stock',schedule:'Schedule',programmers:'Programs',history:'Closeout',lishi:'Lishi',timesheets:'Hours',commission:'Commission'};
+  var SHORT={startjob:'Start job',inventory:'Stock',schedule:'Schedule',programmers:'Programs',history:'Closeout',lishi:'Lishi',timesheets:'Hours',commission:'Pay'};
   function who(){ try{ return (TKS.auth&&TKS.auth.email&&TKS.auth.email())||''; }catch(e){ return ''; } }
   function key(){ return 'tks_bottombar:'+(who()||'_'); }
   function saved(){ try{ var v=JSON.parse(localStorage.getItem(key())||'null'); return Array.isArray(v)?v:null; }catch(e){ return null; } }

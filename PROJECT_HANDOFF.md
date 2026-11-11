@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-11-11 15:22 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-11-11 17:40 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -424,6 +424,90 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
 - **Phones can no longer sit on an old copy of the app.** The two app pages are never saved by the browser, and every
   sign-in opens a fresh address.
 - **Fixed:** "Failed to send a request to the Edge Function" when the app called the cloud from the new address.
+- **First typed-card payment in live mode worked:** Kristi Phipps, $96.90 ($95 + 2% credit surcharge), Visa credit, taken by
+  Jayden on his phone at 5:30 PM. Stripe confirmed it. Jayden reported seeing a failure on his phone; cause not found.
+  The invoice page now keeps checking instead of stopping at the first failed status check, and if it cannot confirm it
+  says the card may have been charged and not to charge again.
+- **Known issue: two receipts can get the same number** when they are made on different devices (Kristi Phipps and Luis
+  Perez are both TKS-2026-1111B). They are separate records and nothing was overwritten; saving now matches on the
+  record itself, not the number. Numbering still needs to be made unique across devices.
+- **New: job drafts.** A new job that is not finished is kept as a draft on that device: close it, answer the phone, come
+  back, and "+ New job" (now showing "📝 Continue job") offers to continue it with everything still filled in. The Quick
+  form also has a "Save draft" button. A draft is not on the schedule until the job is created.
+- **New: "Might fit" keys on a job.** Keys that list the make and year but not the model (or have no Fits and only say it
+  in their name) now show in a separate "Might fit — not confirmed" section, instead of the job saying there are no keys
+  (a 2013 Jetta showed none while VW 2011–2016 remotes were in stock).
+- **New: Net revenue on Reports** = sales (sales tax left out) − parts costs − contractor amounts, with the three numbers shown.
+- **Contracted out is owner / manager only** (hidden from technicians and front desk).
+- **New: contracted-out jobs.** A scheduler job has a "🤝 Contracted out" box: the contractor's name and what they get.
+  The job's total then shows the contractor's amount coming off and what the shop keeps, and the job card shows who has
+  it. The Salary / Commission tab has a **Contractors** box: what is owed to each contractor (a job counts once it is
+  Completed), jobs still coming up, and **Mark paid** per job. Technicians and front desk do not see any of it.
+- **Reports and Closeout: tap a sale** to open that customer's page (their details and every invoice) with the tapped
+  invoice open on top. A sale with no customer on file just opens the invoice.
+- **All of Jayden's earlier pay periods were marked paid in bulk** at the owner's request (amounts at $15/h, no overtime).
+- **Texting an invoice from the PC through Phone Link: tried, not working.** Opening a text to a number from Bittings
+  made Phone Link show a different conversation, so nothing was sent. Not built.
+- **After-hours commission now means the shop is CLOSED and the technician is clocked out** (owner, 11 Nov). Before, it only
+  checked "clocked out", so a forgotten clock-in on a workday would have paid 25% on daytime sales. "Closed" follows the
+  storefront hours in Settings → Hours & footer (now Mon–Fri 10–6, Sat 12–5, Sun closed).
+- **Pay schedule is editable:** "⚙ Change pay schedule" in the Hourly pay box sets when a pay period starts, weekly or
+  every 2 weeks, and the pay day.
+- **New: hourly pay (payroll) for the owner.** The Commission tab is now **Salary / Commission**. At the top is an
+  "Hourly pay" box: the two-week pay period (Sun–Sat ×2, paid the following Wednesday; first one 25 Oct – 7 Nov, paid
+  Wed 11 Nov), each hourly person's hours from the time clock, their rate, overtime and the amount, with **Mark paid**.
+  A green "Pay day" bar reminds the owner while anyone is unpaid ("Later" hides it until tomorrow). The hourly rate is set
+  in Settings → Access & managers → Team logins ("Hourly $"); only the owner can see or change rates. Jayden is $15.00/hour.
+  **Overtime is chosen per person** in that box: "No overtime (1099)" (the default, and what Jayden is on: every hour at
+  $15) or "Overtime over 40 h a week at 1.5×". "See every shift" under each person lists every clock-in and clock-out in the period.
+  Amounts are gross pay before taxes. Mark paid only records the payment; it does not move money.
+- **Lockouts are labor.** "Car lockout" was being filed as Materials / Parts (which also gave it a warranty). Fixed, and
+  TKS-2026-1111A (layefette gaines) corrected.
+- **Reports clean-up:** the 8 automated "TEST — fee check" receipts and their failed test payment are deleted. Luis Perez's
+  $165 (TKS-2026-1111B, card taken on the shop's other Stripe account) is now recorded so it shows in Reports and Closeout.
+  **Known gap:** a receipt saved as "Card / Paid in Full" without using Pay Now is not counted in Reports. Until that is
+  changed, pick **Other** for card payments taken outside Bittings.
+- **Closed receipts are locked for technicians** (owner rule, 11 Nov). Once a receipt is paid, only a manager or the owner
+  can edit it. "Paid" means Paid in Full by cash, check, Zelle or other, or by card once the card was actually charged.
+  A card receipt that has not been charged yet, an unpaid invoice and an estimate can still be edited by a technician.
+  A paid receipt also no longer shows "Pay Now". This is enforced on the app's screens, not yet in the database.
+- **Fixed: "Type card" asked a technician for a "Stripe publishable key".** That box was a testing leftover on the invoice
+  page. It is gone; the key now comes from the server, and the card field opens on the shop's own Stripe account.
+  **Typing a card in by hand has still never been run with a real card in live mode — needs one real test.**
+- **New: Edit on every receipt and invoice.** The Receipts list has an "✏️ Edit" button next to View / Send / PDF. It opens
+  that document for changes and saves it under the same number, never as a new one. "Invoice this job" on a job that
+  already has a receipt now offers "Open it to edit" and goes straight to that receipt.
+- **New: internal notes (staff only).** The scheduler job form and the invoice form each have a "🔒 Internal notes" box.
+  The note shows on the job card, carries from the job onto its invoice, and shows in the Receipts list and after saving,
+  but it is never on the customer's receipt. The existing "Notes" box is now labelled as printed on the customer's copy.
+- **Removed receipts stay out of every list**, and a new receipt can never take a number that is already in use.
+- **Warranty only when hardware is sold** (owner rule, 11 Nov). A receipt gets the warranty only if it has a stocked part or
+  a Materials / Parts line; service calls, programming and labor alone get none, whatever the tick box says. Register
+  sales that include a part now show and print the standard warranty too (they had none). TKS-2026-1111B had its warranty removed.
+- **A job can no longer quietly get a second receipt.** "Invoice this job" on a job that already has one now warns and
+  offers to open the existing receipt. (TKS-2026-1111A and TKS-2026-1111B were both for the same Luis Perez job, $165 each. The owner had
+  A removed and kept B; the $165 was taken on the Stripe account under Found, outside Bittings.)
+- **After saving an invoice:** the old chat-style line ("Done! Here's…") is now a plain "✓ Receipt … saved", the page
+  is titled "Receipts & invoices", and a job's receipt has a "Back to Scheduler" button. The builder is still its own
+  page; moving it fully inside the app is a bigger job that has not been done.
+- **New: charges on a scheduler job.** The job form has a "Charges for this job" box: add lines (what, qty, price each,
+  taxable), and it shows the total with tax and with any keys picked for the job. The total shows on the job card.
+  "Invoice this job" opens with those lines and prices already filled in, so the technician just takes the payment.
+  A technician sees the charges but cannot change them, and their prices are locked on the invoice.
+- **New: finished jobs look finished.** A job that is Completed and has a Paid-in-Full receipt is dimmed, its name is
+  crossed out and it gets a green "✓ Paid" tag. Completed-but-unpaid jobs look as before.
+  Both checked at iPhone and Android sizes in the test browser for an owner and a technician; **pending sign-off on real phones.**
+- **Fixed: "Invoice this job" left the address blank and wrote "auto" as the work done.** The invoice now opens with the
+  job's address, the right service type (Automotive / Residential / Commercial) and the service the job was booked for
+  (for example "ESL") as the first line. Name, phone, vehicle and VIN already carried over. The price is filled only when
+  the service matches one in Settings → Services. Checked on the shop PC with a real job; nothing was saved.
+- **Fixed: Jayden could not be picked as the technician on a job.** The scheduler asked the cloud for the team only once
+  each time the app opened; when that one request came back empty it stayed on the hand-typed Employees list (just Samer)
+  for good. It now asks again until the team arrives. Checked in the owner's browser on the shop PC: the board has a Jayden
+  column and the Technician dropdown on a job lists him. Not yet checked on a phone.
+- **Jayden's November hours brought over from the old time clock** (owner's report, 11/01–11/11): 11/10 closed at 6:00 pm,
+  today's 9:57 am clock-in added, and 11/02 (9:30 am) and 11/04 (10:00 am) added with the start times the owner gave.
+  Total through 11/10 is 60:36. Each changed row carries a note.
 - **First real card sale on the shop's own Stripe account: $185.33, Visa debit, on the reader (3:12 PM).** Stripe held
   $189.04 in case the card was credit, then released the $3.71 because it was debit. Stripe fee $5.05, Bittings fee $1.85,
   $178.43 to the shop. The sale exposed three faults, all fixed the same afternoon:

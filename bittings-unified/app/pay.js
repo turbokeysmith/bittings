@@ -180,21 +180,19 @@
   async function getPK(){
     if(serverPK) return serverPK;
     try{ const j=await call("pay-terminal",{action:"config"}); if(j&&j.publishableKey){ serverPK=j.publishableKey; return serverPK; } }catch(e){}
-    return localStorage.getItem("tks_pay_pk")||"";
+    return "";   // 8z47: no hand-typed fallback (a pk_test_ left on a device would break a live charge)
   }
+  // 8z47: staff are never asked for a Stripe key. The key comes from the server; the old "Stripe publishable key (one-time)"
+  // box was a testing leftover and showed up for a technician taking a real payment (2026-11-11).
   function renderKeyed(){
-    const pk=serverPK||localStorage.getItem("tks_pay_pk")||"";
-    if(!serverPK) getPK().then(k=>{ if(serverPK){ const r=modal&&modal.querySelector("#pnPK"); if(r){ r.previousElementSibling&&r.previousElementSibling.remove(); r.remove(); } } });
-    const pkRow = pk ? "" : `<label style="font-size:12px;color:#9aa3af">Stripe publishable key (one-time)</label>
-      <input id="pnPK" type="text" inputmode="text" autocomplete="off" placeholder="pk_test_…" style="width:100%;background:#11141a;border:1px solid #2a2f3a;border-radius:10px;color:#f4f5f7;padding:11px;font-size:16px;box-sizing:border-box;margin:4px 0 10px">`;
-    modal.querySelector("#pnBody").innerHTML=`${pkRow}<div id="pnPE" style="background:#fff;border-radius:10px;padding:10px;margin-bottom:10px;min-height:42px"></div>${payBtn("Start card entry","pnGo")}`;
+    modal.querySelector("#pnBody").innerHTML=`<div id="pnPE" style="background:#fff;border-radius:10px;padding:10px;margin-bottom:10px;min-height:42px"></div>${payBtn("Start card entry","pnGo")}`;
     modal.querySelector("#pnGo").onclick=startKeyed;
+    getPK();   // warm it up so the card field opens faster
   }
   async function startKeyed(){
     if(!window.Stripe){ status("Stripe.js didn't load.","bad"); return; }
     let pk=await getPK();
-    if(!pk){ const f=modal.querySelector("#pnPK"); pk=((f&&f.value)||"").trim();
-      if(pk) localStorage.setItem("tks_pay_pk",pk); else { status("Enter your publishable key (pk_test_…) to continue.","bad"); if(f) f.focus(); return; } }
+    if(!pk){ status("Typed-card entry could not start (no connection to the payment service). Check the signal and try again, or use the card reader.","bad"); return; }
     status("Preparing secure card field…");
     const j=await call("pay-create-intent",{invoiceId:S.receipt.id,method:"keyed",attempt:S.attempt});
     if(j.error||!j.clientSecret){ status(j.error||"no client secret","bad"); return; }

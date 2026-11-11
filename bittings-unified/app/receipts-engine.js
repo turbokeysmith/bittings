@@ -29,7 +29,25 @@ function receiptTaxRate(r){
 
 function warrantyUntilTs(startMs, months){ const d=new Date(startMs||Date.now()); d.setMonth(d.getMonth()+(Number(months)||0)); return d.getTime(); }
 
+// 8z44 (owner, 2026-11-11): a warranty is only offered when HARDWARE was sold — a stocked part (partId / Register part line)
+// or a Materials / Parts line. Service calls, programming and labor alone carry none.
+function receiptHasHardware(its){
+  return (its||[]).some(function(it){ if(!it || it.isDiscount || it.declined) return false;
+    return !!it.partId || it.lineType==="part" || (it.category||"")==="Materials"; });
+}
+// Register sales are written by the server without warranty fields. Give one with hardware the shop's standard warranty,
+// counted from the day it was paid, so it shows and prints like any other receipt.
+function warrantyView(r){
+  if(!r) return r;
+  if(r.warranty==null && r.source==="pos" && r.docType!=="estimate" && receiptHasHardware(r.items)){
+    let m=0; try{ const w=(window.TKS&&TKS.Config&&TKS.Config.warranty)?TKS.Config.warranty():null; m=w?(Number(w.months)||0):0; }catch(e){}
+    const start=Number(r.paidAt)||Number(r.savedAt)||0;
+    if(m>0 && start) return Object.assign({}, r, { warranty:true, warrantyMonths:m, warrantyStart:start });
+  }
+  return r;
+}
 function warrantyInfo(r){
+  r=warrantyView(r);
   if(!r || !r.warranty || !Number(r.warrantyMonths)) return null;
   const start=r.warrantyStart||r.savedAt; if(!start) return null;
   const until=r.warrantyUntil||warrantyUntilTs(start, r.warrantyMonths);
@@ -38,6 +56,7 @@ function warrantyInfo(r){
 }
 
 function warrantyTermText(r){
+  r=warrantyView(r);
   if(!r || !r.warranty || !Number(r.warrantyMonths) || r.docType==="estimate") return "";
   const m=Number(r.warrantyMonths);
   return m+" month"+(m===1?"":"s")+" limited warranty";
