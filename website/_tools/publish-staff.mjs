@@ -21,6 +21,14 @@ for (const f of FILES) if (fs.existsSync(path.join(SRC, f))) fs.copyFileSync(pat
 copyDir(path.join(SRC, 'app'), path.join(DST, 'app'));
 try { fs.unlinkSync(path.join(DST, 'app', 'STRUCTURE_NOTES.md')); } catch {}
 
+// 8z40: version stamp — the app compares this with the version it loaded and offers "Update ready"
+{ const crypto = await import('node:crypto'); const h = crypto.createHash('sha1'); const list = [];
+  (function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true }).sort((x, y) => x.name < y.name ? -1 : 1)) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else list.push(p); } })(DST);
+  for (const p of list) { h.update(path.relative(DST, p)); h.update(fs.readFileSync(p)); }
+  const v = h.digest('hex').slice(0, 12);
+  fs.writeFileSync(path.join(DST, 'version.json'), JSON.stringify({ v, at: new Date().toISOString() }));
+  console.log('staff app version ' + v); }
+
 let n = 0, bytes = 0; (function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else { n++; bytes += fs.statSync(p).size; } } })(DST);
 console.log(`staff app copied: ${n} files, ${(bytes / 1024 / 1024).toFixed(1)} MB → website/site/staff/`);
 
