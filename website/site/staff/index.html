@@ -889,6 +889,14 @@
   #view-dashboard .dash-export{margin-left:auto;background:var(--ds-card);border:1px solid var(--ds-bd);color:var(--ds-ink);
     border-radius:10px;padding:10px 14px;font-weight:800;font-size:13px;cursor:pointer;min-height:44px;white-space:nowrap;}
   #view-dashboard .dash-export:active{background:var(--ds-sunk);}
+  #view-dashboard .dash-period{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:-4px 0 16px;}
+  #view-dashboard .dp-chips{display:flex;gap:4px;padding:4px;border-radius:12px;background:rgba(128,128,128,.12);flex:1 1 auto;min-width:0}
+  #view-dashboard .dp-chips button{flex:1;border:0;background:none;color:var(--ds-2);font-weight:800;font-size:13.5px;padding:9px 4px;border-radius:9px;cursor:pointer;white-space:nowrap}
+  #view-dashboard .dp-chips button.on{background:var(--card,#fff);color:var(--ds-ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  #view-dashboard .dp-step{display:flex;align-items:center;gap:6px;flex:1 1 auto;justify-content:space-between}
+  #view-dashboard .dp-step button{width:40px;height:38px;border-radius:10px;border:1px solid rgba(128,128,128,.3);background:var(--card,#fff);color:var(--ds-ink);font-size:20px;font-weight:800;cursor:pointer}
+  #view-dashboard .dp-step button:disabled{opacity:.35;cursor:default}
+  #view-dashboard .dp-step span{flex:1;text-align:center;font-weight:800;font-size:14.5px;color:var(--ds-ink)}
   #view-dashboard .dash-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
   #view-dashboard .kpi{background:var(--ds-card);border:1px solid var(--ds-bd);border-radius:14px;padding:16px;
     box-shadow:0 1px 2px rgba(20,23,27,.04),0 8px 24px rgba(20,23,27,.06);}
@@ -904,6 +912,14 @@
   #view-dashboard .wk{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%;}
   #view-dashboard .wk-val{font-size:11px;color:var(--ds-2);font-family:ui-monospace,Menlo,Consolas,monospace;}
   #view-dashboard .wk-bar{width:100%;max-width:30px;background:var(--ds-sunk);border-radius:7px 7px 3px 3px;min-height:4px;}
+  #view-dashboard .dash-grid>*{min-width:0}
+  #view-dashboard .dash-week.dense .wk{min-width:0}
+  #view-dashboard .dash-week.dense .wk-lbl,#view-dashboard .dash-week.dense .wk-val{white-space:nowrap;overflow:visible}
+  #view-dashboard .dash-week.dense{gap:2px}
+  #view-dashboard .dash-week.dense .wk-val{font-size:9px}
+  #view-dashboard .dash-week.dense .wk-val.z{visibility:hidden}
+  #view-dashboard .dash-week.dense .wk:not(:nth-child(5n+1)) .wk-lbl{visibility:hidden}
+  #view-dashboard .dash-week.dense .wk-lbl{font-size:9px}
   #view-dashboard .wk-bar.hot{background:linear-gradient(180deg,#c92c3d,#b82334);}
   #view-dashboard .wk-lbl{font-size:11px;color:var(--ds-3);font-family:ui-monospace,Menlo,Consolas,monospace;}
   #view-dashboard .ty{margin-bottom:13px;}
@@ -1908,10 +1924,16 @@ window.tksDemoOn = function(){
         </div>
         <button class="dash-export" id="dashExport" type="button">⇩ Export CSV</button>
       </div>
+      <div class="dash-period" id="dashPeriod">
+        <div class="dp-chips">
+          <button type="button" data-dp="day">Today</button><button type="button" data-dp="week">Week</button><button type="button" data-dp="month">Month</button><button type="button" data-dp="quarter">Quarter</button><button type="button" data-dp="year">Year</button>
+        </div>
+        <div class="dp-step"><button type="button" data-dpstep="-1" aria-label="Previous">‹</button><span id="dashPeriodLbl">—</span><button type="button" data-dpstep="1" aria-label="Next">›</button></div>
+      </div>
       <div class="dash-kpis" id="dashKpis"></div>
       <div class="dash-grid">
         <div class="dash-card">
-          <div class="dash-sec">Jobs this week</div>
+          <div class="dash-sec" id="dashWeekTitle">Jobs this week</div>
           <div class="dash-week" id="dashWeek"></div>
         </div>
         <div class="dash-card">
@@ -5187,6 +5209,39 @@ function dashMoney0(c){ return '$'+Math.round((c||0)/100).toLocaleString(); }
 function dashMoney2(c){ return '$'+((c||0)/100).toFixed(2); }
 function dashISO(d){ const x=new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,10); }
 function dashMonthBounds(offset){ const n=new Date(), y=n.getFullYear(), m=n.getMonth()+(offset||0); return {start:new Date(y,m,1), end:new Date(y,m+1,1), mIdx:((m%12)+12)%12}; }
+// 8z39: period = day | week (Mon–Sun) | month | quarter | year; offset 0 = current, -1 = previous …
+let _dashP=(function(){ try{ return JSON.parse(localStorage.getItem('tks_dash_period')||'null')||{kind:'month',off:0}; }catch(e){ return {kind:'month',off:0}; } })();
+if(['day','week','month','quarter','year'].indexOf(_dashP.kind)<0) _dashP={kind:'month',off:0};
+function dashPeriodBounds(kind, off){
+  const n=new Date(), y=n.getFullYear(), m=n.getMonth(), d=n.getDate(); off=off||0; let start,end;
+  if(kind==='day'){ start=new Date(y,m,d+off); end=new Date(y,m,d+off+1); }
+  else if(kind==='week'){ const dow=(n.getDay()+6)%7; start=new Date(y,m,d-dow+7*off); end=new Date(start.getFullYear(),start.getMonth(),start.getDate()+7); }
+  else if(kind==='quarter'){ const q0=Math.floor(m/3)*3+3*off; start=new Date(y,q0,1); end=new Date(y,q0+3,1); }
+  else if(kind==='year'){ start=new Date(y+off,0,1); end=new Date(y+off+1,0,1); }
+  else { start=new Date(y,m+off,1); end=new Date(y,m+off+1,1); }
+  return {kind, off, start, end, mIdx:start.getMonth()};
+}
+function dashPeriodLabel(p, short){
+  const S=p.start, E=new Date(p.end.getTime()-86400000), mon=i=>DASH_MONTHS[i].slice(0,3);
+  if(p.kind==='day'){ if(p.off===0) return 'Today'; if(p.off===-1) return 'Yesterday'; return mon(S.getMonth())+' '+S.getDate()+(short?'':', '+S.getFullYear()); }
+  if(p.kind==='week'){ if(short) return p.off===0?'this week':(p.off===-1?'last week':'week of '+mon(S.getMonth())+' '+S.getDate());
+    return mon(S.getMonth())+' '+S.getDate()+' – '+(E.getMonth()!==S.getMonth()?mon(E.getMonth())+' ':'')+E.getDate()+', '+E.getFullYear(); }
+  if(p.kind==='quarter'){ const q='Q'+(Math.floor(S.getMonth()/3)+1); return short?q:q+' '+S.getFullYear()+' ('+mon(S.getMonth())+' – '+mon(E.getMonth())+')'; }
+  if(p.kind==='year') return String(S.getFullYear());
+  return short?DASH_MONTHS[S.getMonth()]:DASH_MONTHS[S.getMonth()]+' '+S.getFullYear();
+}
+function dashPeriodNoun(k){ return {day:'day',week:'week',month:'month',quarter:'quarter',year:'year'}[k]||'period'; }
+// chart buckets for the period: day/week → the 7 days of that week, month → days, quarter/year → months
+function dashBuckets(p){
+  const out=[], L=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  if(p.kind==='day'||p.kind==='week'){ const base=p.kind==='week'?p.start:dashPeriodBounds('week', Math.floor(((p.start - dashPeriodBounds('week',0).start)/86400000)/7)).start;
+    for(let i=0;i<7;i++){ const a=new Date(base.getFullYear(),base.getMonth(),base.getDate()+i); out.push({label:L[i], start:a, end:new Date(a.getFullYear(),a.getMonth(),a.getDate()+1)}); }
+    return {title:'Jobs '+(p.kind==='week'&&p.off!==0?dashPeriodLabel(p,true):'this week'), rows:out}; }
+  if(p.kind==='month'){ const days=Math.round((p.end-p.start)/86400000); for(let i=0;i<days;i++){ const a=new Date(p.start.getFullYear(),p.start.getMonth(),i+1); out.push({label:String(i+1), start:a, end:new Date(a.getFullYear(),a.getMonth(),i+2)}); }
+    return {title:'Jobs by day — '+dashPeriodLabel(p,true), rows:out}; }
+  for(let a=new Date(p.start); a<p.end; a=new Date(a.getFullYear(),a.getMonth()+1,1)) out.push({label:DASH_MONTHS[a.getMonth()].slice(0,3), start:a, end:new Date(a.getFullYear(),a.getMonth()+1,1)});
+  return {title:'Jobs by month — '+dashPeriodLabel(p,true), rows:out};
+}
 async function dashTx(start,end){
   if(!window.TKPay || !TKPay.dayTransactions) return {sales:0,jobs:0,tax:0,ok:false};
   let res; try{ res=await TKPay.dayTransactions(start.toISOString(), end.toISOString()); }catch(e){ return {sales:0,jobs:0,tax:0,ok:false}; }
@@ -5204,6 +5259,13 @@ function dashRepeat(monthB){
   const keys=Object.keys(active); if(!keys.length) return {pct:null,n:0};
   const repeat=keys.filter(k=>(lifetime[k]||0)>=2).length;
   return {pct:Math.round(repeat/keys.length*100), n:keys.length};
+}
+function dashPeriodJobs(p){
+  const all=dashAllBookings(), B=dashBuckets(p), todayKey=dashISO(new Date());
+  const days=B.rows.map(r=>({label:r.label, key:dashISO(r.start), start:r.start, end:r.end, n:0}));
+  all.forEach(b=>{ if((b.status||'')!=='Completed' || !b.date) return; const d=new Date(b.date+'T00:00:00'); const r=days.find(x=>d>=x.start && d<x.end); if(r) r.n++; });
+  const ti=days.findIndex(x=>{ const t=new Date(); return t>=x.start && t<x.end; });
+  return {days, title:B.title, todayKey: ti>=0?days[ti].key:todayKey};
 }
 function dashWeekJobs(){
   const all=dashAllBookings(), n=new Date(), dow=(n.getDay()+6)%7;
@@ -5229,18 +5291,27 @@ function dashKpiCard(lbl,val,sub,color){
     '<div class="kpi-sub">'+(sub||'&nbsp;')+'</div></div>';
 }
 function openDashboard(){ show('dashboard'); renderDashboard(); }
+(function(){ const box=document.getElementById('dashPeriod'); if(!box) return;
+  const save=()=>{ try{ localStorage.setItem('tks_dash_period', JSON.stringify(_dashP)); }catch(e){} renderDashboard(); };
+  box.querySelectorAll('[data-dp]').forEach(b=>b.onclick=()=>{ _dashP={kind:b.dataset.dp, off:0}; save(); });
+  box.querySelectorAll('[data-dpstep]').forEach(b=>b.onclick=()=>{ const n=_dashP.off+parseInt(b.dataset.dpstep,10); if(n>0) return; _dashP={kind:_dashP.kind, off:n}; save(); });
+})();
 async function renderDashboard(){
-  const monthB=dashMonthBounds(0), prevB=dashMonthBounds(-1), now=new Date();
-  document.getElementById('dashEyebrow').textContent=(DASH_MONTHS[now.getMonth()]+' '+now.getFullYear()).toUpperCase();
+  const monthB=dashPeriodBounds(_dashP.kind,_dashP.off), prevB=dashPeriodBounds(_dashP.kind,_dashP.off-1), now=new Date();   // 8z39: "monthB" = the chosen period
+  const pLabel=dashPeriodLabel(monthB,false), noun=dashPeriodNoun(_dashP.kind);
+  document.getElementById('dashEyebrow').textContent=pLabel.toUpperCase();
+  document.getElementById('dashPeriodLbl').textContent=pLabel;
+  document.querySelectorAll('#dashPeriod [data-dp]').forEach(b=>b.classList.toggle('on', b.dataset.dp===_dashP.kind));
+  { const nx=document.querySelector('#dashPeriod [data-dpstep="1"]'); if(nx) nx.disabled=_dashP.off>=0; }
   const kbox=document.getElementById('dashKpis');
   kbox.innerHTML='<div class="dash-empty" style="grid-column:1/-1">Loading…</div>';
   const cur=await dashTx(monthB.start,monthB.end), prev=await dashTx(prevB.start,prevB.end);
-  const prevName=DASH_MONTHS[prevB.mIdx];
+  const prevName=(prevB.kind==='day'&&prevB.off===-1)?'yesterday':dashPeriodLabel(prevB,true);
   // Revenue
   const revD=prev.ok?dashDeltaPct(cur.sales,prev.sales):null;
   const revSub=revD==null?'':(dashArrow(revD)+' '+Math.abs(revD)+'% vs '+prevName);
-  // Jobs (this month) + per-day-elapsed
-  const elapsed=Math.max(1,now.getDate());
+  // Jobs (this period) + per-day-elapsed
+  const elapsed=Math.max(1,Math.ceil((Math.min(now.getTime(),monthB.end.getTime())-monthB.start.getTime())/86400000));
   const jobsSub=(cur.jobs/elapsed).toFixed(1)+' / day';
   // Repeat customers
   const rc=dashRepeat(monthB), rcPrev=dashRepeat(prevB);
@@ -5259,24 +5330,26 @@ async function renderDashboard(){
     dashKpiCard('Repeat customers', rcVal, rcSub, '#4aa3ff')+
     dashKpiCard('Avg ticket', avgVal, avgSub, 'var(--ds-ink)')+
     dashKpiCard('Owed (A/R)', '$'+Math.round(owedAll.amount).toLocaleString(), owedSub, owedAll.amount>0?'#c92c3d':'#22994a')+
-    dashKpiCard('Tax collected', dashMoney0(cur.tax), 'this month · pass-through', 'var(--ds-2)');
+    dashKpiCard('Tax collected', dashMoney0(cur.tax), (_dashP.off===0?(_dashP.kind==='day'?'today':'this '+noun):dashPeriodLabel(monthB,true))+' · pass-through', 'var(--ds-2)');
   // Jobs this week
-  const wk=dashWeekJobs(), max=Math.max(1,...wk.days.map(d=>d.n));
+  const wk=dashPeriodJobs(monthB), max=Math.max(1,...wk.days.map(d=>d.n));
+  document.getElementById('dashWeekTitle').textContent=wk.title;
+  const wkBox=document.getElementById('dashWeek'); wkBox.classList.toggle('dense', wk.days.length>12);
   let hi=wk.days.findIndex(d=>d.key===wk.todayKey);
   if(hi<0 || wk.days[hi].n===0){ let pk=0; wk.days.forEach((d,i)=>{ if(d.n>wk.days[pk].n) pk=i; }); hi=wk.days[pk].n>0?pk:-1; }
   document.getElementById('dashWeek').innerHTML = wk.days.map((d,i)=>{
     const h=Math.max(4,Math.round(d.n/max*150));
-    return '<div class="wk"><div class="wk-val">'+d.n+'</div><div class="wk-bar'+(i===hi?' hot':'')+'" style="height:'+h+'px"></div><div class="wk-lbl">'+d.label+'</div></div>';
+    return '<div class="wk"><div class="wk-val'+(d.n?'':' z')+'">'+d.n+'</div><div class="wk-bar'+(i===hi?' hot':'')+'" style="height:'+h+'px"></div><div class="wk-lbl">'+d.label+'</div></div>';
   }).join('');
   // Jobs by type
   const ty=dashTypes(monthB), tcolors=['#ffb000','#4aa3ff','#9b6bd6','#22994a','#c92c3d','#5a616c'];
   const tbox=document.getElementById('dashTypes');
   tbox.innerHTML = ty.total ? ty.rows.map((r,i)=>'<div class="ty"><div class="ty-top"><span>'+esc2(r.label)+'</span><span>'+r.pct+'%</span></div>'+
       '<div class="ty-track"><div class="ty-fill" style="width:'+r.pct+'%;background:'+tcolors[i%tcolors.length]+'"></div></div></div>').join('')
-    : '<div class="dash-empty">No completed jobs logged this month yet.</div>';
+    : '<div class="dash-empty">No completed jobs logged for '+esc2(pLabel)+'.</div>';
   document.getElementById('dashFoot').innerHTML =
-    'Revenue, Jobs &amp; Tax collected match Transaction History for '+DASH_MONTHS[now.getMonth()]+'. Owed (A/R) is your current unpaid-invoice total across all customers. The two job charts read completed scheduler bookings. Deltas appear only when last month has real data.';
-  _dashData={ month:DASH_MONTHS[now.getMonth()]+' '+now.getFullYear(), revenue:cur.sales, jobs:cur.jobs,
+    'Revenue, Jobs &amp; Tax collected match Transaction History for '+esc2(pLabel)+'. Owed (A/R) is your current unpaid-invoice total across all customers. The two job charts read completed scheduler bookings. Deltas compare with the previous '+noun+' and appear only when it has real data.';
+  _dashData={ month:pLabel, noun:noun, chartTitle:wk.title, revenue:cur.sales, jobs:cur.jobs,
     repeatPct:rc.pct, avgTicket:cur.jobs?curAvg:null, week:wk.days.map(d=>({label:d.label,n:d.n})), types:ty.rows.map(r=>({label:r.label,n:r.n,pct:r.pct})) };
 }
 (function(){ const b=document.getElementById('dashExport'); if(b) b.onclick=function(){
@@ -5286,15 +5359,15 @@ async function renderDashboard(){
   lines.push(bizName()+' — Manager dashboard,'+q(d.month));
   lines.push('');
   lines.push('Metric,Value');
-  lines.push('Revenue (this month),'+dashMoney2(d.revenue));
-  lines.push('Jobs (this month),'+d.jobs);
+  lines.push('Revenue ('+d.month+'),'+dashMoney2(d.revenue));
+  lines.push('Jobs ('+d.month+'),'+d.jobs);
   lines.push('Repeat customers,'+(d.repeatPct==null?'—':d.repeatPct+'%'));
   lines.push('Avg ticket,'+(d.avgTicket==null?'—':dashMoney2(d.avgTicket)));
   lines.push('');
-  lines.push('Jobs this week,Completed');
+  lines.push(q(d.chartTitle)+',Completed');
   d.week.forEach(w=>lines.push(w.label+','+w.n));
   lines.push('');
-  lines.push('Jobs by type (this month),Jobs,Share');
+  lines.push(q('Jobs by type ('+d.month+')')+',Jobs,Share');
   d.types.forEach(t=>lines.push(q(t.label)+','+t.n+','+t.pct+'%'));
   const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const u=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=u; a.download='manager_dashboard_'+dashISO(new Date())+'.csv'; a.click();

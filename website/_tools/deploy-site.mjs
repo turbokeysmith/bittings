@@ -20,6 +20,17 @@ if (check.status !== 0) {
   process.exit(1);
 }
 
+// Guard 2 (2026-11-10): refuse to ship a stale homepage. A Nov 7 branch merge brought back the June ALOA
+// closure notice; any 'TEMPORARY' notice block left on the home pages blocks the deploy until it is removed.
+import fs from 'node:fs';
+for (const p of ['website/site/index.html', 'website/site/es/index.html']) {
+  const html = fs.readFileSync(path.join(repo, p), 'utf8');
+  if (/aloa-notice|NOTICE\s*—\s*TEMPORARY|TAKE THIS DOWN/i.test(html)) {
+    console.error('Deploy ABORTED — ' + p + ' still has a temporary notice block (e.g. the old ALOA closure). Remove it first.');
+    process.exit(1);
+  }
+}
+
 const cmd = `npx wrangler pages deploy website/site --project-name=turbokeysmith --branch=${branch}`;
 if (dryRun) { console.log(`[dry run] would now run: ${cmd}`); process.exit(0); }
 process.exit(spawnSync(cmd, { cwd: repo, stdio: 'inherit', shell: true }).status ?? 1);
