@@ -39,9 +39,11 @@
   // ---- per-workstation settings ------------------------------------------
   var LS = 'tks_hw_prefs';
   var DEFAULTS = {
+    helper: { url: 'http://127.0.0.1:8765' },   // 8z26: Bittings Print Helper on this PC (receipts + labels + drawer)
     scanner: { enabled: true, minLen: 3, burstMs: 40, endKey: 'Enter' },
     thermal: {
       enabled: false,
+      mode: 'helper',       // 8z26: 'helper' (Bittings Print Helper) | 'webprnt' (Star WebPRNT endpoint)
       endpoint: 'http://localhost:8001/StarWebPRNT/SendMessage',
       width: 48,            // columns (Font A: 80mm≈48, 58mm≈32)
       drawerKick: true,
@@ -51,10 +53,12 @@
     },
     labels: {
       enabled: false,
+      mode: 'helper',       // 8z26: 'helper' (Bittings Print Helper) | 'browserprint' (Zebra Browser Print)
       deviceUid: '',        // chosen Zebra device uid (blank = OS default)
+      shiftX: 40,           // 8z26: dots to move everything right (the ZD420 started printing left of the label edge)
       dpi: 203,
-      widthIn: 2.25,
-      heightIn: 1.25,
+      widthIn: 2.0,         // 8z26c: the shop's ZD420 labels are 2.00 x 1.00 in
+      heightIn: 1.0,
       darkness: 20,
       speed: 3
     }
@@ -72,6 +76,54 @@
   var prefs = DEFAULTS;
   try { prefs = deepMerge(DEFAULTS, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) {}
   function persist() { try { localStorage.setItem(LS, JSON.stringify(prefs)); } catch (e) {} }
+
+  // ---- 8z26: Bittings Print Helper client ---------------------------------
+  function helperUrl() { return ((prefs.helper && prefs.helper.url) || DEFAULTS.helper.url).replace(/\/+$/, ''); }
+  function helperCall(pathName, payload) {
+    var opt = payload === undefined ? { method: 'GET' } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
+    return fetch(helperUrl() + pathName, opt).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) {
+      if (!r.ok || (j && j.error)) throw new Error((j && j.error) || ('Print helper error ' + r.status)); return j; }); },
+      function () { throw new Error('Can\'t reach the Bittings Print Helper on this computer. Use the counter PC (the one with the printers), or restart it.'); });
+  }
+  function helperStatus() { return helperCall('/status'); }
+
+  // 8z28: QR as a ZPL graphic (^GFA) we draw ourselves — exact size and position on every printer.
+  // Uses qrcode-generator (app/vendor/qrcode-generator-1.4.4.js, MIT). Falls back to the printer's ^BQ if it isn't loaded.
+  function qrGFA(text, x, y, maxDots) {
+    if (typeof window.qrcode !== 'function') return null;
+    var q = window.qrcode(0, 'M'); q.addData(String(text)); q.make();
+    var n = q.getModuleCount(), quiet = 1, total = n + quiet * 2;
+    var mag = Math.max(2, Math.floor(maxDots / total)), size = total * mag;
+    var rowBytes = Math.ceil(size / 8), hex = '';
+    for (var py = 0; py < size; py++) {
+      var my = Math.floor(py / mag) - quiet, bits = '';
+      for (var px = 0; px < rowBytes * 8; px++) {
+        var mx = Math.floor(px / mag) - quiet;
+        bits += (px < size && mx >= 0 && my >= 0 && mx < n && my < n && q.isDark(my, mx)) ? '1' : '0';
+      }
+      for (var b = 0; b < bits.length; b += 8) hex += ('0' + parseInt(bits.substr(b, 8), 2).toString(16).toUpperCase()).slice(-2);
+    }
+    return { zpl: '^FO' + x + ',' + y + '^GFA,' + (rowBytes * size) + ',' + (rowBytes * size) + ',' + rowBytes + ',' + hex + '^FS', size: size };
+  }
+
+  // 8z29c: fit text into N lines of a ZPL ^FB block (font A0 ≈ 0.62 × height per character, conservative)
+  function fitLines(text, widthDots, fontDots, lines) {
+    var per = Math.max(4, Math.floor(widthDots / (fontDots * 0.62)));
+    var words = String(text || '').split(/\s+/).filter(Boolean), out = [], cur = '';
+    for (var i = 0; i < words.length; i++) {
+      var wd = words[i].length > per ? words[i].slice(0, per) : words[i];
+      if (!cur) cur = wd; else if ((cur + ' ' + wd).length <= per) cur += ' ' + wd; else { out.push(cur); cur = wd; }
+      if (out.length === lines) { cur = ''; break; }
+    }
+    if (cur && out.length < lines) out.push(cur);
+    var used = out.join(' ').split(/\s+/).filter(Boolean).length;
+    if (used < words.length && out.length) { var last = out[out.length - 1]; while ((last + '...').length > per && last.indexOf(' ') > 0) last = last.replace(/\s+\S*$/, ''); out[out.length - 1] = ((last + '...').length > per ? last.slice(0, per - 3) : last) + '...'; }   // whole words   // 8z29d: plain dots (no "…" glyph in the Zebra font)
+    fitLines.lastLines = out.length || 1;   // 8z29g: how many lines the name really uses (price goes right under it)
+    return out.join(' ');
+  }
+
+  // 8z29d: biggest font (≤ max) that keeps one line of text inside widthDots
+  function fitFont(text, widthDots, maxFont) { var n = String(text || '').length || 1; return Math.max(14, Math.min(maxFont, Math.floor(widthDots / (n * 0.6)))); }
 
   // ---- small helpers ------------------------------------------------------
   function esc(s) {
@@ -231,9 +283,12 @@
 
       // header
       line(id.name || 'RECEIPT', 'center', true, true);
-      if (id.address) wrap(id.address, w).forEach(function (l) { line(l, 'center'); });
-      if (id.phone) line(id.phone, 'center');
-      if (id.email) line(id.email, 'center');
+      // 8z26d: street on line 1, "City, ST ZIP" on line 2 (split before the city)
+      if (id.address) { var ap = String(id.address).split(/\s*,\s*/).filter(Boolean);
+        var cityLine = ap.length >= 3 ? ap.slice(-2).join(', ') : (ap.length === 2 && /\d{5}/.test(ap[1]) ? ap[1] : '');
+        var street = cityLine ? ap.slice(0, ap.length - (ap.length >= 3 ? 2 : 1)).join(', ') : String(id.address);
+        wrap(street, w).forEach(function (l) { line(l, 'center'); }); if (cityLine) wrap(cityLine, w).forEach(function (l) { line(l, 'center'); }); }
+      if (id.phone) line(id.phone, 'center');   // 8z26d: no e-mail on the printed receipt
       T.push({ t: 'rule' });
 
       // meta
@@ -265,13 +320,14 @@
       if (t.discount) line(row('Discount', '-' + money(t.discount), w));
       if (t.tax != null) line(row('Tax' + (t.taxRate ? ' (' + t.taxRate + '%)' : ''), money(t.tax), w));
       if (t.surcharge) line(row('Card surcharge', money(t.surcharge), w));
-      line(row('TOTAL', money(t.total != null ? t.total : sub), w), 'left', true, true);
+      // 8z26d: the big TOTAL prints ~1.7x wider, so it gets its own narrower row (amount was cut off)
+      line(row('TOTAL', money(t.total != null ? t.total : sub), Math.floor(w / 1.75)), 'left', true, true);
       if (r.payment) { T.push({ t: 'rule' }); line(row('Paid by', r.payment, w)); }
       if (r.status) line(row('Status', r.status, w));
 
       // footer
       T.push({ t: 'rule' });
-      if (id.footer) wrap(id.footer, w).forEach(function (l) { line(l, 'center'); });
+      // 8z26d: no "Insured & Bonded" footer on the printed receipt — just the thank-you
       line('Thank you!', 'center');
 
       // machine-readable receipt number for re-scanning/lookups
@@ -375,8 +431,21 @@
       });
     }
 
+    // 8z26: tokens → plain lines for the helper (it draws them through the Star driver)
+    function helperLines(r) {
+      var w = prefs.thermal.width || 48, out = [], drawer = false;
+      tokens(r, { drawer: true, logo: false }).forEach(function (tk) {
+        if (tk.t === 'text') out.push({ text: tk.align === 'left' ? tk.data : String(tk.data).trim(), align: tk.align, bold: tk.bold, big: tk.big });
+        else if (tk.t === 'rule') out.push({ text: rule(w), align: 'left' });
+        else if (tk.t === 'barcode') out.push({ text: '# ' + tk.data, align: 'center' });
+        else if (tk.t === 'drawer') drawer = true;
+      });
+      return { lines: out, drawer: drawer };
+    }
     function printReceipt(r) {
       if (!prefs.thermal.enabled) return Promise.reject(new Error('Thermal printing is disabled in Hardware settings.'));
+      if ((prefs.thermal.mode || 'helper') === 'helper') { var job = helperLines(r);
+        return helperCall('/receipt', { lines: job.lines, cols: prefs.thermal.width || 48, drawer: job.drawer && prefs.thermal.drawerKick, copies: Math.max(1, prefs.thermal.copies || 1) }); }
       if (!sdkReady()) return Promise.reject(new Error('Star Web SDK not loaded — add StarWebPrintBuilder.js + StarWebPrintTrader.js (see Hardware settings).'));
       var copies = Math.max(1, prefs.thermal.copies || 1);
       var chain = buildRequest(r, { drawer: true, logo: true }).then(function (req) { return send(req); });
@@ -386,8 +455,10 @@
       return chain;
     }
 
+    function openDrawer() { return helperCall('/drawer', {}); }   // 8z26
     return {
       printReceipt: printReceipt,
+      openDrawer: openDrawer,
       previewText: previewText,
       sdkReady: sdkReady,
       _tokens: tokens
@@ -406,35 +477,34 @@
 
     // parameterized label: Code-128 SKU barcode + human SKU + wrapped part name
     function buildZPL(part, opt) {
-      opt = opt || {};
+      // 8z29f: part label — QR top-left, name (3 lines) + price right, part number big across the bottom
+      opt = opt || {}; part = part || {};
       var dpi = opt.dpi || prefs.labels.dpi || 203;
-      var wIn = opt.widthIn || prefs.labels.widthIn || 2.25;
-      var hIn = opt.heightIn || prefs.labels.heightIn || 1.25;
-      var PW = Math.round(wIn * dpi);
-      var LL = Math.round(hIn * dpi);
-      var m = Math.round(0.08 * dpi);
-      var barH = Math.round(0.42 * dpi);
-      var mod = dpi >= 300 ? 3 : 2;
+      var wIn = opt.widthIn || prefs.labels.widthIn || 2.0;
+      var hIn = opt.heightIn || prefs.labels.heightIn || 1.0;
+      var PW = Math.round(wIn * dpi), LL = Math.round(hIn * dpi);
+      var m = Math.round(0.06 * dpi);
+      var shift = Math.max(0, parseInt(prefs.labels.shiftX, 10) || 0);
+      var fullW = PW - shift - 2 * m;
       var sku = z(part.sku || part.id || '');
       var name = z(part.name || '');
-      var nameFont = Math.round(0.13 * dpi);
-      var skuFont = Math.round(0.15 * dpi);
-      return [
-        '^XA',
-        '^CI28',
-        '^PW' + PW, '^LL' + LL,
-        '^MD' + (prefs.labels.darkness != null ? prefs.labels.darkness : 20),
-        '^PR' + (prefs.labels.speed || 3),
-        // part name, wrapped to 2 lines, top
-        '^FO' + m + ',' + m + '^A0N,' + nameFont + ',' + nameFont
-          + '^FB' + (PW - 2 * m) + ',2,0,L^FD' + name + '^FS',
-        // barcode
-        '^BY' + mod + ',2.0,' + barH,
-        '^FO' + m + ',' + Math.round(0.50 * dpi) + '^BCN,' + barH + ',N,N,N^FD' + sku + '^FS',
-        // human-readable SKU under the barcode
-        '^FO' + m + ',' + Math.round(0.98 * dpi) + '^A0N,' + skuFont + ',' + skuFont + '^FD' + sku + '^FS',
-        '^XZ'
-      ].join('\n');
+      var price = (part.sellPriceCents != null && part.sellPriceCents !== '') ? '$' + (Number(part.sellPriceCents) / 100).toFixed(2) : '';
+      var skuFont = Math.round(Math.min(0.15, hIn * 0.15) * dpi);          // big, never shrunk — the whole bottom row is its
+      var skuY = LL - m - skuFont;
+      var nameFont = Math.round(Math.min(0.11, hIn * 0.10) * dpi);
+      var priceFont = Math.round(Math.min(0.17, hIn * 0.16) * dpi);
+      function header(){ return ['^XA', '^CI28', '^PW' + PW, '^LL' + LL, '^MD' + (prefs.labels.darkness != null ? prefs.labels.darkness : 20), '^PR' + (prefs.labels.speed || 3)]; }
+      function right(qrSize, bottomY, nameLines){
+        var tx = m + qrSize + Math.round(0.05 * dpi), tw = Math.max(60, PW - shift - tx - m);
+        var nm = fitLines(name, tw, nameFont, nameLines);
+        var priceY = Math.min(bottomY - priceFont, m + Math.round(nameFont * 1.15 * (fitLines.lastLines || nameLines)) + 4);   // 8z29g: right under the name
+        return [ '^FO' + tx + ',' + m + '^A0N,' + nameFont + ',' + nameFont + '^FB' + tw + ',' + nameLines + ',0,L^FD' + nm + '^FS',
+                 price ? ('^FO' + tx + ',' + priceY + '^A0N,' + priceFont + ',' + priceFont + '^FB' + tw + ',1,0,L^FD' + price + '^FS') : '' ];
+      }
+      var skuLine = '^FO' + m + ',' + skuY + '^A0N,' + skuFont + ',' + skuFont + '^FB' + fullW + ',1,0,L^FD' + sku + '^FS';
+      var g = qrGFA(sku, m, m, skuY - 6 - m);
+      var qrSize = g ? g.size : (skuY - 6 - m);
+      return header().concat([ g ? g.zpl : ('^FO' + m + ',' + m + '^BQN,2,4^FDMA,' + sku + '^FS') ], right(qrSize, skuY - 4, 3), [ skuLine, '^XZ' ]).filter(Boolean).join('\n');
     }
 
     function listDevices() {
@@ -466,7 +536,11 @@
       });
     }
 
+    // 8z26: label home — shift every label right by shiftX dots
+    function home(zpl) { var x = Math.max(0, Math.min(200, parseInt(prefs.labels.shiftX, 10) || 0)); return x ? String(zpl).replace(/\^XA/g, '^XA^LH' + x + ',0') : zpl; }
     function sendZPL(zpl) {
+      zpl = home(zpl);
+      if ((prefs.labels.mode || 'helper') === 'helper') return helperCall('/zpl', { zpl: zpl });   // 8z26
       return device().then(function (d) {
         return new Promise(function (resolve, reject) {
           d.send(zpl, function () { resolve(d); }, function (err) { reject(new Error('Print error: ' + err)); });
@@ -487,46 +561,41 @@
       try { var x = d ? new Date(d) : new Date(); if (isNaN(x.getTime())) return ''; return x.toISOString().slice(0, 10); } catch (e) { return ''; }
     }
     function buildUnitZPL(unit, part, opt) {
+      // 8z29f: key label — QR (of the 7-char serial) top-left with "SN: XXXXXXX" small right under it,
+      // name (2 lines) + price right, part number big across the bottom
       opt = opt || {}; unit = unit || {}; part = part || {};
       var dpi = opt.dpi || prefs.labels.dpi || 203;
-      var wIn = opt.widthIn || prefs.labels.widthIn || 2.25;
-      var hIn = opt.heightIn || prefs.labels.heightIn || 1.25;
-      var PW = Math.round(wIn * dpi);
-      var LL = Math.round(hIn * dpi);
-      var m = Math.round(0.08 * dpi);
-      var barH = Math.round(0.36 * dpi);
-      var uid = z(unit.id || '');
+      var wIn = opt.widthIn || prefs.labels.widthIn || 2.0;
+      var hIn = opt.heightIn || prefs.labels.heightIn || 1.0;
+      var PW = Math.round(wIn * dpi), LL = Math.round(hIn * dpi);
+      var m = Math.round(0.06 * dpi);
+      var shift = Math.max(0, parseInt(prefs.labels.shiftX, 10) || 0);
+      var fullW = PW - shift - 2 * m;
       var sku = z(part.sku || part.id || '');
       var name = z(part.name || '');
-      var when = fmtDate(unit.acquired_at || unit.created_at);
-      var nameFont = Math.round(0.12 * dpi);
-      var subFont = Math.round(0.10 * dpi);
-      var idFont = Math.round(0.085 * dpi);
-      // 8o: QR code (owner's choice — the 34-char unit id made a Code-128 too fine to scan reliably on a 2.25" label).
-      // QR version 3 (29 modules) + a 4-module quiet zone each side = 37 modules; biggest magnification that fits the height.
-      var qrModules = 37;
-      var mag = Math.max(3, Math.min(8, Math.floor((LL - 2 * m) / qrModules)));
-      var qrSize = qrModules * mag;
-      var tx = m + qrSize + Math.round(0.06 * dpi);           // text column starts right of the QR
-      var tw = Math.max(60, PW - tx - m);
-      var nameFont2 = Math.round(0.11 * dpi), subFont2 = Math.round(0.09 * dpi), idFont2 = Math.round(0.075 * dpi);
-      void barH; void nameFont; void subFont; void idFont;
-      return [
-        '^XA',
-        '^CI28',
-        '^PW' + PW, '^LL' + LL,
-        '^MD' + (prefs.labels.darkness != null ? prefs.labels.darkness : 20),
-        '^PR' + (prefs.labels.speed || 3),
-        // QR of the unit id (error correction M, automatic encoding) — scanning it opens the unit's story in the app
-        '^FO' + m + ',' + m + '^BQN,2,' + mag + '^FDMA,' + uid + '^FS',
-        // part name (up to 2 lines)
-        '^FO' + tx + ',' + m + '^A0N,' + nameFont2 + ',' + nameFont2 + '^FB' + tw + ',2,0,L^FD' + name + '^FS',
-        // SKU, then received date on the next line
-        '^FO' + tx + ',' + Math.round(m + nameFont2 * 2.2) + '^A0N,' + subFont2 + ',' + subFont2 + '^FB' + tw + ',2,0,L^FD' + sku + (when ? '\\&rcvd ' + when : '') + '^FS',
-        // unit id in small text (manual fallback — the Scan-a-key box accepts it typed)
-        '^FO' + tx + ',' + Math.round(LL - m - idFont2 * 2.3) + '^A0N,' + idFont2 + ',' + idFont2 + '^FB' + tw + ',2,0,L^FD' + uid + '^FS',
-        '^XZ'
-      ].join('\n');
+      var price = (part.sellPriceCents != null && part.sellPriceCents !== '') ? '$' + (Number(part.sellPriceCents) / 100).toFixed(2) : '';
+      var skuFont = Math.round(Math.min(0.15, hIn * 0.15) * dpi);          // big, never shrunk — the whole bottom row is its
+      var skuY = LL - m - skuFont;
+      var nameFont = Math.round(Math.min(0.11, hIn * 0.10) * dpi);
+      var priceFont = Math.round(Math.min(0.17, hIn * 0.16) * dpi);
+      function header(){ return ['^XA', '^CI28', '^PW' + PW, '^LL' + LL, '^MD' + (prefs.labels.darkness != null ? prefs.labels.darkness : 20), '^PR' + (prefs.labels.speed || 3)]; }
+      function right(qrSize, bottomY, nameLines){
+        var tx = m + qrSize + Math.round(0.05 * dpi), tw = Math.max(60, PW - shift - tx - m);
+        var nm = fitLines(name, tw, nameFont, nameLines);
+        var priceY = Math.min(bottomY - priceFont, m + Math.round(nameFont * 1.15 * (fitLines.lastLines || nameLines)) + 4);   // 8z29g: right under the name
+        return [ '^FO' + tx + ',' + m + '^A0N,' + nameFont + ',' + nameFont + '^FB' + tw + ',' + nameLines + ',0,L^FD' + nm + '^FS',
+                 price ? ('^FO' + tx + ',' + priceY + '^A0N,' + priceFont + ',' + priceFont + '^FB' + tw + ',1,0,L^FD' + price + '^FS') : '' ];
+      }
+      var skuLine = '^FO' + m + ',' + skuY + '^A0N,' + skuFont + ',' + skuFont + '^FB' + fullW + ',1,0,L^FD' + sku + '^FS';
+      var code = z(unit.serial || unit.id || '');
+      var snFont = Math.round(Math.min(0.09, hIn * 0.09) * dpi);
+      var snY = skuY - 4 - snFont;
+      var g = qrGFA(code, m, m, snY - 3 - m);
+      var qrSize = g ? g.size : (snY - 3 - m);
+      return header().concat([
+        g ? g.zpl : ('^FO' + m + ',' + m + '^BQN,2,3^FDMA,' + code + '^FS'),
+        '^FO' + m + ',' + snY + '^A0N,' + snFont + ',' + snFont + '^FB' + Math.max(qrSize, 120) + ',1,0,L^FD' + (unit.serial ? 'SN: ' + code : code) + '^FS'
+      ], right(Math.max(qrSize, 120), skuY - 4, 2), [ skuLine, '^XZ' ]).filter(Boolean).join('\n');
     }
     function printUnit(unit, part) {
       if (!prefs.labels.enabled) return Promise.reject(new Error('Label printing is disabled in Hardware settings.'));
@@ -538,11 +607,13 @@
       if (!prefs.labels.enabled) return Promise.reject(new Error('Label printing is disabled in Hardware settings.'));
       units = (units || []).filter(function (u) { return u && u.id; });
       if (!units.length) return Promise.reject(new Error('No units to print.'));
+      if ((prefs.labels.mode || 'helper') === 'helper')   // 8z26: one job, all labels
+        return helperCall('/zpl', { zpl: home(units.map(function (u) { return buildUnitZPL(u, part); }).join('\n')) }).then(function () { return units.length; });
       return device().then(function (d) {
         var i = 0;
         function next() {
           if (i >= units.length) return Promise.resolve(units.length);
-          var zpl = buildUnitZPL(units[i++], part);
+          var zpl = home(buildUnitZPL(units[i++], part));
           return new Promise(function (resolve, reject) {
             d.send(zpl, function () { resolve(); }, function (err) { reject(new Error('Print error: ' + err)); });
           }).then(next);
@@ -609,6 +680,12 @@
     var starOk = thermal.sdkReady(), zebraOk = labels.sdkReady();
     var body = ''
       + '<div style="font-size:12px;color:var(--dim,#9aa3af);margin-bottom:6px">Settings are saved on THIS device only (printers are per-workstation).</div>'
+      // 8z26: the print helper
+      + '<div style="border:1px solid var(--edge,#2a2f3a);border-radius:12px;padding:12px;margin-bottom:12px">'
+      + '<b>Bittings Print Helper</b> <span id="hwHelpSt" style="font-size:12px;color:#9aa3af">● checking…</span>'
+      + '<div style="font-size:12px;color:var(--dim,#9aa3af);margin-top:4px">Runs on the counter PC and prints to its Star receipt printer, cash drawer and Zebra label printer. Use Bittings on that PC to print.</div>'
+      + '<div>' + btn('Check again', 'hwHelpChk') + btn('Open cash drawer', 'hwDrawer') + '</div>'
+      + '</div>'
 
       // SCANNER
       + '<div style="border:1px solid var(--edge,#2a2f3a);border-radius:12px;padding:12px;margin-bottom:12px">'
@@ -623,7 +700,8 @@
       + '<div style="border:1px solid var(--edge,#2a2f3a);border-radius:12px;padding:12px;margin-bottom:12px">'
       + '<b>2 · Star TSP100 receipt + drawer</b> <span style="font-size:11px;color:' + (starOk ? '#7fd49b' : '#f2b43a') + '">' + (starOk ? '● SDK loaded' : '● Star Web SDK not loaded') + '</span>'
       + '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px"><input type="checkbox" id="hwThEn"' + (th.enabled ? ' checked' : '') + '> Enable thermal receipts</label>'
-      + field('WebPRNT endpoint', '<input id="hwThUrl" value="' + esc(th.endpoint) + '" style="' + inputCss() + '">')
+      + field('Send receipts through', '<select id="hwThMode" style="' + inputCss() + '"><option value="helper"' + ((th.mode || 'helper') === 'helper' ? ' selected' : '') + '>Bittings Print Helper (this PC)</option><option value="webprnt"' + (th.mode === 'webprnt' ? ' selected' : '') + '>Star WebPRNT endpoint</option></select>')
+      + field('WebPRNT endpoint (only for WebPRNT)', '<input id="hwThUrl" value="' + esc(th.endpoint) + '" style="' + inputCss() + '">')
       + '<div style="display:flex;gap:8px">'
       + '<div style="flex:1">' + field('Columns', '<select id="hwThW" style="' + inputCss() + '"><option value="48"' + (th.width === 48 ? ' selected' : '') + '>48 (80mm)</option><option value="32"' + (th.width === 32 ? ' selected' : '') + '>32 (58mm)</option></select>') + '</div>'
       + '<div style="flex:1">' + field('Copies', '<input id="hwThCopies" type="number" min="1" max="3" value="' + (th.copies || 1) + '" style="' + inputCss() + '">') + '</div>'
@@ -638,7 +716,8 @@
       + '<div style="border:1px solid var(--edge,#2a2f3a);border-radius:12px;padding:12px;margin-bottom:8px">'
       + '<b>3 · Zebra ZD421 labels</b> <span style="font-size:11px;color:' + (zebraOk ? '#7fd49b' : '#f2b43a') + '">' + (zebraOk ? '● Browser Print loaded' : '● Browser Print not loaded') + '</span>'
       + '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px"><input type="checkbox" id="hwLbEn"' + (lb.enabled ? ' checked' : '') + '> Enable label printing</label>'
-      + field('Printer', '<select id="hwLbDev" style="' + inputCss() + '"><option value="">(OS default)</option></select>')
+      + field('Send labels through', '<select id="hwLbMode" style="' + inputCss() + '"><option value="helper"' + ((lb.mode || 'helper') === 'helper' ? ' selected' : '') + '>Bittings Print Helper (this PC)</option><option value="browserprint"' + (lb.mode === 'browserprint' ? ' selected' : '') + '>Zebra Browser Print</option></select>')
+      + field('Printer (Browser Print only)', '<select id="hwLbDev" style="' + inputCss() + '"><option value="">(OS default)</option></select>')
       + '<div style="display:flex;gap:8px">'
       + '<div style="flex:1">' + field('DPI', '<select id="hwLbDpi" style="' + inputCss() + '"><option value="203"' + (lb.dpi === 203 ? ' selected' : '') + '>203</option><option value="300"' + (lb.dpi === 300 ? ' selected' : '') + '>300</option></select>') + '</div>'
       + '<div style="flex:1">' + field('Width in', '<input id="hwLbW" type="number" step="0.05" value="' + lb.widthIn + '" style="' + inputCss() + '">') + '</div>'
@@ -646,6 +725,7 @@
       + '</div>'
       + '<div style="display:flex;gap:8px">'
       + '<div style="flex:1">' + field('Darkness (0-30)', '<input id="hwLbDark" type="number" min="0" max="30" value="' + lb.darkness + '" style="' + inputCss() + '">') + '</div>'
+      + '<div style="flex:1">' + field('Left margin (dots)', '<input id="hwLbShift" type="number" min="0" max="200" value="' + (lb.shiftX != null ? lb.shiftX : 40) + '" style="' + inputCss() + '">') + '</div>'
       + '<div style="flex:1">' + field('Speed (ips)', '<input id="hwLbSpeed" type="number" min="2" max="6" value="' + lb.speed + '" style="' + inputCss() + '">') + '</div>'
       + '</div>'
       + '<div>' + btn('Refresh printers', 'hwLbScan') + btn('Preview ZPL', 'hwLbPrev') + btn('Test label', 'hwLbTest', 'go') + '</div>'
@@ -663,6 +743,8 @@
     function save() {
       prefs.scanner.enabled = $('hwScanEn').checked;
       prefs.thermal.enabled = $('hwThEn').checked;
+      prefs.thermal.mode = $('hwThMode').value || 'helper';
+      prefs.labels.mode = $('hwLbMode').value || 'helper';
       prefs.thermal.endpoint = $('hwThUrl').value.trim() || DEFAULTS.thermal.endpoint;
       prefs.thermal.width = parseInt($('hwThW').value, 10) || 48;
       prefs.thermal.copies = Math.max(1, Math.min(3, parseInt($('hwThCopies').value, 10) || 1));
@@ -676,10 +758,18 @@
       prefs.labels.heightIn = parseFloat($('hwLbH').value) || 1.25;
       prefs.labels.darkness = Math.max(0, Math.min(30, parseInt($('hwLbDark').value, 10) || 20));
       prefs.labels.speed = Math.max(2, Math.min(6, parseInt($('hwLbSpeed').value, 10) || 3));
+      prefs.labels.shiftX = Math.max(0, Math.min(200, parseInt($('hwLbShift').value, 10) || 0));
       persist();
     }
     // persist on any change
     mo.card.addEventListener('change', save);
+
+    // 8z26: helper status + drawer
+    function chk() { var st = $('hwHelpSt'); if (!st) return; st.textContent = '● checking…'; st.style.color = '#9aa3af';
+      helperStatus().then(function (j) { st.textContent = '● connected — receipt: ' + (j.receiptPrinter || 'none') + ' · labels: ' + (j.labelPrinter || 'none'); st.style.color = '#7fd49b'; })
+        .catch(function () { st.textContent = '● not found on this computer'; st.style.color = '#f2b43a'; }); }
+    chk(); $('hwHelpChk').onclick = chk;
+    $('hwDrawer').onclick = function () { thermal.openDrawer().then(function () { toast('Drawer opened.'); }).catch(function (e) { toast(e.message, false); }); };
 
     // thermal preview / test
     $('hwThPrev').onclick = function () { save(); modal('Thermal preview (' + prefs.thermal.width + ' cols)', pre(thermal.previewText(sampleReceipt(), { width: prefs.thermal.width, drawer: true, logo: true }))); };
@@ -718,6 +808,7 @@
     scanner: scan,
     thermal: thermal,
     labels: labels,
-    openSettings: openSettings
+    openSettings: openSettings,
+    helperStatus: helperStatus
   };
 })();

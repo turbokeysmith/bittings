@@ -1,0 +1,77 @@
+# Bittings Print Helper — the printing half (called by helper.js). Reads the job as JSON on stdin.
+#   -Action status  → printers found
+#   -Action receipt → draws the receipt lines through the Star driver (80 mm), then kicks the cash drawer if asked
+#   -Action zpl     → sends raw ZPL to the Zebra
+#   -Action drawer  → only kicks the drawer
+param([string]$Action = 'status')
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Drawing
+if (-not ('BtRaw' -as [type])) {
+Add-Type -TypeDefinition @"
+using System; using System.Runtime.InteropServices;
+public class BtRaw {
+  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] public class DOCINFO { public string pDocName; public string pOutputFile; public string pDataType; }
+  [DllImport("winspool.drv", CharSet=CharSet.Unicode, SetLastError=true)] static extern bool OpenPrinter(string n, out IntPtr h, IntPtr d);
+  [DllImport("winspool.drv", SetLastError=true)] static extern bool ClosePrinter(IntPtr h);
+  [DllImport("winspool.drv", CharSet=CharSet.Unicode, SetLastError=true)] static extern int StartDocPrinter(IntPtr h, int l, DOCINFO di);
+  [DllImport("winspool.drv", SetLastError=true)] static extern bool EndDocPrinter(IntPtr h);
+  [DllImport("winspool.drv", SetLastError=true)] static extern bool StartPagePrinter(IntPtr h);
+  [DllImport("winspool.drv", SetLastError=true)] static extern bool EndPagePrinter(IntPtr h);
+  [DllImport("winspool.drv", SetLastError=true)] static extern bool WritePrinter(IntPtr h, byte[] b, int n, out int w);
+  public static void Send(string printer, byte[] data, string doc) {
+    IntPtr h; if (!OpenPrinter(printer, out h, IntPtr.Zero)) throw new Exception("cannot open printer " + printer);
+    try { var di = new DOCINFO(); di.pDocName = doc; di.pDataType = "RAW";
+      if (StartDocPrinter(h, 1, di) == 0) throw new Exception("StartDoc failed " + Marshal.GetLastWin32Error());
+      StartPagePrinter(h); int w; WritePrinter(h, data, data.Length, out w); EndPagePrinter(h); EndDocPrinter(h);
+    } finally { ClosePrinter(h); }
+  }
+}
+"@
+}
+function Find-Printer([string]$pattern) { (Get-CimInstance Win32_Printer | Where-Object { $_.Name -match $pattern } | Select-Object -First 1).Name }
+$star  = Find-Printer 'Star|TSP1'
+$zebra = Find-Printer 'ZDesigner|Zebra|ZD4'
+function Kick-Drawer { if (-not $star) { throw 'no Star printer' }
+  # Star: BEL (0x07) fires drawer port 1 in Star mode; ESC p 0 25 250 is the ESC/POS equivalent — the driver passes both through raw
+  [BtRaw]::Send($star, [byte[]](0x07, 0x1B, 0x70, 0x00, 0x19, 0xFA), 'Bittings drawer') }
+$in = ''; if ($Action -ne 'status' -and $Action -ne 'drawer') { $in = [Console]::In.ReadToEnd() }
+switch ($Action) {
+  'status' { @{ receiptPrinter = $star; labelPrinter = $zebra; printers = @((Get-CimInstance Win32_Printer).Name) } | ConvertTo-Json -Compress; break }
+  'drawer' { Kick-Drawer; 'ok'; break }
+  'zpl'    { if (-not $zebra) { throw 'no Zebra printer' }; $j = $in | ConvertFrom-Json; [BtRaw]::Send($zebra, [Text.Encoding]::UTF8.GetBytes([string]$j.zpl), 'Bittings label'); 'ok'; break }
+  'receipt' {
+    if (-not $star) { throw 'no Star printer' }
+    $j = $in | ConvertFrom-Json
+    $lines = @($j.lines)
+    $script:cols = if ([int]$j.cols -gt 0) { [int]$j.cols } else { 48 }
+    for ($c = 0; $c -lt [int]$j.copies; $c++) {
+      $doc = New-Object System.Drawing.Printing.PrintDocument
+      $doc.PrinterSettings.PrinterName = $star
+      $doc.DocumentName = 'Bittings receipt'
+      $doc.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(4, 4, 4, 4)
+      $script:idx = 0
+      $doc.add_PrintPage({ param($s, $e)
+        $g = $e.Graphics; $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::SingleBitPerPixelGridFit
+        $W = $e.MarginBounds.Width; $y = $e.MarginBounds.Top
+        # size the monospace font so a full line (48 columns) exactly fits the paper width
+        $probe = New-Object System.Drawing.Font('Consolas', 10); $tf = [System.Drawing.StringFormat]::GenericTypographic
+        $w10 = $g.MeasureString(('M' * $script:cols), $probe, 100000, $tf).Width; $pt = [Math]::Max(5, [Math]::Floor(10 * $W / $w10 * 100) / 100 * 0.98)
+        # 8z26d: darker — everything prints bold (thermal paper + thin Consolas looked faint)
+        $fN = New-Object System.Drawing.Font('Consolas', $pt, [System.Drawing.FontStyle]::Bold); $fB = $fN
+        $fBig = New-Object System.Drawing.Font('Consolas', [Math]::Min(16, $pt * 1.7), [System.Drawing.FontStyle]::Bold)
+        while ($script:idx -lt $lines.Count) {
+          $ln = $lines[$script:idx]; $script:idx++
+          $f = if ($ln.big) { $fBig } elseif ($ln.bold) { $fB } else { $fN }
+          $t = [string]$ln.text; if ($t -eq '') { $t = ' ' }
+          $sf = New-Object System.Drawing.StringFormat([System.Drawing.StringFormat]::GenericTypographic); $sf.FormatFlags = $sf.FormatFlags -bor [System.Drawing.StringFormatFlags]::NoWrap -bor [System.Drawing.StringFormatFlags]::MeasureTrailingSpaces; $sf.Alignment = switch ($ln.align) { 'center' { 'Center' } 'right' { 'Far' } default { 'Near' } }
+          $h = [Math]::Ceiling($f.GetHeight($g)) + 1
+          $g.DrawString($t, $f, [System.Drawing.Brushes]::Black, (New-Object System.Drawing.RectangleF($e.MarginBounds.Left, $y, $W, $h)), $sf)
+          $y += $h
+        }
+        $e.HasMorePages = $false
+      })
+      $doc.Print()
+    }
+    if ($j.drawer) { Start-Sleep -Milliseconds 400; Kick-Drawer }
+    'ok'; break }
+}

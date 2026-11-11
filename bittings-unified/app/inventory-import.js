@@ -120,7 +120,12 @@
         try {
           var rows;
           if (isXlsx) {
-            if (!window.XLSX) { err.textContent = 'Spreadsheet support not loaded (need internet for .xlsx). Try a .csv export instead.'; return; }
+            if (!window.XLSX) {   // 8z28: load SheetJS on demand (it used to load on every app start)
+              err.textContent = 'Loading spreadsheet support…';
+              var sx = document.createElement('script'); sx.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+              sx.onload = function () { err.textContent = ''; reader.onload(ev); };
+              sx.onerror = function () { err.textContent = 'Spreadsheet support could not load (need internet for .xlsx). Try a .csv export instead.'; };
+              document.head.appendChild(sx); return; }
             var wb = XLSX.read(ev.target.result, { type: 'array' });
             var ws = wb.Sheets[wb.SheetNames[0]];
             rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });

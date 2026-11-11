@@ -28,3 +28,9 @@
   # never keep the staff app at the Cloudflare edge — updates must show on the next load
   CDN-Cache-Control: no-store
   Cloudflare-CDN-Cache-Control: no-store
+
+
+# 8z28: the staff app's vendor libraries have versioned file names — the browser may keep them a week
+/staff/app/vendor/*
+  ! Cache-Control
+  Cache-Control: public, max-age=604800

@@ -20,7 +20,11 @@
   function money(c){ return '$' + ((c || 0) / 100).toFixed(2); }
   function fmtDate(d){ try { var x = new Date(d); if (isNaN(x.getTime())) return ''; return x.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) { return ''; } }
   var UNIT_RE = /^u_[0-9a-f]{32}$/i;
-  function looksLikeUnit(code){ code = String(code || '').trim(); return UNIT_RE.test(code) || /^u_/i.test(code); }
+  // 8z29: a unit is the long id (u_…) OR its 7-character serial (no 0/O/1/I/L)
+  var SERIAL_RE = /^[2-9A-HJKMNP-Z]{7}$/;
+  function looksLikeSerial(code){ return SERIAL_RE.test(String(code || '').trim().toUpperCase()); }
+  function looksLikeUnit(code){ code = String(code || '').trim(); return UNIT_RE.test(code) || /^u_/i.test(code) || looksLikeSerial(code); }
+  window.TKS_looksLikeSerial = looksLikeSerial;
   var REASONS = [['','— pick a reason —'],['sold_from_van','Sold from van / not scanned'],
     ['failed_defective','Failed / defective'],['lost','Lost'],['miscount','Miscount'],['other','Other']];
   var PM = 'width:40px;height:40px;font-size:20px;line-height:1;border-radius:9px;border:1px solid rgba(128,128,128,.45);background:transparent;color:inherit;cursor:pointer;flex:0 0 auto';
@@ -157,7 +161,7 @@
   async function rcItems(onSubmitted){
     var s = sb(), list = document.getElementById('rcCountList'); if (!s || !list) return;
     var rows = [], saved = {};
-    try { rows = ((await s.from('inventory_locations').select('item_id,qty,inventory(name,sku,deleted_at,category,fcc_id,chip,fitment,brand)').eq('location', rc.loc)).data) || []; } catch (e) {}
+    try { rows = ((await s.from('inventory_locations').select('item_id,qty,inventory(name,sku,deleted_at,category,fcc_id,chip,fitment,brand,image)').eq('location', rc.loc)).data) || []; } catch (e) {}
     try { (((await s.from('cycle_count_lines').select('item_id,counted_qty,reason').eq('count_id', rc.countId)).data) || []).forEach(function (l){ saved[l.item_id] = l; }); } catch (e) {}
     rows = rows.filter(function (r){ return r.inventory && !r.inventory.deleted_at; })
       .sort(function (a, b){ return String(a.inventory.name || '').localeCompare(String(b.inventory.name || '')); });
@@ -191,6 +195,7 @@
         var exp = r.qty || 0, nd = needs(r.inventory), sv = saved[r.item_id];
         var cnt = sv && sv.counted_qty != null ? sv.counted_qty : exp;
         return '<div class="crow" data-item="' + E(r.item_id) + '" data-exp="' + exp + '" data-makes="' + E(r._makes.join('|')) + '" data-miss="' + (r._miss ? 1 : 0) + '" style="align-items:center;flex-wrap:wrap;gap:8px">' +
+          (window.TKS_PHOTO ? '<span class="rcph" style="cursor:zoom-in">' + TKS_PHOTO.thumb(r.inventory.image, 48) + '</span>' : '') +
           '<div style="flex:1;min-width:140px"><div class="nm"><a href="#" class="rcopen" style="color:inherit;text-decoration:underline;text-decoration-color:rgba(128,128,128,.5);text-underline-offset:3px">' + E(r.inventory.name || r.item_id) + '</a>' + (sv ? ' <span class="rcok" style="color:#2caa6e">✓</span>' : '') + '</div>' +
             '<div class="sub">' + E(r.inventory.sku || '') + ' · expected ' + exp + '</div></div>' +
           '<div style="display:flex;align-items:center;gap:6px">' +
@@ -227,6 +232,7 @@
     list.querySelectorAll('.crow').forEach(function (row){
       var inp = row.querySelector('.rccount'), rs = row.querySelector('.rcreason'), exp = +row.dataset.exp;
       // 8z17: tap the part name → full part screen (a technician can edit everything but name / price / qty)
+      var ph = row.querySelector('.rcph img'); if (ph) ph.parentNode.parentNode.onclick = function (){ var src = ph.getAttribute('src'); if (window.TKS_PHOTO) TKS_PHOTO.view(src); };
       var op = row.querySelector('.rcopen');
       if (op) op.onclick = function (ev){ ev.preventDefault();
         if (window.TKS && TKS.Inventory && TKS.Inventory.get(row.dataset.item) && window.openPartFrom) window.openPartFrom(row.dataset.item, 'reconcile');
@@ -484,7 +490,8 @@
       var lbOn = false; try { lbOn = !!(window.TKS_HW && TKS_HW.prefs && TKS_HW.prefs().labels && TKS_HW.prefs().labels.enabled && TKS_HW.labels && TKS_HW.labels.printUnits); } catch (e) {}
       if (!lbOn || !ids.length) { setTimeout(m.close, 1100); return; }
       var nowIso = new Date().toISOString();
-      var units = ids.map(function (id){ return { id: id, acquired_at: nowIso, supplier: supplier, batch: batch }; });
+      var serials = {}; try { (((await s.from('inventory_units').select('id,serial').in('id', ids)).data) || []).forEach(function (x){ serials[x.id] = x.serial; }); } catch (e) {}   // 8z29
+      var units = ids.map(function (id){ return { id: id, serial: serials[id] || '', acquired_at: nowIso, supplier: supplier, batch: batch }; });
       var partForLabel = part || { id: itemId, name: itemName, sku: '' };
       btn.textContent = '🏷️ Print ' + ids.length + ' unit label' + (ids.length === 1 ? '' : 's'); btn.disabled = false;
       var done = document.createElement('button'); done.type = 'button'; done.textContent = 'Done — no labels';
@@ -510,9 +517,11 @@
     code = String(code || '').trim();
     if (demo()) throw new Error('Unit lookup needs the live app — the demo has no serialized units.');
     var s = sb(); if (!s) throw new Error('Sign in to the cloud to look up a key.');
-    var r = await s.from('inventory_units').select('*').eq('id', code).maybeSingle();
+    var r = looksLikeSerial(code) && !/^u_/i.test(code)
+      ? await s.from('inventory_units').select('*').eq('serial', code.toUpperCase()).maybeSingle()   // 8z29
+      : await s.from('inventory_units').select('*').eq('id', code).maybeSingle();
     if (r.error) throw new Error(r.error.message);
-    if (!r.data) throw new Error('No key with id “' + code + '” in this shop.');
+    if (!r.data) throw new Error('No key with serial / id “' + code + '” in this shop.');
     var part = null; try { part = TKS.Inventory.get(r.data.item_id); } catch (e) {}
     return { unit: r.data, part: part };
   };
@@ -533,10 +542,10 @@
     if (upOpen && document.body.contains(upOpen.ov)) { if (code) { upOpen.inp.value = code; upOpen.find(code); } else { try { upOpen.inp.focus(); } catch (e) {} } return upOpen.m; }
     var m = modal('🔎 Key lookup',
       '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:10px">' +
-        '<input id="upCode" placeholder="Scan or type a unit id (u_…) or SKU" autocomplete="off" autocapitalize="off" spellcheck="false" style="' + INP + 'margin:0;flex:1;min-width:0">' +
+        '<input id="upCode" placeholder="Scan or type a serial (7 letters/numbers) or SKU" autocomplete="off" autocapitalize="off" spellcheck="false" style="' + INP + 'margin:0;flex:1;min-width:0">' +
         '<button id="upGo" type="button" style="flex:0 0 auto;min-width:72px;min-height:44px;padding:0 14px;border-radius:9px;border:none;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:700;cursor:pointer">Find</button>' +
       '</div>' +
-      '<div id="upOut" class="sub">Scan a key’s label, or type its unit id or the part’s SKU.</div>' +
+      '<div id="upOut" class="sub">Scan a key’s label, or type its serial number or the part’s SKU.</div>' +
       // 8r: phone camera (QR unit labels / SKU barcodes); hidden when the page has no camera access (plain http, desktop without camera)
       ((window.TKS_CAM && TKS_CAM.available()) ? '<button id="upCam" type="button" style="margin-top:10px;width:100%;min-height:46px;border-radius:10px;border:1px solid rgba(128,128,128,.4);background:transparent;color:inherit;font-weight:700;font-size:15px;cursor:pointer">📷 Scan with the camera</button>' : ''));
     var inp = m.body.querySelector('#upCode'), out = m.body.querySelector('#upOut');
@@ -568,7 +577,8 @@
       if (unit.sold_receipt_id || unit.sold_at) rows.push(['Sold', [fmtDate(unit.sold_at), unit.sold_receipt_id ? ('receipt ' + unit.sold_receipt_id) : '', custName].filter(Boolean).map(E).join(' · ') || '—']);
       if (unit.disposition) rows.push([st === 'warranty_out' ? 'Warranty' : 'Disposition', E(unit.disposition)]);
       out.innerHTML = '<div style="' + CARD + '">' + partHead(part, unit.item_id) +
-        '<div class="sub" style="margin:6px 0 8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all">' + E(unit.id) + '</div>' +
+        (unit.serial ? '<div style="margin:8px 0 2px;font:700 20px ui-monospace,Menlo,Consolas,monospace;letter-spacing:2px">SN ' + E(unit.serial) + '</div>' : '') +
+        '<div class="sub" style="margin:2px 0 8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;word-break:break-all">' + E(unit.id) + '</div>' +
         rows.map(function (r){ return '<div style="' + ROW + '"><span class="sub" style="flex:0 0 auto">' + r[0] + '</span><span style="text-align:right">' + r[1] + '</span></div>'; }).join('') +
         '</div>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
@@ -590,11 +600,11 @@
       if (demo() || !sb()) { out.innerHTML = head + '<div class="sub" style="margin-top:10px">' + (demo() ? 'Per-unit history (received / sold / warranty) needs the live app — the demo has no serialized units.' : 'Sign in to see this part’s individual units.') + '</div>'; return; }
       out.innerHTML = head + '<div class="sub" style="margin-top:10px">Loading units…</div>';
       var units = [];
-      try { units = ((await sb().from('inventory_units').select('id,status,location,supplier,batch,acquired_at,sold_at').eq('item_id', part.id).order('acquired_at', { ascending: false }).limit(25)).data) || []; } catch (e) {}
+      try { units = ((await sb().from('inventory_units').select('id,serial,status,location,supplier,batch,acquired_at,sold_at').eq('item_id', part.id).order('acquired_at', { ascending: false }).limit(25)).data) || []; } catch (e) {}
       if (!units.length) { out.innerHTML = head + '<div class="sub" style="margin-top:10px">No serialized units for this part yet — use 📦 Receive units on its row to start tracking each key.</div>'; return; }
       out.innerHTML = head + '<div class="sub" style="margin:10px 0 4px">Units (newest first) — tap one for its story</div>' +
         units.map(function (u){ return '<button type="button" class="upU" data-id="' + E(u.id) + '" style="display:flex;width:100%;justify-content:space-between;gap:10px;align-items:center;min-height:44px;padding:8px 10px;margin-top:6px;border-radius:9px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;cursor:pointer;text-align:left;font-size:13px">' +
-          '<span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;word-break:break-all">' + E(u.id) + '</span>' +
+          '<span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:' + (u.serial ? '15px;font-weight:700;letter-spacing:1px' : '11.5px') + ';word-break:break-all">' + E(u.serial ? 'SN ' + u.serial : u.id) + '</span>' +
           '<span style="flex:0 0 auto;color:' + (ST_COLOR[u.status] || 'inherit') + ';font-weight:700">' + E(ST_LABEL[u.status] || u.status) + '</span></button>'; }).join('');
       out.querySelectorAll('.upU').forEach(function (b){ b.onclick = function (){ inp.value = b.dataset.id; find(b.dataset.id); }; });
     }
@@ -604,9 +614,8 @@
         if (demo()) { note('<b>Unit lookup needs the live app.</b><br>The demo has no cloud session or serialized units. In the live app, scanning a key’s label opens its story here: part, supplier and order #, when it was received, where it is, and its sale or warranty history.'); return; }
         if (!sb()) { note('Sign in to the cloud to look up a key by its unit id.'); return; }
         out.innerHTML = '<div class="sub">Looking up ' + E(v) + '…</div>';
-        try { var res = await window.unitLookup(v); await story(res.unit, res.part); }
-        catch (e) { note(E((e && e.message) || String(e))); }
-        return;
+        try { var res = await window.unitLookup(v); await story(res.unit, res.part); return; }
+        catch (e) { if (!(looksLikeSerial(v) && findPartLocal(v))) { note(E((e && e.message) || String(e))); return; } }   // 8z29: 7 letters may be a SKU
       }
       var p = findPartLocal(v);
       if (!p) { note('No part with SKU “' + E(v) + '”. Scan a key label (unit id) or type the exact SKU.'); return; }

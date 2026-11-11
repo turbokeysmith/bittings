@@ -454,6 +454,101 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
 - **Fill FCC ID / chip during a stock count (8z12).** Technicians cannot edit parts; on Inventory → Reconcile, rows missing an FCC ID
   (smart key/remote/flip) or chip (transponder) get input boxes that save via cycle_set_key_info (open count; manager or the assignee;
   only fcc_id/chip; blank never erases; audit_log). Owner assigns the count to Jayden when starting it. phase8/8z12_count_key_info.sql.
+- **Part photos (8z18).** Supabase Storage bucket part-images (public read; upload/replace/delete only by owner/manager/technician
+  into their own <shop_id>/ folder; select policy needed for upsert). inventory.image = storage path (view + inv_update_info accept it).
+  app/part-photo.js (TKS_PHOTO: url/thumb/view/pick/remove): camera or library → crop box (drag corners, move, rotate) → 640px white
+  square WebP (JPEG on Safari) ~15-25 KB. Part screen shows the photo (tap = full screen) + Add/Replace/Remove; Stock list and
+  stock-count rows show a thumbnail. 196 parts got their AKS product photo, auto-cropped: brand badges (BlueRocket, OEM Refurb,
+  Keyless Factory, Ilco) and Made-in-USA flags removed, trimmed, ~15 KB each (~3 MB total). Paths <shop>/<id>-aks.webp.
+- **Label layout final (8z29f/g, 10 Nov night).** Both labels: QR top-left, name + price on the right (price right under the name),
+  part number BIG across the full bottom row (never shrunk). Key label: "SN: XXXXXXX" small right under the QR. Names trimmed by whole
+  word with "..." (no "…" — the Zebra font prints it as garbage).
+- **Keys for this vehicle (8z32, BUILT 10 Nov night).** Job form (Quick form / Edit job, auto jobs): after year/make/model, keys from
+  TKS.Inventory.forVehicle grouped (smart / flip / remote / super / transponder / shell / blade), ignition-aware (turn key hides smart
+  keys; push-to-start hides flip + transponder), FCC/chip/SKU/price/photo, stock Shop + each van (_invLocMap) and ✓ / not on the
+  assigned tech's home van; + Add → job_parts {job_id,item_id,description} (new jobs: kept pending, written after save with retries);
+  "On this job" list (✕ remove = manager, RLS); yellow "load onto the van" warning. Not yet in the step-by-step wizard.
+- **Keys in the wizard (8z33).** Same box on the step-by-step New-job wizard (vehicle step, #wzKeys; shared kfvList/kfvCard/kfvFlush);
+  picked keys (b.keyParts) written to job_parts after the wizard saves. Van check hidden until any van holds stock (8z32b — owner: vans
+  get stock after the shop consolidation).
+- **Transponders in the keys box (8z35).** Most transponders list only the make (+years) in Fits, so model-exact matching skipped them.
+  kfvList adds make/year (loose) matches for Transponder / Mechanical / Key Shell; transponders kept only when their chip family
+  (kfvChip: id49, 4d63, id46, 8a, 4d72, id13…) matches a chip on this car's model-specific keys (note "✓ same chip"), or all of the
+  make with "check the chip" when no key lists a chip. Quick form now uses kfvList too. 2015 Fusion → FORD-H128-PT (Hitag Pro).
+- **Owner rule (8z34): PEPS / proximity / prox = push-to-start = Smart Key.** Keys box treats such names as smart keys regardless of
+  category. Recategorized imp_0146 FORD-R7989 AM (M3N-A2C31243300) and mb_0154 GM-915 OEM RF (PEPS) → Keys/Smart Key. Owner "fix them" (10 Nov): 15 more moved Remote / Fob → Smart Key (FORD-R8166 OEM/RC, FORD-R8197 AM, HON-501/514/514 REF/517,
+  HYU-1333, KIA-1160, LEX-58, NIS-298/323/340/351, TOY-255); audit_log recategorize.
+- **IDEA (owner, 10 Nov — not started):** public "Do you have my key?" on turbokeysmith.com: customer enters VIN or year/make/model +
+  ignition → we show key PHOTOS only (no prices, part numbers or FCC IDs) with "In stock" / "Call to confirm"; "Request a quote for this
+  key" sends the vehicle + chosen key photo into the quote/lead email so nobody has to call them back for the vehicle details. Needs a
+  public read path (edge function or anon view exposing only name-safe fields + image + in-stock yes/no) — never prices/SKU/FCC.
+- **NEXT (owner, 10 Nov night):** (a) key labels: move the price down a little so the full product name fits (like the part label).
+  (b) SCHEDULER "Keys for this vehicle": after year/make/model, list TKS.Inventory.forVehicle(veh) grouped by sub-category (smart key /
+  remote / flip / transponder / blade) with FCC, price, photo and stock by location (shop / each van); flag if not on the assigned tech's
+  van ("load onto the van"); tap = TKS.Jobs.addPart (job_parts has item_id → also store item_id) so it flows to the invoice + key
+  consolidation. Example: 2015 Focus → FORD-R8147 AM / FORD-R8048 AM; 2015 Fusion → FORD-R7986 AM, R8130 OEM, R7989 AM. NOTE: all
+  stock is at location shop — vans need a Reconcile count before the van check means anything.
+- **NEXT / owner wishes (10 Nov):** (1) LOCK THE COUNTER PC to Bittings only — Chrome kiosk + URL allow-list (turbokeysmith.com/staff
+  + the vendor sites linked in Quick links, NASTF, Stripe), block email/YouTube/everything else (Chrome policies URLBlocklist [*] +
+  URLAllowlist, or Windows Assigned Access). (2) Owner sends Cash App / Venmo / Zelle QR images → field payment screen. (3) Live Stripe
+  keys → card-by-QR (Checkout link) + WisePOS E pairing. (4) Remove tkremote admin account on DESKTOP-VCTVAGI (password was shared in
+  chat) + optionally Disable-PSRemoting there. (5) 6 Jayden single-punch days need times. (6) 2D/QR USB scanner to buy (ES4209G is 1D).
+- **Scheduler address + vehicle (8z31).** Edit-job sheet: Street / Apt-Unit # / City / State (US list, default OK) / ZIP (booking.addr
+  {street,unit,city,state,zip}; address composed "street, unit, City, ST ZIP"); old one-line addresses split by parseAddress (handles
+  "City ST ZIP", "City, ST, ZIP", trailing Apt/Unit/#). Year/Make/Model are TKS_YMM dropdowns (model list follows make+year; VIN decode
+  fills them). Wizard got Apt/Unit # + the state list.
+- **Stripe 2026 merged (8z30).** Export (1,052 rows; 870 paid Jan 1-Nov 10 2026). 272 matched MicroBiz card sales (exact or +2-3%
+  surcharge, ±2 days) → enriched: card_brand/funding, stripe PI, captured = Stripe amount, surcharge_cents. 598 never rung up → new
+  non-taxable card service sales (receipt rcpt_st_*, payment method card, idempotency st_<charge>), $134,120.42; refunds kept.
+  20 MicroBiz card sales ($3,996) have no Stripe charge (other terminal). Builder phase8/8z30_stripe_merge_builder.js.
+- **Labels/serials (8z28-8z29).** Labels: QR drawn as ^GFA (qrcode-generator 1.4.4 vendored, MIT); part label QR+name(3 lines)+price+SKU;
+  unit label (owner sketch) QR of 7-char serial + name/price/SKU + "SN: XXXXXXX". inventory_units.serial (31-char alphabet, unique per
+  shop, trigger + backfill); scan/lookup accepts serial. Refresh keeps the screen (sessionStorage tks_view; 15 s wait; desktop no
+  longer forces Register). Faster load: removed 4 missing SDK scripts, SheetJS lazy, CDN versions pinned, vendor cached 7 days.
+- **Jayden time clock from MicroBiz (8z27).** emp_time.dbf (ID 002) → 105 shifts / 756.8 h into time_entries (Sep 2025 → today, today
+  still open from 10:04). Paired per day; Jul 18 – Aug 8 punches were reversed (Out at arrival, In at leaving) → treated as shifts
+  with a note. 6 single-punch days NOT imported (Sep 22 2025 in 9:26, Jul 17 in 10:18, Aug 8 out 12:07, Sep 19 in 12:21, Nov 2 out
+  18:00, Nov 4 out 18:26) — owner to give times. Labels: shop ZD420 stock is 2.00x1.00 in (driver 200x100); hardware.js defaults
+  2x1, layouts scale to height, left margin shiftX 40 dots (^LH). Test labels #1-#3 + receipts #1-#2 printed fine.
+- **Counter printing (8z26).** Bittings Print Helper (bittings-unified/tools/print-helper: helper.js Node server on 127.0.0.1:8765 +
+  print.ps1) installed on the MicroBiz/counter PC DESKTOP-VCTVAGI as scheduled task "Bittings Print Helper" (SYSTEM, at startup) in
+  C:ProgramDataBittingsPrint. Receipts: GDI through the Star TSP100 Cutter (TSP143) driver (TSP100 is raster-only, no raw text); drawer:
+  raw BEL + ESC p to the Star queue (to verify on hardware). Labels: raw ZPL to ZDesigner ZD420-203dpi. CORS only for turbokeysmith
+  origins + Private-Network header. hardware.js: thermal.mode / labels.mode default helper; Hardware panel shows helper status +
+  Open cash drawer. Test receipt + label printed 10 Nov (queues empty, physical check pending). Chrome may ask to allow local network.
+- **Venmo + Cash App history (8z25, 10 Nov).** Non-taxable service sales (receipt rcpt_vm_*/rcpt_ca_<txid> + payment row method venmo /
+  cashapp, idempotency vm_*/ca_*). Venmo: 37 typed by owner (amounts were AFTER the 1.9%+$0.10 fee -> recorded gross, fee in note), $5,932.03.
+  Cash App CSV (Jan 5-Nov 9 2026): 177 imported $31,530.41; 3 skipped (already MicroBiz cashapp sales); 19 more ADDED (owner: jobs locksmiths did for
+  each other — count what they sent us: Elite, Scissortail, Armor Keys, Juan Medina, Malek Javanpour) → Cash App total 196 / $36,526.41;
+  7 EXCLUDED (purchases / refunds — not sales). Kept for
+  later bookkeeping in phase8/8z25_cashapp_held_for_owner.json. Stripe export still to come: MATCH to
+  existing card sales (attach brand/last4/PI/fee), do NOT create new sales. App: payMethodLabel knows venmo / zelle.
+- **Tech sales privacy (8z24).** payment_transactions readable only by owner/manager/front desk; receipts: a technician reads only his
+  own (created_by = new column default auth.uid(), or technicianId / technician e-mail / name = him) via receipt_is_mine(). Tested: Jayden 0
+  payments, 218 receipts (217 MicroBiz sales he rang up); owner 936 / 932. Commission page hides commissionable/base from non-managers.
+- **Pay plans (8z22).** staff.pay_plan commission | hourly | hourly_after_hours (+ after_hours_pct, default 25); owner sets it in Setup ->
+  Access -> Team logins (staff_set_pay_plan). commission_day_rows: shop rule only for commission-plan people; hourly_after_hours earns
+  pct of (payment - tax - refunds - cost) for sales paid while NOT clocked in (time_entries). Tech of a sale = technicianId, else the
+  job responsible_tech, else technician e-mail. MicroBiz history excluded. Jayden = hourly + 25% after hours. Tested (rolled back).
+- **Reports by date (8z23).** Period: Last month, Last year, Pick dates (from/to). Breakdown box: sales before tax, products vs services
+  (line has partId or Materials/part category = product), taxable vs non-taxable, sales tax collected (owed), by payment type.
+  TKPay.dayTransactions pages past the 1000-row API cap. Oct 2026 check: 13,865.70 = 6,716.70 products + 7,149.00 services, tax 571.14.
+  NOTE: never put a dollar-quote sequence in a String.replace replacement (it means "rest of string") - it duplicated index.html once.
+- **MicroBiz merged (8z20, 10 Nov).** Remote access to the MicroBiz PC (DESKTOP-VCTVAGI 192.168.1.202) over WinRM as a temporary local
+  admin tkremote (delete when done; this PC trusts 192.168.1.202). MicroBiz = dBase files in C:Program Files (x86)MicrobizBusiness; locked files
+  copied from a VSS snapshot (deleted after). Read with phase8/8z20_dbf_reader.js. Sales: 928 invoices (Dec 2024 → 9 Nov 2026) → receipts
+  rcpt_mb_<invoice#> + 933 payment_transactions (idempotency_key mb_<inv>_<n>), totals $125,594.57, change given subtracted from cash,
+  tender codes 1 cash, 2 MC/Visa, 3 Amex, 4 Discover, 0 debit → method card (+card_brand), 5 check, 9 cashapp, X commercial, Y mobile,
+  other. Clerk SA/001 Samer, JG/002 Jayden → technician email. Builder: phase8/8z20_microbiz_sales_merge_builder.js. Parts: 5 new
+  (mb_0167-0171), Metal Key = MTLKEY 949, qty Lanyard Skulls 4 / Duracell 11, junk part ford soft-deleted, 10 service prices from MicroBiz
+  (phase8/8z20_microbiz_parts_sync.sql). App: payMethodLabel/payBucket/payCanRefund — reports + closeout show Card (terminal)/Cash App/
+  Mobile/Commercial; Refund only for Stripe card or cash/check. Import tags removed from all notes (8z19; backup json).
+- **Checks (8z21).** Register shows Check only when the selected customer is a business (commercial) customer; field invoice builder
+  (bittings.html) no longer offers Check.
+- **Lucky Line items filled (8z18b).** 93 accessories with Lucky Line UPCs (085721…) matched to luckyline.com (Shopify products.json; UPC digits
+  7-11 = Lucky Line No.; lanyards per design C201-C210; checked by name). Filled ONLY empty fields: brand Lucky Line, Description (Lucky Line
+  No. + title + specs), Link (luckyline.com product), photo (their packaged-card photo, trimmed, 640px WebP; 92 — SILICONE KEY RING left
+  without, its match was a display box). Old values in audit_log luckyline_fill; match list + backup in phase8/8z18b_luckyline_*.json.
 - **Makes for every part (8z16).** Count filter groups Accessories (category Accessories/*) and Universal (brand Universal / IKEY /
   Maxiim) instead of "no make"; fitment.js ALIAS knows MicroBiz shorthand (CHVRLT, FRD, LNCLN, MRC, NSSN, LXS, JAG, TOY …). Parts still without
   a make get a "Pick make…" box in the count (cycle_set_key_info p_make → make put in front of Fits). Data: 22 keys filled from key codes

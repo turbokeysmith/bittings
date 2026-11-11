@@ -115,6 +115,7 @@
         grade: r.grade || '', brand: r.brand || '',                                 // 8i: owner category (Aftermarket / OEM New / OEM Refurbished / Universal) + universal-key maker
         vendorSku: r.vendor_sku || '',                                               // 8p: the supplier's own part number
         link: r.link || '',                                                          // 8z17: product page URL
+        image: r.image || '',                                                        // 8z18: storage path of the part photo
         createdAt: ts(r.created_at), updatedAt: ts(r.updated_at) }; },
       toRow: function (o) { var row = {
         id: o.id, name: o.name || '', sku: o.sku || '', category: o.category || '',
@@ -125,7 +126,7 @@
         notes: o.notes || '', supplier: o.supplier || '', reorder_qty: parseInt(o.reorderQty, 10) || 0,
         fitment: o.fitment || '', fcc_id: (o.fccId || '').trim(), chip: (o.chip || '').trim(),
         grade: (o.grade || '').trim(), brand: (o.brand || '').trim(), vendor_sku: (o.vendorSku || '').trim(),
-        link: (o.link || '').trim() || null };
+        link: (o.link || '').trim() || null, image: (o.image || '').trim() || null };
         // 8k: on a plan without 'fitment' the read view blanks these three, so never write them back (an edit would wipe the real values)
         try { if (global.TKS_TIER && TKS_TIER.allows && !TKS_TIER.allows('fitment')) { delete row.fitment; delete row.fcc_id; delete row.chip; } } catch (e) {}
         return row; }   // `serialized` is never written from here (6a owns it)

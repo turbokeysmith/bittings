@@ -647,6 +647,8 @@
   .drawer-actions button.primary{background:#e3f3e9;border-color:#2f6b46;}
   .crow.part{align-items:center;}
   .crow.part .pinfo{flex:1;min-width:0;}
+  .crow.part .pinfo.hasimg{display:flex;gap:10px;align-items:center;}   /* 8z18 */
+  .crow.part .pinfo .ptxt{flex:1;min-width:0;}
   .crow.part .pinfo .nm{display:flex;align-items:center;gap:8px;}
   .lowbadge{font-size:9.5px;font-weight:800;letter-spacing:.5px;color:#1b1f25;background:var(--amber);
     border-radius:999px;padding:2px 7px;}
@@ -1705,8 +1707,11 @@ window.tksDemoOn = function(){
         <option value="today">Today</option>
         <option value="week">This week</option>
         <option value="month">This month</option>
+        <option value="lastmonth">Last month</option>
         <option value="quarter">This quarter</option>
         <option value="year">This year</option>
+        <option value="lastyear">Last year</option>
+        <option value="custom">Pick dates…</option>
       </select>
       <select id="repChart" class="rep-select" aria-label="Graph type">
         <option value="bar">Bar</option>
@@ -1717,11 +1722,16 @@ window.tksDemoOn = function(){
       </select>
       <button class="add" id="repReload" title="Refresh" style="background:#e7e9ee;color:#14171b">↻</button>
     </div>
+    <div class="rep-controls" id="repCustom" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
+      <label style="margin:0;display:flex;align-items:center;gap:6px">From <input type="date" id="repFrom" class="rep-select" style="min-width:150px"></label>
+      <label style="margin:0;display:flex;align-items:center;gap:6px">To <input type="date" id="repTo" class="rep-select" style="min-width:150px"></label>
+    </div>
     <div class="rep-controls">
       <select id="repTech" class="rep-select" aria-label="Filter by technician (for commission)"><option value="all">All technicians</option></select>
     </div>
     <div class="rep-toggles" id="repToggles"></div>
     <div class="rep-cards" id="repCards"></div>
+    <div id="repBreak"></div><!-- 8z23: tax + products/services breakdown -->
     <div class="rep-chartwrap" id="repChartWrap"><canvas id="repCanvas"></canvas></div>
     <div class="clist" id="repList"></div>
     <p class="note" id="repNote">Opens on today — pick a wider period to see more. Nothing is ever deleted; every charge stays filed under its customer. Cost &amp; Profit fill in once parts/cost are linked to a sale.</p>
@@ -1820,6 +1830,17 @@ window.tksDemoOn = function(){
 
   <div class="view" id="view-part">
     <div class="form">
+      <!-- 8z18: the part's photo -->
+      <div id="pPhotoWrap" style="display:none;margin-bottom:6px">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <button type="button" id="pPhotoBox" aria-label="View photo" style="width:132px;height:132px;flex:0 0 132px;border-radius:16px;background:#fff;border:1px solid rgba(128,128,128,.3);display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0;cursor:zoom-in"></button>
+          <div style="display:flex;flex-direction:column;gap:8px;flex:1 1 150px;min-width:0">
+            <button type="button" class="btn ghostbtn" id="pPhotoAdd" style="margin:0">📷 Add photo</button>
+            <button type="button" class="btn ghostbtn" id="pPhotoDel" style="margin:0;display:none">🗑 Remove photo</button>
+            <span id="pPhotoMsg" class="hint" style="margin:0"></span>
+          </div>
+        </div>
+      </div>
       <label for="pName">Part name</label>
       <input id="pName" type="text" placeholder="e.g. Ford HU101 key blank">
       <label for="pSku">SKU / part #</label>
@@ -1915,12 +1936,12 @@ window.tksDemoOn = function(){
   <div class="bt-scrim" id="btScrim"></div>
 
 <!-- Supabase client + project config (auto-connects only when signed in) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0"></script>
 <!-- Stripe.js — for the typed-card (field) path. The card field is hosted by
      Stripe; card numbers go straight to Stripe and never touch this app. -->
 <script src="https://js.stripe.com/v3/"></script>
 <!-- Chart.js — the Transaction History graphs (bar/line/area/pie/doughnut). -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1"></script>
 <!-- jsPDF — branded end-of-day Deposit Slip PDF (Closeout). Same library the
      receipt builder uses; if it fails to load, Closeout still shows the on-screen
      copyable summary (PDF just degrades to download/copy). -->
@@ -1932,6 +1953,7 @@ window.tksDemoOn = function(){
 <script src="app/ymm.js"></script>
 <!-- Vehicle fitment parser: a key's free-text "Fits" list → year/make/model matching (Inventory finder, Register, Start-a-job) -->
 <script src="app/fitment.js"></script>
+<script src="app/part-photo.js"></script><!-- 8z18: part photos (Supabase Storage) -->
 <!-- Shared NASTF D1 filing-countdown badge (register · Start-a-Job · Receipts NASTF tab) -->
 <script src="app/d1.js"></script>
 <!-- Lishi tool + vehicle seed (so Start a Job populates even if the Lishi page was never opened) -->
@@ -1943,7 +1965,7 @@ window.tksDemoOn = function(){
 <script src="app/pay.js"></script>
 <script src="app/prog-cables.js"></script>
 <!-- Shared inventory importer (Inventory tile + Setup wizard); SheetJS for .xlsx -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- 8z28: SheetJS (880 KB) now loads only when a spreadsheet is imported (app/inventory-import.js) -->
 <script src="app/inventory-import.js"></script>
 <script src="app/corrections.js"></script>
 <script>
@@ -1971,17 +1993,27 @@ function show(name){
   // 8w: every screen change is a browser history step, so the iPhone swipe-back / Android back returns to the
   // previous screen inside the app (inventory → customers → swipe back → inventory) instead of the website.
   try{ if(!window._tksPopping && !(history.state && history.state.tksView===name)) history.pushState({tksView:name}, '', location.pathname); }catch(e){}
+  try{ sessionStorage.setItem('tks_view', name); }catch(e){}   // 8z28: a refresh reopens this screen
 }
 document.getElementById('backBtn').onclick = function(){ show(this.dataset.to || 'startjob'); };
 (function(){
   // the first entry is a guard: swiping back past the first screen shows a hint instead of leaving right away
   // came BACK here from another page (e.g. the invoice page)? reopen the screen you were on
   var resume=null; try{ var st=history.state; if(st && st.tksView && st.tksView!=='__root' && !/[?&]go=/.test(location.search)) resume=st.tksView; }catch(e){}
+  // 8z28: a plain refresh — reopen the screen you were on (this tab only). An open part goes back to its list.
+  try{ if(!resume && !/[?&]go=/.test(location.search)){ var sv=sessionStorage.getItem('tks_view'); if(sv && sv!=='startjob') resume=sv; } }catch(e){}
+  var RESUME_PARENT={part:'inventory', form:'customers', matsvc:'startjob'}; if(resume && RESUME_PARENT[resume]) resume=RESUME_PARENT[resume];
+  if(resume){ window._tksResumePending=true; window._tksHadResume=true; }
   try{ var first=(document.querySelector('.view.active')||{}).id; first=first?first.replace('view-',''):'startjob';
     if(!resume){ history.replaceState({tksView:'__root'}, '', location.pathname+location.search); history.pushState({tksView:first}, '', location.pathname); } }catch(e){}
-  if(resume){ var _rt=0; var _go=(function(){ var bt=document.querySelector('[data-go="'+resume+'"]');
-      if(bt && bt.onclick && bt.style.display!=='none' && !bt.classList.contains('tks-cap-hidden')){ window._tksPopping=true; try{ bt.onclick(); }catch(e){} window._tksPopping=false; }
-      else if(++_rt<20) setTimeout(_go, 200); }); setTimeout(_go, 0); }
+  if(resume){ var _rt=0; var SUBTAB={reconcile:['inventory','[data-invtab="reconcile"]'], invreport:['reports','[data-reptab="invreport"]'], returns:['reports','[data-reptab="returns"]'], commission:['commission',null]};
+    var _go=(function(){ var target=SUBTAB[resume]?SUBTAB[resume][0]:resume; var bt=document.querySelector('[data-go="'+target+'"]');
+      if(bt && bt.onclick && bt.style.display!=='none' && !bt.classList.contains('tks-cap-hidden')){
+        window._tksPopping=true; try{ bt.onclick(); }catch(e){}
+        try{ var sub=SUBTAB[resume]&&SUBTAB[resume][1]; if(sub){ var sb2=document.querySelector(sub); if(sb2) sb2.click(); } }catch(e){}
+        window._tksPopping=false; window._tksResumePending=false; }
+      else if(++_rt<75) setTimeout(_go, 200);   // 8z28: ~15 s — owner screens appear once sign-in finishes
+      else window._tksResumePending=false; }); setTimeout(_go, 0); }
   var PARENT={part:'inventory', form:'customers', matsvc:'startjob', invreport:'reports', returns:'reports'};
   window.addEventListener('popstate', function(e){
     var v=e.state && e.state.tksView; if(!v) return;
@@ -2161,7 +2193,7 @@ try{
   } else if(!isPhoneView()){
     // Desktop hero: open straight to the Register. (Phone defaults to Start-a-job,
     // which is the active view in the HTML — the Register is desktop-only.)
-    setTimeout(function(){ var _b = document.querySelector('[data-go="payments"]'); if(_b) _b.click(); }, 0);
+    setTimeout(function(){ if(window._tksResumePending || window._tksHadResume) return; var _b = document.querySelector('[data-go="payments"]'); if(_b) _b.click(); }, 0);   // 8z28: not over a resumed screen
   }
 }catch(e){}
 /* ====================== FIELD QUICK LINKS (Home "Vendor tools") ======================
@@ -2961,6 +2993,7 @@ function renderInventory(){
   const topCounts={}, subCounts={};
   list.forEach(p=>{ const c=catParts(p); topCounts[c.top]=(topCounts[c.top]||0)+1; subCounts[c.top+'/'+c.sub]=(subCounts[c.top+'/'+c.sub]||0)+1; });
   let _lastTop=null,_lastSub=null;
+  const invHasPhotos = TKS.Inventory.all().some(x=>x && x.image);   // 8z18
   list.forEach(p=>{
     // insert always-visible category / sub-category headers as the group changes
     const _cp=catParts(p);
@@ -2978,12 +3011,12 @@ function renderInventory(){
         '<span class="qcol"><span class="qn" aria-label="Quantity on hand">'+(parseInt(p.qty,10)||0)+'</span><span class="qcap">in stock</span></span>'+
         '<button class="qbtn plus" data-cap="inventoryWrite" title="Add one to stock" aria-label="Increase quantity of '+esc(p.name||'part')+'">+</button>'+
       '</div>'+
-      '<div class="pinfo"><div class="nm">'+esc(p.name||'(unnamed part)')+
+      '<div class="pinfo'+(invHasPhotos?' hasimg':'')+'">'+(invHasPhotos && window.TKS_PHOTO ? TKS_PHOTO.thumb(p.image, 52) : '')+'<div class="ptxt"><div class="nm">'+esc(p.name||'(unnamed part)')+
         (isLow?' <span class="lowbadge">'+((parseInt(p.qty,10)||0)===0?'OUT':'LOW')+'</span>':'')+'</div>'+
         '<div class="sub">'+esc(sub)+'</div>'+
         (isLow && (parseInt(p.reorderQty,10)||0)>0
           ? '<div class="sub reorder">↻ Reorder '+(parseInt(p.reorderQty,10)||0)+(p.supplier?' · '+esc(p.supplier):'')+'</div>'
-          : '')+'</div>'+
+          : '')+'</div></div>'+
       // Cloud session → the real multi-location stock tool (shop + each van);
       // offline → the legacy binary van/shop flip.
       ((TKS.auth && TKS.auth.isSignedIn())
@@ -3480,6 +3513,7 @@ function openPart(id){
   pFitPreviewRender();
   document.getElementById('pNotes').value = p.notes || '';
   document.getElementById('pLink').value = p.link || ''; pLinkSync();   // 8z17
+  pPhotoRender(id);   // 8z18
   document.getElementById('pDelete').style.display = id ? 'block' : 'none';
   document.getElementById('partNote').textContent = id ? '' : 'New part. Saved on this device.';
   // 8z17: a technician edits everything except name, price, cost and quantity (server: inv_update_info)
@@ -3496,6 +3530,23 @@ var partReturnView = 'inventory';
 window.openPartFrom = function(id, back){ partReturnView = back || 'inventory'; window.__partFromSet = true; openPart(id); };
 function partBack(){ var v = partReturnView || 'inventory'; partReturnView = 'inventory';
   if(v==='reconcile'){ show('reconcile'); try{ window.renderReconcile && window.renderReconcile(); }catch(e){} } else { renderInventory(); show('inventory'); } }
+// 8z18: photo on the part screen (owner / manager / technician can add or change it; signed-in cloud only)
+function pPhotoRender(id){
+  var wrap=document.getElementById('pPhotoWrap'); if(!wrap) return;
+  var cloud=false; try{ cloud=!!(TKS.auth && TKS.auth.isSignedIn && TKS.auth.isSignedIn() && TKS._sb && TKS._sb()); }catch(e){}
+  var can = !(TKS.auth && TKS.auth.can) || TKS.auth.can('partInfoEdit');
+  var p = id ? (TKS.Inventory.get(id)||{}) : {};
+  if(!id || !window.TKS_PHOTO || (!cloud && !p.image)){ wrap.style.display='none'; return; }
+  wrap.style.display='';
+  var box=document.getElementById('pPhotoBox'), add=document.getElementById('pPhotoAdd'), del=document.getElementById('pPhotoDel'), msg=document.getElementById('pPhotoMsg');
+  box.innerHTML = p.image ? '<img src="'+esc(TKS_PHOTO.url(p.image))+'" alt="Part photo" style="width:100%;height:100%;object-fit:contain">' : '<span style="font-size:44px;opacity:.3">🔑</span>';
+  box.onclick = function(){ if(p.image) TKS_PHOTO.view(p.image); else if(can && cloud) add.click(); };
+  add.textContent = p.image ? '📷 Replace photo' : '📷 Add photo';
+  add.style.display = (can && cloud) ? '' : 'none'; del.style.display = (can && cloud && p.image) ? '' : 'none'; msg.textContent=''; msg.style.color='';
+  var say=function(t,bad){ msg.textContent=t; msg.style.color=bad?'#e0555f':''; };
+  add.onclick = function(){ TKS_PHOTO.pick(id, function(){ pPhotoRender(id); try{ renderInventory(); }catch(e){} }, say); };
+  del.onclick = function(){ uiConfirm({ title:'Remove this photo?', message:'You can add a new one any time.', okText:'Remove', danger:true }).then(function(ok){ if(ok) TKS_PHOTO.remove(id, function(){ pPhotoRender(id); try{ renderInventory(); }catch(e){} }, say); }); };
+}
 function pLinkSync(){ var v=(document.getElementById('pLink').value||'').trim(), a=document.getElementById('pLinkOpen');
   if(/^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/\S*)?$/i.test(v)){ a.href=/^https?:/i.test(v)?v:'https://'+v; a.style.display='inline-flex'; } else { a.removeAttribute('href'); a.style.display='none'; } }
 document.getElementById('pLink').addEventListener('input', pLinkSync);
@@ -3582,7 +3633,11 @@ function chgEls(){ return {
 /* Customer for this charge — selected from (or added to) the customer database.
    Cash can stay anonymous; CARD & CHECK require a customer (we need their info). */
 let chgCustomer=null;   // { id, customer, phone, email }
-function setChgCustomer(c){ chgCustomer = c ? { id:c.id||null, customer:(c.customer||'').trim(), phone:(c.phone||'').trim(), email:(c.email||'').trim() } : null; renderChgCustomer(); }
+function setChgCustomer(c){ var full=null; try{ full = c && c.id && TKS.Customers ? (TKS.Customers.all()||[]).find(function(x){ return x && x.id===c.id; }) : null; }catch(e){}
+  chgCustomer = c ? { id:c.id||null, customer:(c.customer||'').trim(), phone:(c.phone||'').trim(), email:(c.email||'').trim(), customerType:(c.customerType||(full&&full.customerType)||'') } : null;
+  renderChgCustomer(); try{ posRender(); }catch(e){} }
+// 8z21: checks only from a commercial (business) customer
+function chgIsCommercial(){ return !!(chgCustomer && chgCustomer.customer && chgCustomer.customerType==='business'); }
 function renderChgCustomer(){
   const el=document.getElementById('chgCustDisplay'), clr=document.getElementById('chgCustClear');
   if(!el) return;
@@ -3746,6 +3801,7 @@ function posRender(){
   [e.cash,e.check].forEach(b=>{ if(b){ b.disabled=empty; b.title = empty ? 'Add a part or service to the ticket first' : ''; } });
   if(e.cash)  e.cash.textContent  = empty ? '💵 Cash — add a line'  : '💵 Cash';
   if(e.check) e.check.textContent = empty ? '🧾 Check — add a line' : '🧾 Check';
+  if(e.check) e.check.style.display = chgIsCommercial() ? '' : 'none';   // 8z21: commercial customers only
   if(e.card){
     if(posCardConnected===false){
       e.card.disabled = true;
@@ -3989,8 +4045,12 @@ function posScanAddUnit(code){
     if(res.unit && res.unit.status && res.unit.status!=='in_stock') chgSay('Added '+(p.name||'')+' — heads up: this key is marked “'+res.unit.status.replace(/_/g,' ')+'”.',false);
   }).catch(err=>chgSay((err&&err.message)||String(err),false));
 }
-window.addEventListener('tks-scan', function(e){
-  const code=((e.detail&&e.detail.code)||'').trim(); if(!code) return;
+window.addEventListener('tks-scan', async function(e){
+  let code=((e.detail&&e.detail.code)||'').trim(); if(!code) return;
+  // 8z29: a 7-character serial → its unit id (if no unit has it, it's treated as a SKU like before)
+  if(window.TKS_looksLikeSerial && TKS_looksLikeSerial(code) && !(window.unitPanelOpen && unitPanelOpen())){
+    try{ const sb=TKS._sb&&TKS._sb(); if(sb){ const r=await sb.from('inventory_units').select('id').eq('serial', code.toUpperCase()).maybeSingle(); if(r&&r.data&&r.data.id) code=r.data.id; } }catch(_){}
+  }
   const vis=el=> el && el.offsetParent!==null;
   const isUnit=/^u_/i.test(code);   // per-unit label → the unit's story / its part
   if(window.unitPanelOpen && unitPanelOpen()){ openUnitPanel(code); return; }   // the Key lookup panel is open → the scan goes into it (unit id or SKU)
@@ -4256,6 +4316,7 @@ function posCheckoutThen(method){
   if(!posTicket.length){ chgSay('Add a line first.',false); return; }
   const t=posTotals();
   if(method==='card' && t.totalCents<50){ chgSay('Card needs at least $0.50.',false); return; }
+  if(method==='check' && !chgIsCommercial()){ chgSay('Checks are only taken from commercial (business) customers.',false); return; }   // 8z21
   if(method!=='cash' && (!chgCustomer || !chgCustomer.customer)){ chgSay((method==='card'?'Card':'Check')+" needs the customer's info — tap “Select / add customer”.",false); return; }
   if(!(window.TKS && TKS.POS && TKS.auth.isSignedIn())){ chgSay('Sign in to take a payment.',false); return; }
   posSetBusy(true);
@@ -4322,26 +4383,26 @@ async function renderHistory(){
   const res=await TKPay.dayTransactions(start.toISOString(), end.toISOString());
   if(res.error){ list.innerHTML='<div class="empty">'+esc2(res.error)+'</div>'; setCloseoutAndDrawer(date,0); return; }
   const rows=res.rows||[]; const money=c=>'$'+((c||0)/100).toFixed(2);
-  let collected=0,sur=0,tax=0,refunds=0,refundAmt=0; const byM={card:0,cash:0,check:0};
+  let collected=0,sur=0,tax=0,refunds=0,refundAmt=0; const byM={card:0,cash:0,check:0,other:0};
   rows.forEach(t=>{
     if(t.status==='completed' || t.status==='partially_refunded'){
       const cap=t.captured_cents||0, ref=t.refunded_cents||0, net=Math.max(0,cap-ref);   // net-collected = captured − refunded
       collected+=net; if(t.surcharge_applied) sur+=(t.surcharge_cents||0); tax+=(t.tax_cents||0);
-      byM[t.method==='cash'?'cash':t.method==='check'?'check':'card']+=net;
+      byM[payBucket(t.method)]+=net;
       if(ref>0){ refunds++; refundAmt+=ref; }
     } else if(t.status==='refunded'){ refunds++; refundAmt+=(t.refunded_cents||t.captured_cents||0); }
   });
   sum.innerHTML='<div class="chip"><b>'+money(collected)+'</b>collected</div>'+
     '<div class="chip"><b>'+rows.filter(t=>t.status==='completed').length+'</b>charges</div>'+
     '<div class="chip"><b>'+money(byM.card)+'</b>card</div><div class="chip"><b>'+money(byM.cash)+'</b>cash</div>'+
-    '<div class="chip"><b>'+money(byM.check)+'</b>check</div><div class="chip"><b>'+money(sur)+'</b>surcharge</div>'+
+    (byM.check?'<div class="chip"><b>'+money(byM.check)+'</b>check</div>':'')+(byM.other?'<div class="chip"><b>'+money(byM.other)+'</b>Cash App / Venmo / Zelle / mobile</div>':'')+'<div class="chip"><b>'+money(sur)+'</b>surcharge</div>'+
     '<div class="chip"><b>'+money(tax)+'</b>sales tax</div>'+
     (refunds?'<div class="chip low"><b>'+refunds+'</b>refunded · '+money(refundAmt)+'</div>':'');
   setCloseoutAndDrawer(date, byM.cash);   // expected cash = today's recorded cash sales
   if(!rows.length){ list.innerHTML='<div class="empty">No transactions on this day.</div>'; return; }
   list.innerHTML=rows.map(t=>{
     const time=new Date(t.created_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
-    const ml=t.method==='cash'?'Cash':t.method==='check'?'Check':t.method==='reader'?'Card · reader':'Card · typed';
+    const ml=payMethodLabel(t);
     const cls=t.status==='completed'?'amt-ok':(t.status==='refunded'||t.status==='partially_refunded')?'amt-ref':t.status==='pending'?'amt-pend':'amt-bad';
     return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
       '<div class="sub">'+time+' · '+ml+(t.card_funding?(' · '+t.card_funding):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
@@ -4571,6 +4632,14 @@ function shareDepositSlip(){
   else downloadBlob(res);
 }
 
+/* 8z20: payment method → label / bucket. Stripe card = reader | keyed; 'card' = a card run on another terminal
+   (merged MicroBiz history); cashapp / mobile / commercial / other = non-card electronic or account payments. */
+function payMethodLabel(t){ var m=t&&t.method;
+  return m==='cash'?'Cash':m==='check'?'Check':m==='reader'?'Card · reader':m==='keyed'?'Card · typed':
+    m==='card'?('Card'+(t.card_brand?' · '+t.card_brand:'')):m==='cashapp'?'Cash App':m==='venmo'?'Venmo':m==='zelle'?'Zelle':m==='mobile'?'Mobile pay':m==='commercial'?'Commercial':m==='other'?'Other':(m||'Payment'); }
+function payBucket(m){ return m==='cash'?'cash':m==='check'?'check':(m==='reader'||m==='keyed'||m==='card')?'card':'other'; }
+function payCanRefund(t){ return t && (t.method==='cash'||t.method==='check'||((t.method==='reader'||t.method==='keyed')&&t.stripe_payment_intent_id)); }
+
 /* ============================ TRANSACTION HISTORY (reports) ============================
    Owner-only analytics over payment_transactions: Total Jobs / Sales / Cost /
    Profit (each toggleable), a period dropdown (today → year) and a graph (bar/
@@ -4611,9 +4680,15 @@ function repRange(period){
   if(period==='month'){ return {start:new Date(y,m,1), end:new Date(y,m+1,1)}; }
   if(period==='quarter'){ const q=Math.floor(m/3); return {start:new Date(y,q*3,1), end:new Date(y,q*3+3,1)}; }
   if(period==='year'){ return {start:new Date(y,0,1), end:new Date(y+1,0,1)}; }
+  if(period==='lastmonth'){ return {start:new Date(y,m-1,1), end:new Date(y,m,1)}; }   // 8z23
+  if(period==='lastyear'){ return {start:new Date(y-1,0,1), end:new Date(y,0,1)}; }
+  if(period==='custom'){ const v=repView(); const p=s=>{ const a=String(s||'').split('-').map(Number); return a.length===3&&a[0]?new Date(a[0],a[1]-1,a[2]):null; };
+    let s=p(v.from)||new Date(y,m,1), e=p(v.to)||new Date(y,m,d); if(e<s){ const t=s; s=e; e=t; } return {start:s, end:new Date(e.getFullYear(),e.getMonth(),e.getDate()+1)}; }
   return {start:new Date(y,m,d), end:new Date(y,m,d+1)}; // today
 }
-function repGran(period){ return period==='today'?'hour':(period==='week'||period==='month')?'day':'month'; }
+function repGran(period){
+  if(period==='custom'){ const r=repRange('custom'), days=(r.end-r.start)/864e5; return days<=1?'hour':days<=62?'day':'month'; }
+  return period==='today'?'hour':(period==='week'||period==='month'||period==='lastmonth')?'day':'month'; }
 function repBucketKey(dt, gran){
   if(gran==='hour') return dt.getHours();
   if(gran==='day')  return dt.getFullYear()+'-'+dt.getMonth()+'-'+dt.getDate();
@@ -4664,7 +4739,10 @@ function renderInvReport(){
   }).join('') : '<div class="empty">No inventory yet.</div>';
 }
 window.renderInvReport = renderInvReport;
-document.getElementById('repPeriod').addEventListener('change', e=>{ const v=repView(); v.period=e.target.value; repSetView(v); renderReports(); });
+document.getElementById('repPeriod').addEventListener('change', e=>{ const v=repView(); v.period=e.target.value;
+  if(v.period==='custom' && !v.from){ const n=new Date(), z=x=>String(x).padStart(2,'0'); v.from=n.getFullYear()+'-'+z(n.getMonth()+1)+'-01'; v.to=n.getFullYear()+'-'+z(n.getMonth()+1)+'-'+z(n.getDate()); }
+  repSetView(v); renderReports(); });
+['repFrom','repTo'].forEach(id=> document.getElementById(id).addEventListener('change', e=>{ const v=repView(); v[id==='repFrom'?'from':'to']=e.target.value; repSetView(v); renderReports(); }));   // 8z23
 document.getElementById('repChart').addEventListener('change', e=>{ const v=repView(); v.chart=e.target.value; repSetView(v); renderReports(); });
 document.getElementById('repTech').addEventListener('change', e=>{ const v=repView(); v.tech=e.target.value; repSetView(v); renderReports(); });
 document.getElementById('repReload').onclick=renderReports;
@@ -4698,13 +4776,13 @@ async function renderCommission(){
   try{ const res=await TKS.Commission.dayRows(rng.from, rng.to, techFilter||null); if(res.error) throw res.error; rows=res.data||[]; }
   catch(e){ list.innerHTML='<div class="empty">'+esc2(e.message||'Couldn’t load commission.')+'</div>'; return; }
   let base=0, comm=0, held=0; rows.forEach(r=>{ base+=+r.base_cents||0; comm+=+r.commission_cents||0; held+=+r.held_cents||0; });
-  cards.innerHTML='<div class="chip"><b>'+money2(comm)+'</b>commission</div><div class="chip"><b>'+money2(base)+'</b>commissionable</div>'+(held>0?'<div class="chip low"><b>'+money2(held)+'</b>on hold</div>':'');
+  cards.innerHTML='<div class="chip"><b>'+money2(comm)+'</b>commission</div>'+(mgr?'<div class="chip"><b>'+money2(base)+'</b>commissionable</div>':'')+(held>0?'<div class="chip low"><b>'+money2(held)+'</b>on hold</div>':'');   // 8z22: techs don't see sales
   if(!rows.length){ list.innerHTML='<div class="empty">No commission in this period yet.</div>'; }
   else {
     const byTech={}; rows.forEach(r=>{ const g=(byTech[r.tech_id]=byTech[r.tech_id]||{name:r.tech_name,days:[],comm:0,base:0,held:0}); g.days.push(r); g.comm+=+r.commission_cents||0; g.base+=+r.base_cents||0; g.held+=+r.held_cents||0; });
     list.innerHTML=Object.keys(byTech).map(tid=>{ const g=byTech[tid];
       return '<div class="crow" style="flex-direction:column;align-items:stretch;cursor:default"><div style="display:flex;justify-content:space-between"><b>'+esc2(g.name)+'</b><b>'+money2(g.comm)+'</b></div>'+
-        '<div class="sub" style="margin-top:4px">'+g.days.sort((a,b)=>String(b.day).localeCompare(a.day)).map(d=> comFmtDay(d.day)+': '+money2(d.commission_cents)+' on '+money2(d.base_cents)+(d.met_min?'':' (daily min)')+(+d.held_cents>0?(' · '+money2(d.held_cents)+' held'):'')).join('<br>')+'</div></div>';
+        '<div class="sub" style="margin-top:4px">'+g.days.sort((a,b)=>String(b.day).localeCompare(a.day)).map(d=> comFmtDay(d.day)+': '+money2(d.commission_cents)+(mgr?' on '+money2(d.base_cents):'')+(d.met_min?'':(mgr?' (daily min)':''))+(+d.held_cents>0?(' · '+money2(d.held_cents)+' held'):'')).join('<br>')+'</div></div>';
     }).join('');
   }
   note.textContent = mgr ? 'Computed server-side from paid sales per your rules (⚙ Rules). On-hold releases when a manager signs off the job.' : 'Your commission from paid sales. On-hold items release once a manager signs off the job.';
@@ -4948,6 +5026,9 @@ async function renderReports(){
   const cards=document.getElementById('repCards'), list=document.getElementById('repList'), wrap=document.getElementById('repChartWrap');
   cards.innerHTML=''; list.innerHTML='<div class="empty">Loading…</div>';
   if(!window.TKPay || !TKPay.dayTransactions){ list.innerHTML='<div class="empty">Payment engine not loaded.</div>'; return; }
+  // 8z23: custom dates
+  const cw=document.getElementById('repCustom'); if(cw) cw.style.display = v.period==='custom' ? 'flex' : 'none';
+  if(v.period==='custom'){ const f=document.getElementById('repFrom'), t=document.getElementById('repTo'); if(f) f.value=v.from||''; if(t) t.value=v.to||''; }
   const {start,end}=repRange(v.period);
   const res=await TKPay.dayTransactions(start.toISOString(), end.toISOString());
   if(res.error){ list.innerHTML='<div class="empty">'+esc2(res.error)+'</div>'; return; }
@@ -4961,7 +5042,7 @@ async function renderReports(){
   const rows = sel.value==='all' ? allRows : allRows.filter(t=>(t.technician||'').trim()===sel.value);
   const gran=repGran(v.period), buckets=repBuckets(start,end,gran);
   const agg={}; buckets.forEach(b=> agg[b.key]={sales:0,cost:0,profit:0,jobs:0});
-  const tot={sales:0,cost:0,profit:0,jobs:0,tax:0}; const byMethod={card:0,cash:0,check:0};
+  const tot={sales:0,cost:0,profit:0,jobs:0,tax:0}; const byMethod={card:0,cash:0,check:0,other:0};
   rows.forEach(t=>{ if(t.status!=='completed' && t.status!=='partially_refunded') return;
     // Sales/Profit = goods+labor revenue only. Tax is pass-through (excluded), and
     // base_cents already excludes the card surcharge. sales = base - tax - refunded.
@@ -4970,7 +5051,7 @@ async function renderReports(){
     const tax=t.tax_cents||0, cost=t.cost_cents||0, ref=t.refunded_cents||0;
     const sales=Math.max(0,(t.base_cents||0)-tax-ref), profit=sales-cost;
     tot.sales+=sales; tot.cost+=cost; tot.profit+=profit; tot.jobs+=1; tot.tax+=tax;
-    byMethod[t.method==='cash'?'cash':t.method==='check'?'check':'card']+=sales;
+    byMethod[payBucket(t.method)]+=sales;
     const k=repBucketKey(new Date(t.created_at), gran); if(agg[k]){ agg[k].sales+=sales; agg[k].cost+=cost; agg[k].profit+=profit; agg[k].jobs+=1; }
   });
   // Metric cards — only the toggled-on ones. (Tax collected moved to the Dashboard.)
@@ -4979,14 +5060,15 @@ async function renderReports(){
     return '<div class="chip m-'+x.key+'">'+x.label+'<b>'+val+'</b></div>';
   }).join('');
   drawRepChart(v.chart, buckets, agg, m, byMethod);
+  repBreakdown(rows, start, end);   // 8z23
   // Transaction list (period rows, newest first)
   if(!rows.length){ list.innerHTML='<div class="empty">No transactions in this period.</div>'; return; }
   list.innerHTML=rows.map(t=>{
     const dt=new Date(t.created_at);
     const when=(v.period==='today') ? dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : dt.toLocaleDateString([], {month:'short',day:'numeric'})+' '+dt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
-    const ml=t.method==='cash'?'Cash':t.method==='check'?'Check':t.method==='reader'?'Card · reader':'Card · typed';
+    const ml=payMethodLabel(t);
     const cls=t.status==='completed'?'amt-ok':(t.status==='refunded'||t.status==='partially_refunded')?'amt-ref':t.status==='pending'?'amt-pend':'amt-bad';
-    const refund = (t.status==='completed'||t.status==='partially_refunded') ?
+    const refund = ((t.status==='completed'||t.status==='partially_refunded') && payCanRefund(t)) ?
       '<button class="repRefund" data-cap="refundVoid" data-id="'+esc2(t.id)+'" data-pi="'+esc2(t.stripe_payment_intent_id||'')+'" data-method="'+esc2(t.method)+'" data-inv="'+esc2(t.invoice_id||'')+'">↩︎ Refund</button>' : '';
     return '<div class="crow"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
       '<div class="sub">'+when+' · '+ml+(t.technician?(' · '+esc2(t.technician)):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
@@ -5013,6 +5095,45 @@ async function renderReports(){
     renderReports();
   });
 }
+/* 8z23: the "what do I owe / what did I sell" box for the chosen dates.
+   Tax owed = sales tax collected on those payments. Products vs services come from each sale's lines
+   (a line is a product when it is a stocked part or a Materials/part line; everything else is a service). */
+async function repBreakdown(rows, start, end){
+  const box=document.getElementById('repBreak'); if(!box) return;
+  const ok=rows.filter(t=>t.status==='completed'||t.status==='partially_refunded');
+  const money=c=>'$'+((c||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  let tax=0, sales=0; const byM={}; ok.forEach(t=>{ const tx=t.tax_cents||0, s=Math.max(0,(t.base_cents||0)-tx-(t.refunded_cents||0)); tax+=tx; sales+=s;
+    const k=payMethodLabel({method:t.method}); byM[k]=(byM[k]||0)+s+tx; });
+  // products vs services, taxable vs not — from the receipts behind these payments (share = this payment / sale total)
+  let prod=0, svc=0, taxable=0, nontax=0, unknown=0;
+  const ids=[...new Set(ok.map(t=>t.invoice_id).filter(Boolean))]; const recs={};
+  let sb=null; try{ sb=TKS._sb && TKS._sb(); }catch(e){}
+  if(sb && ids.length){ for(let i=0;i<ids.length;i+=150){ try{ const r=await sb.from('receipts_safe').select('id,data').in('id', ids.slice(i,i+150)); ((r&&r.data)||[]).forEach(x=>{ recs[x.id]=x.data||{}; }); }catch(e){} } }
+  else { try{ (TKS.Receipts && TKS.Receipts.all ? TKS.Receipts.all() : []).forEach(x=>{ if(ids.indexOf(x.id)>=0) recs[x.id]=x; }); }catch(e){} }
+  ok.forEach(t=>{ const tx=t.tax_cents||0, s=Math.max(0,(t.base_cents||0)-tx-(t.refunded_cents||0)); const d=recs[t.invoice_id];
+    const items=(d&&Array.isArray(d.items))?d.items.filter(it=>!it.isDiscount):[];
+    const tot=items.reduce((a,it)=>a+(Number(it.amount)||0),0);
+    if(!items.length || !(tot>0)){ unknown+=s; return; }
+    items.forEach(it=>{ const share=(Number(it.amount)||0)/tot*s;
+      const isProd = !!it.partId || /^(materials?|parts?|part)$/i.test(String(it.category||'')) || it.lineType==='part';
+      if(isProd) prod+=share; else svc+=share; if(it.taxable) taxable+=share; else nontax+=share; }); });
+  const row=(k,v,strong)=>'<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(128,128,128,.15)">'+(strong?'<b>'+k+'</b><b>'+v+'</b>':'<span>'+k+'</span><span>'+v+'</span>')+'</div>';
+  const fmtD=d=>d.toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});
+  const last=new Date(end.getTime()-1);
+  box.innerHTML='<div style="padding:12px 14px;border:1px solid rgba(128,128,128,.25);border-radius:14px;margin:10px 0">'+
+    '<div class="sub" style="margin:0 0 6px">'+fmtD(start)+(fmtD(start)!==fmtD(last)?' – '+fmtD(last):'')+' · '+ok.length+' payment'+(ok.length===1?'':'s')+'</div>'+
+    row('Total sales (before tax)', money(sales), true)+
+    row('&nbsp;&nbsp;Products / parts', money(Math.round(prod)))+
+    row('&nbsp;&nbsp;Services / labor', money(Math.round(svc)))+
+    (unknown>0?row('&nbsp;&nbsp;Not itemized', money(Math.round(unknown))):'')+
+    row('Taxable sales', money(Math.round(taxable)))+
+    row('Non-taxable sales', money(Math.round(nontax)))+
+    row('Sales tax collected (owed)', money(tax), true)+
+    row('Collected incl. tax', money(sales+tax))+
+    '<div class="sub" style="margin:10px 0 4px">By payment type (incl. tax)</div>'+
+    Object.keys(byM).sort((a,b)=>byM[b]-byM[a]).map(k=>row(esc2(k), money(byM[k]))).join('')+
+  '</div>';
+}
 function drawRepChart(type, buckets, agg, m, byMethod){
   const wrap=document.getElementById('repChartWrap'), canvas=document.getElementById('repCanvas');
   if(repChart){ repChart.destroy(); repChart=null; }
@@ -5020,9 +5141,9 @@ function drawRepChart(type, buckets, agg, m, byMethod){
   wrap.classList.remove('empty');
   // pie/doughnut → composition of Sales by payment method
   if(type==='pie'||type==='doughnut'){
-    repChart=new Chart(canvas, { type, data:{ labels:['Card','Cash','Check'],
-      datasets:[{ data:[byMethod.card/100, byMethod.cash/100, byMethod.check/100],
-        backgroundColor:['#4aa3ff','#22994a','#f2b43a'], borderColor:'#14171b', borderWidth:2 }] },
+    repChart=new Chart(canvas, { type, data:{ labels:['Card','Cash','Check','Cash App / Venmo / Zelle / mobile'],
+      datasets:[{ data:[byMethod.card/100, byMethod.cash/100, byMethod.check/100, (byMethod.other||0)/100],
+        backgroundColor:['#4aa3ff','#22994a','#f2b43a','#9b6bd6'], borderColor:'#14171b', borderWidth:2 }] },
       options:{ responsive:true, maintainAspectRatio:false,
         plugins:{ legend:{ labels:{ color:'#9aa1ac' } },
           tooltip:{ callbacks:{ label:c=> c.label+': $'+Number(c.raw).toFixed(2) } } } } });
@@ -6371,7 +6492,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
         '<div class="hint" style="margin-top:6px">They get an email with a link to create their own password — no temporary passwords to hand over.</div>'+
         '<div id="ctMsg" class="hint"></div>'
       ) : '<div class="hint">Only the shop owner can add teammates.</div>');
-    Promise.all([ sb.from('staff').select('user_id,name,role,active').order('role'), sb.rpc('staff_mfa_status').then(function(x){ return x; }, function(){ return {data:[]}; }),
+    Promise.all([ sb.from('staff').select('user_id,name,role,active,pay_plan,after_hours_pct').order('role'), sb.rpc('staff_mfa_status').then(function(x){ return x; }, function(){ return {data:[]}; }),
                   sb.rpc('staff_login_status').then(function(x){ return x; }, function(){ return {data:[]}; }),
                   sb.rpc('staff_contacts').then(function(x){ return x; }, function(){ return {data:[]}; }) ]).then(function(res){
       const contact={}; ((res[3]&&res[3].data)||[]).forEach(function(x){ contact[x.user_id]=x; });   // 8z6
@@ -6392,8 +6513,25 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
           '<b style="flex:1">'+esc(s.name||'(no name)')+'</b><span>'+esc(s.role)+'</span>'+mfaTag+pendTag+
           (s.active?'<span style="color:var(--ok,#2c9)">active</span>':'<span style="color:var(--dim)">inactive</span>')+resetBtn+resendBtn+
           (function(){ const c=contact[s.user_id]; if(!c) return ''; const bits=[c.email?('✉️ '+esc(c.email)):'', c.phone?('📞 <a href="tel:'+esc(String(c.phone).replace(/[^0-9+]/g,''))+'">'+esc(c.phone)+'</a>'):'', c.address?('🏠 '+esc(c.address)):''].filter(Boolean);
-            return bits.length?'<div class="hint" style="flex-basis:100%;margin:2px 0 0">'+bits.join(' · ')+'</div>':''; })()+'</div>';
+            return bits.length?'<div class="hint" style="flex-basis:100%;margin:2px 0 0">'+bits.join(' · ')+'</div>':''; })()+
+          // 8z22: pay plan (owner sets it; everyone else just sees it). The owner isn't paid commission.
+          (s.role==='owner' ? '' : (function(){ const plan=s.pay_plan||'commission', pct=(s.after_hours_pct!=null?s.after_hours_pct:25);
+            const lbl = plan==='hourly'?'Hourly — no commission':plan==='hourly_after_hours'?('Hourly + '+pct+'% after hours (off the clock)'):'Commission (shop rule)';
+            if(role!=='owner') return '<div class="hint" style="flex-basis:100%;margin:2px 0 0">💵 '+esc(lbl)+'</div>';
+            return '<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px"><span class="hint" style="margin:0">💵 Pay</span>'+
+              '<select class="search ctPlan" data-uid="'+esc(s.user_id)+'" style="flex:1 1 200px;min-height:38px">'+
+                '<option value="commission"'+(plan==='commission'?' selected':'')+'>Commission (shop rule)</option>'+
+                '<option value="hourly_after_hours"'+(plan==='hourly_after_hours'?' selected':'')+'>Hourly + commission after hours</option>'+
+                '<option value="hourly"'+(plan==='hourly'?' selected':'')+'>Hourly — no commission</option></select>'+
+              '<span class="ctPctWrap" style="display:'+(plan==='hourly_after_hours'?'inline-flex':'none')+';align-items:center;gap:4px"><input class="tx ctPct" type="number" min="0" max="100" step="1" value="'+esc(pct)+'" style="width:64px;min-height:38px">%</span>'+
+              '<span class="hint ctPlanMsg" style="margin:0"></span></div>';
+          })())+'</div>';
       }).join('') : 'No staff rows yet.';
+      // 8z22: save a pay plan change
+      el.querySelectorAll('.ctPlan').forEach(function(sel){ const row=sel.parentNode, pw=row.querySelector('.ctPctWrap'), pin=row.querySelector('.ctPct'), m=row.querySelector('.ctPlanMsg');
+        const save=function(){ pw.style.display = sel.value==='hourly_after_hours' ? 'inline-flex' : 'none'; m.textContent='Saving…';
+          sb.rpc('staff_set_pay_plan',{ p_user:sel.dataset.uid, p_plan:sel.value, p_pct:Number(pin.value)||25 }).then(function(r){ m.textContent = r.error ? ('⚠ '+r.error.message) : '✓ saved'; }); };
+        sel.onchange=save; if(pin) pin.onchange=save; });
       el.querySelectorAll('[data-resend]').forEach(function(b){ b.onclick=function(){   // 8z5
         b.disabled=true; b.textContent='Sending…';
         sb.auth.getSession().then(function(x){ const tok=x&&x.data&&x.data.session&&x.data.session.access_token;
@@ -7480,6 +7618,69 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
   // ---------- ONE write path for every new/edited job (plain form + guided wizard) ----------
   // TKS.Bookings.save (local mirror + cloud bookings adapter) then, signed in, TKS.Jobs.assign for the lead
   // tech (manager+, server-enforced). Status pushes (TKS.Jobs.setStatus / cancel) stay with the caller.
+  // ---------- 8z33: shared "Keys for this vehicle" helpers (wizard; the quick form has its own copy from 8z32) ----------
+  var KFV_GROUPS=[['Smart Key','Smart keys'],['Remote Head / Flip','Flip keys'],['Remote / Fob','Remotes'],['Super Remote','Super remotes'],['Transponder','Transponder keys'],['Key Shell','Shells'],['Mechanical','Blades / mechanical']];
+  // 8z34 (owner): "PEPS" / "proximity" / "prox" in the name = push-to-start = a smart key, whatever the category says
+  var KFV_PROX=/(peps|prox|proximity|prx)/i;
+  function kfvSub(p){ if(KFV_PROX.test(String(p.name||''))) return 'Smart Key'; return String(p.category||'').split('/').slice(1).join('/').trim(); }
+  // chip family from free text ("Hitag Pro (ID49)" = "Hitag Pro ID49 (128-bit)")
+  function kfvChip(c){ c=String(c||'').toLowerCase(); if(!c) return '';
+    if(/hitag\s*pro|id\s*49/.test(c)) return 'id49'; if(/hitag\s*aes|\b4a\b/.test(c)) return '4a'; if(/honda\s*g|id\s*47/.test(c)) return 'id47';
+    if(/\b8a\b|toyota\s*h|\bh[\s-]*chip|128-bit aes/.test(c)) return '8a'; if(/4d-?72|toyota\s*g|\bg[\s-]*chip/.test(c)) return '4d72';
+    var d=/4d-?(\d\d)/.exec(c); if(d) return '4d'+d[1]; if(/id\s*46|philips\s*46|circle|pcf79/.test(c)) return 'id46';
+    if(/megamos.*48|id\s*48/.test(c)) return 'id48'; if(/megamos|id\s*13|pk3/.test(c)) return 'id13'; if(/\b4c\b/.test(c)) return '4c'; if(/n\s*chip/.test(c)) return 'nchip';
+    return c.replace(/[^a-z0-9]/g,''); }
+  function kfvList(y, mk, md, ign){
+    var list=[]; try{ list=TKS.Inventory.forVehicle({year:y, make:mk, model:md})||[]; }catch(e){}
+    list=list.filter(function(p){ return /^keys\//i.test(String(p.category||'')); }); var hidden='';
+    // 8z35: transponders / blades / shells that list only the make (+ years) — kept when their chip matches this car's keys
+    var chips={}; list.forEach(function(p){ var k=kfvChip(p.chip); if(k) chips[k]=1; }); var haveChip=Object.keys(chips).length>0;
+    var loose=[]; try{ loose=TKS.Inventory.forVehicle({year:y, make:mk, model:md}, {loose:true})||[]; }catch(e){}
+    var seen={}; list.forEach(function(p){ seen[p.id]=1; });
+    loose.forEach(function(p){ if(seen[p.id]) return; var sb=String(p.category||'').split('/').slice(1).join('/').trim();
+      if(['Transponder','Mechanical','Key Shell'].indexOf(sb)<0) return;
+      var ck=kfvChip(p.chip), note;
+      if(sb==='Transponder'){ if(haveChip){ if(!chips[ck]) return; note='✓ same chip as this car\'s keys'; } else note='Fits '+mk+' — check the chip'; }
+      else note='Fits '+mk;
+      list.push(Object.assign({}, p, { _kfvNote:note })); seen[p.id]=1; });   // a copy — never tag the stock record itself
+    if(ign==='keyed'){ list=list.filter(function(p){ return kfvSub(p)!=='Smart Key'; }); hidden='smart keys hidden — turn-key ignition'; }
+    if(ign==='push'){ list=list.filter(function(p){ return ['Remote Head / Flip','Transponder'].indexOf(kfvSub(p))<0; }); hidden='flip & transponder keys hidden — push-to-start'; }
+    var groups=[]; KFV_GROUPS.concat([['__other','Other']]).forEach(function(g){ var items=list.filter(function(p){ var sb=kfvSub(p); return g[0]==='__other' ? !KFV_GROUPS.some(function(k){ return k[0]===sb; }) : sb===g[0]; }); if(items.length) groups.push([g[1], items]); });
+    return { groups:groups, count:list.length, hidden:hidden, list:list };
+  }
+  function kfvMoney(c){ return (c==null||c==='')?'':'$'+(Number(c)/100).toFixed(2); }
+  function kfvCard(p, added){
+    var e=(typeof _invLocMap!=='undefined' && _invLocMap)?_invLocMap[p.id]:null, shop=e?e.shop:(parseInt(p.qty,10)||0);
+    var grade=String(p.grade||''), tag=/oem/i.test(grade)?'<span style="font-size:11px;font-weight:800;border-radius:6px;padding:1px 6px;margin-left:4px;background:#fdecea;color:#a3252e">OEM</span>':(/aftermarket/i.test(grade)?'<span style="font-size:11px;font-weight:800;border-radius:6px;padding:1px 6px;margin-left:4px;background:#eef2ff;color:#3949ab">AM</span>':'');
+    return '<div style="display:flex;gap:10px;align-items:center;background:var(--card,#fff);border:1px solid var(--edge,#e3e5e8);border-radius:12px;padding:8px;margin-bottom:8px">'+
+      ((window.TKS_PHOTO)?TKS_PHOTO.thumb(p.image,54):'')+
+      '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;line-height:1.25">'+esc(p.name||p.sku)+tag+'</div>'+
+      '<div class="meta" style="font-size:12px;margin-top:2px">'+esc([p.fccId?('FCC '+p.fccId):'', p.chip||'', p.sku||''].filter(Boolean).join(' · '))+'</div>'+
+      '<div style="font-size:12px;margin-top:3px;font-weight:700">Shop '+esc(shop)+(p._kfvNote?' · <span style="color:'+(/check/.test(p._kfvNote)?'#b7791f':'var(--green,#1c7d3e)')+'">'+esc(p._kfvNote)+'</span>':'')+'</div></div>'+
+      '<div style="text-align:right;flex:0 0 auto"><div style="font-weight:800;font-size:14px">'+esc(kfvMoney(p.sellPriceCents))+'</div>'+
+      (added ? '<button type="button" class="kfvDel" data-id="'+esc(p.id)+'" style="margin-top:4px;border:2px solid #22994a;border-radius:10px;background:#eaf7ee;color:#156632;font-weight:800;padding:7px 9px;font-size:13px;cursor:pointer" title="Tap to remove">✓ Added</button>'
+             : '<button type="button" class="kfvAdd" data-id="'+esc(p.id)+'" style="margin-top:4px;border:0;border-radius:10px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;padding:9px 12px;font-size:14px;cursor:pointer">+ Add</button>')+'</div></div>';
+  }
+  // write keys picked before the job existed (the booking syncs to the cloud first — retry a few times)
+  function kfvFlush(jobId, ids){
+    if(!jobId || !ids || !ids.length) return; var sb=null; try{ sb=signedIn() && !(TKS.isDemo&&TKS.isDemo()) && TKS._sb && TKS._sb(); }catch(e){} if(!sb) return;
+    var tries=0; (function go(){ tries++; sb.from('job_parts').insert(ids.map(function(id){ var pt=TKS.Inventory.get(id)||{}; return { job_id:jobId, item_id:id, description:pt.name||pt.sku||'Part', qty:1 }; })).then(function(r){
+      if(r.error && tries<6) setTimeout(go, 1500); else if(r.error) toast('Keys not added to the job: '+r.error.message); }); })();
+  }
+  function wzKeysFill(){
+    if(!W || !W.ov) return; var box=W.ov.querySelector('#wzKeys'); if(!box) return; var b=W.b, v=b.vehicle||{}; b.keyParts=b.keyParts||[];
+    var head='<div style="margin-top:14px;border:2px solid rgba(34,153,74,.25);border-radius:14px;padding:12px;background:rgba(34,153,74,.05)"><div style="font-weight:800;font-size:16px">🔑 Keys for this vehicle</div>';
+    if(!v.make || !v.model){ box.innerHTML=head+'<div class="meta" style="margin-top:4px">Pick the year, make and model (or decode the VIN) to see the keys you stock for it.</div></div>'; return; }
+    var L=kfvList(v.year, v.make, v.model, v.ignition), html=head+'<div class="meta" style="margin-top:2px">'+esc([v.year,v.make,v.model].filter(Boolean).join(' '))+' — from your stock'+(L.hidden?' ('+esc(L.hidden)+')':'')+'</div>';
+    if(!L.count) html+='<div class="meta" style="margin-top:8px">No keys in stock list this vehicle in their "Fits".</div>';
+    L.groups.forEach(function(g){ html+='<div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--dim);text-transform:uppercase;margin:12px 0 6px">'+esc(g[0])+'</div>'+g[1].map(function(p){ return kfvCard(p, b.keyParts.indexOf(p.id)>=0); }).join(''); });
+    if(b.keyParts.length) html+='<div style="margin-top:10px;background:var(--card,#fff);border:1px dashed #22994a;border-radius:12px;padding:10px;font-size:13.5px"><b>On this job ('+b.keyParts.length+'):</b> '+
+      b.keyParts.map(function(id){ var pt=TKS.Inventory.get(id)||{}; return esc(pt.name||pt.sku||'Part')+' '+esc(kfvMoney(pt.sellPriceCents)); }).join(' · ')+'<div class="meta" style="margin-top:4px">Saved with the job — goes to the invoice.</div></div>';
+    box.innerHTML=html+'</div>';
+    box.querySelectorAll('.kfvAdd').forEach(function(bt){ bt.onclick=function(){ if(b.keyParts.indexOf(bt.dataset.id)<0) b.keyParts.push(bt.dataset.id); wzKeysFill(); }; });
+    box.querySelectorAll('.kfvDel').forEach(function(bt){ bt.onclick=function(){ b.keyParts=b.keyParts.filter(function(x){ return x!==bt.dataset.id; }); wzKeysFill(); }; });
+  }
+
   function persistJob(rec){
     if(!rec.status) rec.status='Scheduled';
     var saved; try{ saved=TKS.Bookings.save(rec); }catch(e){ return {error:(e&&e.message)||'Save failed.'}; }
@@ -7622,7 +7823,19 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       addr:{street:'',city:'',state:'',zip:''}, address:'', vehicle:{year:'',make:'',model:'',vin:'',ignition:''},
       technician:'', technicianId:null, date:presetDate||'', time:'', duration:60, notes:'', upsell:{offered:null,accepted:null} };
   }
-  function composeAddress(a){ a=a||{}; var l1=(a.street||'').trim(); var cs=[(a.city||'').trim(), [(a.state||'').trim(),(a.zip||'').trim()].filter(Boolean).join(' ')].filter(Boolean).join(', '); return [l1,cs].filter(Boolean).join(', '); }
+  // 8z31: street + apt/unit, city, ST ZIP
+  var US_STATES=['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+  function stateOptions(cur){ cur=String(cur||'OK').toUpperCase(); return US_STATES.map(function(st){ return '<option'+(st===cur?' selected':'')+'>'+st+'</option>'; }).join(''); }
+  function parseAddress(str){ var o={street:'',unit:'',city:'',state:'',zip:''}; var t=String(str||'').replace(/\s+/g,' ').trim(); if(!t) return o;
+    // 8z31: "..., City, ST 12345" / "..., City ST 12345" / "..., City, ST, 12345" / "..., City, ST"
+    var mm=/^(.*?),\s*([^,]+?)\s*,?\s+([A-Za-z]{2})\.?\s*,?\s*(\d{5}(?:-\d{4})?)?\s*$/.exec(t), head=t;
+    if(mm && mm[1] && (mm[4] || /,\s*[A-Za-z]{2}\s*$/.test(t))){ head=mm[1]; o.city=mm[2]; o.state=mm[3].toUpperCase(); o.zip=mm[4]||''; }
+    var p=head.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+    o.street=p.shift()||''; var rest=p.join(', ');
+    var u=/\s+((?:apt|apartment|unit|suite|ste|lot|bldg|building|#)\.?\s*\S+)$/i.exec(o.street); if(u){ o.street=o.street.slice(0,u.index).trim(); rest=[u[1],rest].filter(Boolean).join(', '); }
+    o.unit=rest; return o; }
+  window.TKS_parseAddress=parseAddress;
+  function composeAddress(a){ a=a||{}; var l1=[(a.street||'').trim(),(a.unit||'').trim()].filter(Boolean).join(', '); var cs=[(a.city||'').trim(), [(a.state||'').trim(),(a.zip||'').trim()].filter(Boolean).join(' ')].filter(Boolean).join(', '); return [l1,cs].filter(Boolean).join(', '); }
   function isUrgent(b){ return b.subType==='lockout' || (b.jobType==='auto' && b.subType==='lost'); }
   function skip(step, b){ return (step==='subtype'||step==='upsell') && !hasSub(b.jobType); }
   function visibleSteps(b){ return STEPS.filter(function(s){ return !skip(s,b); }); }
@@ -7708,11 +7921,14 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
         '<label>'+esc(t('veh_md'))+'</label><select id="f_vmd" data-veh="model">'+TKS_YMM.modelOptionsHTML(v.make, v.year, v.model)+'</select>'+
         '<label>'+esc(t('ignition'))+'</label><div class="ign-pick" id="ignPick">'+
           '<button type="button" data-ign="push" class="'+(v.ignition==='push'?'sel':'')+'">🔘 '+esc(t('ign_push'))+'</button>'+
-          '<button type="button" data-ign="keyed" class="'+(v.ignition==='keyed'?'sel':'')+'">🔑 '+esc(t('ign_keyed'))+'</button></div>';
+          '<button type="button" data-ign="keyed" class="'+(v.ignition==='keyed'?'sel':'')+'">🔑 '+esc(t('ign_keyed'))+'</button></div>'+
+        '<div id="wzKeys"></div>';   // 8z33
     }
+    if(!a.state) a.state='OK';   // 8z31
     html+='<label>'+esc(t('street'))+'</label><input id="f_street" data-addr="street" value="'+esc(a.street)+'" placeholder="123 Main St" autocomplete="off">'+
+      '<label>Apt / Unit #</label><input id="f_unit" data-addr="unit" value="'+esc(a.unit||'')+'" placeholder="Apt 4B, Unit 12, Suite 200…" autocomplete="off">'+
       '<label>'+esc(t('city'))+'</label><input id="f_city" data-addr="city" value="'+esc(a.city)+'" autocomplete="off">'+
-      '<div class="row2"><div><label>'+esc(t('state'))+'</label><input data-addr="state" value="'+esc(a.state)+'" placeholder="OK" maxlength="2" style="text-transform:uppercase" autocomplete="off"></div>'+
+      '<div class="row2"><div><label>'+esc(t('state'))+'</label><select data-addr="state">'+stateOptions(a.state)+'</select></div>'+
       '<div><label>'+esc(t('zip'))+'</label><input data-addr="zip" value="'+esc(a.zip)+'" inputmode="numeric" autocomplete="off"></div></div>';
     return html;
   }
@@ -7766,12 +7982,13 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     var bk=sheet.querySelector('#wzBack'); if(bk) bk.onclick=wzBack;
     var nx=sheet.querySelector('#wzNext'); if(nx) nx.onclick=function(){ if(step==='done'){ wzClose(); return; } wzNext(); };
     sheet.querySelectorAll('[data-bind]').forEach(function(el){ el.addEventListener('input', function(){ setPath(el.dataset.bind, el.value); el.classList.remove('field-err'); }); el.addEventListener('change', function(){ setPath(el.dataset.bind, el.value); }); });
-    sheet.querySelectorAll('[data-addr]').forEach(function(el){ el.addEventListener('input', function(){ var f=el.dataset.addr; b.addr[f]=(f==='state')?el.value.toUpperCase():el.value; b.address=composeAddress(b.addr); el.classList.remove('field-err'); }); });
+    sheet.querySelectorAll('[data-addr]').forEach(function(el){ el.addEventListener(el.tagName==='SELECT'?'change':'input', function(){ var f=el.dataset.addr; b.addr[f]=(f==='state')?el.value.toUpperCase():el.value; b.address=composeAddress(b.addr); el.classList.remove('field-err'); }); });
     sheet.querySelectorAll('[data-jt]').forEach(function(btn){ btn.onclick=function(){ b.jobType=btn.dataset.jt; b.subType=''; b.upsell={offered:null,accepted:null}; wzRender(); }; });
     sheet.querySelectorAll('[data-sub]').forEach(function(btn){ btn.onclick=function(){ b.subType=btn.dataset.sub; wzRender(); }; });
     sheet.querySelectorAll('[data-ign]').forEach(function(btn){ btn.onclick=function(){ b.vehicle.ignition=btn.dataset.ign; wzRender(); }; });
     sheet.querySelectorAll('[data-up]').forEach(function(btn){ btn.onclick=function(){ var p=btn.dataset.up.split(':'); b.upsell[p[0]]=(p[1]==='1'); if(p[0]==='offered'&&p[1]==='0') b.upsell.accepted=null; wzRender(); }; });
     // Year/Make/Model cascade (year resets make+model; make resets model) — same as Start-a-Job
+    try{ wzKeysFill(); if(typeof invLocRefresh==='function') invLocRefresh(false); }catch(e){}   // 8z33
     sheet.querySelectorAll('[data-veh]').forEach(function(sel){ sel.onchange=function(){ var f=sel.dataset.veh; b.vehicle[f]=sel.value; if(f==='year'){ b.vehicle.make=''; b.vehicle.model=''; } else if(f==='make'){ b.vehicle.model=''; } wzRender(); }; });
     var vb=sheet.querySelector('#wzVin'); if(vb) vb.onclick=function(){
       var vin=(b.vehicle.vin||'').trim().toUpperCase(), m=sheet.querySelector('#wzVinMsg');
@@ -7835,6 +8052,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
     try{ var sv=TKS.Services.fromJob(b.jobType, b.subType); rec.serviceCategory=sv.cat; rec.serviceLabel=sv.value; }catch(e){}
     // 3) ONE write path (shared with the plain form): TKS.Bookings.save + TKS.Jobs.assign (signed in)
     var pr=persistJob(rec); if(pr.error){ wzMsg(pr.error); return; }
+    if(b.jobType==='auto') kfvFlush(pr.saved && pr.saved.id, (b.keyParts||[]).slice());   // 8z33
     W.saved=pr.saved; W.step='done'; wzRender();
     if(b.date){ cursor=fromISO(b.date); }   // land the board on the booked day
     render(); toast('Job created.');
@@ -7853,12 +8071,18 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       '<div class="custlist" id="sjCustList" style="display:none"></div>'+
       '<div class="row2"><div><label>Phone</label><input id="sjPhone" value="'+esc(cust.phone||'')+'"></div><div><label>Service / details</label><input id="sjSvc" value="'+esc(b.subType||'')+'" placeholder="lockout, AKL, rekey…"></div></div>'+
       '<div class="row2"><div><label>Date</label><input type="date" id="sjDate" value="'+esc(b.date||presetDate||'')+'"></div><div><label>Time</label><input type="time" id="sjTime" value="'+esc(b.time||'')+'"></div></div>'+
-      '<label>Address</label><input id="sjAddr" value="'+esc(addrStr(b))+'" placeholder="Street, City, ST ZIP">'+
+      (function(){ var a0=(b.addr&&(b.addr.street||b.addr.city))?b.addr:parseAddress(addrStr(b));   // 8z31
+        return '<label>Street address</label><input id="sjStreet" value="'+esc(a0.street||'')+'" placeholder="123 Main St" autocomplete="off">'+
+          '<label>Apt / Unit #</label><input id="sjUnit" value="'+esc(a0.unit||'')+'" placeholder="Apt 4B, Unit 12, Suite 200…" autocomplete="off">'+
+          '<div class="row2"><div><label>City</label><input id="sjCity" value="'+esc(a0.city||'')+'" autocomplete="off"></div>'+
+          '<div style="display:flex;gap:8px"><div style="flex:0 0 76px"><label>State</label><select id="sjState">'+stateOptions(a0.state||'OK')+'</select></div>'+
+          '<div style="flex:1;min-width:0"><label>ZIP</label><input id="sjZip" value="'+esc(a0.zip||'')+'" inputmode="numeric" maxlength="10" autocomplete="off"></div></div></div>'; })()+
       '<div id="sjVeh"'+(jt==='auto'?'':' style="display:none"')+'>'+
         '<label>VIN</label><div class="vinrow"><input id="sjVin" maxlength="17" style="text-transform:uppercase" value="'+esc(veh.vin||'')+'"><button type="button" id="sjVinBtn">Decode</button></div>'+
-        '<div class="row2"><div><label>Year</label><input id="sjYear" value="'+esc(veh.year||'')+'"></div><div><label>Make</label><input id="sjMake" value="'+esc(veh.make||'')+'"></div></div>'+
-        '<div class="row2"><div><label>Model</label><input id="sjModel" value="'+esc(veh.model||'')+'"></div><div><label>Ignition</label><select id="sjIgn"><option value="">—</option><option value="push"'+(veh.ignition==='push'?' selected':'')+'>Push-to-start</option><option value="keyed"'+(veh.ignition==='keyed'?' selected':'')+'>Keyed</option></select></div></div>'+
+        '<div class="row2"><div><label>Year</label><select id="sjYear">'+TKS_YMM.yearOptionsHTML(veh.year||'')+'</select></div><div><label>Make</label><select id="sjMake">'+TKS_YMM.makeOptionsHTML(veh.make||'')+'</select></div></div>'+
+        '<div class="row2"><div><label>Model</label><select id="sjModel">'+TKS_YMM.modelOptionsHTML(veh.make||'', veh.year||'', veh.model||'')+'</select></div><div><label>Ignition</label><select id="sjIgn"><option value="">—</option><option value="push"'+(veh.ignition==='push'?' selected':'')+'>Push-to-start</option><option value="keyed"'+(veh.ignition==='keyed'?' selected':'')+'>Keyed</option></select></div></div>'+
       '</div>'+
+      '<div id="sjKeys"></div>'+   // 8z32: keys for this vehicle
       '<label>Technician</label><select id="sjTech"><option value="">Unassigned</option>'+teamMembers().map(function(t){return '<option value="'+esc(t.user_id)+'"'+(techOf(b)===t.user_id?' selected':'')+'>'+esc(t.name)+(t.role?(' — '+esc(t.role)):'')+'</option>';}).join('')+'</select>'+
       '<label>Status</label><div class="stbtns" id="sjSt">'+STATUSES.map(function(s){return '<button class="'+('st-'+s.k.replace(/_/g,''))+(s.k===sel?' on':'')+'" data-s="'+s.k+'">'+esc(s.L)+'</button>';}).join('')+'</div>'+
       '<div class="msg" id="sjMsg"></div>'+
@@ -7878,10 +8102,97 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       var cs=[]; try{ cs=(TKS.list&&TKS.list('customers'))||[]; }catch(e){}
       list.innerHTML=cs.length?cs.slice(0,50).map(function(c,i){ return '<div data-ci="'+i+'">'+esc(c.customer||c.name||'—')+(c.phone?(' · '+esc(c.phone)):'')+'</div>'; }).join(''):'<div>No saved customers.</div>';
       list.style.display='block';
-      list.querySelectorAll('[data-ci]').forEach(function(row){ row.onclick=function(){ var c=cs[+row.dataset.ci]; q('sjName').value=c.customer||c.name||''; if(c.phone)q('sjPhone').value=c.phone; if(c.address)q('sjAddr').value=c.address; custId=c.id||null; list.style.display='none'; }; });
+      list.querySelectorAll('[data-ci]').forEach(function(row){ row.onclick=function(){ var c=cs[+row.dataset.ci]; q('sjName').value=c.customer||c.name||''; if(c.phone)q('sjPhone').value=c.phone; if(c.address){ var pa=parseAddress(c.address); q('sjStreet').value=pa.street; q('sjUnit').value=pa.unit; q('sjCity').value=pa.city; if(pa.state) q('sjState').value=pa.state; q('sjZip').value=pa.zip; } custId=c.id||null; list.style.display='none'; }; });
     };
     // VIN decode
-    var vb=q('sjVinBtn'); if(vb) vb.onclick=function(){ var vin=(q('sjVin').value||'').trim().toUpperCase(); if(vin.length!==17){ q('sjMsg').textContent='Enter a 17-character VIN.'; return; } q('sjMsg').textContent='Decoding…'; try{ TKS.decodeVin(vin).then(function(r){ if(r.year)q('sjYear').value=r.year; if(r.make)q('sjMake').value=r.make; if(r.model)q('sjModel').value=r.model; q('sjMsg').textContent='Decoded: '+[r.year,r.make,r.model].filter(Boolean).join(' '); }).catch(function(e){ q('sjMsg').textContent=(e&&e.message)||'Could not decode VIN.'; }); }catch(e){ q('sjMsg').textContent='VIN decode unavailable.'; } };
+    // 8z31: Year / Make / Model are dropdowns — a new year or make refreshes the model list
+    function sjFillVeh(y, mk, md){ if(!q('sjYear')) return; q('sjYear').innerHTML=TKS_YMM.yearOptionsHTML(y||''); q('sjMake').innerHTML=TKS_YMM.makeOptionsHTML(mk||''); q('sjModel').innerHTML=TKS_YMM.modelOptionsHTML(mk||'', y||'', md||''); try{ if(typeof renderKeys==='function') setTimeout(renderKeys,0); }catch(e){} }
+    if(q('sjYear')){ q('sjYear').onchange=function(){ sjFillVeh(q('sjYear').value, q('sjMake').value, q('sjModel').value); };
+      q('sjMake').onchange=function(){ sjFillVeh(q('sjYear').value, q('sjMake').value, ''); }; }
+    var vb=q('sjVinBtn'); if(vb) vb.onclick=function(){ var vin=(q('sjVin').value||'').trim().toUpperCase(); if(vin.length!==17){ q('sjMsg').textContent='Enter a 17-character VIN.'; return; } q('sjMsg').textContent='Decoding…'; try{ TKS.decodeVin(vin).then(function(r){ sjFillVeh(r.year||q('sjYear').value, r.make||q('sjMake').value, r.model||''); q('sjMsg').textContent='Decoded: '+[r.year,r.make,r.model].filter(Boolean).join(' '); }).catch(function(e){ q('sjMsg').textContent=(e&&e.message)||'Could not decode VIN.'; }); }catch(e){ q('sjMsg').textContent='VIN decode unavailable.'; } };
+    // ---------- 8z32: Keys for this vehicle ----------
+    var KEY_GROUPS=[['Smart Key','Smart keys'],['Remote Head / Flip','Flip keys'],['Remote / Fob','Remotes'],['Super Remote','Super remotes'],['Transponder','Transponder keys'],['Key Shell','Shells'],['Mechanical','Blades / mechanical']];
+    var jobParts=[], pendingParts=[], keysBusy=false;
+    var canRemove=false; try{ canRemove=!!(TKS.auth && TKS.auth.can && TKS.auth.can('inventoryWrite')); }catch(e){}
+    var cloud=false; try{ cloud=signedIn() && !(TKS.isDemo&&TKS.isDemo()) && TKS._sb && TKS._sb(); }catch(e){}
+    function kMoney(c){ return (c==null||c==='')?'':'$'+(Number(c)/100).toFixed(2); }
+    function kSub(p){ if(/(peps|prox|proximity|prx)/i.test(String(p.name||''))) return 'Smart Key'; return String(p.category||'').split('/').slice(1).join('/').trim(); }   // 8z34
+    // 8z32b (owner): no van has stock yet (shop consolidation first) → no van check until any van holds something
+    function kAnyVanStock(){ try{ var mp=(typeof _invLocMap!=='undefined' && _invLocMap)||{}; return Object.keys(mp).some(function(k){ var v=mp[k].vans||{}; return Object.keys(v).some(function(x){ return v[x]>0; }); }); }catch(e){ return false; } }
+    function kVan(){ if(!kAnyVanStock()) return null; try{ var m=memberById(q('sjTech').value||''); return m&&m.home_van_id||null; }catch(e){ return null; } }
+    function kStock(p){ var e=(typeof _invLocMap!=='undefined' && _invLocMap)?_invLocMap[p.id]:null; var shop=e?e.shop:(parseInt(p.qty,10)||0), vans=e?e.vans:{}; return {shop:shop, vans:vans}; }
+    function loadJobParts(){ if(isNew || !cloud || !(TKS.Jobs&&TKS.Jobs.parts)) { renderKeys(); return; }
+      TKS.Jobs.parts(b.id).then(function(r){ jobParts=((r&&r.data)||[]).filter(function(x){ return x.state!=='returned'; }); renderKeys(); }, function(){ renderKeys(); }); }
+    function renderKeys(){
+      var box=q('sjKeys'); if(!box) return;
+      if(jt!=='auto'){ box.innerHTML=''; return; }
+      var y=(q('sjYear')&&q('sjYear').value)||'', mk=(q('sjMake')&&q('sjMake').value)||'', md=(q('sjModel')&&q('sjModel').value)||'', ign=(q('sjIgn')&&q('sjIgn').value)||'';
+      var head='<div style="margin-top:14px;border:2px solid rgba(34,153,74,.25);border-radius:14px;padding:12px;background:rgba(34,153,74,.05)"><div style="font-weight:800;font-size:16px">🔑 Keys for this vehicle</div>';
+      if(!mk || !md){ box.innerHTML=head+'<div class="sub" style="margin-top:4px">Pick the year, make and model to see the keys you stock for it.</div></div>'; return; }
+      var KL=kfvList(y, mk, md, ign), list=KL.list||[], hidden=KL.hidden?' ('+KL.hidden+')':'';   // 8z35: shared matching (incl. make-level transponders by chip)
+      var van=kVan(), vanName=van?((typeof invVanName==='function')?invVanName(van).replace(/^🚐\s*/,''):'the van'):'';
+      var techName=''; try{ var mm=memberById(q('sjTech').value||''); techName=mm&&mm.name||''; }catch(e){}
+      var onJob={}; jobParts.forEach(function(x){ if(x.item_id) onJob[x.item_id]=(onJob[x.item_id]||[]).concat([x]); }); pendingParts.forEach(function(id){ onJob[id]=(onJob[id]||[]).concat([{pending:true}]); });
+      var html=head+'<div class="sub" style="margin-top:2px">'+esc([y,mk,md].filter(Boolean).join(' '))+' — from your stock'+esc(hidden)+'</div>';
+      if(!list.length) html+='<div class="sub" style="margin-top:8px">No keys in stock list this vehicle in their "Fits". Add the vehicle to a part\'s Fits (Stock → part) and it shows up here.</div>';
+      var missingVan=0;
+      KEY_GROUPS.concat([['__other','Other']]).forEach(function(g){
+        var items=list.filter(function(p){ var sb=kSub(p); return g[0]==='__other' ? !KEY_GROUPS.some(function(k){ return k[0]===sb; }) : sb===g[0]; });
+        if(!items.length) return;
+        html+='<div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--dim);text-transform:uppercase;margin:12px 0 6px">'+esc(g[1])+'</div>';
+        items.forEach(function(p){ var st=kStock(p), onVan=van?(st.vans[van]||0):0, added=!!onJob[p.id];
+          var grade=String(p.grade||''), tag=/oem/i.test(grade)?'<span style="font-size:11px;font-weight:800;border-radius:6px;padding:1px 6px;margin-left:4px;background:#fdecea;color:#a3252e">OEM</span>':(/aftermarket/i.test(grade)?'<span style="font-size:11px;font-weight:800;border-radius:6px;padding:1px 6px;margin-left:4px;background:#eef2ff;color:#3949ab">AM</span>':'');
+          var where=[(st.shop>0?'Shop '+st.shop:'Shop 0')].concat(Object.keys(st.vans).filter(function(k){ return st.vans[k]>0; }).map(function(k){ return ((typeof invVanName==='function')?invVanName(k).replace(/^🚐\s*/,''):'Van')+' '+st.vans[k]; })).join(' · ');
+          var vanLine = !van ? '' : (onVan>0 ? ' · <span style="color:var(--green,#1c7d3e)">✓ on '+esc(techName||vanName)+'\'s van</span>' : ' · <span style="color:#b7791f">not on '+esc(techName||vanName)+'\'s van</span>');
+          if(added && van && !onVan) missingVan++;
+          html+='<div style="display:flex;gap:10px;align-items:center;background:var(--card,#fff);border:1px solid var(--edge,#e3e5e8);border-radius:12px;padding:8px;margin-bottom:8px">'+
+            ((window.TKS_PHOTO)?'<span class="sjkPh" data-img="'+esc(p.image||'')+'" style="cursor:'+(p.image?'zoom-in':'default')+'">'+TKS_PHOTO.thumb(p.image,54)+'</span>':'')+
+            '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;line-height:1.25">'+esc(p.name||p.sku)+tag+'</div>'+
+            '<div class="sub" style="font-size:12px;margin-top:2px">'+esc([p.fccId?('FCC '+p.fccId):'', p.chip||'', p.sku||''].filter(Boolean).join(' · '))+'</div>'+
+            '<div style="font-size:12px;margin-top:3px;font-weight:700">'+esc(where)+vanLine+(p._kfvNote?' · <span style="color:'+(/check/.test(p._kfvNote)?'#b7791f':'var(--green,#1c7d3e)')+'">'+esc(p._kfvNote)+'</span>':'')+'</div></div>'+
+            '<div style="text-align:right;flex:0 0 auto"><div style="font-weight:800;font-size:14px">'+esc(kMoney(p.sellPriceCents))+'</div>'+
+            (added ? '<div style="margin-top:4px;border:2px solid #22994a;border-radius:10px;background:#eaf7ee;color:#156632;font-weight:800;padding:7px 9px;font-size:13px">✓ Added</div>'
+                   : '<button type="button" class="sjkAdd" data-id="'+esc(p.id)+'" style="margin-top:4px;border:0;border-radius:10px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;padding:9px 12px;font-size:14px;cursor:pointer">+ Add</button>')+
+            '</div></div>'; });
+      });
+      // what's on the job
+      var lines=jobParts.map(function(x){ var pt=x.item_id?TKS.Inventory.get(x.item_id):null; return { id:x.id, name:(pt&&pt.name)||x.description||'Part', sku:pt&&pt.sku, price:pt&&pt.sellPriceCents, state:x.state }; })
+        .concat(pendingParts.map(function(id){ var pt=TKS.Inventory.get(id)||{}; return { pending:id, name:pt.name||'Part', sku:pt.sku, price:pt.sellPriceCents }; }));
+      if(lines.length){
+        html+='<div style="margin-top:10px;background:var(--card,#fff);border:1px dashed #22994a;border-radius:12px;padding:10px;font-size:13.5px"><b>On this job ('+lines.length+'):</b>'+
+          lines.map(function(l){ return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:4px"><span>'+esc(l.name)+(l.sku?' <span class="sub">('+esc(l.sku)+')</span>':'')+(l.pending?' <span class="sub">— saved with the job</span>':'')+(l.state==='used'?' <span class="sub">— used</span>':'')+'</span>'+
+            '<span style="white-space:nowrap">'+esc(kMoney(l.price))+((l.pending||(canRemove&&l.state!=='used'))?' <button type="button" class="sjkDel" data-id="'+esc(l.id||'')+'" data-pending="'+esc(l.pending||'')+'" title="Remove from this job" style="border:0;background:none;color:#c8323c;font-size:16px;cursor:pointer">✕</button>':'')+'</span></div>'; }).join('')+
+          '<div class="sub" style="margin-top:6px">Goes to the invoice. If the job is canceled, it\'s flagged to come back to stock.</div></div>';
+      }
+      if(missingVan) html+='<div style="background:#fff3cd;border:1px solid #f2b43a;color:#7a4f00;border-radius:10px;padding:8px 10px;font-size:12.5px;font-weight:600;margin-top:8px">⚠ Load onto '+esc(techName?techName+'\'s van':'the van')+' before leaving — '+missingVan+' added key'+(missingVan===1?' isn\'t':'s aren\'t')+' on it yet.</div>';
+      else if(lines.length && !van && kAnyVanStock()) html+='<div class="sub" style="margin-top:8px">Pick a technician with a home van (Fleet → Crew) to check it\'s on their van.</div>';
+      box.innerHTML=html+'</div>';
+      box.querySelectorAll('.sjkPh').forEach(function(el){ if(el.dataset.img) el.onclick=function(){ TKS_PHOTO.view(el.dataset.img); }; });
+      box.querySelectorAll('.sjkAdd').forEach(function(btn){ btn.onclick=function(){ addKey(btn.dataset.id, btn); }; });
+      box.querySelectorAll('.sjkDel').forEach(function(btn){ btn.onclick=function(){ removeKey(btn.dataset.id, btn.dataset.pending); }; });
+    }
+    function addKey(itemId, btn){
+      var pt=TKS.Inventory.get(itemId)||{};
+      if(isNew || !cloud){ if(pendingParts.indexOf(itemId)<0) pendingParts.push(itemId); renderKeys(); return; }   // saved together with the job
+      if(btn){ btn.disabled=true; btn.textContent='…'; }
+      TKS._sb().from('job_parts').insert({ job_id:b.id, item_id:itemId, description:pt.name||pt.sku||'Part', qty:1 }).select().then(function(r){
+        if(r.error){ q('sjMsg').textContent='Could not add: '+r.error.message; if(btn){ btn.disabled=false; btn.textContent='+ Add'; } return; }
+        loadJobParts(); });
+    }
+    function removeKey(id, pending){
+      if(pending){ pendingParts=pendingParts.filter(function(x){ return x!==pending; }); renderKeys(); return; }
+      if(!id || !cloud) return;
+      TKS._sb().from('job_parts').delete().eq('id', id).select().then(function(r){ if(r.error||!(r.data||[]).length){ q('sjMsg').textContent='Only a manager can remove a part from a job.'; return; } loadJobParts(); });
+    }
+    // after the job is saved: write the keys picked before it existed (bookings sync first, so retry a few times)
+    window.__sjFlushPending=function(jobId){ if(!pendingParts.length || !cloud || !jobId) return; var tries=0, items=pendingParts.slice(); pendingParts=[];
+      (function go(){ tries++; TKS._sb().from('job_parts').insert(items.map(function(id){ var pt=TKS.Inventory.get(id)||{}; return { job_id:jobId, item_id:id, description:pt.name||pt.sku||'Part', qty:1 }; })).then(function(r){
+        if(r.error && tries<6) setTimeout(go, 1500); else if(r.error) toast('Keys not added to the job: '+r.error.message); }); })(); };
+    ['sjModel','sjIgn','sjTech'].forEach(function(id){ var el=q(id); if(el) el.addEventListener('change', renderKeys); });
+    ov.querySelectorAll('#sjJt button').forEach(function(btn){ btn.addEventListener('click', function(){ setTimeout(renderKeys,0); }); });
+    try{ if(typeof invLocRefresh==='function'){ invLocRefresh(false); setTimeout(renderKeys, 1500); } }catch(e){}
+    loadJobParts();
+
     var del=q('sjDelete'); if(del) del.onclick=function(e){ e.preventDefault(); function go(){ try{TKS.Bookings.remove(b.id);}catch(_){ } close(); render(); } if(window.TKS_ACCESS&&TKS_ACCESS.confirmDanger){ TKS_ACCESS.confirmDanger({title:'Delete this job?',message:'Remove it from the schedule.',confirmLabel:'Delete'}).then(function(ok){if(ok)go();}); } else go(); };
     var cj=q('sjCancelJob'); if(cj) cj.onclick=function(){ close(); doCancel(b.id); };
     // 8r: invoice this job (writes the dispatched draft → bittings.html) + the job's running log
@@ -7899,8 +8210,10 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       rec.jobType=jt;
       rec.customer=rec.customer||{}; rec.customer.name=q('sjName').value.trim(); rec.customer.phone=q('sjPhone').value.trim();
       if(custId)rec.customerId=custId;
-      rec.subType=q('sjSvc').value.trim(); rec.address=q('sjAddr').value.trim();
-      if(jt==='auto'){ rec.vehicle={year:q('sjYear').value.trim(),make:q('sjMake').value.trim(),model:q('sjModel').value.trim(),vin:(q('sjVin').value||'').trim().toUpperCase(),ignition:(q('sjIgn')||{}).value||''}; }
+      rec.subType=q('sjSvc').value.trim();
+      rec.addr={ street:q('sjStreet').value.trim(), unit:q('sjUnit').value.trim(), city:q('sjCity').value.trim(), state:q('sjState').value, zip:q('sjZip').value.trim() };   // 8z31
+      rec.address=composeAddress(rec.addr);
+      if(jt==='auto'){ rec.vehicle={year:(q('sjYear').value||'').trim(),make:(q('sjMake').value||'').trim(),model:(q('sjModel').value||'').trim(),vin:(q('sjVin').value||'').trim().toUpperCase(),ignition:(q('sjIgn')||{}).value||''}; }
       var tv=q('sjTech').value||'';
       if(tv){ var t=memberById(tv); rec.technician=t?t.name:''; rec.technicianId=(tv.indexOf('name:')===0)?null:tv; } else { rec.technician=''; rec.technicianId=null; }
       var newDate=q('sjDate').value, newTime=q('sjTime').value;
@@ -7915,6 +8228,7 @@ TKS.onChange(()=>{ rerenderActive(); updateAuthUI(); maybeEnsureShop(); if(windo
       rec.status = stLabel(sel);
       var pr=persistJob(rec); if(pr.error){ q('sjMsg').textContent=pr.error; return; }   // same write path as the guided wizard
       jid=pr.saved.id||jid;
+      try{ if(window.__sjFlushPending) window.__sjFlushPending(jid); }catch(e){}   // 8z32: keys picked before the job existed
       // The SERVER owns the status (role rules, reconciliation gate, 8g terminal-state guard). If it
       // refuses, roll the local label back so the board never shows a status the cloud rejected.
       if(stChanged && signedIn() && TKS.Jobs && TKS.Jobs.setStatus){
@@ -8317,19 +8631,16 @@ gid('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') gid('vinBtn').c
      receipts (WebPRNT), Zebra ZD421 labels (ZPL/Browser Print). Optional vendor
      SDKs load below; the module degrades gracefully and previews work without them. -->
 <script src="app/hardware.js"></script>
-<script src="app/vendor/jsqr-1.4.0.js"></script><!-- 8r: QR decoder for browsers without BarcodeDetector (iPhone Safari) -->
+<script src="app/vendor/jsqr-1.4.0.js"></script>
+<script src="app/vendor/qrcode-generator-1.4.4.js"></script><!-- 8z28: QR codes for labels (MIT) --><!-- 8r: QR decoder for browsers without BarcodeDetector (iPhone Safari) -->
 <script src="app/camera-scan.js"></script><!-- 8r: phone-camera scanning of unit labels (TKS_CAM) -->
 <!-- Inventory traceability screens (reconcile / returns / dashboard cards) on the phase6 engine -->
 <script src="app/inventory-traceability.js"></script>
 <script src="app/timeclock.js"></script>
 <!-- Star Web SDK (download from github.com/star-micronics/starwebprnt-sdk and drop the
      files in app/vendor/) — uncomment once installed to enable real thermal printing:
-<script src="app/vendor/StarWebPrintBuilder.js"></script>
-<script src="app/vendor/StarWebPrintTrader.js"></script>
 -->
 <!-- Zebra Browser Print SDK (download from zebra.com → Browser Print) — uncomment once installed:
-<script src="app/vendor/BrowserPrint-3.1.250.min.js"></script>
-<script src="app/vendor/BrowserPrint-Zebra-1.1.250.min.js"></script>
 -->
 <script>
 /* 8u: the phone bottom menu is always reachable. A tap on it first closes whatever pop-up / sheet / camera is open

@@ -116,8 +116,11 @@
       }
     }catch(e){}
     const c=client(); if(!c) return { error:"not connected" };
-    const q=await c.from("payment_transactions").select("*").gte("created_at", fromISO).lt("created_at", toISO).order("created_at", { ascending:false });
-    return q.error ? { error:q.error.message } : { rows:q.data||[] };
+    // 8z23: page through (the API returns at most 1000 rows per request; a year can be more)
+    const out=[]; for(let from=0; from<50000; from+=1000){
+      const q=await c.from("payment_transactions").select("*").gte("created_at", fromISO).lt("created_at", toISO).order("created_at", { ascending:false }).range(from, from+999);
+      if(q.error) return { error:q.error.message }; out.push.apply(out, q.data||[]); if(!q.data || q.data.length<1000) break; }
+    return { rows: out };
   };
 
   function render(){

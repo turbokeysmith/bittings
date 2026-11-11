@@ -2622,7 +2622,7 @@ function canEditPricing(){
   function node(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstElementChild; }
   let modal=null;
   function close(){ if(modal){ modal.remove(); modal=null; } }
-  const PAY_METHODS=["Cash","Card","Zelle","Check","Other"];
+  const PAY_METHODS=["Cash","Card","Zelle","Other"];   // 8z21: no checks in the field
   const STATUSES=[["Paid in Full","Paid in full"],["Partial Payment","Partial"],["Unpaid","Unpaid"]];
   const PROG_RX=/program|transponder|\bfob\b|remote|immobil|smart key|push.?to.?start|key cut|\becu\b|all keys lost|proximity/i;
   function presetTaxable(name){ return /(lock|deadbolt|key blank|cut key|fob|remote|cylinder|exit bar|panic|hardware|smart lock|keypad|card reader|reader|mailbox|cabinet|blank)/.test(String(name).toLowerCase()); }
