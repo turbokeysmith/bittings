@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-11-11 17:40 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-11-11 19:23 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -424,6 +424,18 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
 - **Phones can no longer sit on an old copy of the app.** The two app pages are never saved by the browser, and every
   sign-in opens a fresh address.
 - **Fixed:** "Failed to send a request to the Edge Function" when the app called the cloud from the new address.
+- **Technicians can raise a quantity on a job's invoice line** (a rekey booked for 1 lock turns out to be 3). The price per
+  unit stays the office's price; the line amount follows the count. Before, a technician could only lower it.
+- **Running totals while building a document.** Under the line items, the receipt / invoice / estimate builder now shows the
+  **total before tax** (large), then sales tax and the total with tax, and it updates as lines, quantities and discounts
+  change. Before, no total showed until the document was created. Checked at phone size for an owner and a technician;
+  pending sign-off on a real iPhone and Android.
+- **Clock in / Clock out button for staff, on any device.** At the top of the app a technician, manager or front-desk
+  person now sees **Clock in**, or **On the clock since 9:57 AM · Clock out**. Clocking out asks why (Lunch / Personal /
+  End of day) and **keeps them signed in**, so a technician can clock out at closing and still take after-hours jobs on
+  commission. Before, the clock only worked on the shop computer and clocking out also signed the person out. On the shop
+  computer that rule is unchanged. The owner does not get the button. Checked at phone size with a stand-in for the cloud;
+  pending sign-off on a real iPhone and Android with Jayden’s login.
 - **First typed-card payment in live mode worked:** Kristi Phipps, $96.90 ($95 + 2% credit surcharge), Visa credit, taken by
   Jayden on his phone at 5:30 PM. Stripe confirmed it. Jayden reported seeing a failure on his phone; cause not found.
   The invoice page now keeps checking instead of stopping at the first failed status check, and if it cannot confirm it

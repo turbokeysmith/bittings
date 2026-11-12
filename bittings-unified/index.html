@@ -42,6 +42,16 @@ sessionStorage.setItem('tks_connect_return','1');history.replaceState(null,'',lo
   .authbar a,.authbar button{font:inherit;cursor:pointer;border-radius:9px;padding:6px 11px;font-weight:700;}
   .authbar a{background:linear-gradient(180deg,var(--red),var(--red-deep));color:#fff;text-decoration:none;border:none;}
   .authbar button{background:rgba(20,23,27,.05);border:1px solid var(--edge);color:var(--dim);}
+  .authbar button.clk{min-height:40px;padding:6px 13px;display:inline-flex;align-items:center;gap:6px;}
+  .authbar button.clk.in{background:#1f9d55;border-color:#1f9d55;color:#fff;}
+  .authbar button.clk.out{background:rgba(31,157,85,.12);border-color:#1f9d55;color:#157a41;}
+  [data-bt-theme="dark"] .authbar button.clk.out{color:#6fdc9f;}
+  .clk-ov{position:fixed;inset:0;z-index:2147482000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:14px;}
+  .clk-sheet{background:#fff;color:#14171b;width:100%;max-width:400px;border-radius:16px;padding:16px;font-family:inherit;}
+  [data-bt-theme="dark"] .clk-sheet{background:#1f232a;color:#f4f5f7;}
+  .clk-sheet h3{margin:0 0 4px;font-size:17px;} .clk-sheet p{margin:0 0 12px;font-size:13px;opacity:.75;line-height:1.4;}
+  .clk-sheet button{display:block;width:100%;min-height:50px;margin-top:8px;border-radius:11px;border:1px solid rgba(128,128,128,.35);background:rgba(128,128,128,.12);color:inherit;font:inherit;font-size:15.5px;font-weight:700;cursor:pointer;}
+  .clk-sheet button.x{background:none;border:none;font-weight:600;opacity:.75;}
   .rolebadge{font-size:10px;font-weight:800;letter-spacing:.5px;border-radius:5px;padding:2px 6px;}
   .rolebadge.owner{background:rgba(242,180,58,.18);color:#f2b43a;}
   .rolebadge.staff{background:rgba(74,163,255,.16);color:#7fb8ff;}
@@ -5174,7 +5184,7 @@ async function renderTimesheets(){
       '<span class="tag amt-ok">'+tsFmtDur(r.minutes)+'</span>'+editBtn+'</div>';
   }).join('');
   list.querySelectorAll('[data-tsedit]').forEach(b=> b.onclick=(e)=>{ e.stopPropagation(); const row=b.closest('[data-ts]'); openTsEdit(JSON.parse(row.dataset.ts)); });
-  note.textContent = tsMgr ? 'You see all staff. Tap ✎ to correct an entry (fix a missed clock-out or adjust times) — every correction is logged.' : 'Your own hours. Clock in/out happen automatically at login and clock-out. Ask a manager to fix any mistakes.';
+  note.textContent = tsMgr ? 'You see all staff. Tap ✎ to correct an entry (fix a missed clock-out or adjust times) — every correction is logged.' : 'Your own hours. Use the Clock in / Clock out button at the top of the screen. Ask a manager to fix any mistakes.';
   // ---- travel (derived from scheduler en route → on site) ----
   try{
     const tr=await sb.rpc('timesheet_travel',{p_from:rng.from,p_to:rng.to,p_user:uf});
@@ -5692,6 +5702,63 @@ function syncOwnerTiles(){
   // Lock now (shifts): only when the time-clock is actually armed on this workstation.
   const lk=document.getElementById('sideLockNow'); if(lk) lk.style.display = (window.TKS_CLOCK && TKS_CLOCK.isActive && TKS_CLOCK.isActive()) ? '' : 'none';
 }
+/* ===== 8z62 (owner, 2026-11-11): Clock in / Clock out button in the top bar, on any device =====
+   Until now the clock only ran on a registered shop workstation (auto clock-in at login, clock-out from the lock screen,
+   which also signs out). A technician on a phone had no clock at all — and after-hours commission needs him CLOCKED OUT
+   while still signed in. Same server functions (shift_status / shift_clock_in / shift_clock_out). Not shown to the owner. */
+const clkState={known:false,open:null,at:0,busy:false};
+function clkSb(){ try{ return (window.TKS&&TKS._sb&&TKS._sb())||null; }catch(e){ return null; } }
+function clkEligible(){ try{ const a=TKS.auth; if(!(a&&a.isSignedIn())) return false; if(TKS.isDemo&&TKS.isDemo()) return false;
+  const r=a.staffRole&&a.staffRole(); return !!r && r!=='owner' && !!clkSb(); }catch(e){ return false; } }
+function clkToast(m){ try{ if(window.TKS_ACCESS&&TKS_ACCESS.toast){ TKS_ACCESS.toast(m); return; } }catch(e){} try{ alertLite(m); }catch(e){} }
+function clkTime(s){ try{ return new Date(s).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } }
+function clkPaint(){
+  const slot=document.getElementById('clkSlot'); if(!slot) return;
+  if(!clkEligible() || !clkState.known){ slot.innerHTML=''; return; }
+  const on=clkState.open;
+  slot.innerHTML = on
+    ? '<button type="button" class="clk out" id="clkBtn">🟢 On the clock since '+esc2(clkTime(on.clock_in))+' · <b style="color:inherit">Clock out</b></button>'
+    : '<button type="button" class="clk in" id="clkBtn">⏱ Clock in</button>';
+  const b=document.getElementById('clkBtn'); if(b){ b.disabled=clkState.busy; b.onclick = on ? clkAskOut : clkIn; }
+}
+function clkRefresh(force){
+  if(!clkEligible()) return; if(!force && Date.now()-clkState.at<60000) return;
+  clkState.at=Date.now(); const sb=clkSb();
+  try{ sb.rpc('shift_status').then(r=>{ if(!r || r.error) return; clkState.known=true; clkState.open=r.data||null; clkPaint(); }, ()=>{}); }catch(e){}
+}
+function clkErr(e){ return (e&&e.message)?String(e.message):'No connection — try again.'; }
+function clkIn(){
+  const sb=clkSb(); if(!sb || clkState.busy) return; clkState.busy=true; clkPaint();
+  sb.rpc('shift_clock_in').then(r=>{ clkState.busy=false;
+    if(r.error){ clkToast('Could not clock in: '+clkErr(r.error)); clkPaint(); return; }
+    clkState.known=true; clkState.open={id:r.data&&r.data.id, clock_in:(r.data&&r.data.clock_in)||new Date().toISOString()}; clkState.at=Date.now();
+    clkPaint(); clkToast('Clocked in at '+clkTime(clkState.open.clock_in));
+  }, e=>{ clkState.busy=false; clkPaint(); clkToast('Could not clock in: '+clkErr(e)); });
+}
+function clkAskOut(){
+  if(clkState.busy) return;
+  const ws=!!(window.TKS_CLOCK && TKS_CLOCK.isActive && TKS_CLOCK.isActive());   // shop workstation: clocking out also signs out (existing rule)
+  const ov=document.createElement('div'); ov.className='clk-ov';
+  ov.innerHTML='<div class="clk-sheet" role="dialog" aria-modal="true" aria-label="Clock out"><h3>Clock out</h3>'+
+    '<p>'+(ws?'This is the shop computer, so clocking out also signs you out.':'You stay signed in. Clock back in when you start working again.')+'</p>'+
+    '<button type="button" data-r="lunch">🍔 Lunch</button><button type="button" data-r="personal">🚶 Personal</button>'+
+    '<button type="button" data-r="end_of_day">🌙 End of day</button><button type="button" class="x" data-r="">Cancel</button></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', ev=>{ if(ev.target===ov){ ov.remove(); return; }
+    const b=ev.target.closest('button'); if(!b) return; const r=b.dataset.r; ov.remove(); if(r) clkOut(r, ws); });
+}
+function clkOut(reason, ws){
+  const sb=clkSb(); if(!sb || clkState.busy) return; clkState.busy=true; clkPaint();
+  sb.rpc('shift_clock_out',{p_reason:reason}).then(r=>{ clkState.busy=false;
+    if(r.error && !/not clocked in/i.test(clkErr(r.error))){ clkToast('Could not clock out: '+clkErr(r.error)); clkPaint(); return; }
+    clkState.known=true; clkState.open=null; clkState.at=Date.now(); clkPaint();
+    if(ws){ try{ sb.auth.signOut().then(()=>location.reload(), ()=>location.reload()); }catch(e){ location.reload(); } return; }
+    clkToast('Clocked out at '+clkTime((r.data&&r.data.clock_out)||new Date().toISOString())+'. You are still signed in.');
+    try{ if(document.getElementById('view-timesheets').classList.contains('active')) renderTimesheets(); }catch(e){}
+  }, e=>{ clkState.busy=false; clkPaint(); clkToast('Could not clock out: '+clkErr(e)); });
+}
+window.addEventListener('focus', ()=>clkRefresh(true));
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) clkRefresh(true); });
 function updateAuthUI(){
   syncOwnerTiles();
   const bar = document.getElementById('authBar'); if(!bar) return;
@@ -5705,7 +5772,9 @@ function updateAuthUI(){
     const badgeCls = (sr==='owner' || sr==='manager' || owner) ? 'owner' : 'staff';
     const label = (a.roleLabel ? a.roleLabel() : (owner?'Owner':'Staff'));
     bar.innerHTML = '<span class="rolebadge '+badgeCls+'">'+esc2(label)+'</span>'+
+      '<span id="clkSlot"></span>'+
       '<button id="signOutBtn">Sign out</button>';
+    clkPaint(); clkRefresh(false);
     const so = document.getElementById('signOutBtn');
     if(so) so.onclick = ()=>{ try{ a.signOut().then(()=>location.reload()); }catch(e){ location.reload(); } };
   } else {

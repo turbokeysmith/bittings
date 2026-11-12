@@ -334,6 +334,11 @@
   .qi-sig .qi-seg{flex:1 1 240px;}
   .qi-sig img{height:44px;background:#fff;border:1px solid #e3e6ea;border-radius:6px;}
   .qi-err{color:#b3242f;font-size:13px;margin:8px 0 2px;min-height:16px;}
+  .qi-tot{background:#f4f6f8;border:1px solid #dfe3e8;border-radius:10px;padding:10px 12px;margin:8px 0 4px;font-size:13px;color:#5a616c;}
+  .qi-tot div{display:flex;justify-content:space-between;gap:10px;padding:2px 0;}
+  .qi-tot .big{font-size:17px;font-weight:800;color:#14171b;}
+  [data-bt-theme="dark"] .qi-tot{background:#262b33;border-color:#3a404a;color:#aab1bc;}
+  [data-bt-theme="dark"] .qi-tot .big{color:#f4f5f7;}
   .qi-foot{display:flex;gap:8px;margin-top:8px;}
   .qi-go{flex:1;min-height:48px;border:none;border-radius:11px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;font-size:15px;cursor:pointer;}
   .qi-cancel{min-height:48px;padding:0 16px;border:1px solid #e3e6ea;background:transparent;color:#5a616c;border-radius:11px;cursor:pointer;font-size:14px;}
@@ -2791,6 +2796,7 @@ function canEditPricing(){
       </div>
       <label class="qi-l">Line items <span class="req">*</span></label><div id="qiItems"></div>
       <button type="button" class="qi-add" id="qiAdd">+ Add item</button><button type="button" class="qi-add" id="qiAddDisc"${canDisc?"":' style="display:none"'}>− Discount${(!pricing&&techDiscMax>0)?(" (up to "+esc(techDiscMax)+"%)"):""}</button>
+      <div class="qi-tot" id="qiTot" aria-live="polite"></div>
       <div id="qiPayWrap">
         <label class="qi-l">Payment method</label>
         <div class="qi-seg" id="qiPay">${PAY_METHODS.map(p=>'<button type="button" class="qiPB" data-p="'+p+'">'+p+'</button>').join("")}<button type="button" class="qiPB" data-p="Not specified" id="qiPayNS">Not specified</button></div>
@@ -3069,10 +3075,16 @@ function canEditPricing(){
       ndNote.querySelector(".qiUndo").onclick=()=>{ if(M.returned) return; M.declined=false; M.declinedQty=0; M.declineReason="";
         const q=M.dispatchQty||1; qtyEl.value=q; if(M.fromDispatch) amt.value=lineAmountFor(q).toFixed(2); paintDecline(); };
       qtyEl.addEventListener("change",()=>{
-        if(!locked) return;   // managers/owners edit freely; techs can only go DOWN on a dispatched line
+        if(!locked) return;   // managers/owners edit freely
         let v=parseInt(qtyEl.value,10); if(isNaN(v)) v=0;
         const done=M.declined?0:((M.dispatchQty||1)-M.declinedQty);
-        if(v>done){ qtyEl.value=done; toastMsg("Can't go above the dispatched qty ("+(M.dispatchQty||1)+")"); return; }
+        // 8z60 (owner, 2026-11-11): a technician may RAISE the quantity on a dispatched line too — a rekey booked for one lock
+        // turns out to be three. The price per unit stays the office's price; only the count (and so the line amount) changes.
+        if(v>done){ if(v>99) v=99;
+          M.declined=false; M.declinedQty=Math.max(0,(M.dispatchQty||1)-v); if(!M.declinedQty) M.declineReason="";
+          qtyEl.value=v; amt.value=lineAmountFor(v).toFixed(2); paintDecline();
+          try{ amt.dispatchEvent(new Event("input",{bubbles:true})); }catch(e){}
+          return; }
         if(v<done) declineLine(v);
       });
       if(pre){
@@ -3177,6 +3189,42 @@ function canEditPricing(){
     syncNastfVisibility(); syncVehicle();
     if(isEdit && edit.nastf && edit.nastf.type && getSvc()==="Automotive") setNastf(edit.nastf.type, false); else syncCustomerType();
     syncPay(); syncWarranty();
+
+    // ---- 8z61 (owner, 2026-11-11): running totals under the line items — the total BEFORE tax, then tax and the total.
+    // Reads the rows the same way submit() does, but never complains about a half-typed line.
+    function paintTotals(){
+      const box=$q("#qiTot"); if(!box) return;
+      const its=[];
+      itemsBox.querySelectorAll(".qi-item").forEach(row=>{
+        if(row.dataset.disc){ const v=parseFloat(row.querySelector(".qiDV").value); if(isNaN(v)||v<=0) return;
+          const mode=row._mode?row._mode():"percent";
+          its.push({isDiscount:true, discountMode:mode, discountValue:(mode==="percent"?Math.min(v,100):v), amount:0}); return; }
+        const M=row._meta||{}; if(M.declined) return;
+        let a=parseFloat(row.querySelector(".qiAmt").value);
+        if(M.fromDispatch && !pricing){ let q=parseInt(row.querySelector(".qiQty").value,10); if(isNaN(q)||q<1) q=1;
+          a=Math.round((Number(M.dispatchAmount)||0)*(q/(M.dispatchQty||1))*100)/100; }
+        if(isNaN(a)||a<0) return;
+        its.push({amount:a, taxable:row.querySelector(".qiTax").checked});
+      });
+      const dt=getType(); let pay=getPay();
+      if(dt==="estimate") pay="Not specified"; else if(dt==="receipt" && (!pay || pay==="Not specified")) pay="Cash";
+      let rate=null;
+      if(pricing){ const v=($q("#qiTaxRate").value||"").trim(); if(v!=="") rate=parseFloat(v)||0; }
+      else if(isEdit && edit.taxRate!=null && edit.taxRate!=="") rate=edit.taxRate;
+      const t=computeTotals(its, pay, rate);
+      const row=(l,v,c)=>'<div'+(c?' class="'+c+'"':'')+'><span>'+l+'</span><span>'+v+'</span></div>';
+      let h="";
+      if(t.discount>0) h+=row("Items",money(t.grossSubtotal))+row("Discount","− "+money(t.discount));
+      h+=row("Total before tax",money(t.subtotal),"big");
+      h+=row("Sales tax ("+t.taxRate+"%)",money(t.tax));
+      if(t.surcharge>0) h+=row("Card surcharge ("+t.surchargeRate+"%)",money(t.surcharge));
+      h+=row("Total with tax",money(t.total));
+      if(box._h!==h){ box._h=h; box.innerHTML=h; }
+    }
+    ["input","change","click"].forEach(ev=>modal.addEventListener(ev,()=>setTimeout(paintTotals,0)));
+    // parts picked, keys scanned and "didn't do this" fill a line without a keystroke — keep up with those too
+    (function(m){ const iv=setInterval(()=>{ if(!m.isConnected){ clearInterval(iv); return; } paintTotals(); },700); })(modal);
+    paintTotals();
 
     // ---- Wire up ----
     const cancel=()=>{ close(); if(typeof onCancel==="function") onCancel(); };
