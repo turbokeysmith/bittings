@@ -122,7 +122,7 @@
       var h = '<div class="rd-box"><div class="rd-h">📎 ' + esc(opts.title || 'D1 photos') + ' — ' + esc(r.number || r.id) + (r.customer ? (' · ' + esc(r.customer)) : '') + '</div>' +
         '<div class="rd-sub">' + (missing ? ('<span class="rd-miss">' + missing + ' still missing.</span> ') : '<span class="rd-ok">Everything needed is on file.</span> ') + 'Photos go straight onto this receipt. They are private to your shop.</div>';
       need.forEach(function (n) { h += row(n.kind, n.idx, n.label, true); });
-      h += row('plate', 0, KINDS.plate, false) + row('odometer', 0, KINDS.odometer, false) + row('other', 0, KINDS.other, false);
+      h += row('other', 0, 'Anything else (optional)', false);   // the tag # and the miles are typed on the D1 form — not photographed (owner, 2026-11-12)
       if (showQr) { var url = pageUrl(r), svg = qrSvg(url);
         h += '<div class="rd-qr">' + (svg || '') + '<div style="flex:1 1 200px;min-width:0"><b>Add them from a phone</b><div class="rd-sub">Open the camera on a phone that is signed in to Bittings and point it at this code. It opens this receipt — ' + esc(r.number || '') + ' — ready for the photos.</div>' +
           (svg ? '' : ('<div class="rd-sub" style="overflow-wrap:anywhere">' + esc(url) + '</div>')) + '<button type="button" class="rd-btn" data-refresh style="margin-top:8px">↻ Check for new photos</button></div></div>'; }

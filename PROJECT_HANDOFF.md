@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-11-12 15:30 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-11-12 16:05 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -407,6 +407,16 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-11-12, end of day (fits lists for 132 keys · D1 tag and miles are typed, not photographed) — LIVE
+- **Fits lists (8z91).** Owner: "find me the fitments" (links come later, once he has checked the vendors). 141 keys had no
+  fits list. 132 were filled, only where the list was empty (`supabase/phase8/8z91_fitments_from_titles.sql`, undo = blank those
+  ids): 56 straight from the supplier's own description (model + years in the key's name), 20 with the model list of a
+  same-FCC-ID key already in stock cut to the years in the name (**to be checked by the owner**), 56 with make + years only
+  (they show under "might fit"). 9 universal keys (Autel IKEY, Xhorse) were left blank on purpose. Nothing was looked up on the
+  web — no vendor page was read. 417 of 426 keys still have no website link.
+- **D1:** the plate and the odometer are typed (required since 8z90), so their photo slots and the "License Plate photo /
+  Odometer Reading photo" checklist lines are gone. Photos = driver's licence, proof of ownership, anything else.
 
 ### 2026-11-12, late afternoon (Register ticket · receiving is assigned · automatic key prices · one-tap reprice · D1 form + photos) — LIVE, not committed yet
 - **Register ticket (8z85).** Owner: "the select-customer box covers the product description." The ticket table could not
