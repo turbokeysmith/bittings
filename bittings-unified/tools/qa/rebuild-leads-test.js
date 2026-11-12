@@ -80,7 +80,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     await pg.evaluate(() => { TKPay.dayTransactions = async function () { return { rows: JSON.parse(localStorage.getItem('__db')).payment_transactions }; }; document.querySelector('.bt-sidebar .bt-nav__item[data-go="reports"]').click(); }); await sleep(1500);
     await pg.evaluate(() => document.getElementById('repExport').click()); await sleep(700);
     r = await pg.evaluate(() => (window.__csv || '').split(/\r\n/).map(l => l.replace(/^\ufeff/, '')));
-    check('Reports → "⬇ Export" makes a CSV: one row per payment with sale, tax and document number', r.length === 2 && /^Date,Time,Document,Customer,Description,Paid by,Card,Sale before tax,Sales tax,Card surcharge,Collected,Refunded,Cost of parts,Status,Technician$/.test(r[0]) && /TKS-TEST-1,TEST Ann,TEST Service — TEST Ann,cash,,100\.00,8\.63,0\.00,108\.63,0\.00,25\.00,completed,TEST Tech$/.test(r[1]), r);
+    check('Reports → "⬇ Export" makes a CSV: one row per payment with sale, tax and document number', r.length === 2 && /^Date,Time,Document,Customer,Description,Paid by,Card,Sale before tax,Sales tax,Card surcharge,Collected,Refunded,Cost of parts,Card fee \(estimated\),Status,Technician$/.test(r[0]) && /TKS-TEST-1,TEST Ann,TEST Service — TEST Ann,cash,,100\.00,8\.63,0\.00,108\.63,0\.00,25\.00,0\.00,completed,TEST Tech$/.test(r[1]), r);
     check('no unexpected page errors', errs.filter(e => !/TEST boom|TEST rejected/.test(e)).length === 0, errs);
 
     // ---- a lead being quoted opens the Quick quote with the person filled in ----

@@ -90,6 +90,8 @@ Not committed yet (branch `phase3-frontend-unification`). The owner commits by s
 | 11b | Seven till risks from the review (8z69) | DONE, LIVE 2026-11-12 |
 | 11c | Dark mode readable everywhere: `app/ui/contrast-guard.js` + sweep tool (8z70); Receipts list draws 60 at a time | DONE, LIVE 2026-11-12 |
 | 11d | Website leads (table `web_leads`, public `submit_web_lead`, Leads screen), nightly database backup to `D:\Work\Backups\db`, error log (Activity → Errors), visible Update button, offline shell (`sw.js`), Reports CSV export (8z71, 8z72) | DONE, LIVE 2026-11-12 |
+| 11h | True profit (key cost carried from Scheduler jobs + filled in by the database; card fees off profit, estimated), job-form freeze after picking a vehicle (`fitment.js catalog()` cache), tap-to-pick service lists, Receipts page bottom bar = main app's (8z74) | DONE, LIVE 2026-11-12 morning — NOT committed yet |
+| 11i | Read the exact card fee back from Stripe instead of estimating it | NOT BUILT — touches the card path; do with the owner present |
 | 11e | Pay-by-link (text a customer a link to pay) | NOT BUILT — needs Stripe work + a real test payment with the owner |
 | 11f | Unsaved changes surviving a closed page while offline | NOT BUILT |
 | 11g | Supabase plan has NO backups of its own — upgrade to Pro for daily backups | OWNER DECISION (the nightly local copy covers it meanwhile) |

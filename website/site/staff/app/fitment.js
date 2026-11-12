@@ -54,12 +54,22 @@
   }
 
   // ---- model catalog: make → [{name, n(normalized), ys, ye}] (built lazily, refreshed when sources change) ----
-  var _cat=null, _catKey='';
+  /* 8z74 (owner, 2026-11-12: "after you select the vehicle it becomes extremely slow"): this is called thousands of times
+     for ONE vehicle look-up (every stock item x every make), and each call used to re-read and re-parse the whole saved
+     keyway table before noticing nothing had changed — seconds of freeze on a phone. Now the built catalog is reused
+     outright for 2 seconds, and after that the saved text is only parsed again if it is actually different. */
+  var _cat=null, _catKey='', _catRaw=null, _catAt=0;
   function catalog(){
-    var seed=null, kw=null;
+    var t=Date.now();
+    if(_cat && (t-_catAt)<2000 && (t-_catAt)>=0) return _cat;
+    var seed=null, kw=null, raw=null;
     try{ seed=(root.TKS_LISHI_SEED && root.TKS_LISHI_SEED.models) || null; }catch(e){}
-    try{ if(root.localStorage){ var v=root.localStorage.getItem('tks_vehicle_keyways'); kw=v?JSON.parse(v):null; } }catch(e){}
-    var key=(seed?Object.keys(seed).length:0)+':'+(kw?kw.length:0);
+    try{ if(root.localStorage) raw=root.localStorage.getItem('tks_vehicle_keyways'); }catch(e){}
+    var seedN=seed?Object.keys(seed).length:0;
+    if(_cat && raw===_catRaw && _catKey.indexOf(seedN+':')===0){ _catAt=t; return _cat; }
+    try{ kw=raw?JSON.parse(raw):null; }catch(e){}
+    var key=seedN+':'+(kw?kw.length:0);
+    _catRaw=raw; _catAt=t;
     if(_cat && key===_catKey) return _cat;
     var cat={};
     function add(make, name, ys, ye){ make=canonMake(make)||String(make||'').trim(); name=String(name||'').trim(); if(!make||!name) return;

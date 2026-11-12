@@ -2505,7 +2505,9 @@ function jobToInvoiceDraft(b){
       const part=p.item_id?TKS.Inventory.get(p.item_id):null;
       /* 8z63 (owner, 2026-11-11): a key or part pulled for the job is goods — it arrives on the invoice as Materials with the tax box
          already set the way Setup › Sales tax says (it used to arrive as untaxed labor and had to be ticked by hand). */
-      draft.items.push({ name:(part&&part.name)||p.description||'Part', price:(part&&part.sellPriceCents!=null)?String(part.sellPriceCents/100):'', qty:1, partId:p.item_id||'', fromDispatch:true, category:'Materials', taxable:partsTaxed });
+      /* 8z74: the part's cost rides along too (owner / manager devices know it) so profit is sale minus what the key cost */
+      var pc=part?parseFloat(part.cost):NaN;
+      draft.items.push({ name:(part&&part.name)||p.description||'Part', price:(part&&part.sellPriceCents!=null)?String(part.sellPriceCents/100):'', qty:1, partId:p.item_id||'', fromDispatch:true, category:'Materials', taxable:partsTaxed, unitCost:(!isNaN(pc)&&pc>0)?pc:0 });
     }); }, function(){}).then(function(){ try{ sessionStorage.setItem('tks_job_draft', JSON.stringify(draft)); }catch(e){} return draft; });
 }
 
@@ -4875,6 +4877,17 @@ function reverseStockForInvoice(invoiceId){
 function repMetrics(){ return Object.assign({jobs:true,sales:true,cost:true,profit:true}, readLS('tks_report_metrics', {})); }
 function repSetMetrics(m){ writeLS('tks_report_metrics', m); }
 function repMoney(c){ return '$'+((c||0)/100).toFixed(2); }
+/* 8z74: what the card processor keeps on a card payment. Stripe's standard US prices are the defaults (2.7% + 5¢ on the
+   reader, 2.9% + 30¢ for a typed card); the shop can set its own in Settings → Payments. It is an estimate — the app does not
+   read the exact fee back from Stripe. Charged on everything the customer paid (sale + tax + any surcharge). */
+function repFeeRates(){ let p={}; try{ p=(TKS.Config.payments&&TKS.Config.payments())||{}; }catch(e){}
+  const n=(v,d)=>{ v=Number(v); return (isNaN(v)||v<0)?d:v; };
+  return { tapPct:n(p.feeTapPct,2.7), tapCents:n(p.feeTapCents,5), typedPct:n(p.feeTypedPct,2.9), typedCents:n(p.feeTypedCents,30) }; }
+function repCardFee(t){ if(!t || payBucket(t.method)!=='card') return 0;
+  const r=repFeeRates(), typed=(t.method==='keyed'), pct=typed?r.typedPct:r.tapPct, fix=typed?r.typedCents:r.tapCents;
+  const paid=(t.captured_cents!=null && t.captured_cents>0)?t.captured_cents:((t.base_cents||0)+(t.surcharge_applied?(t.surcharge_cents||0):0));
+  if(!(paid>0)) return 0;
+  return Math.round(paid*pct/100)+Math.round(fix); }
 function repFmtHour(h){ const ap=h<12?'a':'p'; const hr=(h%12)||12; return hr+ap; }
 function repRange(period){
   const n=new Date(), y=n.getFullYear(), m=n.getMonth(), d=n.getDate();
@@ -5213,10 +5226,10 @@ function repExportCsv(){
   const rows=_repExport.rows||[]; if(!rows.length){ try{ toast('Nothing to export for this period.'); }catch(e){} return; }
   const rc={}; try{ (TKS.list('receipts')||[]).forEach(function(r){ rc[r.id]=r; }); }catch(e){}
   const money2=function(c){ return (Number(c||0)/100).toFixed(2); }, q=function(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?('"'+v.replace(/"/g,'""')+'"'):v; };
-  const head=['Date','Time','Document','Customer','Description','Paid by','Card','Sale before tax','Sales tax','Card surcharge','Collected','Refunded','Cost of parts','Status','Technician'];
+  const head=['Date','Time','Document','Customer','Description','Paid by','Card','Sale before tax','Sales tax','Card surcharge','Collected','Refunded','Cost of parts','Card fee (estimated)','Status','Technician'];
   const lines=[head.join(',')].concat(rows.map(function(t){ const d=new Date(t.created_at), r=rc[t.invoice_id]||{}, tax=t.tax_cents||0, sur=t.surcharge_applied?(t.surcharge_cents||0):0;
     return [ d.toLocaleDateString('en-US'), d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}), r.number||t.invoice_id||'', r.customer||'', t.description||'', t.method||'', (t.card_brand||'')+(t.card_funding?(' '+t.card_funding):''),
-      money2((t.base_cents||0)-tax), money2(tax), money2(sur), money2(t.captured_cents!=null?t.captured_cents:(t.base_cents||0)+sur), money2(t.refunded_cents), money2(t.cost_cents), t.status||'', t.technician||'' ].map(q).join(','); }));
+      money2((t.base_cents||0)-tax), money2(tax), money2(sur), money2(t.captured_cents!=null?t.captured_cents:(t.base_cents||0)+sur), money2(t.refunded_cents), money2(t.cost_cents), money2((t.status==='completed'||t.status==='partially_refunded')?repCardFee(t):0), t.status||'', t.technician||'' ].map(q).join(','); }));
   const blob=new Blob(['\ufeff'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'}), a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download='bittings-sales-'+(_repExport.label||'export')+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
   try{ toast('Exported '+rows.length+' payments.'); }catch(e){}
@@ -5484,15 +5497,23 @@ async function renderReports(){
   _repExport={ rows:rows, label:start.toISOString().slice(0,10)+'_to_'+new Date(end.getTime()-1).toISOString().slice(0,10) };   // 8z72: what "⬇ Export" writes
   const gran=repGran(v.period), buckets=repBuckets(start,end,gran);
   const agg={}; buckets.forEach(b=> agg[b.key]={sales:0,cost:0,profit:0,jobs:0});
-  const tot={sales:0,cost:0,profit:0,jobs:0,tax:0}; const byMethod={card:0,cash:0,check:0,other:0};
+  const tot={sales:0,cost:0,profit:0,jobs:0,tax:0,fees:0,surch:0,contract:0}; const byMethod={card:0,cash:0,check:0,other:0};
+  /* 8z74 (owner, 2026-11-12: "total profit is not correct — remove the cost of the key, and the credit card fees if card was
+     the payment option"). Profit for a payment = sale before tax − what the parts cost − the card processor's fee
+     (+ the 2% surcharge the customer paid on a credit card, which exists to cover that fee) − what an outside contractor gets.
+     The contractor amount comes from the job behind the receipt and is counted once per job. */
+  const seenJob={}, recBy={}; try{ (TKS.list('receipts')||[]).forEach(r=>{ if(r && r.id) recBy[r.id]=r; }); }catch(e){}
+  const contractOf=t=>{ try{ const r=recBy[t.invoice_id], jid=r && r.jobId; if(!jid || seenJob[jid]) return 0; seenJob[jid]=1;
+    const b=TKS.Bookings.get(jid), a=b && b.contract ? Math.round((Number(b.contract.amount)||0)*100) : 0; return a>0?a:0; }catch(e){ return 0; } };
   rows.forEach(t=>{ if(t.status!=='completed' && t.status!=='partially_refunded') return;
     // Sales/Profit = goods+labor revenue only. Tax is pass-through (excluded), and
     // base_cents already excludes the card surcharge. sales = base - tax - refunded.
     // A partial refund reduces net sales; a fully refunded sale is status='refunded'
     // (skipped above → net zero).
     const tax=t.tax_cents||0, cost=t.cost_cents||0, ref=t.refunded_cents||0;
-    const sales=Math.max(0,(t.base_cents||0)-tax-ref), profit=sales-cost;
-    tot.sales+=sales; tot.cost+=cost; tot.profit+=profit; tot.jobs+=1; tot.tax+=tax;
+    const fee=repCardFee(t), sur=t.surcharge_applied?(t.surcharge_cents||0):0, con=contractOf(t);
+    const sales=Math.max(0,(t.base_cents||0)-tax-ref), profit=sales-cost-fee+sur-con;
+    tot.sales+=sales; tot.cost+=cost; tot.profit+=profit; tot.jobs+=1; tot.tax+=tax; tot.fees+=fee; tot.surch+=sur; tot.contract+=con;
     byMethod[payBucket(t.method)]+=sales;
     const k=repBucketKey(new Date(t.created_at), gran); if(agg[k]){ agg[k].sales+=sales; agg[k].cost+=cost; agg[k].profit+=profit; agg[k].jobs+=1; }
   });
@@ -5501,17 +5522,21 @@ async function renderReports(){
     const val = x.kind==='money' ? repMoney(tot[x.key]) : String(tot[x.key]);
     return '<div class="chip m-'+x.key+'">'+x.label+'<b>'+val+'</b></div>';
   }).join('');
-  // 8z58: NET REVENUE for the period = sales (tax already left out) − what the parts cost − what outside contractors get.
-  // A contractor's amount comes from the job (booking.contract) behind the sale's receipt (receipt.jobId); each job counts once.
+  // 8z74: one card that shows how the profit adds up (it replaced "Net revenue", which left card fees out).
   try{
-    let contract=0; const seenJob={}, recBy={}; (TKS.list('receipts')||[]).forEach(r=>{ if(r && r.id) recBy[r.id]=r; });
-    rows.forEach(t=>{ if(t.status!=='completed' && t.status!=='partially_refunded') return;
-      const r=recBy[t.invoice_id]; const jid=r && r.jobId; if(!jid || seenJob[jid]) return; seenJob[jid]=1;
-      let b=null; try{ b=TKS.Bookings.get(jid); }catch(e){} const a=b && b.contract ? Math.round((Number(b.contract.amount)||0)*100) : 0; if(a>0) contract+=a; });
-    const net=tot.sales-tot.cost-contract;
+    const net=tot.profit, fr=repFeeRates();
+    const ln=(k,v,strong)=>'<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-weight:'+(strong?'800':'400')+(strong?';border-top:1px solid rgba(128,128,128,.3);margin-top:4px;padding-top:6px;font-size:16px':'')+'"><span>'+k+'</span><span style="white-space:nowrap">'+v+'</span></div>';
     cards.insertAdjacentHTML('beforeend',
-      '<div class="chip" style="flex:1 1 100%;text-align:left">Net revenue<b style="'+(net<0?'color:#c8323c':'')+'">'+(net<0?'− ':'')+repMoney(Math.abs(net))+'</b>'+
-      '<div class="sub" style="margin-top:4px;font-weight:400">Sales '+repMoney(tot.sales)+' − costs '+repMoney(tot.cost)+' − contractors '+repMoney(contract)+'. Sales tax is not counted as sales.</div></div>');
+      '<div class="chip" id="repProfitCard" style="flex:1 1 100%;text-align:left">How the profit adds up'+
+      '<div style="margin-top:6px;font-size:14.5px">'+
+        ln('Sales (before tax)', repMoney(tot.sales))+
+        ln('Parts cost', '− '+repMoney(tot.cost))+
+        ln('Card fees (estimated)', '− '+repMoney(tot.fees))+
+        (tot.surch>0?ln('Card surcharge collected', '+ '+repMoney(tot.surch)):'')+
+        (tot.contract>0?ln('Contractors', '− '+repMoney(tot.contract)):'')+
+        ln('Profit', '<span style="'+(net<0?'color:#c8323c':'')+'">'+(net<0?'− ':'')+repMoney(Math.abs(net))+'</span>', true)+
+      '</div>'+
+      '<div class="sub" style="margin-top:6px;font-weight:400">Card fees are worked out at '+fr.tapPct+'% + '+fr.tapCents+'¢ on the reader and '+fr.typedPct+'% + '+fr.typedCents+'¢ for a typed card (change in Settings → Payments). Cash, check and other payments have no fee. Sales tax is not counted as sales.</div></div>');
   }catch(e){}
   drawRepChart(v.chart, buckets, agg, m, byMethod);
   repBreakdown(rows, start, end);   // 8z23
@@ -5589,9 +5614,18 @@ async function repBreakdown(rows, start, end){
   '</div>';
 }
 function drawRepChart(type, buckets, agg, m, byMethod){
-  const wrap=document.getElementById('repChartWrap'), canvas=document.getElementById('repCanvas');
+  const wrap=document.getElementById('repChartWrap'); let canvas=document.getElementById('repCanvas');
   if(repChart){ repChart.destroy(); repChart=null; }
-  if(!window.Chart){ wrap.classList.add('empty'); canvas.style.display='none'; wrap.dataset.msg='Graphs need a connection (Chart.js didn’t load).'; wrap.setAttribute('title',''); wrap.textContent='Graphs need a connection (Chart.js didn’t load).'; return; }
+  /* 8z74: with no chart library (offline, or it has not arrived yet) the message used to REPLACE the drawing area, so the next
+     time Reports was drawn (a new period, a refresh) it crashed before the numbers and the payment list. The message now sits
+     beside the drawing area, which is kept — and the graph comes back by itself once the library is there. */
+  let noChart=document.getElementById('repNoChart');
+  if(!canvas){ canvas=document.createElement('canvas'); canvas.id='repCanvas'; wrap.textContent=''; wrap.appendChild(canvas); noChart=null; }
+  if(!window.Chart){ wrap.classList.add('empty'); canvas.style.display='none'; wrap.setAttribute('title','');
+    if(!noChart){ noChart=document.createElement('div'); noChart.id='repNoChart'; wrap.appendChild(noChart); }
+    noChart.textContent='Graphs need a connection.'; return; }
+  if(noChart) noChart.remove();
+  canvas.style.display='';
   wrap.classList.remove('empty');
   // pie/doughnut → composition of Sales by payment method
   if(type==='pie'||type==='doughnut'){
@@ -6027,6 +6061,9 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
   var _sb=document.querySelector('.bt-sidebar'), _scrim=$('btScrim'), _more=$('btMore');
   function closeDrawer(){ if(_sb)_sb.classList.remove('is-open'); if(_scrim)_scrim.classList.remove('is-open'); }
   if(_more) _more.addEventListener('click', function(){ if(_sb)_sb.classList.add('is-open'); if(_scrim)_scrim.classList.add('is-open'); });
+  // 8z74: "More" on the Receipts page lands here (index.html?menu=1) with the full menu already out
+  try{ if(/[?&]menu=1/.test(location.search)){ setTimeout(function(){ if(_sb)_sb.classList.add('is-open'); if(_scrim)_scrim.classList.add('is-open'); }, 350);
+    try{ history.replaceState(null, '', location.pathname); }catch(e){} } }catch(e){}
   if(_scrim) _scrim.addEventListener('click', closeDrawer);
   if(_sb) _sb.addEventListener('click', function(e){ if(e.target.closest('.bt-nav__item')) closeDrawer(); });
 
@@ -6360,6 +6397,12 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       p.innerHTML = '<h2>Payments</h2><div class="sub">How charges are taken. Card processing runs through Stripe.</div>'+
         '<label>Card surcharge</label><div style="font-weight:700;margin:2px 0 4px">2% on credit cards only</div>'+
         '<div class="hint">Oklahoma allows up to <b>2% on credit cards only</b> (never debit/prepaid, never cash/check). The 2% is fixed and enforced on the server at capture — it is not a setting.</div>'+
+        '<label>Card processing fees (for the profit in Reports)</label>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+          '<div style="flex:1 1 150px"><div class="hint" style="margin:0 0 2px">Reader (tap / insert)</div><div style="display:flex;gap:6px;align-items:center"><input id="f_feeTapPct" type="number" step="0.01" min="0" inputmode="decimal" value="'+(pay.feeTapPct!=null?pay.feeTapPct:2.7)+'" style="flex:1;min-width:0"><span>%&nbsp;+</span><input id="f_feeTapCents" type="number" step="1" min="0" inputmode="numeric" value="'+(pay.feeTapCents!=null?pay.feeTapCents:5)+'" style="flex:1;min-width:0"><span>¢</span></div></div>'+
+          '<div style="flex:1 1 150px"><div class="hint" style="margin:0 0 2px">Typed card</div><div style="display:flex;gap:6px;align-items:center"><input id="f_feeTypedPct" type="number" step="0.01" min="0" inputmode="decimal" value="'+(pay.feeTypedPct!=null?pay.feeTypedPct:2.9)+'" style="flex:1;min-width:0"><span>%&nbsp;+</span><input id="f_feeTypedCents" type="number" step="1" min="0" inputmode="numeric" value="'+(pay.feeTypedCents!=null?pay.feeTypedCents:30)+'" style="flex:1;min-width:0"><span>¢</span></div></div>'+
+        '</div>'+
+        '<div class="hint">What Stripe keeps on each card payment. Reports take it off the profit on card sales. It changes nothing the customer pays. Stripe\'s standard prices are filled in — change them if your statement shows different.</div>'+
         '<label>Cash drawer float ($)</label><input id="f_float" type="number" step="0.01" inputmode="decimal" value="'+(pay.drawerFloatCents!=null?(pay.drawerFloatCents/100).toFixed(2):"120.00")+'" placeholder="120.00">'+
         '<div class="hint">The cash you keep in the drawer to start each day. Closeout uses this as the <b>starting float</b> (you can adjust it for a single day right on the Closeout screen). Raise it here as the business grows.</div>'+
         (function(){ var war=cfg.warranty||{months:6,defaultOn:true}; return ''+
@@ -6884,6 +6927,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     else if(key==='tax'){ const r=g('f_taxRate'); cfg.taxRate=r!==''?(parseFloat(r)||0):0; root.querySelectorAll('.taxcat').forEach(cb=> cfg.taxableByCategory[cb.dataset.k]=cb.checked); }
     else if(key==='payments'){
       const fl=g('f_float'); cfg.payments.drawerFloatCents=fl!==''?Math.max(0,Math.round((parseFloat(fl)||0)*100)):12000;
+      [['f_feeTapPct','feeTapPct',2.7],['f_feeTapCents','feeTapCents',5],['f_feeTypedPct','feeTypedPct',2.9],['f_feeTypedCents','feeTypedCents',30]].forEach(function(x){ if(!gid(x[0])) return; var v=parseFloat(g(x[0])); cfg.payments[x[1]]=(isNaN(v)||v<0)?x[2]:v; });   // 8z74
       if(!cfg.warranty) cfg.warranty={}; const wm=g('f_warrantyMonths'); cfg.warranty.months=wm!==''?Math.max(0,parseInt(wm,10)||0):6;
       const wd=gid('f_warrantyDefault'); cfg.warranty.defaultOn=!!(wd&&wd.checked);
       if(!cfg.nastf) cfg.nastf={}; const dd=g('f_d1Days'); cfg.nastf.d1Days=(dd!==''&&parseInt(dd,10)>=1)?parseInt(dd,10):5; }
@@ -8467,9 +8511,12 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       box.innerHTML='<div style="border:1px solid var(--edge);border-radius:14px;padding:12px;margin:10px 0">'+
         '<div style="font-weight:800;margin-bottom:2px">💵 Charges for this job</div>'+
         '<div class="hint" style="margin:0 0 8px">'+(chargeLock?'Set by the office. Tap “Invoice this job” to charge the customer.':'List what to charge. The technician opens the invoice with these lines and prices already filled in.')+'</div>'+
-        '<datalist id="sjSvcList">'+chSvcs().map(function(x){ return '<option value="'+esc(x.value)+'">'; }).join('')+'</datalist>'+
         chargeLines.map(function(l,i){ return '<div data-chrow="'+i+'" style="padding:8px 0;border-top:1px solid var(--edge)">'+
-          '<input class="chD" list="sjSvcList" placeholder="What is being done — type or pick a service" value="'+esc(l.desc)+'" autocomplete="off"'+ro+'>'+
+          /* 8z74 (owner, 2026-11-12: "the drop-down box isn't working"): this used the browser's own suggestion list, which does not open on
+             an Android phone. Now the ▾ button (or typing) opens our own list of the shop's services; a tap fills in the name, price and tax. */
+          '<div style="display:flex;gap:6px;align-items:center"><input class="chD" placeholder="What is being done — type or pick a service" value="'+esc(l.desc)+'" autocomplete="off" style="flex:1;min-width:0"'+ro+'>'+
+            (chargeLock?'':'<button type="button" class="chPick" aria-label="Pick a service" title="Pick a service" style="flex:0 0 48px;height:44px;border:1px solid var(--edge);border-radius:10px;background:transparent;color:inherit;font-size:18px;cursor:pointer">▾</button>')+'</div>'+
+          '<div class="chSug" style="display:none;max-height:232px;overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--edge);border-radius:10px;margin-top:4px;background:var(--card,#fff)"></div>'+
           '<div style="display:flex;gap:8px;align-items:center;margin-top:6px">'+
             '<div style="flex:0 0 68px"><label style="margin:0">Qty</label><input class="chQ" type="number" inputmode="numeric" min="1" step="1" value="'+esc(String(l.qty||1))+'"'+ro+'></div>'+
             '<div style="flex:1;min-width:0"><label style="margin:0">Price each $</label><input class="chE" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="'+esc(l.each)+'"'+ro+'></div>'+
@@ -8481,10 +8528,26 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       '</div>';
       box.querySelectorAll('[data-chrow]').forEach(function(row){ var l=chargeLines[+row.dataset.chrow]; if(!l) return;
         var d=row.querySelector('.chD'), qy=row.querySelector('.chQ'), ea=row.querySelector('.chE'), tx=row.querySelector('.chT'), x=row.querySelector('.chX');
-        d.oninput=function(){ l.desc=d.value; };
-        d.onchange=function(){ l.desc=d.value.trim();   // picked a standard service → use its price when none was typed
+        var sug=row.querySelector('.chSug'), pick=row.querySelector('.chPick');
+        function sugClose(){ if(sug){ sug.style.display='none'; sug.innerHTML=''; } }
+        function sugOpen(all){ if(!sug || chargeLock) return; var typed=String(d.value||'').trim().toLowerCase();
+          var list=chSvcs().filter(function(v){ return all || !typed || String(v.value).toLowerCase().indexOf(typed)>=0; });
+          if(!all && typed && list.length===1 && String(list[0].value).toLowerCase()===typed) list=[];   // already exactly that service
+          if(!list.length){ if(all){ sug.innerHTML='<div class="hint" style="margin:0;padding:10px">No services yet. Add them in Settings → Services, or just type what is being done.</div>'; sug.style.display='block'; } else sugClose(); return; }
+          sug.innerHTML=list.map(function(v){ var p=(v.price!=null && String(v.price).trim()!=='')?('$'+(Number(v.price)||0).toFixed(2)):'';
+            return '<button type="button" class="chOpt" data-v="'+esc(v.value)+'" style="display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;min-height:44px;padding:10px 12px;border:0;border-bottom:1px solid var(--edge);background:transparent;color:inherit;font-size:15px;cursor:pointer"><span>'+esc(v.value)+'</span><span style="font-weight:700;white-space:nowrap">'+esc(p)+'</span></button>'; }).join('');
+          sug.style.display='block';
+          sug.querySelectorAll('.chOpt').forEach(function(o){ o.onclick=function(){ var hit=chSvcs().filter(function(v){ return String(v.value)===o.dataset.v; })[0]; if(!hit) return;
+            l.desc=String(hit.value); d.value=l.desc;
+            if(hit.price!=null && String(hit.price).trim()!==''){ l.each=String(hit.price).trim(); ea.value=l.each; }
+            if(hit.taxable!=null){ l.taxable=!!hit.taxable; tx.checked=l.taxable; }
+            sugClose(); chSyncTotals(); }; }); }
+        if(pick) pick.onclick=function(){ if(sug.style.display==='block'){ sugClose(); return; } sugOpen(true); };
+        d.oninput=function(){ l.desc=d.value; sugOpen(false); };
+        d.onchange=function(){ l.desc=d.value.trim();   // typed a standard service by hand → use its price when none was typed
           var hit=chSvcs().filter(function(v){ return String(v.value).toLowerCase()===l.desc.toLowerCase(); })[0];
           if(hit && hit.price!=null && String(hit.price).trim()!=='' && String(l.each).trim()===''){ l.each=String(hit.price).trim(); ea.value=l.each; chSyncTotals(); } };
+        d.addEventListener('blur', function(){ setTimeout(function(){ if(sug && !sug.contains(document.activeElement)) sugClose(); }, 250); });
         qy.oninput=function(){ l.qty=Math.max(1, parseInt(qy.value,10)||1); chSyncTotals(); };
         ea.oninput=function(){ l.each=ea.value; chSyncTotals(); };
         tx.onchange=function(){ l.taxable=tx.checked; chSyncTotals(); };
@@ -9156,6 +9219,8 @@ try{ if('serviceWorker' in navigator && location.protocol==='https:') navigator.
   function render(force){
     var nav=document.querySelector('.bt-bottomnav'); if(!nav) return; var items=current();
     var sig=who()+'|'+items.map(function(o){ return o.go; }).join(','); if(!force && sig===lastSig) return; lastSig=sig;
+    // 8z74: the Receipts page (a separate page) shows the same bar — hand it this person's tabs
+    try{ if(items.length) localStorage.setItem('tks_bottombar_view', JSON.stringify(items.map(function(o){ return { go:o.go, ic:o.ic, label:SHORT[o.go]||o.label }; }))); }catch(e){}
     var more=document.getElementById('btMore');
     [].slice.call(nav.querySelectorAll('.bt-bottomnav__item')).forEach(function(b){ if(b!==more) b.remove(); });
     var act=document.querySelector('.bt-nav__item.is-active[data-go]'), active=act?act.dataset.go:'';

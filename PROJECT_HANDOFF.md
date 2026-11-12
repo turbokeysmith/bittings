@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-11-12 05:33 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-11-12 07:30 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -407,6 +407,34 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-11-12, morning (💰 true profit · ⚡ job form freeze · ▾ pick-lists · bottom bar) — LIVE, not committed yet
+The owner did a job from the Scheduler, took payment as "Other", and reported three things from his phone. All fixed and live
+(version `1bc9e323b260`), tested with `tools/qa/rebuild-profit-test.js` (19 checks) plus the seven older suites and the dark-mode sweep.
+- **Profit was the same as sales ($445 shown, $400 true).** A key added to a job in the Scheduler reached the invoice with no cost,
+  so the payment was recorded with no cost. Fixed in three places: the job hands the key's cost to the invoice; the invoice builder
+  fills a stock line's cost from stock when it has none; and the **database** now fills it in when any payment is recorded
+  (`supabase/phase8/8z74_sale_cost_from_stock.sql`, applied live — needed because a technician's device is never sent costs).
+  The three sales already affected (11–12 Nov, all the owner's, $85.50 of cost in total) were corrected.
+- **Card fees now come off profit.** Reports → "How the profit adds up": sales − parts cost − card fees (+ the 2% surcharge
+  collected) − contractors = profit. The fee is an **estimate** (Stripe's standard 2.7% + 5¢ on the reader, 2.9% + 30¢ typed);
+  the rates are in Settings → Payments. The app does not read the exact fee back from Stripe. Cash / check / other: no fee.
+  The export has a "Card fee (estimated)" column. "Net revenue" (which ignored fees) is gone — one profit figure now.
+- **"After you select the vehicle it becomes extremely slow."** The vehicle-to-stock match re-read and re-parsed the whole saved
+  keyway table thousands of times per look-up (`app/fitment.js catalog()`). Now cached. Measured with the shop's real 525-item
+  stock list and the CPU slowed 6x: picking the model went from 20.9 s frozen to 0.5 s; "+ Add" on a key from 37.6 s to 0.7 s.
+  This also speeds the "fits this vehicle" filters in Inventory, the Register and the invoice part picker.
+- **"The drop-down box isn't working."** The service boxes (Scheduler charges; invoice / quote lines) used the browser's own
+  suggestion list, which does not open on Android. Both now have our own tap-to-pick list with prices.
+- **Receipts page bottom bar** had its own fixed six tabs (Schedule twice). It now shows the same tabs as the main app
+  (the person's own picks) and "More", which opens the main app with the full menu out.
+- **Shop hours on the public site (from another chat).** A cloud session had added the walk-in hours (Mon–Fri 10–6, Sat 12–5,
+  closed Sun) to every page footer, the contact page and the Spanish home page, but only on GitHub (branch
+  `ccr-72a5eb80-691dv0`, based on `main`) — a cloud session cannot deploy. Checked against the hours saved in Bittings (same),
+  cherry-picked here as `dda1604`, deployed. Address is 9201 N Council Rd, Suite A on all 238 pages and in the structured data.
+- **Found on the way:** with no chart library (offline) Reports crashed the second time it was drawn. Fixed.
+- **Not done / to know:** not checked on a real phone; the fee is an estimate; the cost rule uses the stock item's current cost
+  (not a per-key purchase cost); a fully refunded card sale's fee is not counted.
 
 ### 2026-11-12, later (📥 website leads · 💾 nightly backup · ⚠ error log · offline)
 - **Website leads have their own spot.** The contact form on turbokeysmith.com (English and Spanish) now also sends

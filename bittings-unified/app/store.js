@@ -958,7 +958,7 @@
     taxableByCategory: { Labor: false, Materials: true, Travel: false, Programming: false, AfterHours: false },
     // groups
     identity: { name: '', address: '', phone: '', email: '', license: '', logo: '', logoCustom: false, footer: '', termsUrl: '' },
-    payments: { surchargePct: 2, drawerFloatCents: 12000 },     // surcharge DISPLAY ONLY (server enforces 2% credit-only); drawerFloatCents = standard cash-drawer float (default $120)
+    payments: { surchargePct: 2, drawerFloatCents: 12000, feeTapPct: 2.7, feeTapCents: 5, feeTypedPct: 2.9, feeTypedCents: 30 },   // 8z74: fee* = the card processor's fee, used only for the profit in Reports     // surcharge DISPLAY ONLY (server enforces 2% credit-only); drawerFloatCents = standard cash-drawer float (default $120)
     // standard labor/parts warranty offered on receipts & invoices (not estimates).
     // months=0 disables; defaultOn pre-checks the warranty box on new documents.
     warranty: { months: 6, defaultOn: true },
