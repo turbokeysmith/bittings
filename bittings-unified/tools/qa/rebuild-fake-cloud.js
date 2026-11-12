@@ -13,7 +13,7 @@
   Q.prototype.gt=function(k,v){ this.f.push(function(r){ return String(r[k]||'')>String(v); }); return this; };
   Q.prototype.order=function(k,o){ this.ord=k; this.desc=!!(o&&o.ascending===false); return this; };
   Q.prototype.limit=function(n){ this.lim=n; return this; };
-  ['in','is','gte','lte','or','not','ilike','match'].forEach(function(m){ Q.prototype[m]=function(){ return this; }; });
+  ['in','is','gte','lte','lt','or','not','ilike','match'].forEach(function(m){ Q.prototype[m]=function(){ return this; }; });
   Q.prototype.range=function(a,b){ this.rng=[a,b]; return this; };
   Q.prototype.maybeSingle=function(){ this.one=true; return this; };
   Q.prototype.insert=function(row){ this.mode='insert'; this.row=row; return this; };

@@ -958,6 +958,7 @@
   var CONFIG_DEFAULTS = {
     // tax (kept at top level for back-compat with existing tax wiring)
     taxRate: 0,
+    taxServices: false,   // 8z96: services / labor are never taxed unless a shop switches this on (no screen yet)
     taxableByCategory: { Labor: false, Materials: true, Travel: false, Programming: false, AfterHours: false },
     // groups
     identity: { name: '', address: '', phone: '', email: '', license: '', logo: '', logoCustom: false, footer: '', termsUrl: '' },
@@ -1039,7 +1040,8 @@
     var d = CONFIG_DEFAULTS;
     return {
       taxRate: (c.taxRate != null && c.taxRate !== '') ? Number(c.taxRate) : d.taxRate,
-      taxableByCategory: Object.assign({}, d.taxableByCategory, c.taxableByCategory || {}),
+      taxServices: !!c.taxServices,
+      taxableByCategory: Object.assign({}, d.taxableByCategory, c.taxableByCategory || {}, c.taxServices ? {} : { Labor: false, Travel: false, Programming: false, AfterHours: false }),   // 8z96
       identity: Object.assign({}, d.identity, c.identity || {}),
       payments: Object.assign({}, d.payments, c.payments || {}),
       locations: Object.assign({}, d.locations, c.locations || {}),

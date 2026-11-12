@@ -74,7 +74,7 @@ const active = pg => pg.evaluate(() => (document.querySelector('.view.active') |
         check(tag + ': job part is handed over as taxed Materials', !!partLine && partLine.taxable === true && partLine.category === 'Materials', d.items);
         await pg.goto('http://127.0.0.1:8088/bittings.html', { waitUntil: 'domcontentloaded' }); await pg.waitForSelector('.qi-item', { timeout: 5000 }).catch(() => {}); await sleep(400);
         const rows = await pg.evaluate(() => Array.from(document.querySelectorAll('.qi-item:not(.disc)')).map(x => ({ desc: x.querySelector('.qiDesc').value, tax: x.querySelector('.qiTax').checked, cat: x.querySelector('.qiCat').value })));
-        check(tag + ': on the invoice the tax boxes arrive ticked (charge line + the key), labor not', rows.length === 3 && rows[0].tax === true && rows[1].tax === false && rows[2].tax === true && rows[2].cat === 'Materials', rows);
+        check(tag + ': on the invoice the tax boxes arrive ticked (charge line + the key), labor not', rows.length === 3 && rows[0].tax === true && rows[0].cat === 'Materials' /* 8z96: a job line ticked as taxed arrives as a part — services are never taxed */ && rows[1].tax === false && rows[2].tax === true && rows[2].cat === 'Materials', rows);
         await pg.evaluate(() => { const t = document.querySelector('#qiTot'); if (t) t.scrollIntoView({ block: 'center' }); }); await sleep(150);
         if (cfg.role === 'owner') await pg.screenshot({ path: path.join(OUT, 'tax-carried-over.png') });
 

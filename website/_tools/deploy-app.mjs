@@ -49,6 +49,16 @@ fs.writeFileSync(path.join(out, '_headers'), `# Bittings staff app — https://b
   Cache-Control: public, max-age=604800
 `);
 
+// The marketing site lives at https://getbittings.com (its own project, deploy-getbittings.mjs). Addresses that
+// briefly served it from the app (2026-11-12) are sent there.
+fs.writeFileSync(path.join(out, '_redirects'), `/welcome https://getbittings.com/ 301
+/welcome.html https://getbittings.com/ 301
+/legal https://getbittings.com/legal 301
+/legal.html https://getbittings.com/legal 301
+/terms https://getbittings.com/legal#terms 301
+/privacy https://getbittings.com/legal#privacy 301
+`);
+
 const v = JSON.parse(fs.readFileSync(path.join(out, 'version.json'), 'utf8')).v;
 const cmd = 'npx wrangler pages deploy .build/bittings-app --project-name=bittings-app --branch=main --commit-dirty=true';
 console.log(`app version ${v} → project bittings-app`);

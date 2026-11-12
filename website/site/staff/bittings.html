@@ -645,7 +645,13 @@ const LINE_CATEGORIES = [
   {key:"AfterHours",   label:"After-Hours",       defaultTax:false},
   {key:"Discount",     label:"Discount",          defaultTax:false, isDiscount:true}
 ];
+/* 8z96 (owner, 2026-11-12: "there are no taxable services / labor — it all should be no tax"). Only parts carry sales tax:
+   a line in Materials / Parts, or a stock part. "Car lockout" had been taxed because its name contains the word "lock".
+   (A shop in a state that taxes labor would switch on config.taxServices — there is no screen for that yet.) */
+function svcTaxOn(){ try{ return !!(window.TKS && TKS.Config && TKS.Config.get().taxServices); }catch(e){ return false; } }
+function taxAllowed(category, partId){ return svcTaxOn() || String(category||"")==="Materials" || !!partId; }
 function catDefaultTax(key){
+  if(key!=="Materials" && !svcTaxOn()) return false;
   // Owner config (cloud-synced) overrides the built-in default per category.
   try{ const cfg=(window.TKS&&TKS.Config)?TKS.Config.get():null;
     if(cfg && cfg.taxableByCategory && key in cfg.taxableByCategory) return !!cfg.taxableByCategory[key]; }catch(e){}
@@ -1384,12 +1390,12 @@ function finishedActions(r){
 function renderFinished(r){ renderReceiptCard(r); finishedActions(r); }
 /* 8z90: a NASTF document shows its photo box under the buttons — what is on file, what is missing, and how to add them */
 function hasD1(r){ return !!(r && ((r.nastf && r.nastf.type) || (Array.isArray(r.moreVehicles) && r.moreVehicles.some(v=>v && v.d1===true)))); }
-function d1PhotoBox(r){ try{ if(!hasD1(r) || !r.id || !window.TKS_RDOCS || r.docType==="estimate") return; const b=document.createElement("div"); b.className="d1-docs"; chat.appendChild(b); TKS_RDOCS.panel(b, r); scrollDown(); }catch(e){} }
+function d1PhotoBox(r){ try{ if(!hasD1(r) || !r.id || !window.TKS_RDOCS || r.docType==="estimate") return; const b=document.createElement("div"); b.className="d1-docs"; chat.appendChild(b); TKS_RDOCS.panel(b, r, { pdf:(x)=>makePDF(x, "en", false, true) }); scrollDown(); }catch(e){} }
 /* a phone that scanned the QR code lands here: bittings.html?docs=<receipt id> → that receipt's photo page and nothing else */
 function openDocsPage(id){
   const find=()=>getHistory().find(x=>String(x.id)===String(id))||null;
   const draw=(r)=>{ chat.innerHTML='<div class="res-home" style="text-align:left"><h2 style="margin-bottom:4px">📎 Photos for '+escapeHtml(r.number||"this receipt")+'</h2><p style="margin:0 0 6px">'+escapeHtml(r.customer||"")+(vehicleString(r)?(" · "+escapeHtml(vehicleString(r))):"")+'</p><div id="docsHere"></div><button type="button" id="docsDone" style="margin-top:10px">Done</button></div>';
-    TKS_RDOCS.panel(chat.querySelector("#docsHere"), r, { qr:false }); chat.querySelector("#docsDone").onclick=()=>{ location.href="bittings.html?receipts=1"; }; };
+    TKS_RDOCS.panel(chat.querySelector("#docsHere"), r, { qr:false, pdf:(x)=>makePDF(x, "en", false, true) }); chat.querySelector("#docsDone").onclick=()=>{ location.href="bittings.html?receipts=1"; }; };
   const r0=find(); if(r0){ draw(r0); return; }
   chat.innerHTML='<div class="res-home"><h2>Finding that receipt…</h2><p>One moment.</p></div>';
   let tries=0; const again=()=>{ const r=find(); if(r){ draw(r); return; }
@@ -3330,12 +3336,18 @@ function canEditPricing(){
       let locked=false;   // a dispatched line for a role without editPricing
       delBtn.onclick=()=>r.remove();
       let catTouched=false; cat.addEventListener("change",()=>{ catTouched=true; });
+      // 8z96: a service / labor / travel line cannot be ticked taxable — only a part can.
+      const paidDoc=!!(edit && edit.paidAt);   // a paid document keeps what it was charged; nothing is re-worked behind the owner's back
+      function taxRule(){ if(tax.checked && !taxAllowed(cat.value, r.dataset.part)) tax.checked=false; }
+      cat.addEventListener("change",taxRule);
+      tax.addEventListener("change",()=>{ if(tax.checked && !taxAllowed(cat.value, r.dataset.part)){ tax.checked=false;
+        try{ appAlert("Services are not taxed", "Only parts carry sales tax. If this line is a part, change it to Materials / Parts first."); }catch(e){} } });
       function paintStar(){ const d=desc.value.trim().toLowerCase(); let saved=false; try{ saved=!!d && getCommonJobs().some(j=>(j.desc||"").toLowerCase()===d); }catch(e){}
         star.textContent=saved?"★":"☆"; star.classList.toggle("on",saved); star.title=saved?"Saved as a common job (tap to update its price)":"Save as a common job"; }
       function applyPreset(){ const hit=qiPresets.find(p=>p.name.toLowerCase()===desc.value.trim().toLowerCase());
         if(hit){ if(hit.price!=null && !amt.value) amt.value=hit.price.toFixed(2); tax.checked=!!hit.taxable; if(!catTouched && hit.category) cat.value=hit.category; }
         else if(!catTouched && desc.value.trim()){ const g=guessCategory(desc.value,getSvc()); cat.value=g; tax.checked=catDefaultTax(g); }
-        paintStar(); }
+        taxRule(); paintStar(); }
       desc.addEventListener("change",applyPreset);
       /* 8z74 (owner, 2026-11-12: "the drop-down box isn't working"): tap the description (or type) and the shop's services for this
          kind of job, plus the saved common jobs, open as a list right under it. A tap fills in the name, price, category and tax. */
@@ -3461,6 +3473,8 @@ function canEditPricing(){
         if(!amt.value && hit && hit.price!=null) amt.value=hit.price.toFixed(2);
         tax.checked=(pre.taxable!=null)?!!pre.taxable:(hit?!!hit.taxable:catDefaultTax(cat.value));
         if(pre.partId){ r.dataset.part=pre.partId; const tag=r.querySelector(".qiPartTag"); tag.style.display="block"; tag.textContent="📦 inventory part"; }
+        if(!paidDoc && pre.taxable===true && !pre.category && !pre.partId && !svcTaxOn()){ cat.innerHTML=catOptionsHTML(getSvc(), "Materials"); cat.value="Materials"; catTouched=true; }   // 8z96: a job line ticked "Taxed part" in the Scheduler is a part
+        if(!paidDoc) taxRule();   // 8z96
         // 8r: a dispatched line — tagged for everyone, locked for roles without editPricing
         if(pre.fromDispatch){
           M.fromDispatch=true; M.jobId=pre.jobId||src.jobId||null; r.classList.add("disp");
@@ -3682,7 +3696,7 @@ function canEditPricing(){
         if(M.fromDispatch && !pricing){ let q=parseInt(row.querySelector(".qiQty").value,10); if(isNaN(q)||q<1) q=1;
           a=Math.round((Number(M.dispatchAmount)||0)*(q/(M.dispatchQty||1))*100)/100; }
         if(isNaN(a)||a<0) return;
-        its.push({amount:a, taxable:row.querySelector(".qiTax").checked});
+        its.push({amount:a, taxable:row.querySelector(".qiTax").checked && ((edit && edit.paidAt) || taxAllowed(row.querySelector(".qiCat").value, row.dataset.part))});   // 8z96
       });
       const dt=getType(); let pay=getPay();
       if(dt==="estimate") pay="Not specified"; else if(dt==="receipt" && (!pay || pay==="Not specified")) pay="Cash";
@@ -3763,7 +3777,7 @@ function canEditPricing(){
       if(!M.declined && Array.isArray(M.units) && M.units.length>qty){ bad="“"+d+"” has "+M.units.length+" keys scanned but qty "+qty+" — scan the extra key back in or detach it (×)."; return; }
       const uc=parseFloat(row.querySelector(".qiCost").value);
       const partId=row.dataset.part||null;
-      const it={ desc:d, amount:Math.round(a*100)/100, taxable:row.querySelector(".qiTax").checked,
+      const it={ desc:d, amount:Math.round(a*100)/100, taxable:row.querySelector(".qiTax").checked && ((S.edit && S.edit.paidAt) || taxAllowed(row.querySelector(".qiCat").value, row.dataset.part)),   // 8z96: services are never taxed
                  category:row.querySelector(".qiCat").value||guessCategory(d,svc),
                  partId:partId, qty:qty, unitCost:(isNaN(uc)?0:uc), cost:lineCost(uc,qty) };
       // 8r: dispatch origin, scanned keys, decline — all ride on the saved item (server: declined lines pull no stock; unitIds sell first)

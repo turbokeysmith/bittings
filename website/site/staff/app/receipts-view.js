@@ -80,7 +80,7 @@
     if (ttl) ttl.textContent = (r.docType === 'invoice' ? 'Invoice' : r.docType === 'estimate' ? 'Estimate' : 'Receipt') + ' ' + (r.number || r.id || '');
     // 8z90: a NASTF receipt shows its photo box (licence, proof of ownership…) under the document
     try { var d1 = (r.nastf && r.nastf.type) || (Array.isArray(r.moreVehicles) && r.moreVehicles.some(function (v) { return v && v.d1 === true; }));
-      if (d1 && r.id && window.TKS_RDOCS && r.docType !== 'estimate') { var bx = document.createElement('div'); bx.style.padding = '0 12px 12px'; doc.appendChild(bx); TKS_RDOCS.panel(bx, r); } } catch (e) { }
+      if (d1 && r.id && window.TKS_RDOCS && r.docType !== 'estimate') { var bx = document.createElement('div'); bx.style.padding = '0 12px 12px'; doc.appendChild(bx); TKS_RDOCS.panel(bx, r, { pdf: function (x) { return TKS_RECEIPTS.makePDF(x, 'en', false, true); } }); } } catch (e) { }
     var v = gid('rcViewer'); v.classList.add('open'); v.setAttribute('aria-hidden', 'false');
   }
   function closeViewer() { var v = gid('rcViewer'); v.classList.remove('open'); v.setAttribute('aria-hidden', 'true'); var d = gid('rcViewerDoc'); if (d) d.innerHTML = ''; cur = null; }

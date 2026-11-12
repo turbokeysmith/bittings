@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bittings — Terms, cancellation and privacy</title>
+<meta name="description" content="Bittings Terms of Service, cancellation and refund terms, and privacy policy.">
+<meta name="robots" content="noindex"><!-- the legal page stays out of search results (draft wording, not yet reviewed by a lawyer) -->
+<link rel="canonical" href="https://getbittings.com/legal">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<!--
+  Bittings legal pages (first written 2026-11-12, with index.html — the getbittings.com site). One file, three parts: #terms, #cancellation, #privacy.
+  DRAFT wording written for the owner — NOT reviewed by a lawyer. Things that are the owner's decision are listed in
+  PROJECT_HANDOFF.md (legal name, the 30-day first-payment refund, the 30 / 90 day data windows, the liability cap).
+  If a plan, a price rule or a provider changes, change it here too and move the "Last updated" date.
+-->
+<style>
+  :root{ --red:#b3242f; --red2:#8f1c26; --redtext:#e5484d; --bg:#191c22; --bg2:#1f232b; --card:#232830; --edge:rgba(255,255,255,.10); --ink:#f3f4f6; --dim:#b3bac4; --faint:#8a929e; }
+  html[data-theme="light"]{ --bg:#f5f6f8; --bg2:#ffffff; --card:#ffffff; --edge:rgba(20,23,27,.12); --ink:#14171b; --dim:#3f4854; --faint:#5b6472; --redtext:#b3242f; }
+  *{box-sizing:border-box} html{scroll-behavior:smooth;scroll-padding-top:84px}
+  body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 "Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .wrap{max-width:860px;margin:0 auto;padding:0 22px}
+  .nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--edge)}
+  .nav .wrap{display:flex;align-items:center;gap:10px;min-height:64px;max-width:1200px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:900;font-size:22px;letter-spacing:-.02em;text-decoration:none;margin-right:auto}
+  .brand i{font-style:normal;color:var(--redtext)}
+  .mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(180deg,#c92c38,var(--red2));display:grid;place-items:center;flex:0 0 26px}
+  .mark::before{content:"";width:8px;height:8px;border-radius:50%;background:#16181d;box-shadow:0 7px 0 -2px #16181d}
+  .ghost{background:none;border:0;color:var(--dim);font:inherit;font-weight:700;cursor:pointer;padding:10px 8px;min-height:44px;white-space:nowrap}
+  .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 16px;border-radius:11px;font:inherit;font-weight:800;text-decoration:none;border:1px solid var(--edge);background:var(--bg2);color:var(--ink);white-space:nowrap}
+  h1{font-stretch:115%;font-weight:900;font-size:clamp(32px,5vw,52px);line-height:1.06;letter-spacing:-.02em;margin:48px 0 10px}
+  h1 i{font-style:normal;color:var(--redtext)}
+  .lede{color:var(--dim);font-size:19px;margin:0 0 22px}
+  .toc{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 8px}
+  .toc a{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border-radius:999px;border:1px solid var(--edge);background:var(--card);font-weight:800;text-decoration:none}
+  section{padding:44px 0 12px;border-top:1px solid var(--edge);margin-top:36px}
+  h2{font-stretch:112%;font-weight:900;font-size:clamp(26px,3.4vw,36px);line-height:1.1;letter-spacing:-.015em;margin:0 0 6px}
+  .date{color:var(--faint);font-size:15px;margin:0 0 22px}
+  h3{font-size:20px;font-weight:800;margin:30px 0 8px}
+  p,li{color:var(--dim)} p{margin:0 0 14px} ul{margin:0 0 14px;padding-left:22px} li{margin-bottom:7px}
+  b,strong{color:var(--ink)}
+  .box{background:var(--card);border:1px solid var(--edge);border-left:4px solid var(--red);border-radius:14px;padding:18px 20px;margin:0 0 22px}
+  .box p:last-child,.box ul:last-child{margin-bottom:0}
+  table{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:16px}
+  th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--edge);color:var(--dim)} th{color:var(--ink);font-weight:800}
+  a:focus-visible,.btn:focus-visible,.ghost:focus-visible{outline:2px solid #f2b43a;outline-offset:2px}
+  footer{border-top:1px solid var(--edge);margin-top:48px;padding:28px 0 44px;color:var(--faint);font-size:15px}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:6px 22px} footer a{padding:8px 0;display:inline-block}
+  @media (max-width:700px){ th,td{padding:8px 6px;font-size:15px} .wrap{padding:0 18px} }
+  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
+</style>
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="./" aria-label="Bittings home"><span class="mark"></span><span>Bittings<i>.</i></span></a>
+  <button class="ghost" id="themeBtn" type="button">Light mode</button>
+  <a class="btn" href="./">‹ Back</a>
+</div></header>
+
+<main class="wrap">
+  <h1>The fine print, in plain words<i>.</i></h1>
+  <p class="lede">Three short documents: what you agree to when your shop uses Bittings, how to cancel and what happens when you do, and what we do with information.</p>
+  <nav class="toc" aria-label="On this page"><a href="#terms">Terms of Service</a><a href="#cancellation">Cancellation &amp; refunds</a><a href="#privacy">Privacy Policy</a></nav>
+
+  <!-- ============================== TERMS ============================== -->
+  <section id="terms">
+    <h2>Terms of Service</h2>
+    <p class="date">Last updated November 12, 2026</p>
+
+    <div class="box"><p><b>The short version.</b> You pay month to month and can leave any time. Your shop's records are yours. Bittings is a tool: the key, chip and programming information in it is a reference to check, and you stay responsible for the work your shop does, for proving who owns a vehicle, and for your own licences, NASTF duties and taxes.</p></div>
+
+    <h3>1. Who this is between</h3>
+    <p>Bittings is shop software for locksmiths, run by Turbo Keysmith LLC, an Oklahoma company ("Bittings", "we", "us"). "You" means the business that signs up, and the person who accepts these terms for it. By creating an account, asking us to create one, or using Bittings, you agree to these terms. If you do not agree, do not use Bittings.</p>
+    <p>Bittings is for businesses. It is not for personal or household use, and you must be at least 18 to open an account.</p>
+
+    <h3>2. Your account and your people</h3>
+    <ul>
+      <li>Give us accurate details about your shop and keep them current.</li>
+      <li>Each person gets their own login. Do not share logins or PINs.</li>
+      <li>You choose who in your shop has access and what role they have, and you are responsible for what they do in Bittings.</li>
+      <li>Owners and managers are asked to use two-step sign-in. Keep it on.</li>
+      <li>Tell us straight away at <a href="mailto:support@bittings.app">support@bittings.app</a> if you think someone has got into your account.</li>
+    </ul>
+
+    <h3>3. Plans, prices and billing</h3>
+    <ul>
+      <li>Your plan and price are the ones shown on our Plans page when you signed up, or the ones we agreed with you in writing.</li>
+      <li>Plans are billed monthly, in advance, in US dollars. Extra users are billed at the per-user price for your plan.</li>
+      <li>Prices do not include sales tax. If tax applies to your subscription we add it to the bill.</li>
+      <li>We can change prices. We will email the account owner at least 30 days before a change applies to you, and you can cancel before it does.</li>
+      <li>If you joined on a founder price, that price stays in place for as long as your plan stays active. If you cancel and come back later, the prices at that time apply.</li>
+      <li>If a payment fails we will tell you and try again. If the bill is still unpaid 14 days later we may switch the account to read-only until it is paid.</li>
+    </ul>
+
+    <h3>4. Card payments from your customers</h3>
+    <ul>
+      <li>Card payments are processed by Stripe on <b>your own Stripe account</b>. The money goes from Stripe to your bank. We never hold your customers' money, and we never see or store full card numbers.</li>
+      <li>You must accept Stripe's terms to take cards. Stripe's fees are Stripe's and are charged by Stripe.</li>
+      <li>On the Starter plan we add a platform fee of 1% of each card payment, collected through Stripe at the time of the payment. The Pro plan has no Bittings fee on card payments.</li>
+      <li>Refunds, disputes and chargebacks are between you, your customer and Stripe. A platform fee on a payment you later refund is not returned unless Stripe returns it.</li>
+      <li>If your shop adds a surcharge to card payments, it is your job to make sure that is allowed where you work and that you tell your customers as the rules require.</li>
+    </ul>
+
+    <h3>5. Your shop's records</h3>
+    <ul>
+      <li><b>Your records are yours.</b> Customers, vehicles, jobs, receipts, stock, photos and everything else your shop puts into Bittings belong to your shop.</li>
+      <li>You give us permission to store and process those records only to run Bittings for you, to keep it secure, and to fix problems.</li>
+      <li>You can export your inventory, your sales and your documents while your account is open.</li>
+      <li>You are responsible for having the right to collect what you put in — for example a customer's driver's licence photo — and for telling your customers how your shop uses their information.</li>
+      <li>We keep backups, but no system is perfect. Keep your own copies of anything you could not afford to lose, including paperwork you are required to keep.</li>
+    </ul>
+
+    <h3>6. Key, vehicle and programming information</h3>
+    <p>Bittings shows reference information: which keys fit which vehicles, keyways, chip types, FCC IDs, programming methods, VIN decoding and links to outside tools and suppliers. It comes from many sources, including information your own shop enters, and <b>it can be wrong or out of date</b>.</p>
+    <ul>
+      <li>Check the information against the vehicle and the part in your hand before you cut, program or sell.</li>
+      <li>We are not responsible for a wrong key, a damaged part or module, lost time, or a lost job that comes from relying on reference information.</li>
+      <li>Links to outside sites are a convenience. We do not run those sites and are not responsible for them.</li>
+    </ul>
+
+    <h3>7. Your responsibilities as a locksmith</h3>
+    <ul>
+      <li>Hold whatever licences, registrations and insurance your state and city require, and follow the law in the work you do.</li>
+      <li><b>You</b> must confirm that the person asking for a key has the right to it. Bittings helps you record identification and proof of ownership; it does not check them.</li>
+      <li>If you use the NASTF tools, your NASTF agreement and its deadlines are yours to meet. Bittings helps you gather and keep the paperwork. It does not file anything with NASTF for you, and it is not connected to, approved by or endorsed by NASTF.</li>
+      <li>Sales tax settings, tax-exempt sales and the records behind them are your responsibility. Bittings is not tax, legal or accounting advice.</li>
+      <li>Hours, commission and pay figures are worked out from what your shop enters. Check them before you pay anyone. Bittings is not a payroll service and does not file payroll taxes.</li>
+    </ul>
+
+    <h3>8. What you must not do</h3>
+    <ul>
+      <li>Use Bittings to break the law, or to help anyone get into a vehicle or property they have no right to.</li>
+      <li>Resell Bittings, or let another business use your account.</li>
+      <li>Copy, scrape or bulk-download the reference information to build or feed another product.</li>
+      <li>Try to get around security, reach another shop's records, overload the service, or take the software apart.</li>
+      <li>Upload anything you have no right to upload, or anything harmful such as malware.</li>
+    </ul>
+
+    <h3>9. The service and support</h3>
+    <ul>
+      <li>We work to keep Bittings running and safe, but we do not promise it will never be down, slow or wrong. Sometimes we take it down briefly to update it.</li>
+      <li>Bittings keeps working through a short loss of signal and catches up afterwards, but some things need a connection, including card payments.</li>
+      <li>We add, change and sometimes remove features. If we remove something your plan relies on, we will tell you ahead of time.</li>
+      <li>Support is by email at <a href="mailto:support@bittings.app">support@bittings.app</a>. We aim to answer within one business day.</li>
+      <li>Printers, cash drawers, scanners and card readers are yours. We cannot promise every device works with Bittings; ask us before you buy one.</li>
+    </ul>
+
+    <h3>10. Our software and your feedback</h3>
+    <p>We own Bittings: the software, the design, the name and the reference information we have put together. These terms give you the right to use it while your account is open and paid; they do not hand any of it over. If you send us ideas or feedback, we may use them without owing you anything.</p>
+
+    <h3>11. Ending the agreement</h3>
+    <p>You can cancel at any time. We can suspend or close an account that breaks these terms, puts other shops or the service at risk, or stays unpaid. The details are in <a href="#cancellation">Cancellation &amp; refunds</a>, which is part of these terms.</p>
+
+    <h3>12. No warranties</h3>
+    <p>Bittings is provided "as is" and "as available". As far as the law allows, we make no warranties of any kind, express or implied, including that it is fit for a particular purpose, error-free or uninterrupted, or that the reference information is accurate or complete.</p>
+
+    <h3>13. Limit of liability</h3>
+    <p>As far as the law allows: (a) we are not liable for lost profits, lost business, lost data, or any indirect, special or consequential loss; and (b) our total liability for everything connected with Bittings is limited to the amount you paid us for Bittings in the 12 months before the claim arose. Nothing here limits liability that cannot be limited by law.</p>
+
+    <h3>14. If someone makes a claim because of your shop</h3>
+    <p>If a third party brings a claim against us because of work your shop did, records your shop put into Bittings, or your breaking these terms or the law, you agree to cover our reasonable costs and losses from that claim.</p>
+
+    <h3>15. Changes to these terms</h3>
+    <p>We may update these terms. If a change matters, we will email the account owner or show a notice in Bittings at least 30 days before it applies. If you keep using Bittings after that, you accept the new terms. If you do not accept them, cancel before they apply.</p>
+
+    <h3>16. Law and disputes</h3>
+    <p>These terms are governed by the laws of the State of Oklahoma. Please email us first — most problems can be sorted out that way. Any court case must be brought in the state or federal courts for Oklahoma County, Oklahoma, and both of us agree to those courts.</p>
+
+    <h3>17. The rest</h3>
+    <p>These terms, with the Cancellation &amp; refunds terms and the Privacy Policy, are the whole agreement between us about Bittings. If a court finds part of them cannot be enforced, the rest still applies. If we do not enforce something straight away, we have not given up the right to. You may not transfer your account to someone else without our agreement; we may transfer this agreement if the Bittings business changes hands. Notices to you go to the account owner's email; notices to us go to <a href="mailto:support@bittings.app">support@bittings.app</a>.</p>
+  </section>
+
+  <!-- ============================== CANCELLATION ============================== -->
+  <section id="cancellation">
+    <h2>Cancellation &amp; refunds</h2>
+    <p class="date">Last updated November 12, 2026</p>
+
+    <div class="box"><p><b>The short version.</b> No contract and no cancellation fee. Email us to cancel, you keep access to the end of the month you have paid for, and you can take your records with you.</p></div>
+
+    <h3>How to cancel</h3>
+    <p>The account owner emails <a href="mailto:support@bittings.app">support@bittings.app</a> from the email address they sign in with and says they want to cancel. We confirm by email, normally within one business day. Your cancellation counts from the day you sent it, not the day we replied.</p>
+
+    <h3>When it takes effect</h3>
+    <ul>
+      <li>Your plan runs to the end of the month you have already paid for, and you are not billed again.</li>
+      <li>You keep full access until then.</li>
+    </ul>
+
+    <h3>Refunds</h3>
+    <ul>
+      <li><b>First payment:</b> if Bittings is not right for your shop, tell us within 30 days of your first payment and we will refund that payment in full.</li>
+      <li><b>After that:</b> we do not refund part of a month. Cancelling stops the next bill.</li>
+      <li><b>Our mistake:</b> if we bill you twice or bill the wrong amount, tell us and we will put it right.</li>
+      <li>Refunds go back to the card or account that paid, usually within 5 to 10 business days.</li>
+      <li>Fees on card payments from your customers (Stripe's fees, and the 1% on the Starter plan) are charged per payment and are not refunded when you cancel.</li>
+    </ul>
+
+    <h3>Changing plan</h3>
+    <ul>
+      <li><b>Moving up:</b> starts straight away. We bill the difference for the rest of the month.</li>
+      <li><b>Moving down, or removing users:</b> starts with your next bill. Features that are not in the lower plan stop then; the records behind them are kept.</li>
+    </ul>
+
+    <h3>Your records after you cancel</h3>
+    <table>
+      <tr><th>When</th><th>What happens</th></tr>
+      <tr><td>Before your plan ends</td><td>Export your inventory, sales and documents. Download any D1 photos and receipts you are required to keep.</td></tr>
+      <tr><td>For 30 days after it ends</td><td>The account is read-only: the owner can sign in, look things up and export, but not add or change anything. Come back in this time and everything is as you left it.</td></tr>
+      <tr><td>Within 90 days after that</td><td>We delete your shop's records from Bittings. Copies in our backups are overwritten as the backups roll over.</td></tr>
+    </table>
+    <p>Want it gone sooner? The account owner can ask us by email to delete everything early. We keep our own billing records for as long as tax law requires. Your Stripe account, and the payment history in it, is yours and is not affected.</p>
+
+    <h3>When we suspend or close an account</h3>
+    <ul>
+      <li><b>Unpaid bill:</b> after 14 days unpaid we may make the account read-only. After 45 days unpaid we may close it, and the record timings above then apply.</li>
+      <li><b>Breaking the terms:</b> we will normally tell you and give you a chance to fix it. If it is serious — fraud, breaking the law, or putting other shops' records at risk — we may suspend at once.</li>
+      <li><b>If we close Bittings</b> or stop offering your plan, we will give you at least 60 days' notice, refund anything you have paid for time after the closing date, and keep exports available until then.</li>
+    </ul>
+  </section>
+
+  <!-- ============================== PRIVACY ============================== -->
+  <section id="privacy">
+    <h2>Privacy Policy</h2>
+    <p class="date">Last updated November 12, 2026</p>
+
+    <div class="box"><p><b>The short version.</b> We use information to run Bittings for your shop and nothing else. We do not sell it, we do not show ads, and there are no advertising trackers in the app or on this site.</p></div>
+
+    <h3>Who this covers</h3>
+    <p>This policy covers Bittings — the app at bittings.app and this website, getbittings.com — run by Turbo Keysmith LLC ("Bittings", "we"). There are two kinds of people it matters to:</p>
+    <ul>
+      <li><b>Shops and their staff</b> — the people who sign in to Bittings.</li>
+      <li><b>A shop's own customers</b> — people whose details a shop records in Bittings. That information belongs to the shop, and we hold it only on the shop's behalf. <b>If you are a customer of a locksmith who uses Bittings, please contact that locksmith</b> about your information; we will help them answer you.</li>
+    </ul>
+
+    <h3>What we collect</h3>
+    <table>
+      <tr><th>What</th><th>Examples</th></tr>
+      <tr><td>From this website</td><td>What you type into the Request access form: shop name, your name, phone, email, city and state, the plan you are looking at, and your note.</td></tr>
+      <tr><td>Account details</td><td>Name, email, phone, role in the shop, sign-in and two-step sign-in details. Passwords and PINs are stored scrambled, never in readable form.</td></tr>
+      <tr><td>Shop records</td><td>What a shop enters to do its work: customers' names, phone numbers, emails and addresses; vehicles, VINs, plate numbers and mileage; quotes, jobs, receipts and payments; stock and prices; staff hours, commission and pay figures; signatures; tax-exemption certificates.</td></tr>
+      <tr><td>Identity and ownership documents</td><td>For NASTF security work a shop may photograph a customer's driver's licence and proof of ownership. These are kept in private storage that only that shop's signed-in staff can open.</td></tr>
+      <tr><td>Payment information</td><td>Card payments are handled by Stripe. We receive the result — amount, date, card type, last four digits, status — not the full card number.</td></tr>
+      <tr><td>Technical information</td><td>Sign-in times, the kind of device and browser, IP address, and error logs, kept to run and secure the service.</td></tr>
+    </table>
+
+    <h3>What is kept on your device</h3>
+    <p>Bittings stores a working copy of your shop's data in your browser so the app is fast and keeps going when the signal drops, along with your sign-in session and choices such as light or dark mode. These are needed for the app to work. We do not use advertising cookies or third-party analytics. Signing out, or clearing the browser's site data, removes the copy from that device.</p>
+
+    <h3>How we use it</h3>
+    <ul>
+      <li>To run Bittings for your shop: show your records, take payments, print and send receipts, keep the paperwork.</li>
+      <li>To answer you when you ask for access or for help.</li>
+      <li>To bill your subscription.</li>
+      <li>To keep the service secure, find and fix faults, and prevent misuse.</li>
+      <li>To tell account owners about changes to the service, prices or these terms.</li>
+      <li>To meet legal requirements.</li>
+    </ul>
+    <p>We do not sell personal information. We do not use shop records for advertising. We do not look through a shop's records except to provide support the shop has asked for, to fix a fault, or to deal with a security or legal problem.</p>
+
+    <h3>Who we share it with</h3>
+    <p>Only the companies we need to run Bittings, and only for that purpose:</p>
+    <table>
+      <tr><th>Company</th><th>What for</th></tr>
+      <tr><td>Supabase</td><td>The database, sign-in and private file storage behind Bittings.</td></tr>
+      <tr><td>Cloudflare</td><td>Delivers the app and this website, and forwards email sent to our @bittings.app address.</td></tr>
+      <tr><td>Stripe</td><td>Card payments and each shop's Stripe account.</td></tr>
+      <tr><td>NHTSA (US government vehicle database)</td><td>When you decode a VIN, the VIN is sent there to look up the year, make and model.</td></tr>
+      <tr><td>Google Fonts</td><td>Supplies the typeface; your browser fetches it from Google.</td></tr>
+    </table>
+    <p>We may also share information if the law requires it, to protect people or the service from harm, or with a buyer if the Bittings business is sold — in which case this policy continues to apply to it. Receipts, pay links and texts go to whoever the shop chooses to send them to.</p>
+
+    <h3>How we protect it</h3>
+    <ul>
+      <li>Everything travels over an encrypted connection.</li>
+      <li>Each shop's records are walled off from every other shop's.</li>
+      <li>Within a shop, each role sees only what it should.</li>
+      <li>Owners and managers use two-step sign-in, and photos and documents sit in private storage.</li>
+    </ul>
+    <p>No system is perfectly secure. If we learn of a breach that affects your shop's records, we will tell the account owner without undue delay and as the law requires.</p>
+
+    <h3>How long we keep it</h3>
+    <ul>
+      <li><b>Shop records:</b> while the account is open, then as set out in <a href="#cancellation">Cancellation &amp; refunds</a> — read-only for 30 days, deleted within 90 days after that.</li>
+      <li><b>Request access forms:</b> up to 12 months if you do not become a customer.</li>
+      <li><b>Billing records:</b> as long as tax law requires.</li>
+      <li><b>Technical logs:</b> a short period, normally no more than 90 days.</li>
+    </ul>
+
+    <h3>Your choices</h3>
+    <ul>
+      <li><b>Staff:</b> ask your shop's owner, or email us, to see or correct your account details.</li>
+      <li><b>Account owners:</b> you can export your shop's records, correct them in the app, and ask us to delete them.</li>
+      <li><b>Anyone who filled in the form on this site:</b> email us and we will delete it.</li>
+      <li>Depending on where you live, the law may give you further rights over your personal information. Email us and we will respond within 30 days.</li>
+    </ul>
+
+    <h3>Where it is processed</h3>
+    <p>Bittings is run from the United States and is meant for shops in the United States. Information is processed in the United States.</p>
+
+    <h3>Children</h3>
+    <p>Bittings is a business tool. It is not meant for children, and we do not knowingly collect information from anyone under 16.</p>
+
+    <h3>Changes</h3>
+    <p>If we change this policy we will change the date at the top. If the change matters, we will email account owners or show a notice in the app first.</p>
+
+    <h3>Contact</h3>
+    <p>Questions about any of this: <a href="mailto:support@bittings.app"><b>support@bittings.app</b></a></p>
+  </section>
+</main>
+
+<footer><div class="wrap"><span>© <span id="yr"></span> Bittings.</span><a href="./">Home</a><a href="#terms">Terms of Service</a><a href="#cancellation">Cancellation &amp; refunds</a><a href="#privacy">Privacy</a><a href="mailto:support@bittings.app">support@bittings.app</a></div></footer>
+
+<script>
+(function(){
+  var root=document.documentElement, tb=document.getElementById('themeBtn');
+  function setTheme(t){ root.setAttribute('data-theme', t); tb.textContent = t==='dark' ? 'Light mode' : 'Dark mode'; try{ localStorage.setItem('bt_site_theme', t); }catch(e){} }
+  var saved=null; try{ saved=localStorage.getItem('bt_site_theme'); }catch(e){}
+  setTheme(saved==='light' ? 'light' : 'dark');
+  tb.onclick=function(){ setTheme(root.getAttribute('data-theme')==='dark' ? 'light' : 'dark'); };
+  document.getElementById('yr').textContent=new Date().getFullYear();
+})();
+</script>
+</body>
+</html>

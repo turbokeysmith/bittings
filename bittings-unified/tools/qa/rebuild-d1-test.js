@@ -21,7 +21,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
 // the file store + "which shop am I" the generic stand-in cloud does not have
 function stubFiles() { const sb = TKS._sb(), real = sb.rpc.bind(sb); window.__up = [];
   sb.rpc = function (name, args) { if (name === 'current_shop') return Promise.resolve({ data: 'shop-1', error: null }); return real(name, args); };
-  sb.storage.from = function (bucket) { return { upload: function (p, blob) { window.__up.push(bucket + ' ' + p + ' ' + (blob && blob.type)); return Promise.resolve({ data: { path: p }, error: null }); }, createSignedUrl: function () { return Promise.resolve({ data: { signedUrl: 'about:blank' }, error: null }); } }; }; }
+  sb.storage.from = function (bucket) { return { upload: function (p, blob) { window.__up.push(bucket + ' ' + p + ' ' + (blob && blob.type)); return Promise.resolve({ data: { path: p }, error: null }); }, createSignedUrl: function (p, secs, o) { window.__signed = (window.__signed || []).concat([(o && o.download) || 'view']); return Promise.resolve({ data: { signedUrl: 'data:text/plain,x' }, error: null }); } }; }; }
 (async () => {
   await new Promise(r => srv.listen(8088, '127.0.0.1', r));
   const b = await puppeteer.launch({ headless: 'new' });
@@ -85,6 +85,27 @@ function stubFiles() { const sb = TKS._sb(), real = sb.rpc.bind(sb); window.__up
       return { a, b2, up: window.__up, rows: JSON.parse(localStorage.getItem('__db')).receipt_docs.map(x => [x.receipt_id === rid, x.kind, x.veh_idx, /^shop-1\//.test(x.path)].join(' ')), text: document.querySelector('.d1-docs').innerText.replace(/\s+/g, ' ') }; }, rid);
     check('a file is stored in the private folder and filed against THIS receipt (and the right vehicle); the box updates', r.a.ok && r.b2.ok && r.up.length === 2 && /^receipt-docs shop-1\//.test(r.up[0]) && r.rows.join(' | ') === 'true license 0 true | true ownership 1 true' &&
       /1 still missing/.test(r.text) && /Driver's license ✓ 1 on file/.test(r.text) && /Proof of ownership — 2018 Honda Civic ✓ 1 on file/.test(r.text) && /Proof of ownership — 2015 Ford F-150 Missing/.test(r.text), { rows: r.rows, text: r.text.slice(0, 500) });
+
+    r = await pg.evaluate(() => new Promise(res => { const bx = document.querySelector('.d1-docs'); const one = bx.querySelectorAll('[data-dl]').length, all = bx.querySelector('[data-dlall]'); all.click(); setTimeout(() => res({ one, allText: all.innerText, names: (window.__signed || []).filter(x => x !== 'view'), msg: bx.querySelector('.rd-msg').innerText }), 2400); }));
+    check('each file has a Download button and "Download all" saves them named with the receipt number and what they are (for NASTF)', r.one === 2 && /Loose files \(2\)/.test(r.allText) && r.names.length === 2 && /^TKS-[A-Z0-9-]+_drivers-license_1\.pdf$/.test(r.names[0]) && /^TKS-[A-Z0-9-]+_proof-of-ownership_vehicle2_1\.pdf$/.test(r.names[1]) && /2 files sent to your Downloads/.test(r.msg), r);
+    // ---- the NASTF folder (8z93) ----
+    r = await pg.evaluate(() => [TKS_RDOCS.folderName({ customer: 'JENNA ORTIZ', vin: '1FTEW1EG0FFA00001' }, 0), TKS_RDOCS.folderName({ customer: 'TEST Motors LLC', vin: '1ftew1eg0ffa12345' }, 0),
+      TKS_RDOCS.folderName({ customer: 'Shop', voName: 'pat o\'neil-smith', vin: 'X', number: 'TKS-9', moreVehicles: [{ vin: '2HGFC2F59JH512345' }] }, 1), TKS_RDOCS.folderName({ customer: 'Solo', number: 'TKS-7' }, 0), TKS_RDOCS.folderName({ customer: 'Reg Sale', vehicle: { vin: '5YJ3E1EA7KF317000' } }, 0)]);
+    check('the folder name is the last name + the last 6 of the VIN (the vehicle owner on a contracting D1; the receipt number when there is no VIN)',
+      JSON.stringify(r) === JSON.stringify(['Ortiz_A00001', 'Motors_A12345', "O'neil-smith_512345", 'Solo_TKS-7', 'Sale_317000']), r);
+    r = await pg.evaluate(() => new Promise(res => { const log = [];
+      window.showDirectoryPicker = async () => ({ name: 'TEST NASTF', queryPermission: async () => 'granted',
+        getDirectoryHandle: async (n) => ({ getFileHandle: async (fn) => ({ createWritable: async () => ({ write: async (b2) => { log.push(n + '/' + fn + (b2 && b2.size > 0 ? '' : ' EMPTY')); }, close: async () => {} }) }) }) });
+      const bx = document.querySelector('.d1-docs'); bx.querySelector('[data-refresh]').click();
+      setTimeout(() => { const btn = bx.querySelector('[data-nastf]'), txt = bx.innerText.replace(/\s+/g, ' '); if (!btn) return res({ noBtn: true, txt }); btn.click(); setTimeout(() => res({ txt, log, msg: bx.querySelector('.rd-msg').innerText }), 2500); }, 900); }));
+    check('"Save to my NASTF folder" writes one folder per D1 vehicle: the receipt PDF, the licence, and that vehicle\'s proof of ownership',
+      !r.noBtn && /Save to my NASTF folder/.test(r.txt) && r.log.length === 5 && r.log.filter(x => /_receipt\.pdf$/.test(x)).length === 2 && r.log.filter(x => /_drivers-license_1\.pdf$/.test(x)).length === 2 &&
+      r.log.filter(x => /-V2\/Customer_TKS-[A-Z0-9-]+-V2_proof-of-ownership_1\.pdf$/.test(x)).length === 1 && !r.log.some(x => /EMPTY/.test(x)) && /5 files saved in TEST NASTF/.test(r.msg) && /Drag that folder to NASTF/.test(r.msg), r);
+    await pg.evaluate(() => document.querySelector('.d1-docs').scrollIntoView({ block: 'end' })); await sleep(200);
+    await pg.screenshot({ path: path.join(OUT, 'd1-nastf-folder.png') });
+    r = await pg.evaluate(async () => { const z = TKS_RDOCS.zipBlob([{ path: 'Ortiz_A00001/a.txt', data: new Uint8Array([104, 105]) }, { path: 'Ortiz_A00001/b.txt', data: new Uint8Array([1, 2, 3]) }]); const u = new Uint8Array(await z.arrayBuffer());
+      return { sig: Array.from(u.slice(0, 4)), end: Array.from(u.slice(u.length - 22, u.length - 18)), count: u[u.length - 12], size: u.length }; });
+    check('where a folder cannot be written (phones) the same set is one zip file', JSON.stringify(r.sig) === '[80,75,3,4]' && JSON.stringify(r.end) === '[80,75,5,6]' && r.count === 2 && r.size > 150, r);
 
     // ---- the phone that scanned the QR code ----
     const url = await pg.evaluate((rid) => TKS_RDOCS.pageUrl({ id: rid }), rid);

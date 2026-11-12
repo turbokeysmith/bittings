@@ -81,6 +81,91 @@
       if (w) w.location = u; else location.href = u;
     }, function () { if (w) w.close(); });
   }
+  /* 8z92 (owner, 2026-11-12: "where will we be able to get those from? I will need to upload that to NASTF").
+     Download saves the file to this computer / phone under a name that says what it is —
+     <receipt number>_<what>_<n>.jpg — ready to attach on the NASTF site. */
+  function fileName(r, d, n) { var ext = (/\.([a-z0-9]+)$/i.exec(d.path) || [0, 'jpg'])[1];
+    var what = { license: 'drivers-license', ownership: 'proof-of-ownership', plate: 'plate', odometer: 'odometer', other: 'other' }[d.kind] || d.kind;
+    return String((r && (r.number || r.id)) || 'receipt').replace(/[^A-Za-z0-9._-]/g, '_') + '_' + what + ((d.veh_idx || 0) > 0 ? ('_vehicle' + (d.veh_idx + 1)) : '') + '_' + n + '.' + ext; }
+  function download(r, d, n) {
+    var s = sb(); if (!s || !d || !d.path) return Promise.resolve(false);
+    var name = fileName(r, d, n || 1);
+    return s.storage.from(BUCKET).createSignedUrl(d.path, 300, { download: name }).then(function (q) {
+      var u = q && q.data && q.data.signedUrl; if (!u) return false;
+      var a = document.createElement('a'); a.href = u; a.download = name; a.rel = 'noopener'; a.style.display = 'none'; document.body.appendChild(a); a.click(); setTimeout(function () { a.remove(); }, 1500); return true;
+    }, function () { return false; });
+  }
+  /* 8z93 (owner, 2026-11-12: "set up a NASTF folder … it downloads the PDF and images to that folder and adds each
+     customer to their own file, so I can just drag the whole file over to NASTF. Have it put the customer's last name
+     and last 6 of the VIN as the file name").
+     On the shop computer (Chrome / Edge) the owner picks his NASTF folder once; after that one tap writes
+       <NASTF folder>/<Lastname>_<last 6 of VIN>/  receipt PDF + driver's licence + proof of ownership (+ anything else)
+     One folder per D1 vehicle. Where the browser cannot write into a folder (phones, Safari, Firefox) the same set
+     comes down as one zip with that name. */
+  function lastName(r) { var n = String((r && (r.voName || r.customer)) || '').replace(/\b(llc|l\.l\.c\.|inc|inc\.|corp|corp\.|co|co\.|ltd|ltd\.)\s*$/i, '').trim();
+    var w = n.split(/\s+/).filter(Boolean).pop() || 'Customer'; w = w.replace(/[^A-Za-z0-9'-]/g, '');
+    return w ? (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : 'Customer'; }
+  function vinOf(r, idx) { if (!idx) { var v0 = (r && typeof r.vehicle === 'object' && r.vehicle) ? r.vehicle : {}; return String((r && r.vin) || v0.vin || ''); }
+    var m = (r && Array.isArray(r.moreVehicles)) ? r.moreVehicles[idx - 1] : null; return String((m && m.vin) || ''); }
+  function folderName(r, idx) { var vin = vinOf(r, idx).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    var tail = vin.length >= 6 ? vin.slice(-6) : (vin || String((r && (r.number || r.id)) || '').replace(/[^A-Za-z0-9-]/g, '') + (idx ? ('-V' + (idx + 1)) : ''));
+    return lastName(r) + '_' + tail; }
+  // every file that belongs in each vehicle's folder: [{folder, name, get() → Promise<Blob>}]
+  function nastfSet(r, docs, pdf) {
+    var out = [], vs = vehicles(r).filter(function (v) { return v.d1; }); if (!vs.length) vs = [vehicles(r)[0]];
+    vs.forEach(function (v) { var folder = folderName(r, v.idx), n = {};
+      if (pdf) out.push({ folder: folder, name: folder + '_receipt.pdf', get: function () { return Promise.resolve(pdf(r)).then(function (o) { return o && o.blob; }); } });
+      docs.filter(function (d) { return d.kind === 'license' || d.kind === 'other' || (d.veh_idx || 0) === v.idx; }).forEach(function (d) {
+        n[d.kind] = (n[d.kind] || 0) + 1; var ext = (/\.([a-z0-9]+)$/i.exec(d.path) || [0, 'jpg'])[1];
+        var what = { license: 'drivers-license', ownership: 'proof-of-ownership', plate: 'plate', odometer: 'odometer', other: 'other' }[d.kind] || d.kind;
+        out.push({ folder: folder, name: folder + '_' + what + '_' + n[d.kind] + '.' + ext, get: function () {
+          return sb().storage.from(BUCKET).createSignedUrl(d.path, 300).then(function (q) { var u = q && q.data && q.data.signedUrl; if (!u) throw new Error('could not open ' + what); return fetch(u).then(function (x) { if (!x.ok) throw new Error('could not download ' + what); return x.blob(); }); }); } }); }); });
+    return out;
+  }
+  // the chosen folder is remembered on this computer (IndexedDB can hold a folder handle; localStorage cannot)
+  function idb(mode, fn) { return new Promise(function (res) { try { var o = indexedDB.open('tks_fs', 1);
+    o.onupgradeneeded = function () { o.result.createObjectStore('h'); };
+    o.onsuccess = function () { try { var tx = o.result.transaction('h', mode), st = tx.objectStore('h'), q = fn(st); tx.oncomplete = function () { res(q && q.result); }; tx.onerror = function () { res(null); }; } catch (e) { res(null); } };
+    o.onerror = function () { res(null); }; } catch (e) { res(null); } }); }
+  function canFolder() { return typeof window.showDirectoryPicker === 'function'; }
+  function nastfDir(pickNew) {
+    return (pickNew ? Promise.resolve(null) : idb('readonly', function (s) { return s.get('nastf'); })).then(function (h) {
+      if (h && h.queryPermission) return h.queryPermission({ mode: 'readwrite' }).then(function (p) { return p === 'granted' ? h : h.requestPermission({ mode: 'readwrite' }).then(function (p2) { return p2 === 'granted' ? h : null; }); }, function () { return null; });
+      return null;
+    }).then(function (h) { if (h) return h;
+      return window.showDirectoryPicker({ id: 'bittings-nastf', mode: 'readwrite', startIn: 'documents' }).then(function (nh) { return idb('readwrite', function (s) { return s.put(nh, 'nastf'); }).then(function () { return nh; }); });
+    });
+  }
+  function saveToFolder(r, docs, pdf, pickNew) {
+    var set = nastfSet(r, docs, pdf);
+    return nastfDir(pickNew).then(function (dir) { var folders = {}, n = 0;
+      return set.reduce(function (p, f) { return p.then(function () { return f.get(); }).then(function (blob) { if (!blob) return;
+        return dir.getDirectoryHandle(f.folder, { create: true }).then(function (sub) { folders[f.folder] = 1; return sub.getFileHandle(f.name, { create: true }); })
+          .then(function (fh) { return fh.createWritable(); }).then(function (w) { return Promise.resolve(w.write(blob)).then(function () { return w.close(); }); }).then(function () { n++; }); }); }, Promise.resolve())
+        .then(function () { return { ok: true, files: n, folders: Object.keys(folders), where: dir.name }; });
+    }).catch(function (e) { return { ok: false, error: (e && e.name === 'AbortError') ? '' : ((e && e.message) || String(e)) }; });
+  }
+  // fallback: one zip (stored, not compressed) whose inside is the same folder(s)
+  var CRC = (function () { var t = [], c, n, k; for (n = 0; n < 256; n++) { c = n; for (k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
+  function crc32(u8) { var c = 0xFFFFFFFF; for (var i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  function zipBlob(files) { var enc = new TextEncoder(), parts = [], central = [], off = 0;
+    files.forEach(function (f) { var name = enc.encode(f.path), crc = crc32(f.data), h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true); h.setUint32(14, crc, true); h.setUint32(18, f.data.length, true); h.setUint32(22, f.data.length, true); h.setUint16(26, name.length, true);
+      parts.push(new Uint8Array(h.buffer), name, f.data);
+      var c = new DataView(new ArrayBuffer(46)); c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint32(16, crc, true); c.setUint32(20, f.data.length, true); c.setUint32(24, f.data.length, true); c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+      central.push(new Uint8Array(c.buffer), name); off += 30 + name.length + f.data.length; });
+    var csize = central.reduce(function (a, x) { return a + x.length; }, 0), e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, csize, true); e.setUint32(16, off, true);
+    return new Blob(parts.concat(central, [new Uint8Array(e.buffer)]), { type: 'application/zip' }); }
+  function saveAsZip(r, docs, pdf) {
+    var set = nastfSet(r, docs, pdf), files = [];
+    return set.reduce(function (p, f) { return p.then(function () { return f.get(); }).then(function (blob) { if (!blob) return; return blob.arrayBuffer().then(function (ab) { files.push({ path: f.folder + '/' + f.name, data: new Uint8Array(ab) }); }); }); }, Promise.resolve())
+      .then(function () { if (!files.length) return { ok: false, error: 'Nothing to save yet.' };
+        var name = folderName(r, (vehicles(r).filter(function (v) { return v.d1; })[0] || { idx: 0 }).idx) + '.zip', a = document.createElement('a'), u = URL.createObjectURL(zipBlob(files));
+        a.href = u; a.download = name; a.style.display = 'none'; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(u); a.remove(); }, 2000);
+        return { ok: true, files: files.length, zip: name }; })
+      .catch(function (e) { return { ok: false, error: (e && e.message) || String(e) }; });
+  }
   function pageUrl(r) { try { return new URL('bittings.html?docs=' + encodeURIComponent(r.id), location.href).href; } catch (e) { return ''; } }
   function qrSvg(text) {
     try { if (typeof window.qrcode !== 'function' || !text) return ''; var q = window.qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag(4, 8); } catch (e) { return ''; }
@@ -117,7 +202,7 @@
         return '<div class="rd-row"><div class="rd-n">' + esc(label) + '<div class="' + (f.length ? 'rd-ok' : (required ? 'rd-miss' : 'rd-sub')) + '">' + (f.length ? ('✓ ' + f.length + ' on file') : (required ? 'Missing' : 'Optional')) + '</div></div>' +
           (isTouch ? ('<button type="button" class="rd-btn go" data-add="' + kind + '" data-idx="' + idx + '" data-cam="1">📷 Take photo</button><button type="button" class="rd-btn" data-add="' + kind + '" data-idx="' + idx + '">Choose…</button>')
                    : ('<button type="button" class="rd-btn go" data-add="' + kind + '" data-idx="' + idx + '">⬆ Upload from this computer</button>')) +
-          (f.length ? ('<div class="rd-files">' + f.map(function (d, i) { return '<button type="button" class="rd-file" data-view="' + esc(d.id) + '">View ' + (i + 1) + ' · ' + esc(new Date(d.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</button>'; }).join('') + '</div>') : '') + '</div>'; };
+          (f.length ? ('<div class="rd-files">' + f.map(function (d, i) { return '<button type="button" class="rd-file" data-dl="' + esc(d.id) + '" data-n="' + (i + 1) + '" title="Save this file to this device">⬇ Download ' + (i + 1) + '</button><button type="button" class="rd-file" data-view="' + esc(d.id) + '">View ' + (i + 1) + ' · ' + esc(new Date(d.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</button>'; }).join('') + '</div>') : '') + '</div>'; };
       var missing = need.filter(function (n) { return !have(n.kind, n.idx).length; }).length;
       var h = '<div class="rd-box"><div class="rd-h">📎 ' + esc(opts.title || 'D1 photos') + ' — ' + esc(r.number || r.id) + (r.customer ? (' · ' + esc(r.customer)) : '') + '</div>' +
         '<div class="rd-sub">' + (missing ? ('<span class="rd-miss">' + missing + ' still missing.</span> ') : '<span class="rd-ok">Everything needed is on file.</span> ') + 'Photos go straight onto this receipt. They are private to your shop.</div>';
@@ -126,6 +211,13 @@
       if (showQr) { var url = pageUrl(r), svg = qrSvg(url);
         h += '<div class="rd-qr">' + (svg || '') + '<div style="flex:1 1 200px;min-width:0"><b>Add them from a phone</b><div class="rd-sub">Open the camera on a phone that is signed in to Bittings and point it at this code. It opens this receipt — ' + esc(r.number || '') + ' — ready for the photos.</div>' +
           (svg ? '' : ('<div class="rd-sub" style="overflow-wrap:anywhere">' + esc(url) + '</div>')) + '<button type="button" class="rd-btn" data-refresh style="margin-top:8px">↻ Check for new photos</button></div></div>'; }
+      if (docs.length || opts.pdf) { var fname = folderName(r, (vehicles(r).filter(function (v) { return v.d1; })[0] || { idx: 0 }).idx);
+        h += '<div class="rd-row"><div class="rd-n">For NASTF<div class="rd-sub">' + (canFolder()
+            ? ('Puts the receipt PDF and the photos in your NASTF folder, in a folder of their own named <b>' + esc(fname) + '</b> (last name + last 6 of the VIN) — drag that folder to NASTF.')
+            : ('Downloads one zip named <b>' + esc(fname) + '</b> (last name + last 6 of the VIN) with the receipt PDF and the photos inside.')) + '</div></div>' +
+          (canFolder() ? ('<button type="button" class="rd-btn go" data-nastf>📁 Save to my NASTF folder</button><button type="button" class="rd-btn" data-nastfpick title="Pick a different folder">Change folder</button>')
+                       : '<button type="button" class="rd-btn go" data-nastfzip>⬇ Download ' + esc(fname) + '.zip</button>') +
+          (docs.length ? ('<button type="button" class="rd-btn" data-dlall>⬇ Loose files (' + docs.length + ')</button>') : '') + '</div>'; }
       h += '<div class="rd-msg">' + esc(msg || '') + '</div></div>';
       box.innerHTML = h;
       box.querySelectorAll('[data-add]').forEach(function (b) { b.onclick = function () { pick(!!b.dataset.cam, function (f) { if (!f) return;
@@ -133,6 +225,16 @@
         add(r.id, b.dataset.add, parseInt(b.dataset.idx, 10) || 0, f).then(function (res) { load(res.ok ? '✓ Saved to ' + (r.number || 'the receipt') + '.' : ('Not saved: ' + res.error)); }); }); }; });
       box.querySelectorAll('[data-view]').forEach(function (b) { b.onclick = function () { view(docs.filter(function (d) { return d.id === b.dataset.view; })[0]); }; });
       var rf = box.querySelector('[data-refresh]'); if (rf) rf.onclick = function () { load('Checked.'); };
+      box.querySelectorAll('[data-dl]').forEach(function (b) { b.onclick = function () { download(r, docs.filter(function (d) { return d.id === b.dataset.dl; })[0], parseInt(b.dataset.n, 10) || 1); }; });
+      var say = function (t) { var m = box.querySelector('.rd-msg'); if (m) m.textContent = t; };
+      var doNastf = function (pickNew) { say('Saving…'); saveToFolder(r, docs, opts.pdf, pickNew).then(function (res) {
+        say(res.ok ? ('✓ ' + res.files + ' file' + (res.files === 1 ? '' : 's') + ' saved in ' + res.where + ' → ' + res.folders.join(', ') + '. Drag that folder to NASTF.') : (res.error ? ('Not saved: ' + res.error) : 'No folder was chosen.')); }); };
+      var nb = box.querySelector('[data-nastf]'); if (nb) nb.onclick = function () { doNastf(false); };
+      var np = box.querySelector('[data-nastfpick]'); if (np) np.onclick = function () { doNastf(true); };
+      var nz = box.querySelector('[data-nastfzip]'); if (nz) nz.onclick = function () { say('Building the zip…'); saveAsZip(r, docs, opts.pdf).then(function (res) { say(res.ok ? ('✓ ' + res.zip + ' downloaded (' + res.files + ' files).') : ('Not saved: ' + res.error)); }); };
+      var da = box.querySelector('[data-dlall]'); if (da) da.onclick = function () { var seen = {}, i = 0; da.disabled = true;
+        (function next() { if (i >= docs.length) { da.disabled = false; box.querySelector('.rd-msg').textContent = '✓ ' + docs.length + ' file' + (docs.length === 1 ? '' : 's') + ' sent to your Downloads.'; return; }
+          var d = docs[i++], k = d.kind + ':' + (d.veh_idx || 0); seen[k] = (seen[k] || 0) + 1; download(r, d, seen[k]).then(function () { setTimeout(next, 700); }); })(); };
       if (typeof opts.onChange === 'function') { try { opts.onChange({ missing: missing, docs: docs }); } catch (e) {} }
     }
     function load(msg) { list(r.id).then(function (docs) { if (box.isConnected) paint(docs, msg); }); }
@@ -178,5 +280,5 @@
     if (!v.odometer) return who + 'type the miles, or tick “No miles”.';
     if (!v.plate) return who + 'type the tag #, or tick “No tag”.';
     return ''; }
-  window.TKS_RDOCS = { COLORS: COLORS, d1FieldsHTML: d1FieldsHTML, d1Bind: d1Bind, d1Read: d1Read, d1Set: d1Set, d1Missing: d1Missing, KINDS: KINDS, vehicles: vehicles, needed: needed, list: list, add: add, view: view, panel: panel, pageUrl: pageUrl };
+  window.TKS_RDOCS = { folderName: folderName, lastName: lastName, nastfSet: nastfSet, saveToFolder: saveToFolder, saveAsZip: saveAsZip, zipBlob: zipBlob, download: download, fileName: fileName, COLORS: COLORS, d1FieldsHTML: d1FieldsHTML, d1Bind: d1Bind, d1Read: d1Read, d1Set: d1Set, d1Missing: d1Missing, KINDS: KINDS, vehicles: vehicles, needed: needed, list: list, add: add, view: view, panel: panel, pageUrl: pageUrl };
 })();

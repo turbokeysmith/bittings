@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-11-12 16:05 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-11-12 16:30 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -407,6 +407,82 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-11-12, midnight (website moved to getbittings.com; app stays on bittings.app) — LIVE, not committed yet
+- Owner: "upload the site to getbittings.com and have the app run on bittings.app".
+- The marketing pages left the app: `bittings-unified/welcome.html` → **`bittings-unified/site/index.html`**, `legal.html` →
+  `site/legal.html`, pictures `app/assets/site/` → `site/assets/`. Log in links go to `https://bittings.app/signin`.
+  `publish-staff.mjs` no longer copies them.
+- New Cloudflare Pages project **`getbittings`** (created with `wrangler pages project create --force`; without --force
+  wrangler 4.161 tries to make a Workers project and fails). Deploy: **`node website/_tools/deploy-getbittings.mjs`**
+  (copies site/ + the app icons, writes `_headers` and `_redirects`: /welcome → /, /signin and /login → bittings.app/signin,
+  /terms and /privacy → /legal#…; refuses to deploy if a Log in link points inside the app folder).
+- Cloudflare changes (owner's account, through the browser): custom domain getbittings.com moved from project `bittings-app`
+  to `getbittings` (API); DNS CNAME `getbittings.com` → `getbittings.pages.dev` (was bittings-app.pages.dev); the redirect
+  rule on the getbittings.com zone ("all to bittings.app") now only sends **www.getbittings.com → https://getbittings.com**
+  (renamed "www to getbittings.com"). www's CNAME still points at bittings-app.pages.dev — harmless, the rule answers first.
+- The app (`deploy-app.mjs`) now writes `_redirects`: /welcome, /legal, /terms, /privacy on bittings.app → getbittings.com.
+- **Founder prices** (owner confirmed): regular $69 / $129 / $199 shown crossed out, founder $19 / $79 / $149 for the first
+  shops, kept while the plan stays active (also in legal.html Terms §3). Inquiry only — nothing billed; Stripe later.
+  The home page no longer has `noindex` (search engines may list it); `legal.html` still has it (draft wording).
+
+### 2026-11-12, late night (cash change · sales tax worksheet · services never taxed · landing page part 2) — LIVE, not committed yet
+- **8z94 Cash at the Register** (owner: "it didn't give me the opportunity to fill in how much the customer gave me"): Cash now
+  opens `uiCashTender(totalCents)` (index.html) — amount handed over, one-tap amounts (Exact / next $1 / $5 / $50 / $100),
+  change shown before the sale is recorded; too little cannot be confirmed; the change stays on screen after the sale
+  (`#chgChangeBig`). Nothing new is stored and the card path is untouched. Not on the paper receipt yet. Test: `rebuild-cash-test.js`.
+- **8z95 Reports → "Sales tax worksheet"** (owner: "break it down by category between keys, accessories, services … to file
+  sales tax every month"): `repBreakdown` (index.html) sorts every sale line into the stock list's top category (Keys,
+  Accessories…), "Services / labor", "Other parts / materials" or "Not itemized"; columns Sales / Taxable / Not taxed; then
+  the return figures (total − not taxable − exempt = taxable; tax collected; a check against the shop rate with a warning when
+  they differ by $1+); `⬇ Sales tax file` (`repTaxCsv`) = category + sub-category table and every line. Test: `rebuild-taxcat-test.js`.
+- **8z96 Services / labor are never taxed** (owner: "there are no taxable services/labor it all should be no tax"). Cause of a
+  taxed "Car lockout" on 2026-11-12 (`rcpt_mwds0ek2em7pn`, $6.47 tax on $75): `presetTaxable()` in the builder matched the word
+  "lock". Now: `taxAllowed(category, partId)` + `svcTaxOn()` (bittings.html and index.html); only Materials / a stock part can
+  be ticked taxable, and the builder also enforces it when it reads the rows (a document that is already PAID keeps what it
+  charged). Register: custom service has no "Taxable line" box; catalog services are untaxed whatever their saved flag says.
+  Settings → Tax shows only Materials; `mergeConfig` (store.js) forces Labor / Travel / Programming / AfterHours to false.
+  A job line ticked "Taxed part" in the Scheduler arrives on the invoice as Materials. Escape hatch for a future shop in a
+  state that taxes labor: `config.taxServices` (no screen). The Reports worksheet also counts services as not taxable whatever
+  an old / imported line says (most imported "taxable labor" lines were never actually taxed).
+  NOT done: the server (`pos_checkout`) still trusts a custom line's `taxable` flag — the client no longer sends true for services.
+- **Landing page part 2**: `welcome.html` has a "One login. Every screen." section (CSS laptop / tablet / phone frames with real
+  app screenshots: `app/assets/site/shot-pc-inventory-dark.webp`, `shot-tablet-register-light.webp`), the contact email
+  **support@bittings.app** (no phone, no address — owner's instruction), and footer links to the new **`legal.html`**
+  (`#terms`, `#cancellation`, `#privacy`). Both pages are in FILES in `publish-staff.mjs`, both `noindex`, nothing links to them.
+- **`legal.html` is a DRAFT, not reviewed by a lawyer.** Owner decisions baked in that he has not confirmed: legal name shown as
+  "Turbo Keysmith LLC"; full refund of the first payment within 30 days; no part-month refunds; read-only 30 days after
+  cancelling then deletion within 90; unpaid → read-only at 14 days, closed at 45; liability cap = 12 months of fees;
+  Oklahoma law / Oklahoma County courts; 30 days' notice of price or terms changes.
+- **support@bittings.app** — set up in the owner's Cloudflare account (Email Routing, through the browser on the shop PC; the
+  deploy token cannot see the zone): rule support@ → the owner's existing verified inbox, MX + SPF records added (verified
+  by DNS lookup). Receive-only: replies go out from the owner's own mailbox unless "send as" is set up. Not yet proven with a real email.
+
+### 2026-11-12, night (Bittings landing page, first build: `welcome.html`) — LIVE at bittings.app/welcome, not committed yet
+- Owner shared a mockup ("Bittings Website@2x.png") and asked for price points + "start building this".
+- `bittings-unified/welcome.html`: one self-contained page (no app code). Hero per the mockup, What it does (8 cards), Plans,
+  Questions, Request access. Dark by default with a Light mode toggle (`bt_site_theme`). Added to FILES in `publish-staff.mjs`.
+- The two phone pictures are real app screens with made-up data: `app/assets/site/shot-keys-dark.png`, `shot-home-light.png`
+  (made by a Puppeteer script against the stand-in cloud; re-make them the same way if the app's look changes).
+- **Request access** posts to the public function `submit_web_lead` for the TK shop → shows up in the owner's Leads list with
+  service "Bittings access request · <plan>". No new server code.
+- **Prices on the page are a SUGGESTION the owner has not confirmed**: Lookup $19, Starter $79 (2 users, +1% on cards as
+  `pay-create-intent` already does), Pro $149 (5 users), extra user $20. Benchmarks: Omega LockSync (Key Innovations' launch
+  partner) $129 for 1 user / $199 for 3, +$25 a user; KeyBolt about $59–$99; Jobber $49–$199; Housecall Pro $79–$329.
+- NOT built: any subscription billing, sign-up, or per-plan user limits — plans are still set by hand per shop (`app/tier.js`).
+- The page is `noindex` and nothing links to it yet. Making it the front door (signed-out visitors / getbittings.com) is the
+  owner's call. Not yet seen on a real phone.
+
+### 2026-11-12, evening (📁 NASTF folder: D1 photos + receipt PDF, one folder per customer and vehicle) — LIVE, not committed yet
+- Owner: "set up a NASTF folder … it downloads the PDF and images to that folder and adds each customer to their own file, so I
+  can just drag the whole file over to NASTF. Customer's last name and last 6 of the VIN as the file name."
+- D1 photo box (`app/receipt-docs.js`): each file has **Download**; **📁 Save to my NASTF folder** (Chrome / Edge on a
+  computer — the folder is picked once and remembered in IndexedDB `tks_fs`) writes `<folder>/<Lastname>_<last 6 of VIN>/` with
+  the receipt PDF, the licence and that vehicle's proof of ownership — one folder per D1 vehicle; **Change folder** picks
+  another. Where a browser cannot write into a folder (phones, Safari, Firefox) the same set is one zip with that name
+  (`zipBlob`, stored not compressed). Name rules: `folderName(r, idx)` — vehicle owner's name on a contracting D1, company
+  suffixes dropped, receipt number when there is no VIN.
+- **Tested:** `rebuild-d1-test.js` (16 checks, stand-in folder). **Not tested:** the real folder picker on the shop computer.
 
 ### 2026-11-12, end of day (fits lists for 132 keys · D1 tag and miles are typed, not photographed) — LIVE
 - **Fits lists (8z91).** Owner: "find me the fitments" (links come later, once he has checked the vendors). 141 keys had no

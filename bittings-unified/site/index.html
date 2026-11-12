@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bittings — shop software for locksmiths</title>
+<meta name="description" content="Key lookup, key inventory, jobs, register and card payments in one place. Runs in the browser on your phone, tablet or PC.">
+<link rel="canonical" href="https://getbittings.com/">
+<meta property="og:type" content="website"><meta property="og:url" content="https://getbittings.com/"><meta property="og:title" content="Bittings — shop software for locksmiths"><meta property="og:description" content="Key lookup, key inventory, jobs, register and card payments in one place."><meta property="og:image" content="https://getbittings.com/icon-512.png">
+<meta name="theme-color" content="#191c22"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<!--
+  Bittings marketing site — https://getbittings.com (owner's design, 2026-11-12: "Bittings Website@2x.png").
+  The APP lives at https://bittings.app. This folder (bittings-unified/site) is deployed on its own by
+  website/_tools/deploy-getbittings.mjs. No app code, no sign-in. The pictures are real screens of the app with made-up
+  sample data (assets/, made by a script — see PROJECT_HANDOFF.md).
+  "Request access" sends the form to the owner's Leads list in the app (public function submit_web_lead).
+  PRICES in #plans: owner confirmed 2026-11-12 (regular crossed out, founder price shown). Change them in the PLANS block below.
+-->
+<style>
+  :root{ --red:#b3242f; --red2:#8f1c26; --redtext:#e5484d;
+    --bg:#191c22; --bg2:#1f232b; --card:#232830; --edge:rgba(255,255,255,.10); --ink:#f3f4f6; --dim:#a3abb6; --faint:#8a929e; --phone:#12151b; }
+  html[data-theme="light"]{ --bg:#f5f6f8; --bg2:#ffffff; --card:#ffffff; --edge:rgba(20,23,27,.12); --ink:#14171b; --dim:#4b5563; --faint:#5b6472; --phone:#e9ecf1; --redtext:#b3242f; }
+  *{box-sizing:border-box} html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 "Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:inherit} img{max-width:100%;display:block}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+  /* nav */
+  .nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--edge)}
+  .nav .wrap{display:flex;align-items:center;gap:20px;min-height:68px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:900;font-size:24px;letter-spacing:-.02em;text-decoration:none}
+  .brand i{font-style:normal;color:var(--redtext)}
+  .mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(180deg,#c92c38,var(--red2));display:grid;place-items:center;flex:0 0 26px}
+  .mark::before{content:"";width:8px;height:8px;border-radius:50%;background:#16181d;box-shadow:0 7px 0 -2px #16181d}
+  .links{display:flex;gap:30px;margin:0 auto;font-weight:700;color:var(--dim)}
+  .links a{text-decoration:none;padding:10px 2px} .links a:hover{color:var(--ink)}
+  .navr{display:flex;align-items:center;gap:10px}
+  .ghost{background:none;border:0;color:var(--dim);font:inherit;font-weight:700;cursor:pointer;padding:10px 8px;min-height:44px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 20px;border-radius:11px;font:inherit;font-weight:800;text-decoration:none;cursor:pointer;border:1px solid var(--edge);background:var(--bg2);color:var(--ink)}
+  .btn.red{background:linear-gradient(180deg,#c22a36,var(--red2));border-color:transparent;color:#fff}
+  .btn.big{min-height:60px;padding:14px 28px;font-size:19px;border-radius:13px}
+  /* hero */
+  .hero{padding:72px 0 80px;background:radial-gradient(1200px 500px at 70% 0%,color-mix(in srgb,var(--bg2) 80%,transparent),transparent)}
+  .hero .wrap{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:40px;align-items:center}
+  .eyebrow{font-size:13px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin:0 0 22px}
+  h1{font-stretch:118%;font-weight:900;font-size:clamp(38px,4.7vw,68px);line-height:1.04;letter-spacing:-.025em;margin:0 0 26px;text-wrap:balance}
+  h1 i,.dot{font-style:normal;color:var(--redtext)}
+  .lede{font-size:clamp(18px,1.7vw,23px);color:var(--dim);max-width:34em;margin:0 0 30px}
+  .cta{display:flex;gap:14px;flex-wrap:wrap}
+  .already{margin-top:22px;color:var(--faint)} .already a{color:var(--ink);font-weight:800}
+  .phones{display:flex;gap:26px;justify-content:center;align-items:flex-start}
+  .phone{width:min(46%,290px);aspect-ratio:390/640;border-radius:34px;background:var(--phone);border:1px solid var(--edge);padding:9px;box-shadow:0 30px 70px rgba(0,0,0,.35)}
+  .phone img{width:100%;height:100%;object-fit:cover;object-position:top;border-radius:26px}
+  .phone.low{margin-top:56px}
+  /* sections */
+  section{padding:84px 0;border-top:1px solid var(--edge)}
+  h2{font-stretch:115%;font-weight:900;font-size:clamp(30px,3.6vw,48px);line-height:1.08;letter-spacing:-.02em;margin:0 0 12px}
+  .sub{color:var(--dim);font-size:19px;max-width:40em;margin:0 0 36px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--edge);border-radius:16px;padding:22px}
+  .card .k{font:600 12px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--redtext);margin-bottom:12px}
+  .card h3{margin:0 0 8px;font-size:21px;font-weight:800;letter-spacing:-.01em}
+  .card p{margin:0;color:var(--dim);font-size:16px}
+  /* devices: a PC, a tablet and a phone, each showing a real screen of the app */
+  .devices{position:relative;max-width:1040px;margin:8px auto 0;padding:0 0 5% 5.5%}
+  section{scroll-margin-top:70px}
+  .laptop{width:76%}
+  .laptop .scr{border:10px solid #0c0e12;border-bottom-width:12px;border-radius:14px 14px 0 0;background:#0c0e12;aspect-ratio:1440/900;overflow:hidden}
+  .laptop .base{height:14px;margin:0 -7%;border-radius:2px 2px 14px 14px;background:linear-gradient(180deg,#d3d7de,#8d949f);position:relative;box-shadow:0 18px 30px rgba(0,0,0,.3)}
+  .laptop .base::after{content:"";position:absolute;left:50%;top:0;width:16%;height:5px;transform:translateX(-50%);border-radius:0 0 8px 8px;background:#7b828d}
+  .tablet{position:absolute;right:7%;bottom:0;width:38%;aspect-ratio:1024/768;border:9px solid #0c0e12;border-radius:18px;background:#0c0e12;overflow:hidden;box-shadow:0 24px 50px rgba(0,0,0,.4)}
+  .dphone{position:absolute;right:0;bottom:0;width:14%;aspect-ratio:390/640;border:5px solid #0c0e12;border-radius:16px;background:#0c0e12;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.45)}
+  .devices img{width:100%;height:100%;object-fit:cover;object-position:top left}
+  .where{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
+  .where div{border-left:3px solid var(--red);padding:2px 0 2px 14px} .where b{display:block;font-size:19px} .where span{color:var(--dim);font-size:16px}
+  @media (max-width:700px){ .where{grid-template-columns:1fr} .laptop .scr{border-width:5px;border-radius:8px 8px 0 0} .laptop .base{height:8px} .tablet{border-width:5px;border-radius:10px} .dphone{border-width:3px;border-radius:9px} }
+  /* plans */
+  .plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;align-items:stretch}
+  .plan{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--edge);border-radius:18px;padding:26px}
+  .plan.best{border:2px solid var(--red)}
+  .plan .tag{align-self:flex-start;font:600 11px/1 "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;background:var(--red);color:#fff;border-radius:999px;padding:6px 10px;margin-bottom:12px}
+  .plan h3{margin:0;font-size:24px;font-weight:900}
+  .plan .for{color:var(--dim);margin:4px 0 16px;font-size:15.5px}
+  .price{font-stretch:115%;font-weight:900;font-size:52px;line-height:1;letter-spacing:-.02em}
+  .was{font-size:24px;font-weight:700;color:var(--faint);text-decoration:line-through;text-decoration-thickness:2px;margin-right:10px;font-stretch:100%;letter-spacing:0;vertical-align:middle}
+  .founder{font:600 11px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--redtext);margin-bottom:8px}
+  .price small{font-size:16px;font-weight:700;color:var(--dim);font-stretch:100%;letter-spacing:0}
+  .plan ul{list-style:none;margin:18px 0 22px;padding:0;display:grid;gap:9px;font-size:16px}
+  .plan li{padding-left:26px;position:relative;color:var(--ink)} .plan li::before{content:"✓";position:absolute;left:0;color:var(--redtext);font-weight:900}
+  .plan li.plus{color:var(--dim)} .plan .btn{margin-top:auto}
+  .fine{color:var(--faint);font-size:14.5px;margin-top:18px;max-width:60em}
+  /* faq */
+  details{border:1px solid var(--edge);border-radius:14px;background:var(--card);padding:0 20px;margin-bottom:10px}
+  summary{cursor:pointer;font-weight:800;font-size:19px;padding:18px 0;list-style:none;display:flex;justify-content:space-between;gap:12px;min-height:44px}
+  summary::-webkit-details-marker{display:none} summary::after{content:"+";color:var(--redtext);font-weight:900} details[open] summary::after{content:"–"}
+  details p{margin:0 0 18px;color:var(--dim)}
+  /* contact */
+  .contact .wrap{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:40px}
+  form{display:grid;gap:12px;background:var(--card);border:1px solid var(--edge);border-radius:18px;padding:24px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  label{display:block;font-weight:700;font-size:14.5px;margin-bottom:5px;color:var(--ink)}
+  input,select,textarea{width:100%;min-height:48px;padding:11px 13px;border-radius:11px;border:1px solid var(--edge);background:var(--bg);color:var(--ink);font:inherit;font-size:16px}
+  textarea{min-height:96px;resize:vertical}
+  input:focus,select:focus,textarea:focus,.btn:focus-visible,summary:focus-visible,a:focus-visible,.ghost:focus-visible{outline:2px solid #f2b43a;outline-offset:2px}
+  .msg{min-height:22px;font-weight:700} .msg.ok{color:#2fa866} .msg.bad{color:var(--redtext)}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+  footer{border-top:1px solid var(--edge);padding:30px 0 44px;color:var(--faint);font-size:15px}
+  footer .wrap{display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
+  .flinks{display:flex;flex-wrap:wrap;gap:6px 22px} .flinks a{padding:8px 0;display:inline-block}
+  @media (max-width:900px){
+    .links{display:none} .hero{padding:44px 0 56px} .hero .wrap,.contact .wrap{grid-template-columns:1fr}
+    .phones{margin-top:8px} .phone{width:min(48%,250px)} section{padding:56px 0} .wrap{padding:0 18px} .two{grid-template-columns:1fr}
+    .navr .btn.red{display:none} .navr{margin-left:auto;gap:4px} .navr .btn,.navr .ghost{white-space:nowrap}
+    .nav .wrap{gap:8px} .brand{font-size:21px} .navr .ghost{font-size:15px;padding:10px 6px} .navr .btn{padding:8px 14px;min-height:44px}
+  }
+  .btn{white-space:nowrap}
+  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
+</style>
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="#top" aria-label="Bittings"><span class="mark"></span><span>Bittings<i>.</i></span></a>
+  <nav class="links" aria-label="Sections"><a href="#what">What it does</a><a href="#screens">Screens</a><a href="#plans">Plans</a><a href="#faq">Questions</a><a href="#contact">Contact</a></nav>
+  <div class="navr">
+    <button class="ghost" id="themeBtn" type="button">Light mode</button>
+    <a class="btn" href="https://bittings.app/signin">Log in</a>
+    <a class="btn red" href="#contact">Request access</a>
+  </div>
+</div></header>
+
+<main id="top">
+<div class="hero"><div class="wrap">
+  <div>
+    <p class="eyebrow">Shop management for locksmiths</p>
+    <h1>Shop software built for locksmiths, by locksmiths<i>.</i></h1>
+    <p class="lede">Key lookup, key inventory, jobs, register and card payments in one place. It runs in the browser on your phone, tablet or PC. Nothing to install.</p>
+    <div class="cta"><a class="btn red big" href="#contact">Request access</a><a class="btn big" href="#what">See what it does</a></div>
+    <p class="already">Already use Bittings? <a href="https://bittings.app/signin">Log in</a></p>
+  </div>
+  <div class="phones" aria-label="Two screens of the app, shown with sample data">
+    <div class="phone"><img src="assets/shot-keys-dark.png" alt="Bittings on a phone: the keys in stock that fit a 2018 Ford F-150, with prices" width="390" height="640"></div>
+    <div class="phone low"><img src="assets/shot-home-light.png" alt="Bittings on a phone: today's jobs on the schedule" width="390" height="640" loading="lazy"></div>
+  </div>
+</div></div>
+
+<section id="what"><div class="wrap">
+  <h2>What it does</h2>
+  <p class="sub">Everything a key shop touches in a day, built around the vehicle in front of you.</p>
+  <div class="grid">
+    <div class="card"><div class="k">01 · Lookup</div><h3>Key lookup</h3><p>Type a VIN or pick year, make and model. See the keyway, the chip system and how it programs — and which keys on your shelf fit, with your prices.</p></div>
+    <div class="card"><div class="k">02 · Stock</div><h3>Key inventory</h3><p>Counts for the shop and each van. Book in deliveries, count stock, see what is out, and get a reorder list grouped by supplier.</p></div>
+    <div class="card"><div class="k">03 · Jobs</div><h3>Quotes and scheduling</h3><p>Quote a caller in a minute, put it on the schedule in one tap, and bill it from the job. One job can cover several vehicles.</p></div>
+    <div class="card"><div class="k">04 · Money</div><h3>Register and card payments</h3><p>Ring up a counter sale, take a card on a reader, or text the customer a pay link. Receipts print, email or text.</p></div>
+    <div class="card"><div class="k">05 · NASTF</div><h3>D1 paperwork</h3><p>The D1 form asks for what it needs and will not close without it. Licence and ownership photos are filed with the receipt, with a countdown to the filing date.</p></div>
+    <div class="card"><div class="k">06 · Numbers</div><h3>Reports and pay</h3><p>Sales, real profit after parts and card fees, tax-exempt sales, hours, commission and what you owe contractors.</p></div>
+    <div class="card"><div class="k">07 · Team</div><h3>Roles and time clock</h3><p>Owner, manager, front desk and technician each see what they should. Technicians see prices, not your cost.</p></div>
+    <div class="card"><div class="k">08 · Anywhere</div><h3>Phone, tablet or PC</h3><p>Open it in the browser and sign in. Add it to your home screen and it behaves like an app. It keeps your work if the signal drops.</p></div>
+  </div>
+</div></section>
+
+<section id="screens"><div class="wrap">
+  <h2>One login. Every screen<span class="dot">.</span></h2>
+  <p class="sub">The same shop on the PC at the counter, the tablet in the van and the phone in your pocket. Ring a sale up on one and it is on the others.</p>
+  <div class="devices" aria-label="Bittings on a PC, a tablet and a phone, shown with sample data">
+    <div class="laptop"><div class="scr"><img src="assets/shot-pc-inventory-dark.webp" alt="Bittings on a PC: key inventory with counts, low stock and stock value" width="1440" height="900" loading="lazy"></div><div class="base"></div></div>
+    <div class="tablet"><img src="assets/shot-tablet-register-light.webp" alt="Bittings on a tablet: the register with a smart key and programming on the ticket" width="1024" height="768" loading="lazy"></div>
+    <div class="dphone"><img src="assets/shot-keys-dark.png" alt="Bittings on a phone: keys that fit the vehicle" width="390" height="640" loading="lazy"></div>
+  </div>
+  <div class="where">
+    <div><b>PC at the counter</b><span>Register, receipt printer, cash drawer and card reader.</span></div>
+    <div><b>Tablet in the van</b><span>Quotes, van stock and the day's jobs on a bigger screen.</span></div>
+    <div><b>Phone in your pocket</b><span>Look a key up, take a photo for the D1, send a pay link.</span></div>
+  </div>
+</div></section>
+
+<section id="plans"><div class="wrap">
+  <h2>Plans</h2>
+  <p class="sub">Month to month. Founder prices for the first shops to join — $50 a month off every plan, and it stays that way for as long as you stay.</p>
+  <!-- PLANS (owner confirmed 2026-11-12): regular $69 / $129 / $199 shown crossed out, founder prices $19 / $79 / $149. Inquiry only — nothing is billed from this page; the plans go into Stripe later. -->
+  <div class="plans">
+    <div class="plan">
+      <h3>Lookup</h3><p class="for">The reference tools, for one person.</p>
+      <div class="founder">Founder price</div><div class="price"><s class="was" aria-label="regular price $69">$69</s>$19<small> / month</small></div>
+      <ul><li>Key lookup by VIN or year / make / model</li><li>Keyways and Lishi picks</li><li>Programmer and key-code links</li><li>1 user</li></ul>
+      <a class="btn" href="#contact" data-plan="Lookup">Request access</a>
+    </div>
+    <div class="plan best">
+      <span class="tag">Most shops start here</span>
+      <h3>Starter</h3><p class="for">Run the counter and the van.</p>
+      <div class="founder">Founder price</div><div class="price"><s class="was" aria-label="regular price $129">$129</s>$79<small> / month</small></div>
+      <ul><li>Everything in Lookup</li><li>Key inventory, shop and vans</li><li>Quotes, invoices and receipts</li><li>Scheduler and customers</li><li>Register and card payments</li><li>2 users included</li></ul>
+      <a class="btn red" href="#contact" data-plan="Starter">Request access</a>
+    </div>
+    <div class="plan">
+      <h3>Pro</h3><p class="for">For a shop with a team.</p>
+      <div class="founder">Founder price</div><div class="price"><s class="was" aria-label="regular price $199">$199</s>$149<small> / month</small></div>
+      <ul><li>Everything in Starter</li><li>NASTF D1 paperwork and photos</li><li>Reports, dashboard and closeout</li><li>Commission, hours and pay</li><li>Fleet and van stock requests</li><li>5 users included</li></ul>
+      <a class="btn" href="#contact" data-plan="Pro">Request access</a>
+    </div>
+  </div>
+  <p class="fine">Founder prices are for the first shops to join and stay in place while your plan stays active. Regular prices are $69, $129 and $199 a month. Nothing is charged from this page: request access and we will set you up. Extra users are $20 a month each. Card payments run through your own Stripe account at Stripe's rates; Starter adds 1% on card payments, Pro adds nothing. Prices are in US dollars.</p>
+</div></section>
+
+<section id="faq"><div class="wrap">
+  <h2>Questions</h2>
+  <p class="sub">The ones we get asked first.</p>
+  <details><summary>Do I have to install anything?</summary><p>No. Bittings runs in the browser. On a phone you can add it to your home screen so it opens like an app.</p></details>
+  <details><summary>What does it run on?</summary><p>iPhone, Android, tablets and any PC or Mac with a current browser. Everyone in the shop sees the same jobs and the same stock.</p></details>
+  <details><summary>How do card payments work?</summary><p>Through Stripe, on your own Stripe account, so the money goes to your bank. You can use a card reader at the counter, type a card in, or text the customer a link to pay.</p></details>
+  <details><summary>Can I bring my inventory with me?</summary><p>Yes. Import your parts list from a spreadsheet, match the columns, check the preview and it is in.</p></details>
+  <details><summary>Who can see what?</summary><p>Each shop's data is its own. Everyone signs in, and each role sees only what it should — a technician sees prices, not what the key cost you.</p></details>
+  <details><summary>Who makes it?</summary><p>A working automotive locksmith shop in Oklahoma City. It is the software we run our own counter and van on, every day.</p></details>
+</div></section>
+
+<section id="contact" class="contact"><div class="wrap">
+  <div>
+    <h2>Request access</h2>
+    <p class="sub">Tell us about your shop and we will get you set up. We read every one and reply within a business day.</p>
+    <p class="sub" style="margin-bottom:0">Rather write? Email <a href="mailto:support@bittings.app" style="color:var(--ink);font-weight:800">support@bittings.app</a></p>
+  </div>
+  <form id="reqForm" novalidate>
+    <div class="two"><div><label for="rShop">Shop name</label><input id="rShop" autocomplete="organization" maxlength="100"></div><div><label for="rName">Your name</label><input id="rName" autocomplete="name" maxlength="100"></div></div>
+    <div class="two"><div><label for="rPhone">Phone</label><input id="rPhone" type="tel" autocomplete="tel" maxlength="30"></div><div><label for="rEmail">Email</label><input id="rEmail" type="email" autocomplete="email" maxlength="140"></div></div>
+    <div class="two"><div><label for="rCity">City and state</label><input id="rCity" autocomplete="address-level2" maxlength="80"></div>
+      <div><label for="rPlan">Plan you are looking at</label><select id="rPlan"><option value="">Not sure yet</option><option>Lookup</option><option>Starter</option><option>Pro</option></select></div></div>
+    <div><label for="rNote">Anything we should know? <span style="font-weight:400;color:var(--faint)">(optional)</span></label><textarea id="rNote" maxlength="600" placeholder="How many people, what you use today…"></textarea></div>
+    <input class="hp" id="rWeb" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <button class="btn red big" type="submit" id="rSend">Request access</button>
+    <div class="msg" id="rMsg" role="status" aria-live="polite"></div>
+    <p class="fine" style="margin:0">By sending this you agree to our <a href="legal.html#terms">Terms</a> and <a href="legal.html#privacy">Privacy Policy</a>.</p>
+  </form>
+</div></section>
+</main>
+
+<footer><div class="wrap"><span>© <span id="yr"></span> Bittings. Shop software for locksmiths.</span><span class="flinks"><a href="legal.html#terms">Terms of Service</a><a href="legal.html#cancellation">Cancellation &amp; refunds</a><a href="legal.html#privacy">Privacy</a><a href="mailto:support@bittings.app">support@bittings.app</a><a href="https://bittings.app/signin">Log in</a></span></div></footer>
+
+<script>
+(function(){
+  var root=document.documentElement, tb=document.getElementById('themeBtn');
+  function setTheme(t){ root.setAttribute('data-theme', t); tb.textContent = t==='dark' ? 'Light mode' : 'Dark mode'; try{ localStorage.setItem('bt_site_theme', t); }catch(e){} }
+  var saved=null; try{ saved=localStorage.getItem('bt_site_theme'); }catch(e){}
+  setTheme(saved==='light' ? 'light' : 'dark');
+  tb.onclick=function(){ setTheme(root.getAttribute('data-theme')==='dark' ? 'light' : 'dark'); };
+  document.getElementById('yr').textContent=new Date().getFullYear();
+  document.querySelectorAll('[data-plan]').forEach(function(a){ a.addEventListener('click', function(){ document.getElementById('rPlan').value=a.getAttribute('data-plan'); }); });
+
+  // Request access → the owner's Leads list in the app (public function; nothing else is read or written)
+  var API='https://gcshuhlksjznksspbigl.supabase.co/rest/v1/rpc/submit_web_lead', KEY='sb_publishable_ZAbJ-2SEResLrdsLvbgh1A_puY6vDL0', SHOP='7a1754e6-e2f1-40eb-9c03-9d9a1e891bce';
+  var f=document.getElementById('reqForm'), msg=document.getElementById('rMsg'), btn=document.getElementById('rSend');
+  function v(id){ return (document.getElementById(id).value||'').trim(); }
+  f.addEventListener('submit', function(e){ e.preventDefault(); msg.className='msg';
+    if(v('rWeb')){ msg.textContent='Thank you.'; return; }   // a robot filled the hidden box
+    if(!v('rName') && !v('rShop')){ msg.className='msg bad'; msg.textContent='Add your name or your shop name.'; return; }
+    if(!v('rPhone') && !v('rEmail')){ msg.className='msg bad'; msg.textContent='Add a phone number or an email so we can reach you.'; return; }
+    btn.disabled=true; msg.textContent='Sending…';
+    var body={ p_shop:SHOP, p_name:[v('rName'), v('rShop')].filter(Boolean).join(' — '), p_phone:v('rPhone'), p_email:v('rEmail'), p_address:v('rCity'),
+      p_service:'Bittings access request'+(v('rPlan')?(' · '+v('rPlan')):''), p_notes:v('rNote'), p_lang:'en', p_page:'getbittings.com' };
+    fetch(API, { method:'POST', headers:{ 'apikey':KEY, 'Authorization':'Bearer '+KEY, 'Content-Type':'application/json' }, body:JSON.stringify(body) })
+      .then(function(r){ if(!r.ok) throw new Error('send'); msg.className='msg ok'; msg.textContent='Got it. We will be in touch within a business day.'; f.reset(); })
+      .catch(function(){ msg.className='msg bad'; msg.textContent='That did not send. Check your connection and try again in a minute.'; })
+      .then(function(){ btn.disabled=false; });
+  });
+})();
+</script>
+</body>
+</html>

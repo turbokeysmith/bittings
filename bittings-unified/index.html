@@ -4166,6 +4166,9 @@ function posSetJobType(jt){
 function posTaxRate(){ try{ return Number(TKS.Config.get().taxRate)||0; }catch(e){ return 0; } }
 function posLineAmtCents(l){ return (l.unitCents||0)*(l.qty||1); }
 function money2(c){ return '$'+(Math.round(c||0)/100).toFixed(2); }
+/* 8z96 (owner, 2026-11-12): services / labor are never taxed — only parts. config.taxServices would turn it back on for a shop
+   in a state that taxes labor (no screen for it yet). */
+function svcTaxOn(){ try{ return !!TKS.Config.get().taxServices; }catch(e){ return false; } }
 function posTotals(){
   const rate = posTaxRate()/100; let taxable=0, nontax=0;
   posTicket.forEach(l=>{ const a=posLineAmtCents(l); if(l.taxable) taxable+=a; else nontax+=a; });
@@ -4588,6 +4591,44 @@ function uiConfirm(opts){
     document.addEventListener('keydown',onkey);
   });
 }
+/* 8z94: cash at the Register. Asks what the customer handed over and shows the change BEFORE the sale is recorded.
+   Resolves { tenderedCents, changeCents } or null (cancelled). Nothing is saved here — it is only for the person at the till. */
+function uiCashTender(totalCents){
+  return new Promise(function(resolve){
+    var money=function(c){ return '$'+(c/100).toFixed(2); };
+    var quick=[], seen={}; [100,500,1000,2000,5000,10000].forEach(function(step){ var up=Math.ceil(totalCents/step)*step; if(up>totalCents && !seen[up] && quick.length<4){ seen[up]=1; quick.push(up); } });
+    var ov=document.createElement('div'); ov.className='chg-modal-ov';
+    ov.innerHTML='<div class="chg-modal" style="max-width:440px">'+
+      '<div class="chg-modal-h"><b>💵 Cash — total '+money(totalCents)+'</b><button type="button" class="chg-modal-x" data-x aria-label="Close">×</button></div>'+
+      '<label class="ui-l" for="uiCashIn">Cash the customer gave you</label>'+
+      '<input id="uiCashIn" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" style="font-size:26px;font-weight:800;min-height:56px">'+
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px"><button type="button" class="btn ghostbtn" data-q="'+totalCents+'" style="flex:1 1 30%;min-height:48px">Exact</button>'+
+        quick.map(function(c){ return '<button type="button" class="btn ghostbtn" data-q="'+c+'" style="flex:1 1 30%;min-height:48px">'+money(c).replace(/\.00$/,'')+'</button>'; }).join('')+'</div>'+
+      '<div id="uiCashOut" aria-live="polite" style="margin:12px 0 4px;padding:12px;border-radius:12px;border:1px solid var(--border,rgba(128,128,128,.35));text-align:center">'+
+        '<div id="uiCashLbl" style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase">Change due</div>'+
+        '<div id="uiCashAmt" style="font-size:38px;font-weight:900;line-height:1.15;font-family:var(--font-mono)">—</div></div>'+
+      '<div class="ui-actions"><button type="button" class="btn ghostbtn" data-no>Cancel</button>'+
+      '<button type="button" class="btn save" data-yes disabled>Record cash sale</button></div></div>';
+    document.body.appendChild(ov);
+    var inp=ov.querySelector('#uiCashIn'), lbl=ov.querySelector('#uiCashLbl'), amt=ov.querySelector('#uiCashAmt'), yes=ov.querySelector('[data-yes]');
+    function cents(){ var v=String(inp.value||'').replace(/[^0-9.]/g,''); if(!v) return null; var n=Math.round(parseFloat(v)*100); return isFinite(n)?n:null; }
+    function paint(){ var c=cents();
+      if(c==null){ lbl.textContent='Change due'; amt.textContent='—'; yes.disabled=true; return; }
+      if(c<totalCents){ lbl.textContent='⚠ Not enough — still owed'; amt.textContent=money(totalCents-c); yes.disabled=true; return; }
+      lbl.textContent = c===totalCents ? 'No change — exact amount' : 'Change due'; amt.textContent=money(c-totalCents); yes.disabled=false; }
+    function done(ok){ var c=cents(); if(ok && (c==null || c<totalCents)) return; ov.remove(); document.removeEventListener('keydown',onkey); resolve(ok ? { tenderedCents:c, changeCents:c-totalCents } : null); }
+    function onkey(e){ if(e.key==='Escape') done(false); }
+    ov.addEventListener('mousedown',function(e){ if(e.target===ov) done(false); });
+    ov.querySelector('[data-x]').onclick=function(){ done(false); };
+    ov.querySelector('[data-no]').onclick=function(){ done(false); };
+    yes.onclick=function(){ done(true); };
+    ov.querySelectorAll('[data-q]').forEach(function(b){ b.onclick=function(){ inp.value=(Number(b.getAttribute('data-q'))/100).toFixed(2); paint(); yes.focus(); }; });
+    inp.addEventListener('input',paint);
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); done(true); } });
+    document.addEventListener('keydown',onkey);
+    setTimeout(function(){ inp.focus(); },30);
+  });
+}
 function uiPrompt(opts){
   opts=opts||{};
   return new Promise(function(resolve){
@@ -4658,7 +4699,7 @@ function posOtherEntry(kind, svcType){
     '<label class="ui-l">'+(isSvc?'Service':'Item')+' name</label>'+
     '<input id="oeName" type="text" placeholder="'+(isSvc?'e.g. Rekey deadbolt':'e.g. Blank key')+'">'+
     '<label class="ui-l" style="margin-top:10px">Price ($)</label><input id="oePrice" type="number" inputmode="decimal" placeholder="0.00">'+
-    '<label class="ui-check"><input type="checkbox" id="oeTax" '+(isSvc?'':'checked')+'> Taxable line</label>'+
+    ((isSvc && !svcTaxOn()) ? '<div class="ui-help" style="margin:6px 0">Services and labor are not taxed.</div><input type="checkbox" id="oeTax" hidden>' : '<label class="ui-check"><input type="checkbox" id="oeTax" '+(isSvc?'':'checked')+'> Taxable line</label>')+
     '<div class="ui-actions"><button type="button" class="btn ghostbtn" data-no>Cancel</button>'+
     '<button type="button" class="btn save" data-add>Add to ticket</button></div></div>';
   document.body.appendChild(ov);
@@ -4670,7 +4711,7 @@ function posOtherEntry(kind, svcType){
     var name=(nameEl.value||'').trim(); if(!name){ nameEl.focus(); return; }
     var cents=Math.round((parseFloat(ov.querySelector('#oePrice').value)||0)*100);
     if(cents<=0){ chgSay('Enter a price greater than 0.',false); ov.querySelector('#oePrice').focus(); return; }
-    var taxable=!!ov.querySelector('#oeTax').checked;
+    var taxable=!!ov.querySelector('#oeTax').checked && (!isSvc || svcTaxOn());   // 8z96
     if(isSvc){
       var lt=posInferLineType(name);
       posAddLine({type:'custom',refId:null,svc:name,cat:catGroup,desc:name,unitCents:cents,taxable:taxable,lineType:lt,priceOverride:true});
@@ -4754,7 +4795,7 @@ function posPickItem(kind){
     listEl.innerHTML = otherBtnHTML() + rows; wireOther();
     const flist=list;
     listEl.querySelectorAll('.chg-cprow[data-i]').forEach(b=> b.onclick=()=>{ const s=flist[+b.dataset.i]; if(!s) return; const cents=posSvcCents(s);
-      const base={type:'service',svc:(s.value||s.en),cat:(s.cat||'other'),desc:(s.value||s.en),taxable:!!s.taxable,lineType:'service'};   // 8z69: was always untaxed, whatever the service said
+      const base={type:'service',svc:(s.value||s.en),cat:(s.cat||'other'),desc:(s.value||s.en),taxable:(svcTaxOn() && !!s.taxable),lineType:'service'};   // 8z96: services are never taxed (8z69 had let a service carry its own tax setting)
       if(cents!=null){ posAddLine(Object.assign(base,{unitCents:cents})); close(); }
       else { uiAskPriceCents({title:'Price for '+(s.value||s.en)}).then(ent=>{ if(ent==null) return; posAddLine(Object.assign(base,{unitCents:ent,priceOverride:true})); close(); }); } });
   }
@@ -4789,7 +4830,7 @@ function posDiscountPrompt(){
 // Cash/Check/Card used to record two sales (two transactions, two stock decrements).
 let _posBusy=false;
 function posSetBusy(on){ _posBusy=!!on; ['chgCard','chgCash','chgCheck'].forEach(id=>{ const b=document.getElementById(id); if(b){ b.disabled=_posBusy; b.style.opacity=_posBusy?'.6':''; } }); }
-function posCheckoutThen(method){
+function posCheckoutThen(method, tender){   // tender (8z94) = { tenderedCents, changeCents } once the cash box has been answered
   if(_posBusy) return;
   if(!_chgUnlocked){ chgGate(); return; }
   if(!posTicket.length){ chgSay('Add a line first.',false); return; }
@@ -4800,6 +4841,7 @@ function posCheckoutThen(method){
       if(!(posVeh.make || posVeh.vin)){ chgSay('NASTF D1: pick the vehicle (year, make, model) or enter the VIN.', false); return; } } }
   if(method!=='cash' && (!chgCustomer || !chgCustomer.customer)){ chgSay((method==='card'?'Card':'Check')+" needs the customer's info — tap “Select / add customer”.",false); return; }
   if(!(window.TKS && TKS.POS && TKS.auth.isSignedIn())){ chgSay('Sign in to take a payment.',false); return; }
+  if(method==='cash' && !tender){ uiCashTender(t.totalCents).then(x=>{ if(x) posCheckoutThen('cash', x); }); return; }   // 8z94: how much did they hand over?
   posSetBusy(true);
   chgSay('Building ticket…',null);
   // Start inside a promise so a synchronous throw (e.g. from posBuildPayload) lands in the
@@ -4829,8 +4871,12 @@ function posCheckoutThen(method){
         }
       }catch(_){/* never block the sale */}
       /* 8z39: a Supabase call has .then but NO .catch, so the old ".catch" here threw, and everything after an approved charge was skipped without a word (stock not taken, ticket not cleared, no receipt buttons). */ Promise.resolve().then(()=>TKS.POS.decrementStock(rid)).then(r=>{ if(r&&r.error) console.warn("[pos] stock not taken for "+rid+": "+r.error.message); }, e=>console.warn("[pos] stock not taken for "+rid, e)); posClear();
-      chgSay('✓ '+(method==='card' ? 'Card charge complete — '+money(capt)+(sur?' (incl. 2% credit surcharge)':'') : (payLabel+' recorded — '+money(capt)+'.')),true);
+      chgSay('✓ '+(method==='card' ? 'Card charge complete — '+money(capt)+(sur?' (incl. 2% credit surcharge)':'') : (payLabel+' recorded — '+money(capt)+'.'+(method==='cash'&&tender ? ' Cash received '+money(tender.tenderedCents)+' · change due '+money(Math.max(0,tender.tenderedCents-capt))+'.' : ''))),true);
       showChgSend({ id:rid, number:rid, email:cust.email, items:[{desc:'Register sale'}], totals:{ total:capt/100, surcharge:sur/100 }, payment:payLabel });
+      if(method==='cash' && tender){ try{ const sr=document.getElementById('chgSendRow'), ch=Math.max(0,tender.tenderedCents-capt), bx=document.createElement('div');   // 8z94: the change stays on screen, large, next to the receipt buttons
+        bx.id='chgChangeBig'; bx.style.cssText='flex:1 1 100%;text-align:center;padding:12px;border-radius:12px;border:1px solid var(--border,rgba(128,128,128,.35))';
+        bx.innerHTML='<div style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase">'+(ch?'Change due':'No change — exact amount')+'</div><div style="font-size:34px;font-weight:900;font-family:var(--font-mono)">'+money(ch)+'</div><div style="font-size:13px">Cash received '+money(tender.tenderedCents)+' · sale '+money(capt)+'</div>';
+        sr.insertBefore(bx, sr.firstChild); sr.style.display='flex'; }catch(_){} }
       try{ const dbx=document.getElementById('chgDocs'); if(dbx){ dbx.innerHTML=''; if(d1Sale && window.TKS_RDOCS) TKS_RDOCS.panel(dbx, d1Sale); } }catch(_){} };   // 8z90
     if(method==='card'){ if(!TKPay.openForReceipt){ posSetBusy(false); chgSay('Payment engine not loaded.',false); return; }
       // Once the Pay Now sheet is up it is modal (full-screen overlay), so the buttons can be
@@ -5947,36 +5993,84 @@ async function repBreakdown(rows, start, end){
   const money=c=>'$'+((c||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
   let tax=0, sales=0; const byM={}; ok.forEach(t=>{ const tx=t.tax_cents||0, s=Math.max(0,(t.base_cents||0)-tx-(t.refunded_cents||0)); tax+=tx; sales+=s;
     const k=payMethodLabel({method:t.method}); byM[k]=(byM[k]||0)+s+tx; });
-  // products vs services, taxable vs not — from the receipts behind these payments (share = this payment / sale total)
-  let prod=0, svc=0, taxable=0, nontax=0, unknown=0;
+  /* 8z95 (owner, 2026-11-12: "break it down by category between keys, accessories, services etc. — I need it to file sales
+     tax every month"). Each sale's lines are sorted into the stock list's top category (Keys, Accessories…) when the line is a
+     stocked part, "Services / labor" when it is labor or programming, and "Other parts / materials" otherwise. A line is
+     TAXABLE when the sale taxed it, NOT TAXABLE when it did not, and TAX-EXEMPT when it would have been taxed but the sale was
+     made under an exemption certificate. Discounts and part-refunds are spread across the lines in proportion. */
+  const tok=++_repBrkTok;
   const ids=[...new Set(ok.map(t=>t.invoice_id).filter(Boolean))]; const recs={};
   let sb=null; try{ sb=TKS._sb && TKS._sb(); }catch(e){}
   if(sb && ids.length){ for(let i=0;i<ids.length;i+=150){ try{ const r=await sb.from('receipts_safe').select('id,data').in('id', ids.slice(i,i+150)); ((r&&r.data)||[]).forEach(x=>{ recs[x.id]=x.data||{}; }); }catch(e){} } }
   else { try{ (TKS.Receipts && TKS.Receipts.all ? TKS.Receipts.all() : []).forEach(x=>{ if(ids.indexOf(x.id)>=0) recs[x.id]=x; }); }catch(e){} }
-  ok.forEach(t=>{ const tx=t.tax_cents||0, s=Math.max(0,(t.base_cents||0)-tx-(t.refunded_cents||0)); const d=recs[t.invoice_id];
-    const items=(d&&Array.isArray(d.items))?d.items.filter(it=>!it.isDiscount):[];
-    const tot=items.reduce((a,it)=>a+(Number(it.amount)||0),0);
-    if(!items.length || !(tot>0)){ unknown+=s; return; }
-    items.forEach(it=>{ const share=(Number(it.amount)||0)/tot*s;
-      const isProd = !!it.partId || /^(materials?|parts?|part)$/i.test(String(it.category||'')) || it.lineType==='part';
-      if(isProd) prod+=share; else svc+=share; if(it.taxable) taxable+=share; else nontax+=share; }); });
-  const row=(k,v,strong)=>'<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(128,128,128,.15)">'+(strong?'<b>'+k+'</b><b>'+v+'</b>':'<span>'+k+'</span><span>'+v+'</span>')+'</div>';
+  if(tok!==_repBrkTok) return;   // a newer period was asked for while this one was loading
+  const inv={}, invSku={}; try{ (TKS.list('inventory')||[]).forEach(p=>{ if(p && p.id){ inv[p.id]=p; if(p.sku) invSku[String(p.sku).toLowerCase()]=p; } }); }catch(e){}
+  const catOf=it=>{ const p=(it.partId && inv[it.partId]) || (it.sku && invSku[String(it.sku).toLowerCase()]) || null;
+    if(p && p.category){ const a=String(p.category).split('/'); return { cat:a[0].trim()||'Other parts / materials', sub:a.slice(1).join('/').trim() }; }
+    const c=String(it.category||it.lineType||'').trim();
+    if(it.partId || /^(materials?|parts?)$/i.test(c)) return { cat:'Other parts / materials', sub:it.partId?'No longer in the stock list':'' };
+    if(!c || /^(labou?r|services?|programming)$/i.test(c)) return { cat:'Services / labor', sub:/^programming$/i.test(c)?'Programming':'' };
+    return { cat:c.charAt(0).toUpperCase()+c.slice(1), sub:'' }; };
+  const cats={}, subs={}, lines=[]; const T={ taxable:0, nontax:0, exempt:0 };
+  const add=(c,k,v)=>{ const o=cats[c.cat]||(cats[c.cat]={sales:0,taxable:0,nontax:0,exempt:0}); o.sales+=v; o[k]+=v; T[k]+=v;
+    const sk=c.cat+'\u0001'+(c.sub||''), q=subs[sk]||(subs[sk]={cat:c.cat,sub:c.sub||'',sales:0,taxable:0,nontax:0,exempt:0}); q.sales+=v; q[k]+=v; };
+  ok.forEach(t=>{ const tx=t.tax_cents||0, s=Math.max(0,(t.base_cents||0)-tx-(t.refunded_cents||0)); const d=recs[t.invoice_id]||null;
+    const items=(d&&Array.isArray(d.items))?d.items.filter(it=>!it.isDiscount && Number(it.amount)>0):[];
+    const tot=items.reduce((a,it)=>a+(Number(it.amount)||0),0), isEx=!!(d && d.taxExempt);
+    if(!items.length || !(tot>0)){ const c={cat:'Not itemized',sub:''}, k=tx>0?'taxable':(isEx?'exempt':'nontax'); add(c,k,s); lines.push({t:t,d:d,desc:t.description||'',c:c,k:k,amt:s}); return; }
+    items.forEach(it=>{ const share=(Number(it.amount)||0)/tot*s, c=catOf(it), k=(it.taxable && c.cat!=='Services / labor')?(isEx?'exempt':'taxable'):'nontax'; add(c,k,share);   /* owner, 2026-11-12: services / labor are never taxable, whatever an old or imported sale line says */ lines.push({t:t,d:d,desc:it.desc||'',c:c,k:k,amt:share}); }); });
+  let rate=0; try{ rate=Number(TKS.Config.get().taxRate)||0; }catch(e){}
+  const R=v=>Math.round(v||0), expected=R(T.taxable*rate/100), diff=tax-expected;
+  const order=Object.keys(cats).sort((a,b)=>{ const w=x=>x==='Not itemized'?2:(x==='Services / labor'?1:0); return (w(a)-w(b)) || (cats[b].sales-cats[a].sales); });
   const fmtD=d=>d.toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});
-  const last=new Date(end.getTime()-1);
-  box.innerHTML='<div style="padding:12px 14px;border:1px solid rgba(128,128,128,.25);border-radius:14px;margin:10px 0">'+
-    '<div class="sub" style="margin:0 0 6px">'+fmtD(start)+(fmtD(start)!==fmtD(last)?' – '+fmtD(last):'')+' · '+ok.length+' payment'+(ok.length===1?'':'s')+'</div>'+
+  const last=new Date(end.getTime()-1), label=fmtD(start)+(fmtD(start)!==fmtD(last)?' – '+fmtD(last):'');
+  _repExport.tax={ label:label, rate:rate, sales:sales, tax:tax, taxable:R(T.taxable), nontax:R(T.nontax), exempt:R(T.exempt), expected:expected, cats:order.map(k=>Object.assign({cat:k},cats[k])),
+    subs:Object.keys(subs).map(k=>subs[k]).sort((a,b)=>order.indexOf(a.cat)-order.indexOf(b.cat) || b.sales-a.sales), lines:lines };
+  const row=(k,v,strong)=>'<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(128,128,128,.15)">'+(strong?'<b>'+k+'</b><b style="white-space:nowrap">'+v+'</b>':'<span>'+k+'</span><span style="white-space:nowrap">'+v+'</span>')+'</div>';
+  const G='display:grid;grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr));gap:6px;padding:6px 0;border-bottom:1px solid rgba(128,128,128,.15);align-items:baseline';
+  const cell=(v,b)=>'<span style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums'+(b?';font-weight:800':'')+'">'+v+'</span>';
+  const oneTech=(function(){ try{ const e=document.getElementById('repTech'); return !!(e && e.value && e.value!=='all'); }catch(e){ return false; } })();
+  box.innerHTML='<div id="repTaxBox" style="padding:12px 14px;border:1px solid rgba(128,128,128,.25);border-radius:14px;margin:10px 0">'+
+    '<div style="font-weight:800;font-size:16px">Sales tax worksheet</div>'+
+    '<div class="sub" style="margin:0 0 8px">'+label+' · '+ok.length+' payment'+(ok.length===1?'':'s')+(rate?' · your rate '+rate+'%':'')+'</div>'+
+    (oneTech?'<div class="sub" style="margin:0 0 8px;font-weight:700">⚠ Showing one technician only. Choose “All technicians” before you use this for the tax return.</div>':'')+
+    '<div style="'+G+';font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase"><span>Category</span>'+cell('Sales')+cell('Taxable')+cell('Not taxed')+'</div>'+
+    (order.length ? order.map(k=>{ const o=cats[k]; return '<div class="repCatRow" style="'+G+';font-size:14.5px"><span>'+esc2(k)+'</span>'+cell(money(R(o.sales)))+cell(money(R(o.taxable)))+cell(money(R(o.nontax+o.exempt)))+'</div>'; }).join('')
+                  : '<div class="sub" style="margin:6px 0">No sales in this period.</div>')+
+    '<div id="repCatTotal" style="'+G+';font-size:14.5px"><b>Total</b>'+cell(money(sales),1)+cell(money(R(T.taxable)),1)+cell(money(R(T.nontax+T.exempt)),1)+'</div>'+
+    '<div class="sub" style="margin:12px 0 2px;font-weight:800">For the return</div>'+
     row('Total sales (before tax)', money(sales), true)+
-    row('&nbsp;&nbsp;Products / parts', money(Math.round(prod)))+
-    row('&nbsp;&nbsp;Services / labor', money(Math.round(svc)))+
-    (unknown>0?row('&nbsp;&nbsp;Not itemized', money(Math.round(unknown))):'')+
-    row('Taxable sales', money(Math.round(taxable)))+
-    row('Non-taxable sales', money(Math.round(nontax)))+
-    row('Sales tax collected (owed)', money(tax), true)+
+    row('− Not taxable (services / labor)', money(R(T.nontax)))+
+    row('− Tax-exempt sales (certificate on file)', money(R(T.exempt)))+
+    row('Taxable sales', money(R(T.taxable)), true)+
+    row('Sales tax collected', money(tax), true)+
+    (rate?row('Check: taxable sales × '+rate+'%', money(expected)):'')+
+    (rate && Math.abs(diff)>=100 ? '<div class="sub" id="repTaxDiff" style="margin:6px 0;font-weight:700">⚠ Collected is '+money(Math.abs(diff))+(diff>0?' more':' less')+' than '+rate+'% of the taxable sales. Usual reasons: a service or labor line that was taxed (services are counted as not taxable here), a sale taxed at a different rate, a part-refund, or a sale with no item list. The file below lists every line so you can find it.</div>' : '')+
     row('Collected incl. tax', money(sales+tax))+
-    '<div class="sub" style="margin:10px 0 4px">By payment type (incl. tax)</div>'+
+    (ok.length?'<button type="button" class="btn ghost" id="repTaxCsv" style="margin-top:10px;min-height:44px">⬇ Sales tax file (by category, every line)</button>':'')+
+    '<div class="sub" style="margin:12px 0 4px">By payment type (incl. tax)</div>'+
     Object.keys(byM).sort((a,b)=>byM[b]-byM[a]).map(k=>row(esc2(k), money(byM[k]))).join('')+
   '</div>';
 }
+var _repBrkTok=0;   // var: read by repBreakdown, which is defined above this line
+function repTaxCsv(){
+  const x=_repExport.tax; if(!x){ try{ toast('Nothing to export for this period.'); }catch(e){} return; }
+  const m2=c=>(Number(c||0)/100).toFixed(2), q=v=>{ v=String(v==null?'':v); return /[",\n]/.test(v)?('"'+v.replace(/"/g,'""')+'"'):v; };
+  const KL={ taxable:'Taxable', nontax:'Not taxable', exempt:'Tax-exempt (certificate)' };
+  const out=[]; const L=a=>out.push(a.map(q).join(','));
+  L(['Sales tax worksheet', x.label]); L(['Tax rate %', x.rate]); out.push('');
+  L(['Category','Sub-category','Sales before tax','Taxable','Not taxable','Tax-exempt']);
+  x.subs.forEach(o=>L([o.cat, o.sub, m2(Math.round(o.sales)), m2(Math.round(o.taxable)), m2(Math.round(o.nontax)), m2(Math.round(o.exempt))]));
+  L(['TOTAL','', m2(x.sales), m2(x.taxable), m2(x.nontax), m2(x.exempt)]); out.push('');
+  L(['Total sales (before tax)', m2(x.sales)]); L(['Less: not taxable (services / labor)', m2(x.nontax)]); L(['Less: tax-exempt sales', m2(x.exempt)]); L(['Taxable sales', m2(x.taxable)]); L(['Sales tax collected', m2(x.tax)]); L(['Check: taxable sales x rate', m2(x.expected)]); out.push('');
+  L(['Date','Document','Customer','Line','Category','Sub-category','Amount before tax','Tax treatment','Exemption','Paid by']);
+  x.lines.slice().sort((a,b)=>new Date(a.t.created_at)-new Date(b.t.created_at)).forEach(l=>{ const d=l.d||{};
+    L([ new Date(l.t.created_at).toLocaleDateString('en-US'), d.number||l.t.invoice_id||'', d.customer||'', l.desc, l.c.cat, l.c.sub||'', m2(Math.round(l.amt)), KL[l.k]||l.k, (d.taxExempt && window.TKS_EXEMPT)?TKS_EXEMPT.label(d.taxExempt):'', l.t.method||'' ]); });
+  const blob=new Blob(['\ufeff'+out.join('\r\n')], {type:'text/csv;charset=utf-8'}), a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='bittings-sales-tax-'+(_repExport.label||'export')+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  try{ toast('Sales tax file saved — '+x.lines.length+' lines.'); }catch(e){}
+}
+document.addEventListener('click', function(e){ const b=e.target.closest && e.target.closest('#repTaxCsv'); if(b) repTaxCsv(); });
 function drawRepChart(type, buckets, agg, m, byMethod){
   const wrap=document.getElementById('repChartWrap'); let canvas=document.getElementById('repCanvas');
   if(repChart){ repChart.destroy(); repChart=null; }
@@ -6818,8 +6912,8 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     else if(key==='tax'){
       p.innerHTML = '<h2>Sales tax</h2><div class="sub">Default rate for taxable goods. Oklahoma exempts separately-stated labor — keep labor on its own line and it\'s excluded automatically. You can override the rate per receipt.</div>'+
         '<label>Default tax rate (%)</label><input id="f_taxRate" type="number" step="0.001" inputmode="decimal" value="'+(cfg.taxRate||'')+'" placeholder="e.g. 8.625">'+
-        '<label>Taxable line categories</label>'+
-        TAX_CATS.map(c=>'<label class="toggle"><input type="checkbox" class="taxcat" data-k="'+c.key+'" '+(cfg.taxableByCategory[c.key]?'checked':'')+'> '+esc(c.label)+'</label>').join('')+
+        '<label>Taxable line categories</label>'+(svcTaxOn()?'':'<div class="note" style="margin:0 0 6px">Only parts are taxed. Services, labor, programming, travel and after-hours fees are never taxed.</div>')+
+        TAX_CATS.filter(c=>c.key==='Materials' || svcTaxOn()).map(c=>'<label class="toggle"><input type="checkbox" class="taxcat" data-k="'+c.key+'" '+(cfg.taxableByCategory[c.key]?'checked':'')+'> '+esc(c.label)+'</label>').join('')+
         /* 8z78: tax-exempt customers */
         '<label style="margin-top:20px">Tax-exempt customers</label>'+
         '<div class="sub" style="margin:0 0 8px;line-height:1.5">To leave sales tax off a sale, tap <b>Tax exempt</b> on the quote, invoice, receipt or job and record the customer\'s paperwork. Oklahoma only lets you skip the tax when you hold that paperwork (you have 90 days from the sale to get it):'+
@@ -9001,7 +9095,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
           '<div style="display:flex;gap:8px;align-items:center;margin-top:6px">'+
             '<div style="flex:0 0 68px"><label style="margin:0">Qty</label><input class="chQ" type="number" inputmode="numeric" min="1" step="1" value="'+esc(String(l.qty||1))+'"'+ro+'></div>'+
             '<div style="flex:1;min-width:0"><label style="margin:0">Price each $</label><input class="chE" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="'+esc(l.each)+'"'+ro+'></div>'+
-            '<label style="flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:16px 0 0;min-height:44px"><input class="chT" type="checkbox" style="width:22px;height:22px"'+(l.taxable?' checked':'')+ro+'>Tax</label>'+
+            '<label style="flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:16px 0 0;min-height:44px"><input class="chT" type="checkbox" style="width:22px;height:22px"'+(l.taxable?' checked':'')+ro+'>Taxed part</label>'+
             (chargeLock?'':'<button type="button" class="chX" aria-label="Remove line" style="flex:0 0 44px;height:44px;margin-top:16px;border:1px solid var(--edge);border-radius:10px;background:transparent;color:#c8323c;font-size:20px;cursor:pointer">&times;</button>')+
           '</div></div>'; }).join('')+
         (chargeLock?'':'<button type="button" class="btn ghost" id="sjChAdd" style="width:100%;margin:8px 0 0;min-height:44px">+ Add a charge</button>')+

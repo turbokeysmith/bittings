@@ -55,7 +55,7 @@ function stubServer() {
       const ev = (t, x, y) => c.dispatchEvent(new PointerEvent(t, { bubbles: true, clientX: r.left + x, clientY: r.top + y, pointerId: 1 }));
       ev('pointerdown', 20, 60); ev('pointermove', 80, 30); ev('pointermove', 140, 90); ev('pointermove', 220, 50); ev('pointerup', 220, 50); });
     const fillLine = async (desc, amt) => { await pg.type('.qi-item .qiDesc', desc);
-      await pg.evaluate((amt) => { const row = document.querySelector('.qi-item'); const a = row.querySelector('.qiAmt'); a.value = amt; a.dispatchEvent(new Event('input', { bubbles: true })); const t = row.querySelector('.qiTax'); if (!t.checked) t.click(); }, amt); await sleep(400); };
+      await pg.evaluate((amt) => { const row = document.querySelector('.qi-item'); const a = row.querySelector('.qiAmt'); a.value = amt; a.dispatchEvent(new Event('input', { bubbles: true })); const c = row.querySelector('.qiCat'); c.value = 'Materials'; c.dispatchEvent(new Event('change', { bubbles: true }));   /* 8z96: only a part can be taxed */ const t = row.querySelector('.qiTax'); if (!t.checked) t.click(); }, amt); await sleep(400); };
     const setCust = (name, phone, addr) => pg.evaluate((name, phone, addr) => { const s = (id, v) => { const x = document.querySelector(id); x.value = v; x.dispatchEvent(new Event('input', { bubbles: true })); x.dispatchEvent(new Event('change', { bubbles: true })); }; s('#qiName', name); s('#qiPhone', phone); s('#qiAddr', addr); }, name, phone, addr);
 
     // ================= 1. Quick quote: tax exempt (resale) + In shop =================
