@@ -275,7 +275,73 @@
   function summary(text){ return parse(text).map(label).join(' · '); }
   function vehLabel(veh){ return [veh&&veh.year, veh&&(canonMake(veh.make)||veh.make), veh&&veh.model].filter(Boolean).join(' '); }
 
-  var api={ parse:parse, parseQuery:parseQuery, itemFits:itemFits, filter:filter, label:label, summary:summary, canonMake:canonMake, vehLabel:vehLabel, MAKES:MAKES, _tokenize:tokenize };
+  /* ---- 8z76 (owner, 2026-11-12: "for the quick quote I need to put in a vehicle and get the key information — what fits,
+     what the prices are"): the Scheduler's "Keys for this vehicle" matcher lived inside index.html. It is here now so the
+     Scheduler and the quote builder use ONE matcher (same groups, same "might fit" rules). `all` = the stock list. ---- */
+  var KEY_GROUPS=[['Smart Key','Smart keys'],['Remote Head / Flip','Flip keys'],['Remote / Fob','Remotes'],['Super Remote','Super remotes'],['Transponder','Transponder keys'],['Key Shell','Shells'],['Mechanical','Blades / mechanical']];
+  // 8z34 (owner): "PEPS" / "proximity" / "prox" in the name = push-to-start = a smart key, whatever the category says
+  var KEY_PROX=/(peps|prox|proximity|prx)/i;
+  function keySub(p){ if(KEY_PROX.test(String(p.name||''))) return 'Smart Key'; return String(p.category||'').split('/').slice(1).join('/').trim(); }
+  // chip family from free text ("Hitag Pro (ID49)" = "Hitag Pro ID49 (128-bit)")
+  function chipFamily(c){ c=String(c||'').toLowerCase(); if(!c) return '';
+    if(/hitag\s*pro|id\s*49/.test(c)) return 'id49'; if(/hitag\s*aes|\b4a\b/.test(c)) return '4a'; if(/honda\s*g|id\s*47/.test(c)) return 'id47';
+    if(/\b8a\b|toyota\s*h|\bh[\s-]*chip|128-bit aes/.test(c)) return '8a'; if(/4d-?72|toyota\s*g|\bg[\s-]*chip/.test(c)) return '4d72';
+    var d=/4d-?(\d\d)/.exec(c); if(d) return '4d'+d[1]; if(/id\s*46|philips\s*46|circle|pcf79/.test(c)) return 'id46';
+    if(/megamos.*48|id\s*48/.test(c)) return 'id48'; if(/megamos|id\s*13|pk3/.test(c)) return 'id13'; if(/\b4c\b/.test(c)) return '4c'; if(/n\s*chip/.test(c)) return 'nchip';
+    return c.replace(/[^a-z0-9]/g,''); }
+  function isKeyItem(p){ return /^keys\//i.test(String(p.category||'')); }
+  // → { groups:[[label, items]], count, hidden, list (confirmed fits), maybe (make + year only — "might fit") }
+  function keysFor(all, veh, ign){
+    all=(all||[]).filter(function(p){ return p && !p.deletedAt; });
+    var y=(veh&&veh.year)||'', mk=(veh&&veh.make)||'', md=(veh&&veh.model)||'', v={year:y, make:mk, model:md};
+    var list=[]; try{ list=filter(all, v)||[]; }catch(e){}
+    list=list.filter(isKeyItem); var hidden='';
+    // 8z35: transponders / blades / shells that list only the make (+ years) — kept when their chip matches this car's keys
+    var chips={}; list.forEach(function(p){ var k=chipFamily(p.chip); if(k) chips[k]=1; }); var haveChip=Object.keys(chips).length>0;
+    var loose=[]; try{ loose=filter(all, v, {loose:true})||[]; }catch(e){}
+    var seen={}; list.forEach(function(p){ seen[p.id]=1; });
+    loose.forEach(function(p){ if(seen[p.id]) return; var sb=String(p.category||'').split('/').slice(1).join('/').trim();
+      if(['Transponder','Mechanical','Key Shell'].indexOf(sb)<0) return;
+      var ck=chipFamily(p.chip), note;
+      if(sb==='Transponder'){ if(haveChip){ if(!chips[ck]) return; note='✓ same chip as this car\'s keys'; } else note='Fits '+mk+' — check the chip'; }
+      else note='Fits '+mk;
+      list.push(Object.assign({}, p, { _kfvNote:note })); seen[p.id]=1; });   // a copy — never tag the stock record itself
+    if(ign==='keyed'){ list=list.filter(function(p){ return keySub(p)!=='Smart Key'; }); hidden='smart keys hidden — turn-key ignition'; }
+    if(ign==='push'){ list=list.filter(function(p){ return ['Remote Head / Flip','Transponder'].indexOf(keySub(p))<0; }); hidden='flip & transponder keys hidden — push-to-start'; }
+    var groups=[]; KEY_GROUPS.concat([['__other','Other']]).forEach(function(g){ var items=list.filter(function(p){ var sb=keySub(p); return g[0]==='__other' ? !KEY_GROUPS.some(function(k){ return k[0]===sb; }) : sb===g[0]; }); if(items.length) groups.push([g[1], items]); });
+    // 8z57: keys that list this make and year but NOT this model (or have no Fits at all and only say it in their name) are
+    // offered separately as "might fit", never mixed in with the confirmed ones.
+    var maybe=[]; try{
+      var seen2={}; list.forEach(function(p){ seen2[p.id]=1; });
+      var keysAll=all.filter(isKeyItem);
+      loose.forEach(function(p){ if(!seen2[p.id] && isKeyItem(p)){ maybe.push(Object.assign({}, p, { _kfvNote:'Lists '+mk+' for this year, no model — check it fits' })); seen2[p.id]=1; } });
+      keysAll.forEach(function(p){ if(seen2[p.id] || String(p.fitment||'').trim()) return;
+        if(filter([{ fitment:String(p.name||'') }], v, { loose:true }).length){ maybe.push(Object.assign({}, p, { _kfvNote:'No Fits saved — the name says '+mk+' for this year. Check it fits' })); seen2[p.id]=1; } });
+      if(ign==='keyed') maybe=maybe.filter(function(p){ return keySub(p)!=='Smart Key'; });
+      if(ign==='push') maybe=maybe.filter(function(p){ return ['Remote Head / Flip','Transponder'].indexOf(keySub(p))<0; });
+    }catch(e){ maybe=[]; }
+    return { groups:groups, count:list.length, hidden:hidden, list:list, maybe:maybe };
+  }
+  // What the shop's vehicle reference (Lishi & Keys) says about this vehicle: keyway, transponder system, how it is programmed.
+  // Rows that name the model win over make-only rows; null when nothing is on file.
+  function vehicleFacts(veh){
+    try{
+      var mk=canonMake(veh&&veh.make)||String((veh&&veh.make)||'').trim(), md=norm(veh&&veh.model), y=parseInt(veh&&veh.year,10)||0;
+      if(!mk || !root.localStorage) return null;
+      var rows=JSON.parse(root.localStorage.getItem('tks_vehicle_keyways')||'[]')||[], best=null, bestScore=0;
+      rows.forEach(function(r){ if(!r || (canonMake(r.make)||String(r.make||'').trim())!==mk) return;
+        var ys=parseInt(r.year_start,10)||0, ye=parseInt(r.year_end,10)||9999; if(y && (y<ys || y>ye)) return;
+        var rm=norm(r.model), s=0; if(md && rm===md) s=3; else if(md && rm && (rm.indexOf(md)===0 || md.indexOf(rm)===0)) s=2; else if(!rm) s=1; else return;
+        if(s>bestScore){ best=r; bestScore=s; } });
+      if(!best) return null;
+      var yes=function(v){ return /^y/i.test(String(v||'')); };
+      return { keyway:String(best.keyway||''), transponder:String(best.transponder_system||''), programming:String(best.programming_path||''), oemOnly:yes(best.oem_only), nastf:yes(best.nastf_required),
+               codeSeries:String(best.code_series||''), notes:String(best.notes||''), exactModel:bestScore>=3 };
+    }catch(e){ return null; }
+  }
+
+  var api={ parse:parse, parseQuery:parseQuery, itemFits:itemFits, filter:filter, label:label, summary:summary, canonMake:canonMake, vehLabel:vehLabel, MAKES:MAKES, _tokenize:tokenize,
+            keysFor:keysFor, keySub:keySub, chipFamily:chipFamily, KEY_GROUPS:KEY_GROUPS, vehicleFacts:vehicleFacts };
   root.TKS_FIT=api;
   if(typeof module!=='undefined' && module.exports) module.exports=api;
 })(typeof window!=='undefined' ? window : globalThis);

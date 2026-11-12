@@ -41,7 +41,9 @@
   function autoClockIn() {
     var c = sb(); if (!c || clockedInThisSession) return;
     clockedInThisSession = true;                       // guard: once per loaded session
-    try { c.rpc('shift_clock_in').then(function () {}, function () {}); } catch (e) {}
+    // 8z76: say which shop computer this is — technicians can only clock in from one
+    var dev = {}; try { var di = localStorage.getItem('tks_tc_device_id'), dt = localStorage.getItem('tks_tc_device_token'); if (di && dt) dev = { p_device_id: di, p_device_token: dt }; } catch (e) {}
+    try { c.rpc('shift_clock_in', dev).then(function () {}, function () {}); } catch (e) {}
   }
 
   // ----------------------------------------------------------------- idle ----
@@ -76,7 +78,8 @@
       '<div style="width:100%;max-width:360px;text-align:center">' +
         '<div style="font-size:34px">🔒</div>' +
         '<div style="font-weight:800;font-size:20px;margin-top:6px">' + esc(shopName()) + ' — locked</div>' +
-        '<div id="tcWho" class="sub" style="color:#9aa3af;margin:6px 0 14px;font-size:13px"></div>' +
+        '<div id="tcWho" class="sub" style="color:#9aa3af;margin:6px 0 4px;font-size:13px"></div>' +
+        '<div class="sub" style="color:#9aa3af;margin:0 0 14px;font-size:12px">Starting your shift? Type your PIN and press ✓ to clock in.</div>' +
         '<div id="tcDots" style="letter-spacing:10px;font-size:30px;min-height:38px;margin-bottom:6px"></div>' +
         '<div id="tcMsg" style="min-height:20px;font-size:13px;margin-bottom:10px;color:#f0a0a6"></div>' +
         '<div id="tcPad" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto">' +
@@ -142,7 +145,7 @@
     // "isn't clocked in — use full login", "too many PIN attempts") is in .context (the Response).
     function serverErr(err) {
       return new Promise(function (res) {
-        try { if (err && err.context && typeof err.context.json === 'function') { err.context.json().then(function (j) { res((j && (j.error || j.message)) ? String(j.error || j.message) : null); }, function () { res(null); }); return; } } catch (e) {}
+        try { if (err && err.context && typeof err.context.json === 'function') { err.context.json().then(function (j) { res((j && (j.error || j.message)) ? { error: String(j.error || j.message), code: j.code || '' } : null); }, function () { res(null); }); return; } } catch (e) {}
         res(null);
       });
     }
@@ -150,7 +153,20 @@
     var dev = {}; try { dev = { deviceId: localStorage.getItem('tks_tc_device_id') || '', deviceToken: localStorage.getItem('tks_tc_device_token') || '' }; } catch (e) {}
     c.functions.invoke('pin-unlock', { body: { pin: pin, deviceId: dev.deviceId, deviceToken: dev.deviceToken } }).then(async function (r) {
       var d = r && r.data, err = r && r.error;
-      if (err && !d) { var se = await serverErr(err); d = { error: se || 'Could not check the PIN — try again.' }; }
+      if (err && !d) { var se = await serverErr(err); d = { error: (se && se.error) || 'Could not check the PIN — try again.', code: se && se.code }; }
+      // 8z77: right PIN, but that person has not clocked in yet → clock them in here (shop computers only).
+      // The screen stays locked and signed in as it was; typing the PIN again then switches to them.
+      if (d && d.code === 'not_clocked_in' && dev.deviceId && dev.deviceToken) {
+        msg('Clocking in…');
+        c.rpc('shift_clock_in_pin', { p_pin: pin, p_device_id: dev.deviceId, p_device_token: dev.deviceToken }).then(function (q) {
+          var x = q && q.data; pinBuf = ''; renderDots();
+          if (q && q.error) { msg((q.error.message) || 'Could not clock in.'); return; }
+          if (!x || !x.ok) { msg((x && x.error) || 'Could not clock in.'); return; }
+          var t = ''; try { t = new Date(x.clock_in).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); } catch (e) {}
+          var m = document.getElementById('tcMsg'); if (m) { m.style.color = '#6fdc9f'; m.textContent = '✓ ' + (x.name || 'You') + ' — clocked in at ' + t + '. Type your PIN again to use this computer.'; setTimeout(function () { try { m.style.color = '#f0a0a6'; } catch (e) {} }, 8000); }
+        }, function () { msg('Could not reach the server — try again.'); pinBuf = ''; renderDots(); });
+        return;
+      }
       if (d && d.mode === 'unlock') { unlockUI(); return; }
       if (d && d.mode === 'switch') {
         msg('Switching to ' + (d.user ? d.user.name : 'teammate') + '…');
@@ -158,7 +174,7 @@
           if (v && v.error) { msg('Switch failed — use full login.'); return; }
           // Manager who wasn't clocked in → clock them in now, then reload as them.
           var finish = function () { location.reload(); };
-          if (d.clocked_in === false) { try { c.rpc('shift_clock_in').then(finish, finish); } catch (e) { finish(); } }
+          if (d.clocked_in === false) { try { c.rpc('shift_clock_in', { p_device_id: dev.deviceId || null, p_device_token: dev.deviceToken || null }).then(finish, finish); } catch (e) { finish(); } }
           else finish();
         }, function () { msg('Switch failed — use full login.'); });
         return;

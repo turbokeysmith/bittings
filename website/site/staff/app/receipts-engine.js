@@ -192,6 +192,7 @@ function computeTotals(its, payment, taxRatePct){
 }
 
 function buildReceiptCardHTML(r, actionsHTML){
+  r=docWithVehicles(r);   // 8z84
   const t=r.totals;
   const status=r.status;
   const sColor= status==="Paid in Full"?"var(--green)"
@@ -213,7 +214,7 @@ function buildReceiptCardHTML(r, actionsHTML){
   });
   let sub="";
   const hasDiscount = t.discount>0;
-  if(t.tax>0 || t.surcharge>0 || hasDiscount){
+  if(t.tax>0 || t.surcharge>0 || hasDiscount || r.taxExempt){
     // Show gross subtotal + discount when a discount exists
     if(hasDiscount){
       sub+='<div class="rc-subrow"><span>Subtotal</span><span>'+money(t.grossSubtotal)+'</span></div>';
@@ -225,6 +226,7 @@ function buildReceiptCardHTML(r, actionsHTML){
       if(!hasDiscount) sub+='<div class="rc-subrow"><span>Subtotal</span><span>'+money(t.subtotal)+'</span></div>';
       sub+='<div class="rc-subrow"><span>Sales Tax ('+t.taxRate+'%)</span><span>'+money(t.tax)+'</span></div>';
     }
+    if(r.taxExempt && !(t.tax>0)) sub+='<div class="rc-subrow"><span>Sales Tax</span><span>EXEMPT</span></div>';   // 8z78 / 8z81
     if(t.surcharge>0){
       sub+='<div class="rc-subrow"><span>Card Surcharge ('+t.surchargeRate+'%)</span><span>'+money(t.surcharge)+'</span></div>';
     }
@@ -254,9 +256,13 @@ function buildReceiptCardHTML(r, actionsHTML){
   if(r.phone)   billTo+='<div class="rc-line">Phone: '+escapeHtml(r.phone)+'</div>';
   if(r.email)   billTo+='<div class="rc-line">Email: '+escapeHtml(r.email)+'</div>';
   if(r.address) billTo+='<div class="rc-line">Address: '+escapeHtml(r.address)+'</div>';
+  {const _w=whereLine(r); if(_w) billTo+='<div class="rc-line">'+escapeHtml(_w)+'</div>';}   // 8z81
   {const _v=vehicleString(r); if(_v) billTo+='<div class="rc-line">Vehicle: '+escapeHtml(_v)+'</div>';}
   if(r.vin)     billTo+='<div class="rc-line">VIN: '+escapeHtml(r.vin)+'</div>';
-  if(r.plate)   billTo+='<div class="rc-line">Plate: '+escapeHtml(r.plate)+'</div>';
+  moreVehList(r).forEach(function(l,i){ billTo+='<div class="rc-line">Vehicle '+(i+2)+': '+escapeHtml(l)+'</div>'; });   // 8z84
+  {const _d=d1Of(r); if(_d.color) billTo+='<div class="rc-line">Color: '+escapeHtml(_d.color)+'</div>';   // 8z90
+   if(_d.plate) billTo+='<div class="rc-line">Plate: '+escapeHtml(_d.plate)+'</div>';
+   if(_d.odometer && !r.nastf) billTo+='<div class="rc-line">Miles: '+escapeHtml(_d.odometer)+'</div>'; }
   if(r.odometer!==undefined && r.odometer!=="") billTo+='<div class="rc-line">Odometer: '+escapeHtml(r.odometer)+'</div>';
   if(r.dlNumber)billTo+='<div class="rc-line">DL #: '+escapeHtml(r.dlNumber)+'</div>';
 
@@ -308,6 +314,7 @@ function buildReceiptCardHTML(r, actionsHTML){
           return (line1||terms)?('<div style="margin-top:8px">'+line1+terms+'</div>'):'';
        })()+
        (r.notes?'<div class="rc-notes">Notes: '+escapeHtml(r.notes)+'</div>':'')+
+       (function(){ const L=exemptLines(r); return L.length?('<div class="rc-notes" style="font-style:normal"><b>'+escapeHtml(L[0])+'</b><br>'+L.slice(1).map(escapeHtml).join('<br>')+'</div>'):''; })()+
      '</div>'+
      (actionsHTML||'')+
    '</div>';
@@ -370,6 +377,7 @@ function shareDocument(r, lang, forCustomer){
 }
 
 function makePDF(r, lang, forCustomer){
+  r=docWithVehicles(r);   // 8z84
   lang = lang || "en";
   // Spanish is always customer-facing
   if(lang === "es") forCustomer = true;
@@ -430,13 +438,14 @@ function makePDF(r, lang, forCustomer){
   bl("Phone", r.phone);
   bl("Email", r.email);
   bl("Address", r.address);
+  if(r.serviceWhere==="shop") bl("Service", "In shop"+((SETTINGS&&SETTINGS.address)?(" — "+SETTINGS.address):"")); else if(r.serviceWhere==="mobile") bl("Service", "Mobile (we come to you)");   // 8z81
   bl("Vehicle", vehicleString(r));
   bl("VIN", r.vin);
+  moreVehList(r).forEach(function(l,i){ bl("Vehicle "+(i+2), l); });   // 8z84
   // DL #, Plate, Odometer are NASTF audit fields — hide from customer copy
   if(!forCustomer){
     bl("DL #", r.dlNumber);
-    bl("Plate", r.plate);
-    if(r.odometer!==undefined && r.odometer!=="") bl("Odometer", r.odometer);
+    { const _d=d1Of(r); bl("Color", _d.color); bl("Plate", _d.plate); if(_d.odometer!=="") bl("Odometer", _d.odometer); }   // 8z90
   }
 
   // ---- NASTF-specific blocks ----
@@ -520,7 +529,7 @@ function makePDF(r, lang, forCustomer){
   let toY=rY+22;
   doc.setFontSize(10);
   const hasDiscountP = t.discount>0;
-  if(t.tax>0 || t.surcharge>0 || hasDiscountP){
+  if(t.tax>0 || t.surcharge>0 || hasDiscountP || r.taxExempt){
     doc.setFont("helvetica","normal"); doc.setTextColor(...GRAY);
     if(hasDiscountP){
       doc.text(tr("Subtotal",lang),306,toY);
@@ -544,6 +553,7 @@ function makePDF(r, lang, forCustomer){
       doc.text(tr("Sales Tax",lang)+" ("+t.taxRate+"%)",306,toY);
       doc.text(money(t.tax),562,toY,{align:"right"}); toY+=15;
     }
+    if(r.taxExempt && !(t.tax>0)){ doc.text(tr("Sales Tax",lang),306,toY); doc.text("EXEMPT",562,toY,{align:"right"}); toY+=15; }   // 8z81
     if(t.surcharge>0){
       doc.text(tr("Card Surcharge",lang)+" ("+t.surchargeRate+"%)",306,toY);
       doc.text(money(t.surcharge),562,toY,{align:"right"}); toY+=8;
@@ -584,6 +594,11 @@ function makePDF(r, lang, forCustomer){
     doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
     doc.text(r.notes,40,nY+14,{maxWidth:520});
   }
+  { const L=exemptLines(r);   // 8z81: the exemption this sale relied on
+    if(L.length){ let eY = toY + 60 + (r.notes ? (28 + 12*Math.max(1, doc.splitTextToSize(String(r.notes),520).length)) : 0); if(eY>600) eY=600;
+      doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(50,50,50); doc.text(L[0],40,eY); eY+=11;
+      doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(90,90,90);
+      L.slice(1).forEach(function(line){ const parts=doc.splitTextToSize(String(line),250); parts.forEach(function(p){ if(eY<650){ doc.text(p,40,eY); eY+=9; } }); }); } }
 
   // signature
   if(r.signature){
@@ -637,8 +652,33 @@ function makePDF(r, lang, forCustomer){
     }catch(e){}
     return r;
   }
+  /* 8z84 (owner, 2026-11-12: "we need to be able to add a 2nd, 3rd vehicle … a couple that come in for multiple different
+     vehicles, or we go to them and do multiple cars"). r.moreVehicles = [{year, make, model, vin, text}] holds vehicles 2, 3…
+     (the first stays in vehYear / vehMake / vehModel / vin, so everything written before still works). A line that belongs
+     to one vehicle carries it.vehicle (its label); when printed, that label is added after the description. */
+  function moreVehList(r){ return (Array.isArray(r&&r.moreVehicles)?r.moreVehicles:[]).map(function(v){ if(!v) return ""; var n=[v.year,v.make,v.model].filter(Boolean).join(" ")||String(v.text||"").trim();
+  return [n, v.vin?("VIN "+v.vin):"", v.d1===true?("NASTF D1 — "+[v.color, v.odometer?(/^no /i.test(v.odometer)?v.odometer:(v.odometer+" mi")):"", v.plate?(/^no /i.test(v.plate)?v.plate:("tag "+v.plate)):""].filter(Boolean).join(", ")):""].filter(Boolean).join(" · "); }).filter(Boolean); }
+/* 8z90: colour / tag / miles of the first vehicle — a document keeps them at the top level, a Register sale inside its vehicle object */
+function d1Of(r){ var v=(r && typeof r.vehicle==="object" && r.vehicle)?r.vehicle:{}; return { color:String((r&&r.vehColor)||v.color||""), plate:String((r&&r.plate)||v.plate||""), odometer:String((r&&r.odometer!=null&&r.odometer!=="")?r.odometer:(v.odometer||"")) }; }
+  function docWithVehicles(r){ try{ if(!r || !Array.isArray(r.items) || !r.items.some(function(it){ return it && it.vehicle; })) return r;
+    return Object.assign({}, r, { items:r.items.map(function(it){ return (it && it.vehicle) ? Object.assign({}, it, { desc:String(it.desc||"")+" — "+it.vehicle }) : it; }) }); }catch(e){ return r; } }
+  /* 8z81: same two helpers as bittings.html (this file is that page's print code, copied for the Receipts tab) */
+  function exemptLines(r){ try{ return (r && r.taxExempt && window.TKS_EXEMPT) ? TKS_EXEMPT.certLines(r.taxExempt) : (r && r.taxExempt ? ["TAX EXEMPT"] : []); }catch(e){ return []; } }
+  function whereLine(r){ if(!r) return ""; if(r.serviceWhere==="shop") return "Service: In shop"+((SETTINGS&&SETTINGS.address)?(" — "+SETTINGS.address):""); if(r.serviceWhere==="mobile") return "Service: Mobile (we come to you)"; return ""; }
+  /* the document in the form the receipt printer takes (app/hardware.js thermal.tokens) */
+  function paperCopy(r){
+    const t=r.totals||computeTotals(r.items||[], r.payment, receiptTaxRate(r)), est=(r.docType==="estimate");
+    let wt=""; try{ wt=warrantyTermText(r)||""; }catch(e){}
+    return { number:r.number||"", date:r.date||"", docType:r.docType||"receipt", customer:r.noCustomer?"":(r.customer||""), technician:r.technician||"",
+      payment:est?"":(r.payment||""), status:est?"":(r.status||""),
+      items:(r.items||[]).filter(it=>it && !it.declined).map(it=>({ desc:String(it.desc||"")+(it.vehicle?(" - "+it.vehicle):""), amount:it.amount, qty:parseInt(it.qty,10)||1, isDiscount:!!it.isDiscount })),
+      moreVehicles:moreVehList(r).map(l=>l.replace(/\s*\u00b7\s*/g," - ")),
+      totals:t, vehicleText:vehicleString(r)||"", vin:r.vin||"", serviceWhere:r.serviceWhere||"", taxExempt:r.taxExempt||null,
+      exemptLabel:(r.taxExempt && window.TKS_EXEMPT)?TKS_EXEMPT.label(r.taxExempt).replace(/\s*\u00b7\s*/g," - "):"", warrantyText:wt, notes:r.notes||"" };
+  }
   window.TKS_RECEIPTS = {
     normalize: _normalize,
+    paperCopy: function(r){ _syncSettings(); return paperCopy(_normalize(r)); },
     buildCardHTML: function(r, actionsHTML){ _syncSettings(); return buildReceiptCardHTML(_normalize(r), actionsHTML); },
     makePDF:       function(r, lang, forCustomer, returnBlob){ _syncSettings(); return makePDF(_normalize(r), lang, forCustomer, returnBlob); },
     share:         function(r, lang, forCustomer){ _syncSettings(); return shareDocument(_normalize(r), lang, forCustomer); },

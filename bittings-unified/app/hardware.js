@@ -47,7 +47,8 @@
       endpoint: 'http://localhost:8001/StarWebPRNT/SendMessage',
       width: 48,            // columns (Font A: 80mm≈48, 58mm≈32)
       drawerKick: true,
-      printLogo: false,     // off until verified on the real printer
+      printLogo: false,     // off until verified on the real printer (Star WebPRNT mode only)
+      logo: true,           // 8z81: shop logo at the top of the receipt (Bittings Print Helper mode)
       autoPrint: false,     // C-#14: print the customer receipt automatically on every sale
       copies: 1
     },
@@ -294,8 +295,15 @@
       // meta
       var num = r.number || r.id || '';
       var date = r.date || (new Date()).toISOString().slice(0, 10);
-      line(row('Receipt: ' + num, date, w));
+      // 8z80: documents from the Receipts screen print here too — say what it is, and carry the vehicle
+      var docWord = r.docType === 'invoice' ? 'Invoice' : (r.docType === 'estimate' ? 'Estimate' : 'Receipt');
+      if ((docWord + ': ' + num).length + String(date).length + 1 > w) { line(docWord + ': ' + num); line(String(date)); }
+      else line(row(docWord + ': ' + num, date, w));
       if (r.customer) line(row('Customer: ' + r.customer, '', w));
+      if (r.vehicleText) wrap('Vehicle: ' + r.vehicleText, w).forEach(function (l) { line(l); });
+      if (r.vin) line('VIN: ' + r.vin);
+      (r.moreVehicles || []).forEach(function (l, i) { wrap('Vehicle ' + (i + 2) + ': ' + l, w).forEach(function (x) { line(x); }); });   // 8z84
+      if (r.serviceWhere === 'shop') line('Service: In shop'); else if (r.serviceWhere === 'mobile') line('Service: Mobile');
       if (r.technician) line(row('Served by: ' + r.technician, '', w));
       T.push({ t: 'rule' });
 
@@ -318,12 +326,21 @@
       var sub = (t.subtotal != null) ? t.subtotal : (t.grossSubtotal || 0);
       if (t.grossSubtotal != null) line(row('Subtotal', money(t.grossSubtotal), w));
       if (t.discount) line(row('Discount', '-' + money(t.discount), w));
-      if (t.tax != null) line(row('Tax' + (t.taxRate ? ' (' + t.taxRate + '%)' : ''), money(t.tax), w));
+      if (r.taxExempt) line(row('Tax', 'EXEMPT', w));   // 8z80
+      else if (t.tax != null) line(row('Tax' + (t.taxRate ? ' (' + t.taxRate + '%)' : ''), money(t.tax), w));
       if (t.surcharge) line(row('Card surcharge', money(t.surcharge), w));
       // 8z26d: the big TOTAL prints ~1.7x wider, so it gets its own narrower row (amount was cut off)
       line(row('TOTAL', money(t.total != null ? t.total : sub), Math.floor(w / 1.75)), 'left', true, true);
-      if (r.payment) { T.push({ t: 'rule' }); line(row('Paid by', r.payment, w)); }
-      if (r.status) line(row('Status', r.status, w));
+      if (r.docType === 'estimate') { T.push({ t: 'rule' }); line('ESTIMATE - valid 30 days', 'center'); }
+      else {
+        if (r.payment) { T.push({ t: 'rule' }); line(row(r.docType === 'invoice' ? 'Payment' : 'Paid by', r.payment, w)); }
+        if (r.status) line(row('Status', r.status, w));
+      }
+      // 8z80: the exemption the sale relied on, the warranty and the customer note
+      if (r.taxExempt) { T.push({ t: 'rule' });
+        wrap('Tax exempt: ' + (r.exemptLabel || r.taxExempt.kindLabel || '') + (r.taxExempt.holderName ? ' - ' + r.taxExempt.holderName : ''), w).forEach(function (l) { line(l); }); }
+      if (r.warrantyText) { T.push({ t: 'rule' }); wrap(String(r.warrantyText), w).forEach(function (l) { line(l); }); }
+      if (r.notes) { T.push({ t: 'rule' }); wrap('Note: ' + String(r.notes), w).forEach(function (l) { line(l); }); }
 
       // footer
       T.push({ t: 'rule' });
@@ -444,10 +461,44 @@
       });
       return { lines: out, drawer: drawer };
     }
-    function printReceipt(r) {
-      if (!prefs.thermal.enabled) return Promise.reject(new Error('Thermal printing is disabled in Hardware settings.'));
-      if ((prefs.thermal.mode || 'helper') === 'helper') { var job = helperLines(r);
-        return helperCall('/receipt', { lines: job.lines, cols: prefs.thermal.width || 48, drawer: job.drawer && prefs.thermal.drawerKick, copies: Math.max(1, prefs.thermal.copies || 1) }); }
+    /* 8z81 (owner: "how can I print my logo on the receipt?"): the shop logo from Settings, made printer-friendly —
+       cropped to the artwork (logo files carry a lot of empty margin), every coloured or grey pixel turned solid black
+       (a thermal printer has no grey), white background. A logo drawn light-on-dark is flipped. Returns base64 PNG, or ''. */
+    var _logo = { src: null, data: '' };
+    function logoForHelper() {
+      return new Promise(function (resolve) {
+        var src = identity().logo; if (!src) return resolve('');
+        if (_logo.src === src) return resolve(_logo.data);
+        var done = function (d) { _logo = { src: src, data: d || '' }; resolve(d || ''); };
+        var img = new Image();
+        img.onload = function () { try {
+          var k = Math.min(1, 900 / img.width), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+          var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+          var d = x.getImageData(0, 0, c.width, c.height), p = d.data, n = c.width * c.height, dark = 0, i;
+          for (i = 0; i < n; i++) { if (0.299 * p[i * 4] + 0.587 * p[i * 4 + 1] + 0.114 * p[i * 4 + 2] < 225) dark++; }
+          var flip = dark > n * 0.55, minX = c.width, minY = c.height, maxX = -1, maxY = -1;
+          for (var yy = 0; yy < c.height; yy++) for (var xx = 0; xx < c.width; xx++) { i = (yy * c.width + xx) * 4;
+            var isDark = (0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) < 225, ink = flip ? !isDark : isDark;
+            p[i] = p[i + 1] = p[i + 2] = ink ? 0 : 255; p[i + 3] = 255;
+            if (ink) { if (xx < minX) minX = xx; if (xx > maxX) maxX = xx; if (yy < minY) minY = yy; if (yy > maxY) maxY = yy; } }
+          if (maxX < 0) return done('');
+          x.putImageData(d, 0, 0);
+          var w = maxX - minX + 1, h = maxY - minY + 1, o = document.createElement('canvas'); o.width = Math.min(420, w); o.height = Math.max(1, Math.round(h * o.width / w));
+          var ox = o.getContext('2d'); ox.fillStyle = '#fff'; ox.fillRect(0, 0, o.width, o.height); ox.drawImage(c, minX, minY, w, h, 0, 0, o.width, o.height);
+          done(String(o.toDataURL('image/png')).split(',')[1] || '');
+        } catch (e) { done(''); } };
+        img.onerror = function () { done(''); };
+        img.src = src;
+      });
+    }
+    function printReceipt(r, opt) {
+      opt = opt || {};
+      if (!prefs.thermal.enabled && !opt.force) return Promise.reject(new Error('Thermal printing is disabled in Hardware settings.'));
+      if ((prefs.thermal.mode || 'helper') === 'helper' || opt.force) { var job = helperLines(r);
+        var send = function (logo) { var body = { lines: job.lines, cols: prefs.thermal.width || 48, drawer: job.drawer && prefs.thermal.drawerKick && !opt.noDrawer, copies: Math.max(1, prefs.thermal.copies || 1) };
+          if (logo) body.logo = logo; return helperCall('/receipt', body); };
+        if (prefs.thermal.logo === false) return send('');
+        return logoForHelper().then(send, function () { return send(''); }); }   // a logo problem never stops the receipt
       if (!sdkReady()) return Promise.reject(new Error('Star Web SDK not loaded — add StarWebPrintBuilder.js + StarWebPrintTrader.js (see Hardware settings).'));
       var copies = Math.max(1, prefs.thermal.copies || 1);
       var chain = buildRequest(r, { drawer: wantsDrawer(r), logo: true }).then(function (req) { return send(req); });
@@ -463,7 +514,8 @@
       openDrawer: openDrawer,
       previewText: previewText,
       sdkReady: sdkReady,
-      _tokens: tokens
+      _tokens: tokens,
+      logoForHelper: logoForHelper
     };
   })();
 
@@ -709,7 +761,7 @@
       + '<div style="flex:1">' + field('Copies', '<input id="hwThCopies" type="number" min="1" max="3" value="' + (th.copies || 1) + '" style="' + inputCss() + '">') + '</div>'
       + '</div>'
       + '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px"><input type="checkbox" id="hwThKick"' + (th.drawerKick ? ' checked' : '') + '> Kick cash drawer on print</label>'
-      + '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px"><input type="checkbox" id="hwThLogo"' + (th.printLogo ? ' checked' : '') + '> Print shop logo (verify on hardware first)</label>'
+      + '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px"><input type="checkbox" id="hwThLogo"' + (th.logo !== false ? ' checked' : '') + '> Print the shop logo at the top of the receipt</label>'
       + '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px"><input type="checkbox" id="hwThAuto"' + (th.autoPrint ? ' checked' : '') + '> Auto-print the receipt on every sale (a printer problem never blocks the sale)</label>'
       + '<div>' + btn('Preview', 'hwThPrev') + btn('Test print', 'hwThTest', 'go') + '</div>'
       + '</div>'
@@ -751,7 +803,7 @@
       prefs.thermal.width = parseInt($('hwThW').value, 10) || 48;
       prefs.thermal.copies = Math.max(1, Math.min(3, parseInt($('hwThCopies').value, 10) || 1));
       prefs.thermal.drawerKick = $('hwThKick').checked;
-      prefs.thermal.printLogo = $('hwThLogo').checked;
+      prefs.thermal.logo = $('hwThLogo').checked; prefs.thermal.printLogo = prefs.thermal.logo;
       prefs.thermal.autoPrint = $('hwThAuto').checked;
       prefs.labels.enabled = $('hwLbEn').checked;
       prefs.labels.deviceUid = $('hwLbDev').value;
@@ -806,7 +858,25 @@
   // ---- boot ---------------------------------------------------------------
   scan.start();
 
+  /* 8z81: printDoc(copy, o) — copy = the receipt in thermal form; o = { btn, reprint, paidAt, fullPage(), ask(title, body) → Promise<bool>, alert(title, body) }.
+     Sends straight to the helper on this computer. Nothing listening here → asks to open the full-page copy instead.
+     The cash drawer opens only for a payment taken in the last 10 minutes, never on a reprint. */
+  function printDoc(copy, o) {
+    o = o || {}; var btn = o.btn || null, was = btn ? btn.textContent : '';
+    var restore = function () { if (btn) { btn.textContent = was; btn.disabled = false; } };
+    var noPrinter = function () { restore();
+      var ask = o.ask || function (t, b) { return Promise.resolve(window.confirm(t + '\n\n' + b)); };
+      ask('No receipt printer on this computer', 'The receipt printer is connected to the counter computer. Open a full-page copy to print on this computer\'s own printer instead?').then(function (ok) { if (ok && o.fullPage) o.fullPage(); }); };
+    if (btn) { btn.disabled = true; btn.textContent = '🖨 Printing…'; }
+    var fresh = !o.reprint && o.paidAt && (Date.now() - Number(o.paidAt) < 10 * 60000);
+    return thermal.printReceipt(copy, { force: true, noDrawer: !fresh }).then(function () { if (btn) { btn.textContent = '✓ Sent to the printer'; setTimeout(restore, 2500); } return true; },
+      function (e) { var m = String((e && e.message) || '');
+        if (/reach the Bittings Print Helper/i.test(m)) { noPrinter(); return false; }
+        restore(); (o.alert || function (t, b) { window.alert(t + '\n\n' + b); })('Did not print', (m || 'The printer did not answer.') + ' Check that the receipt printer is on and has paper.'); return false; });
+  }
+
   window.TKS_HW = {
+    printDoc: printDoc,
     prefs: function () { return prefs; },
     save: persist,
     scanner: scan,

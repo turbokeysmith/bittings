@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-11-12 07:30 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-11-12 15:30 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -407,6 +407,190 @@ From the repo folder:
 
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
+
+### 2026-11-12, late afternoon (Register ticket · receiving is assigned · automatic key prices · one-tap reprice · D1 form + photos) — LIVE, not committed yet
+- **Register ticket (8z85).** Owner: "the select-customer box covers the product description." The ticket table could not
+  shrink and slid under the customer box. SKU now sits under the description (one column fewer), the ticket can never be
+  wider than its column, and under ~1100 px the customer box drops below the ticket.
+- **Receiving has to be assigned (8z86).** Owner: "it gave him the option without me telling him he can. I need to assign
+  the receivables to him." Inventory → 📥 Receive: the owner / a manager picks the person (+ optional note); the Receive
+  tab and "+ Add" open on that login until they tap **Finished**; the owner then sees what was booked in. Server:
+  `receive_tasks`, `receive_task_assign / _close`, `receive_tasks_list`; `inv_add_new` refuses a non-manager with no
+  open task. **Not changed:** receiving more of one existing item from its stock panel (📍 → Receive) is still open to
+  technicians (8z9, owner's earlier request) — say the word and it gets the same gate.
+- **Automatic key prices (8z87).** Owner asked for a percentage: he had been at about 5× cost (80% margin; his medians:
+  smart key cost $55 → $222.50, remote-head $25 → $115, transponder $7 → $25) and found it too high once programming, the
+  service call and travel are added. Suggested and set as the starting point: keys (remote-head, flip, transponder,
+  remote) = cost + 150% (2.5×, 60% margin); smart keys = cost + 200% (3×, 67% margin); rounded up to the next $5; never
+  under $25 / $75. All in Settings › Inventory › Automatic key prices. On the new-item form the price fills itself from
+  the cost; a price typed by hand is never overwritten (one-tap "Use $X").
+- **One-tap reprice (8z89).** Same block: "Change every key's price to these rules…" → shows how many go up / down, a
+  list, a file — nothing changes until confirmed; then all at once (`inv_reprice_apply`), with **Undo**
+  (`inv_reprice_undo`, leaves alone any price changed by hand since). Keys with no cost are skipped and counted.
+- **D1 form (8z90).** Owner: color, miles and tag # are required ("no tag / no miles can be selected, but it has to be
+  selected"), in the builder AND at the Register; each extra vehicle is asked "NASTF D1 for this vehicle?" Yes / No, with
+  its own three answers; licence + proof of ownership (one per D1 vehicle) are filed against the receipt
+  (`receipt_docs` + private bucket `receipt-docs`, 8z88). On a computer the receipt shows a **QR code** — a phone signed
+  in to Bittings scans it and lands on that receipt's photo page (`bittings.html?docs=<id>`) — plus "Upload from this
+  computer"; on a phone it is a camera button. Photos do NOT block the sale (a failed upload in the field must never
+  stop a job); the box says in red what is missing.
+- **Found, not fixed:** Settings → Time clock "Enable the time clock & lock" is never saved (`TKS.Config.save` ignores
+  the `timeclock` group). Left alone on purpose: fixing it would let the counter computer start locking after 5 idle
+  minutes while nobody has a 6-digit PIN yet. Decide with the owner.
+- **Owner's note for later:** many imported keys are missing their website link and "fits" list — do last.
+- **Tested:** `rebuild-d1-test.js` (12), `rebuild-stock-add-test.js` (36), every older suite, sweep 0; database trials
+  on the QA shop for 8z86 / 8z88 / 8z89 (rolled back). **Not tested:** a real photo upload, the QR scan on a real phone,
+  the Register D1 sale end to end, a real bulk reprice.
+
+### 2026-11-12, mid-afternoon (🚗 more than one vehicle on a document and on a job) — LIVE, not committed yet
+- **Owner:** "we need to be able to add a 2nd, 3rd vehicle … a couple that come in for multiple different vehicles, or we
+  go to them and do multiple cars."
+- **Quote / invoice / receipt:** "➕ Add another vehicle" under the vehicle. Each extra vehicle has its own year / make /
+  model, VIN look-up, free-text description and its own **key list** with prices. Once there are two or more vehicles
+  every line asks "For which vehicle?" (a key added from a vehicle's list is already tied to it; a typed line starts as
+  "the whole job"). The printed copy, the PDF and the paper receipt list every vehicle and add the vehicle after each
+  line that belongs to one. Removing a vehicle hands its lines back to "the whole job".
+- **Scheduler job:** "➕ Add another vehicle" on the job form (year / make / model / VIN each); the card shows them; they
+  travel estimate → job → invoice.
+- **Not done:** the job form's key picker (which reserves keys for the van) still works for the FIRST vehicle only —
+  keys for the others are added on the invoice. NASTF D1 paperwork is still for the first vehicle; a second D1 vehicle
+  needs its own document. Job charges do not remember which vehicle a line is for (the invoice does).
+- **Tested:** `tools/qa/rebuild-multiveh-test.js` (13 checks) + every older suite. **Not tested:** on a real phone.
+
+### 2026-11-12, mid-afternoon (🖨 Receipts tab + logo · estimates that were converted · Reorder · wages by pay day · 📥 Receive task) — LIVE, not committed yet
+- **Receipts tab prints on the receipt printer too.** The owner found that Print inside the app's Receipts tab still
+  opened a PDF (that tab uses its own copy of the print code, `app/receipts-engine.js` + `receipts-view.js`). One shared
+  routine now: `TKS_HW.printDoc`. Every row has 🖨 Print; so does the opened receipt and the read-only viewer. That copy
+  of the print code also learned tax-exempt and In shop (it did not show them).
+- **Logo on the paper receipt** (owner: "how can I print my logo on the receipt?"). The shop logo from Settings is
+  cropped to the artwork, turned solid black (a thermal printer has no grey) and drawn above the text. On by default;
+  switch: Inventory → 🖨️ Hardware → "Print the shop logo at the top of the receipt". **The counter computer's print
+  helper was updated for this** (`helper.js` + `print.ps1`, backups `*.bak-20261112*` beside them). `print.ps1` gained
+  `-Action preview` (draws the receipt into a PNG instead of on paper) — the layout was checked that way on the real
+  Star driver before switching it on. **Not yet seen on paper.**
+- **A converted estimate disappears** (owner: "if it has been converted then we don't need to see it again"). An estimate
+  that became an invoice / receipt (`fromEstimate`) is no longer listed in the Receipts tab, History or Estimates. The
+  record is kept and comes back if that invoice is deleted. Jobs billed from a scheduled estimate carry `fromEstimate` too.
+- **Duplicate service removed** (owner): "Push-to-start programming" — same thing as "Smart / proximity key programming"
+  ($125). Taken out of the shop's list (33 → 32 services) and out of the built-in catalog.
+- **Reorder** (owner: "I have things at 0 quantity … it says nothing to reorder"): no item had a low-stock point, so
+  nothing ever counted as low. Out of stock now always counts (`TKS.Inventory.isLow`); 98 items at zero show OUT and
+  appear on the Reorder list.
+- **Wages in Reports count on the pay day** (owner: "no wages for last month"): he had marked eleven past periods paid
+  in one sitting on 11 Nov, so all landed in November. `payroll_paid` now uses each period's pay day (8z79b):
+  October shows 2 periods ($2,477.75), November 1 ($1,346.50).
+- **📥 Receive task** (owner: "how can Jayden receive inventory and add keys we don't have … I need him to be able to
+  edit prices and cost when adding keys. I want it as a task like Reconcile"). Inventory → **📥 Receive** tab (all staff):
+  search an item → type how many came in → Receive; "➕ New item" opens the full form — name, price, cost, manufacturer,
+  supplier, website link, what it fits, quantity — also for a technician (server `inv_add_new`, 8z83 / 8z83b). The same
+  SKU cannot be added twice. On items that already exist a technician still cannot change name / price / cost / quantity.
+  An item added without a price shows **NO PRICE** in the stock list.
+- **Tested:** `rebuild-print-test.js` (24), `rebuild-stock-add-test.js` (17), every older suite, database trials (8z79b
+  on the shop's real pay records read-only-style in a rolled-back transaction; 8z83 / 8z83b 12 cases on the QA shop).
+  **Not tested:** any of it on a real phone; the logo on real paper; a technician's real login adding a real key.
+
+### 2026-11-12, afternoon (🖨 paper receipt from the Receipts screen) — LIVE, not committed yet
+- **Why:** the owner made an estimate, turned it into an invoice, took a card payment (receipt TKS-2026-1112C, $325, paid,
+  first real tax-exempt sale) and could not print it: only the Register could reach the receipt printer; the Receipts /
+  invoice screen could only save or send a PDF.
+- **Now:** 🖨 **Print** on the finished document, on both "payment went through" boxes and on every History row. If the
+  computer has the Bittings Print Helper (the counter computer with the Star printer) it prints there — even when
+  "thermal" was never switched on in Hardware settings. On any other computer it says there is no receipt printer and
+  offers the full-page PDF for that computer's own printer. The cash drawer opens only for cash / check paid in the last
+  10 minutes, never on a reprint. The slip now names the document (Receipt / Invoice / Estimate) and carries the
+  vehicle, VIN, In shop / Mobile, "Tax EXEMPT" with the exemption, the warranty line and the customer note.
+- **Tested:** `tools/qa/rebuild-print-test.js` (13 checks, stand-in print helper). **Not tested:** on the real counter
+  computer and printer.
+- **First real try failed (owner: "it's printing as a PDF, not to the Star printer"). Two causes, both fixed 13:15 CST:**
+  (1) the button asked the helper for `/status` first and gave up after 3 s — on the counter computer that check alone
+  takes ~2.8 s (it starts PowerShell), so it always fell back to the PDF. It now sends the receipt straight to
+  `/receipt`; only "nothing listening on this computer" offers the PDF. (2) The helper installed on the counter computer
+  was the old copy that refuses `https://bittings.app`. It was replaced with the repo copy over WinRM and restarted
+  (old file kept as `C:\ProgramData\BittingsPrint\helper.js.bak-20261112`); checked: answers bittings.app and
+  turbokeysmith.com, refuses any other site. **Still not seen printing from the Receipts screen on the real printer.**
+
+### 2026-11-12, early afternoon (🏛 tax-exempt sales · 🏪 In shop · 📋 Estimates list · 💵 pay in Reports) — LIVE, not committed yet
+- **Tax exempt** (owner: "get tax exempt as an option with whatever we need … to be compliant"). A **Tax exempt** button on
+  every quote, invoice and receipt, and on a Scheduler job's charges. It records the customer's certificate once and
+  offers it again next time. While it is on, the document's tax rate is 0 and the document carries a snapshot of the
+  certificate; the printed copy and the PDF say EXEMPT with the permit details and the certification wording.
+  What it asks for follows the Oklahoma rules (OAC 710:65-7-6 to 7-17, read 2026-11-12 from the Cornell LII copy):
+  resale = name, address, type of business, permit number, signature · exempt organisation = letter / card photo + signed
+  statement · 100% disabled veteran = the card seen at every sale (tick box), photo or name / address / number ·
+  agricultural / manufacturer permit · other. The paper must be in hand within 90 days of the sale: Settings → Sales tax
+  lists every certificate, what is still owed and the days left; the owner can mark "I checked this permit" (OkTAP
+  look-up) or withdraw one. Nothing is ever deleted. **Reports** has a "Tax-exempt sales" card and a file for the return.
+  **Not done: the Register.** Its checkout takes the tax rate from the server (8b, on purpose), so an exempt counter sale
+  goes through Receipts / an invoice for now. Adding it means changing `pos_checkout` — do that with the owner present.
+  **Not legal advice** — the owner should have his accountant confirm the wording and how long to keep records (the
+  retention period was not in the pages read).
+- **In shop / Mobile** on a quote, invoice, receipt and on the job form (owner: "select in shop on the estimate if a
+  customer calls and says they will be coming into the shop"). Optional. Prints "Service: In shop — <shop address>";
+  the job form hides the address; the job card says "🏪 In shop".
+- **Estimates list** (owner: "see all the estimates we created and be able to edit or add to schedule easily"). Menu →
+  📋 Estimates (also a button on the Receipts home). Every estimate with **📅 Schedule** and **✏️ Edit** first (any role),
+  search by name / phone / number / vehicle, and "📅 On the schedule <date>" once a job was booked from it.
+- **Pay in Reports** (owner: "add salaries and commissions paid including employees and contractors"). A card under the
+  profit card: hourly wages marked paid in the period (owner only), commission earned, contractors marked paid, total,
+  and "Left after pay" = profit − wages − commission (contractors are already taken off the profit, not twice).
+- **Tested:** `tools/qa/rebuild-exempt-estimates-test.js` (37 checks) + database trials on the QA shop (8z78: 18 cases,
+  8z79: 5 cases, rolled back) + every older suite + dark-mode sweep 0. **Not tested:** on a real phone; a real photo
+  upload of a permit (the storage rules were only checked to exist); the camera on iPhone / Android.
+
+### 2026-11-12, midday (🔢 My PIN for everyone · clock in by PIN on the shop computer) — LIVE, not committed yet
+- **Why:** the owner marked the shop computer (rule in force 11:31 CST) and then reported "he doesn't have a settings to add
+  a PIN". Two gaps: "My PIN" was only in Settings → Access & managers, which a technician cannot open; and the shop computer
+  had no quick way to clock a technician in — the lock screen answers a not-yet-clocked-in teammate's PIN with "start the
+  day with a full login", so the only way in was signing the computer out and in again with e-mail + password.
+- **My PIN** is now in the menu (🔢) for every signed-in person: 4 digits for staff, 6 for manager / owner. A technician's
+  phone that cannot clock in offers "Set my PIN" when he has none.
+- **Clock in by PIN** on a marked shop computer: a button in the top bar (whoever is signed in — the computer stays signed in
+  as it was) and on the lock screen (type PIN, press ✓). Server: `shift_clock_in_pin` (8z77) — shop computer only, 5 wrong
+  tries per 5 minutes, clock-IN only. Clock-out is unchanged (own phone or own login).
+- **At the time of writing nobody at Turbo Keysmith had a PIN** (owner and technician both without). The technician sets
+  his from his phone: menu → My PIN.
+- **Tested:** `tools/qa/rebuild-pinclock-test.js` (19 checks) + database trial on the QA shop (18 cases, rolled back).
+  **Not tested:** on a real phone or the real shop computer.
+
+### 2026-11-12, late morning (🔑 keys on the Quick quote · ⏱ technicians clock in at the shop only) — LIVE, not committed yet
+- **Quick quote: pick a vehicle, see the keys.** Choose year / make / model (or type a VIN) on a quote, invoice or receipt and
+  a "Keys for <vehicle>" box appears under it: every key in stock that fits, grouped (smart keys, flip keys, remotes,
+  transponders…), with OEM / aftermarket, FCC ID, chip, SKU, how many are on the shelf and the shelf price. "+ Add" puts the
+  key on the document as a line at that price. Keys that only list the make and year are held back under "might fit".
+  Above the list: what the shop's own vehicle reference says (keyway, chip system, how it is programmed, NASTF / OEM-only).
+  It is the Scheduler's matcher, moved to one shared place (checked on the real stock list: 1,260 look-ups, identical results).
+- **Technicians clock IN on a shop computer only; clock OUT anywhere** (owner: "cannot be done on mobile … they can clock
+  out on their phone, but never in"). Enforced by the database, not just the button. Owners, managers and front desk are not
+  affected. The rule is switched on for Turbo Keysmith.
+  **IN FORCE since 2026-11-12 11:31 CST: the owner marked the shop computer ("Workstation · Win32", confirmed in shop_devices).** How a computer is marked: on that computer, sign in as owner → Settings → Time clock &
+  lock → tick "This device is a shop computer". Until then phones keep working (otherwise a technician could not clock in at
+  all). The mark is per browser and per address (turbokeysmith.com/staff and bittings.app are separate) — mark the one the
+  shop computer actually uses. Clearing that browser's data removes the mark; tick it again.
+- **Tested:** `tools/qa/rebuild-quotekeys-clock-test.js` (24 checks) + the database rule trial on the QA shop (14 cases,
+  rolled back) + every older suite. **Not tested:** on a real phone; with a real marked shop computer.
+
+### 2026-11-12, mid-morning (🔗 pay-by-link) — LIVE, waiting for the owner's one real test payment; not committed yet
+The owner: "send a link for payment when out in the field … just do a link for mobile and keep the surcharge for the shop."
+- **What staff see.** Pay Now on an unpaid invoice has a third way: **🔗 Send link**. "Create pay link" → the link, a green
+  "💬 Text it to (405) …" button (opens the phone's own text app, addressed to the customer, message written), Share… and Copy.
+- **What the customer sees.** A small page (`pay.html`: shop, invoice number, amount, one Pay button) and then **Stripe's own
+  checkout page**. The card number never touches Bittings. After paying: "Paid — thank you".
+- **No 2% surcharge on a link** (owner decision). The reader and typed card keep it. Reports count a link as a card payment
+  with the typed-card fee rate (2.9% + 30¢ by default).
+- **The invoice marks itself paid.** Stripe tells the server (`stripe-webhook`), which writes the payment and marks the
+  invoice paid; phones pick it up on their next refresh and the stock catch-up takes the parts off. The sheet does not need
+  to stay open. The link never expires, always charges the invoice's current total, and shows "Paid" once it is paid.
+- **Safety.** A link carries a key only the server can make (a guessed invoice number shows nothing). Money can only be
+  recorded against an invoice of the shop whose own Stripe account received it. The webhook change is an addition that only
+  runs when no payment row exists for the payment AND it was made by a pay link; the reader / typed-card path is unchanged
+  (the live webhook was downloaded first and was identical to the repo copy).
+- **Tested:** `tools/qa/paylink-unit-test.mjs` (17 checks on the server code itself) and `tools/qa/rebuild-paylink-test.js`
+  (17 browser checks with a stand-in for Stripe); live: guessed links refused, sign-in needed to create, only our two addresses
+  may call it, the pay page works on both addresses. **NOT tested: a real payment.** That needs the owner: make a $1 invoice,
+  Pay Now → Send link → pay it with his own card, then check the invoice turned to Paid and the payment is in Reports.
+- **Not done:** Apple Pay / Google Pay appear only if they are switched on in the shop's Stripe settings; a link payment for
+  an invoice that was edited after the customer opened Stripe's page charges the amount shown at that moment; texting goes
+  from the phone's own number (no texting service).
 
 ### 2026-11-12, morning (💰 true profit · ⚡ job form freeze · ▾ pick-lists · bottom bar) — LIVE, not committed yet
 The owner did a job from the Scheduler, took payment as "Other", and reported three things from his phone. All fixed and live

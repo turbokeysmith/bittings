@@ -1,6 +1,8 @@
 # Bittings Print Helper — the printing half (called by helper.js). Reads the job as JSON on stdin.
 #   -Action status  → printers found
 #   -Action receipt → draws the receipt lines through the Star driver (80 mm), then kicks the cash drawer if asked
+#                     (8z81: a "logo" field — base64 PNG — is drawn centred above the text)
+#   -Action preview → the same drawing into a PNG file ("out" in the job) instead of on paper — for checking a layout
 #   -Action zpl     → sends raw ZPL to the Zebra
 #   -Action drawer  → only kicks the drawer
 param([string]$Action = 'status')
@@ -39,17 +41,22 @@ switch ($Action) {
   'status' { @{ receiptPrinter = $star; labelPrinter = $zebra; printers = @((Get-CimInstance Win32_Printer).Name) } | ConvertTo-Json -Compress; break }
   'drawer' { Kick-Drawer; 'ok'; break }
   'zpl'    { if (-not $zebra) { throw 'no Zebra printer' }; $j = $in | ConvertFrom-Json; [BtRaw]::Send($zebra, [Text.Encoding]::UTF8.GetBytes([string]$j.zpl), 'Bittings label'); 'ok'; break }
-  'receipt' {
+  { $_ -in 'receipt', 'preview' } {
     if (-not $star) { throw 'no Star printer' }
     $j = $in | ConvertFrom-Json
     $lines = @($j.lines)
     $script:cols = if ([int]$j.cols -gt 0) { [int]$j.cols } else { 48 }
-    for ($c = 0; $c -lt [int]$j.copies; $c++) {
+    # 8z81: the shop logo. A logo that cannot be read is skipped — it must never stop a receipt.
+    $script:logoImg = $null
+    if ($j.logo) { try { $lb = [Convert]::FromBase64String([string]$j.logo); $lms = New-Object System.IO.MemoryStream(, $lb); $script:logoImg = [System.Drawing.Image]::FromStream($lms) } catch { $script:logoImg = $null } }
+    $copies = if ($Action -eq 'preview') { 1 } else { [Math]::Max(1, [int]$j.copies) }
+    for ($c = 0; $c -lt $copies; $c++) {
       $doc = New-Object System.Drawing.Printing.PrintDocument
       $doc.PrinterSettings.PrinterName = $star
       $doc.DocumentName = 'Bittings receipt'
       $doc.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(4, 4, 4, 4)
       $script:idx = 0
+      $pc = $null; if ($Action -eq 'preview') { $pc = New-Object System.Drawing.Printing.PreviewPrintController; $doc.PrintController = $pc }
       $doc.add_PrintPage({ param($s, $e)
         $g = $e.Graphics; $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::SingleBitPerPixelGridFit
         $W = $e.MarginBounds.Width; $y = $e.MarginBounds.Top
@@ -59,6 +66,9 @@ switch ($Action) {
         # 8z26d: darker — everything prints bold (thermal paper + thin Consolas looked faint)
         $fN = New-Object System.Drawing.Font('Consolas', $pt, [System.Drawing.FontStyle]::Bold); $fB = $fN
         $fBig = New-Object System.Drawing.Font('Consolas', [Math]::Min(16, $pt * 1.7), [System.Drawing.FontStyle]::Bold)
+        if ($script:logoImg -and $script:idx -eq 0) { try {
+          $lw = [Math]::Min($W * 0.6, 200); $lh = $lw * $script:logoImg.Height / $script:logoImg.Width
+          $g.DrawImage($script:logoImg, [single]($e.MarginBounds.Left + ($W - $lw) / 2), [single]$y, [single]$lw, [single]$lh); $y += [Math]::Ceiling($lh) + 6 } catch { } }
         while ($script:idx -lt $lines.Count) {
           $ln = $lines[$script:idx]; $script:idx++
           $f = if ($ln.big) { $fBig } elseif ($ln.bold) { $fB } else { $fN }
@@ -71,7 +81,8 @@ switch ($Action) {
         $e.HasMorePages = $false
       })
       $doc.Print()
+      if ($pc) { $pv = $pc.GetPreviewPageInfo(); $pv[0].Image.Save([string]$j.out, [System.Drawing.Imaging.ImageFormat]::Png); "page $($pv[0].PhysicalSize.Width)x$($pv[0].PhysicalSize.Height)" }
     }
-    if ($j.drawer) { Start-Sleep -Milliseconds 400; Kick-Drawer }
+    if ($j.drawer -and $Action -ne 'preview') { Start-Sleep -Milliseconds 400; Kick-Drawer }
     'ok'; break }
 }

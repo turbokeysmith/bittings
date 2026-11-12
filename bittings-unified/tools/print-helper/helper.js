@@ -50,7 +50,8 @@ http.createServer(async (req, res) => {
       return send(res, 200, Object.assign({ ok: true, helper: 'bittings-print-helper', version: 1 }, r.ok ? JSON.parse(r.out || '{}') : { error: r.err }));
     }
     if (req.method === 'POST' && req.url === '/receipt') {
-      const b = await body(req); const job = JSON.stringify({ lines: (b.lines || []).slice(0, 400), drawer: !!b.drawer, cols: Math.min(64, Math.max(24, b.cols | 0 || 48)), copies: Math.min(3, Math.max(1, b.copies | 0 || 1)) });
+      const b = await body(req); const job = JSON.stringify({ lines: (b.lines || []).slice(0, 400), drawer: !!b.drawer, cols: Math.min(64, Math.max(24, b.cols | 0 || 48)), copies: Math.min(3, Math.max(1, b.copies | 0 || 1)),
+        logo: (typeof b.logo === 'string' && b.logo.length < 600000 && /^[A-Za-z0-9+/=]+$/.test(b.logo)) ? b.logo : '' });   // 8z81: shop logo (base64 PNG) drawn above the text
       const r = await ps(['-Action', 'receipt'], job); log('receipt ' + (r.ok ? 'ok' : 'ERR ' + r.err));
       return send(res, r.ok ? 200 : 500, r.ok ? { ok: true } : { error: r.err || 'print failed' });
     }

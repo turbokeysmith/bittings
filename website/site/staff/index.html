@@ -734,21 +734,24 @@ sessionStorage.setItem('tks_connect_return','1');history.replaceState(null,'',lo
   .chg-cpother{background:rgba(42,125,225,.08);border-color:#2a7de1;border-style:dashed;} .chg-cpother b{color:#2a7de1;}
   .chg-cpempty{font-size:13px;color:var(--dim);padding:10px 2px;}
   /* POS register ticket */
-  .pos-ticket{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
+  .pos-ticket{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;min-width:0;max-width:100%;overflow-x:auto;}
+  .pos-main{min-width:0;}
   .pos-empty{font-size:13.5px;color:#5a616c;padding:18px 14px;text-align:center;background:#fff;border:1px solid #e6e9ee;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.06);}
   .pos-empty b{color:#14171b;}
   /* register grid (cash-register look) */
   /* Register ticket = a white "spreadsheet" with black text, independent of the app theme. */
   .pos-grid{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:13.5px;}
   .pos-grid thead th{background:#eef1f5;color:#5a6470;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;text-align:left;padding:8px 10px;border-bottom:1px solid #d7dbe0;}
-  .pos-grid th:nth-child(4),.pos-grid th:nth-child(5),.pos-grid th:nth-child(6){text-align:right;}
+  .pos-grid th:nth-child(3),.pos-grid th:nth-child(4),.pos-grid th:nth-child(5){text-align:right;}
+  .pos-grid thead th,.pos-grid tbody td{padding-left:6px;padding-right:6px;}
   .pos-grid tbody tr{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.18);}
   .pos-grid tbody td{padding:10px;color:#111;vertical-align:middle;border-top:1px solid #e6e9ee;border-bottom:1px solid #e6e9ee;}
   .pos-grid tbody td:first-child{border-left:1px solid #e6e9ee;border-top-left-radius:8px;border-bottom-left-radius:8px;}
   .pos-grid tbody td:last-child{border-right:1px solid #e6e9ee;border-top-right-radius:8px;border-bottom-right-radius:8px;}
   .pos-grid .pl-ln{color:#8a9099;width:22px;}
-  .pos-grid .pl-sku{color:#6b7280;font-size:11.5px;white-space:nowrap;}
-  .pos-grid .pl-desc{font-weight:600;color:#111;}
+  .pos-grid .pl-sku{display:block;color:#6b7280;font-size:11.5px;font-weight:400;margin-top:2px;overflow-wrap:anywhere;}
+  .pos-grid .pl-desc{font-weight:600;color:#111;min-width:130px;overflow-wrap:anywhere;}
+  .pos-grid .pl-qtyc,.pos-grid .pl-xc{width:1%;white-space:nowrap;}
   .pos-grid .pl-price,.pos-grid .pl-tot{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:#111;}
   .pos-grid .pl-tot{font-weight:800;}
   .pos-grid .pl-qty{display:flex;align-items:center;gap:3px;justify-content:flex-end;}
@@ -757,7 +760,7 @@ sessionStorage.setItem('tks_connect_return','1');history.replaceState(null,'',lo
   .pos-grid .pl-x{background:none;border:none;color:#c8323c;font-size:17px;cursor:pointer;padding:0 2px;}
   .pos-grid tr.discount td{background:#f1faf3;}
   .pos-grid tr.discount .pl-tot{color:#1c7d3e;}
-  @media (max-width:560px){ .pos-grid .pl-sku,.pos-grid th:nth-child(2){display:none;} }
+  @media (max-width:560px){ .pos-grid .pl-sku{display:none;} }
   .pos-profit{display:flex;gap:14px;justify-content:flex-end;font-size:12px;color:var(--dim);margin:6px 2px 0;}
   .pos-profit b{color:var(--ink);}
   .pos-totline{display:flex;justify-content:space-between;font-size:13.5px;color:var(--dim);padding:2px 2px;}
@@ -778,9 +781,9 @@ sessionStorage.setItem('tks_connect_return','1');history.replaceState(null,'',lo
   .posfn:disabled{opacity:.4;cursor:default;}
   .posfn.fn-items{background:#2a7de1;} .posfn.fn-edit{background:#e08a2a;} .posfn.fn-clear{background:#c8323c;}
   .posfn.fn-cash{background:#3a7d56;} .posfn.fn-card{background:#1f8f43;}
-  @media (min-width:860px){
+  @media (min-width:1100px){   /* 8z85: was 860px — below about 1100px the ticket column is too narrow to read, so the customer box drops under the ticket */
     #view-payments.active{max-width:none;}
-    .pos-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start;}
+    .pos-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:14px;align-items:start;}
     .pos-rail{position:sticky;top:8px;}
     .pos-totline.pos-grand{font-size:24px;}
   }
@@ -1307,7 +1310,8 @@ window.tksDemoOn = function(){
       <button class="bt-nav__item pos-desktop-only" data-go="payments"><span class="bt-nav__ic">💳</span>Register</button>
       <button class="bt-nav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
       <button class="bt-nav__item" data-go="receipts"><span class="bt-nav__ic">🧾</span>Receipts</button>
-      <button class="bt-nav__item" data-go="quote"><span class="bt-nav__ic">💬</span>Quick quote</button><!-- 8z65: opens the document builder as an Estimate -->
+      <button class="bt-nav__item" data-go="quote"><span class="bt-nav__ic">💬</span>Quick quote</button>
+      <button class="bt-nav__item" data-go="estimates"><span class="bt-nav__ic">📋</span>Estimates</button><!-- 8z78: every estimate — edit it or put it on the schedule --><!-- 8z65: opens the document builder as an Estimate -->
       <button class="bt-nav__item" data-go="leads" id="navLeads"><span class="bt-nav__ic">📥</span>Leads</button><!-- 8z71: enquiries from the website contact form -->
       <button class="bt-nav__item" data-go="schedule"><span class="bt-nav__ic">📅</span>Scheduler</button>
       <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Salary / Commission</button>
@@ -1328,6 +1332,7 @@ window.tksDemoOn = function(){
       <button class="bt-nav__item" data-go="timesheets" id="navTimesheets" style="display:none"><span class="bt-nav__ic">⏱</span>Timesheets</button>
       <button class="bt-nav__item pos-mobile-only" id="navEditBar" type="button"><span class="bt-nav__ic">✏️</span>Edit bottom bar</button>
       <button class="bt-nav__item" id="navUpdateApp" type="button"><span class="bt-nav__ic">🔄</span>Update app</button>
+      <button class="bt-nav__item" id="sideMyPin" type="button" style="display:none"><span class="bt-nav__ic">🔢</span>My PIN</button>
       <button class="bt-nav__item" id="sideLockNow" style="display:none"><span class="bt-nav__ic">🔒</span>Lock now</button>
       <button class="bt-nav__item owner-soft" id="sideSettings" data-go="settings" style="display:none"><span class="bt-nav__ic">⚙</span>Settings</button>
       <div class="bt-sidestat" id="sideSignedIn">Not signed in</div>
@@ -1638,6 +1643,7 @@ window.tksDemoOn = function(){
             <button type="button" data-n="Contracting D1">Contracting D1</button>
           </div>
           <div class="pos-nastf-badge" id="posNastfBadge"></div>
+          <div id="posD1Fields" style="display:none;margin-top:8px"></div><!-- 8z90: colour / miles / tag — required on a D1 sale -->
         </div>
       </div>
       <div class="pos-layout">
@@ -1673,6 +1679,7 @@ window.tksDemoOn = function(){
       </div>
       <p class="note" id="chgStatus" aria-live="polite"></p>
       <div id="chgSendRow" class="actions" style="display:none;flex-wrap:wrap;gap:8px"></div>
+      <div id="chgDocs"></div><!-- 8z90: the D1 photo box for the sale just finished -->
       <p class="note" data-cap="viewAudit"><a href="#" id="chgHistLink">📋 Day closeout / transaction history</a></p>
     </div>
   </div>
@@ -1745,12 +1752,29 @@ window.tksDemoOn = function(){
     <p class="note" id="comNote"></p>
   </div>
 
+  <!-- 8z83b (owner: "a task like Reconcile that allows him to enter new keys and lets him add prices, cost, website link,
+       manufacturer, all that stuff"): booking in a delivery. Open to every staff member. -->
+  <div class="view" id="view-receive">
+    <div class="seg invsubtabs"><button type="button" data-invtab="inventory">🏪 Stock</button><button type="button" data-invtab="reconcile">🔢 Reconcile</button><button type="button" data-invtab="receive" class="on">📥 Receive</button></div>
+    <div id="rvAssign"></div><!-- 8z86: who is booking in (owner / manager), or "assigned to you" (the person doing it) -->
+    <div id="rvWork">
+    <div class="note" style="margin:0 0 10px">Booking in a delivery. Find each item and type how many came in. If it is not in the list, add it as a <b>new item</b> — name, price, cost, manufacturer, website link and what it fits.</div>
+    <div class="bar">
+      <input class="search" id="rvSearch" type="search" placeholder="Search name, SKU, FCC ID or a vehicle (2019 Enclave)…" autocomplete="off" style="flex:1 1 220px;min-width:0">
+      <button class="add" id="rvNew" type="button">➕ New item</button>
+    </div>
+    <div class="clist" id="rvResults"></div>
+    <div id="rvSession" style="margin-top:14px"></div>
+    </div>
+  </div>
+
   <div class="view" id="view-inventory">
-    <div class="seg invsubtabs"><button type="button" data-invtab="inventory" class="on">🏪 Stock</button><button type="button" data-invtab="reconcile">🔢 Reconcile</button></div>
+    <div id="rvBanner"></div>
+    <div class="seg invsubtabs"><button type="button" data-invtab="inventory" class="on">🏪 Stock</button><button type="button" data-invtab="reconcile">🔢 Reconcile</button><button type="button" data-invtab="receive">📥 Receive</button></div>
     <div class="bar">
       <button class="add" id="invImport" data-cap="inventoryWrite" title="Import from a spreadsheet (.xlsx/.csv)" style="background:#e7e9ee;color:#14171b">📥 Import</button>
       <button class="add" id="invExport" data-cap="inventoryWrite" title="Export inventory to a .csv file" style="background:#e7e9ee;color:#14171b">📤 Export</button>
-      <button class="add" id="invAdd" data-cap="inventoryWrite">+ Add</button>
+      <button class="add" id="invAdd" data-cap="invAddNew" title="Add a part or key that is not in the list yet">+ Add</button>
       <button class="add" id="invHardware" title="Hardware: barcode scanner, receipt printer, label printer" style="background:#e7e9ee;color:#14171b">🖨️ Hardware</button>
       <button class="add" id="invReorder" data-cap="inventoryWrite" title="Everything at or below its low-stock point, grouped by supplier — copy, email or CSV" style="background:#e7e9ee;color:#14171b">📋 Reorder</button>
       <button class="add" id="invScanKey" title="Look a key up by its unit label (or type a unit id / SKU) — see where it came from, where it is, and its sale or warranty history" style="background:#e7e9ee;color:#14171b">🔎 Scan a key</button>
@@ -1791,7 +1815,7 @@ window.tksDemoOn = function(){
   </div>
 
   <div class="view" id="view-reconcile">
-    <div class="seg invsubtabs"><button type="button" data-invtab="inventory">🏪 Stock</button><button type="button" data-invtab="reconcile" class="on">🔢 Reconcile</button></div>
+    <div class="seg invsubtabs"><button type="button" data-invtab="inventory">🏪 Stock</button><button type="button" data-invtab="reconcile" class="on">🔢 Reconcile</button><button type="button" data-invtab="receive">📥 Receive</button></div>
     <div class="bar">
       <select id="rcLoc" class="search" style="max-width:180px"></select>
       <select id="rcAssign" class="search" style="max-width:200px;display:none"></select>
@@ -1853,8 +1877,8 @@ window.tksDemoOn = function(){
         <div id="pChipWrap"><label for="pChip">Transponder chip</label><input id="pChip" type="text" list="pChipList" placeholder="Type any chip, e.g. Mitsubishi N chip" autocomplete="off"><div class="hint" style="margin:4px 0 0;font-size:12px">Type it if it isn’t in the list — the list is only suggestions.</div><datalist id="pChipList"></datalist></div>
       </div>
       <div class="row2">
-        <div data-cap="inventoryWrite"><label for="pCost">Unit cost ($) <span style="font-weight:400;color:var(--dim)">— your cost</span></label><input id="pCost" type="number" inputmode="decimal" placeholder="0.00"></div>
-        <div><label for="pSell">Sell price ($) <span style="font-weight:400;color:var(--dim)">— register</span></label><input id="pSell" type="number" inputmode="decimal" placeholder="0.00"></div>
+        <div id="pCostWrap"><label for="pCost">Unit cost ($) <span style="font-weight:400;color:var(--dim)">— your cost</span></label><input id="pCost" type="number" inputmode="decimal" placeholder="0.00"></div>
+        <div><label for="pSell">Sell price ($) <span style="font-weight:400;color:var(--dim)">— register</span></label><input id="pSell" type="number" inputmode="decimal" placeholder="0.00"><div class="hint" id="pAutoHint" style="margin:4px 0 0;min-height:0"></div></div>
       </div>
       <label for="pLocation">Bin / shelf</label><input id="pLocation" type="text" placeholder="e.g. bin 3">
       <div id="pLocWrap" style="display:none">
@@ -1885,6 +1909,7 @@ window.tksDemoOn = function(){
         <button class="btn del" id="pDelete" data-cap="hardDelete" style="display:none;">Delete</button>
         <button class="btn save" id="pSave" data-cap="inventoryWrite">Save part</button>
         <button class="btn save" id="pSaveInfo" style="display:none">Save changes</button>
+        <button class="btn save" id="pSaveNew" style="display:none">Add this to stock</button>
       </div>
       <p class="note" id="partNote"></p>
     </div>
@@ -1950,6 +1975,8 @@ window.tksDemoOn = function(){
 <script src="app/ymm.js"></script>
 <!-- Vehicle fitment parser: a key's free-text "Fits" list → year/make/model matching (Inventory finder, Register, Start-a-job) -->
 <script src="app/fitment.js"></script>
+<script src="app/taxexempt.js"></script>
+<script src="app/receipt-docs.js"></script><!-- 8z90: D1 photos filed against a receipt + the required colour / miles / tag --><!-- 8z78: tax-exempt sales (certificate on file + the box at the sale) -->
 <script src="app/part-photo.js"></script><!-- 8z18: part photos (Supabase Storage) -->
 <!-- Shared NASTF D1 filing-countdown badge (register · Start-a-Job · Receipts NASTF tab) -->
 <script src="app/d1.js"></script>
@@ -1984,7 +2011,7 @@ function goHomeView(){
   // the plan or the role may keep that screen closed — never leave a blank page
   if(!document.querySelector('.view.active')){ try{ renderCustomers(); }catch(e){} show('customers'); }
 }
-const views = ['leads','customers','form','payments','commission','history','reports','invreport','dashboard','inventory','part','fleet','settings','programmers','schedule','lishi','receipts','reconcile','returns','activity','timesheets'];
+const views = ['leads','customers','form','payments','commission','history','reports','invreport','dashboard','inventory','part','fleet','settings','programmers','schedule','lishi','receipts','reconcile','receive','returns','activity','timesheets'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
@@ -1992,7 +2019,7 @@ function show(name){
   back.dataset.to = (name==='form') ? 'customers' : (name==='part' ? 'inventory' : '');
   document.querySelectorAll('.bt-nav__item,.bt-bottomnav__item').forEach(el=>el.classList.toggle('is-active', el.dataset.go===name));
   // sub-screens keep their parent nav item highlighted (Reconcile lives under Inventory)
-  if(name==='reconcile'){ document.querySelectorAll('[data-go="inventory"]').forEach(el=>el.classList.add('is-active')); }
+  if(name==='reconcile' || name==='receive'){ document.querySelectorAll('[data-go="inventory"]').forEach(el=>el.classList.add('is-active')); }
   if(name==='invreport'||name==='returns'){ document.querySelectorAll('[data-go="reports"]').forEach(el=>el.classList.add('is-active')); }
   if(window.renderConsolBanner) window.renderConsolBanner();
   if(window.renderMoveReqBanner) window.renderMoveReqBanner();
@@ -2121,6 +2148,7 @@ document.querySelectorAll('[data-go]').forEach(b=>{
     if(t==='dashboard'){ openDashboard(); return; }
     if(t==='startjob'){ goHomeView(); return; }   // 8z66: Start a job was removed — old links land on the home screen
     if(t==='quote'){ location.href='bittings.html?quote=1'; return; }   // 8z65: Quick quote
+    if(t==='estimates'){ location.href='bittings.html?estimates=1'; return; }   // 8z78: the estimates list
     if(t==='leads'){ renderLeads(); }   // 8z71
     if(t==='receipts'){ const nd=document.getElementById('rcNewDoc'), nq=document.getElementById('rcNewQuote');   // 8z66: start a document from the Receipts list
       if(nd && !nd.onclick) nd.onclick=()=>{ location.href='bittings.html'; }; if(nq && !nq.onclick) nq.onclick=()=>{ location.href='bittings.html?quote=1'; }; }
@@ -2135,6 +2163,7 @@ document.querySelectorAll('[data-go]').forEach(b=>{
 document.querySelectorAll('[data-invtab]').forEach(b=>{
   b.onclick = ()=>{ const t=b.dataset.invtab;
     if(t==='reconcile'){ window.renderReconcile && window.renderReconcile(); }
+    else if(t==='receive'){ renderReceive(); }   // 8z83b
     else { renderInventory(); window.renderInvDash && window.renderInvDash(); }
     show(t); };
 });
@@ -2498,7 +2527,8 @@ function jobToInvoiceDraft(b){
   let catKey=b.serviceCategory||b.jobType||'automotive'; try{ if(TKS.ServiceCats && !TKS.ServiceCats.byKey(catKey)) catKey=TKS.ServiceCats.codeToKey(catKey)||catKey; }catch(e){}
   const draft={ jobId:b.id, category:catKey, vehicle:veh, vin:(b.vehicle&&b.vehicle.vin)||'',
     customer:(b.customer&&b.customer.name)||'', customerInfo:{ id:b.customerId||'', name:(b.customer&&b.customer.name)||'', phone:(b.customer&&b.customer.phone)||'', email:(b.customer&&b.customer.email)||'' },
-    technician:b.technician||'', address:b.address||'', internalNotes:b.internalNotes||'', items:items, fromDispatch:true, ts:Date.now() };
+    technician:b.technician||'', address:b.address||'', internalNotes:b.internalNotes||'', items:items, fromDispatch:true, ts:Date.now(),
+    serviceWhere:b.serviceWhere||'', taxExempt:b.taxExempt||null, fromEstimate:b.fromEstimate||'', moreVehicles:Array.isArray(b.moreVehicles)?b.moreVehicles:[] };   // 8z78 / 8z81 / 8z84
   const parts=(window.TKS&&TKS.Jobs&&TKS.Jobs.parts&&TKS.auth&&TKS.auth.isSignedIn()&&!(TKS.isDemo&&TKS.isDemo()))?TKS.Jobs.parts(b.id):Promise.resolve({data:[]});
   let partsTaxed=true; try{ partsTaxed=!!TKS.Config.taxableDefault('Materials'); }catch(e){}
   return parts.then(function(r){ ((r&&r.data)||[]).filter(function(p){ return p.state!=='returned'; }).forEach(function(p){
@@ -2705,6 +2735,7 @@ function openInvoiceModal(r, cust){
   let totsHTML='';
   if(t.subtotal!=null) totsHTML+='<div style="display:flex;justify-content:space-between;padding:3px 0;color:var(--text-secondary)"><span>Subtotal</span><span style="font-family:var(--font-mono)">'+_money(t.subtotal)+'</span></div>';
   if(t.tax) totsHTML+='<div style="display:flex;justify-content:space-between;padding:3px 0;color:var(--text-secondary)"><span>Tax'+(t.taxRate?' ('+t.taxRate+'%)':'')+'</span><span style="font-family:var(--font-mono)">'+_money(t.tax)+'</span></div>';
+  if(!t.tax && r.taxExempt) totsHTML+='<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;color:var(--text-secondary)"><span>Tax — exempt'+(window.TKS_EXEMPT?(' ('+esc2(TKS_EXEMPT.label(r.taxExempt))+')'):'')+'</span><span style="font-family:var(--font-mono)">'+_money(0)+'</span></div>';   // 8z78
   if(t.surcharge) totsHTML+='<div style="display:flex;justify-content:space-between;padding:3px 0;color:var(--text-secondary)"><span>Card surcharge</span><span style="font-family:var(--font-mono)">'+_money(t.surcharge)+'</span></div>';
   totsHTML+='<div style="display:flex;justify-content:space-between;padding:6px 0 0;font-weight:900;font-size:16px"><span>Total</span><span style="font-family:var(--font-mono)">'+_money((t.total!=null?t.total:r.amount)||0)+'</span></div>';
   const veh=[r.vehYear,r.vehMake,r.vehModel].filter(Boolean).join(' ');
@@ -3052,6 +3083,7 @@ function invFiltersClear(){
 }
 
 function renderInventory(){
+  try{ rvLoadTasks(false); }catch(e){}   // 8z86: is a delivery assigned to me? (shows / hides the Receive tab and "+ Add")
   invFitmentGate();   // 8k: plan lock on the vehicle boxes
   const q = invSearchEl.value.trim();
   const all = TKS.Inventory.all();
@@ -3141,7 +3173,8 @@ function renderInventory(){
         '<button class="qbtn plus" data-cap="inventoryWrite" title="Add one to stock" aria-label="Increase quantity of '+esc(p.name||'part')+'">+</button>'+
       '</div>'+
       '<div class="pinfo'+(invHasPhotos?' hasimg':'')+'">'+(invHasPhotos && window.TKS_PHOTO ? TKS_PHOTO.thumb(p.image, 52) : '')+'<div class="ptxt"><div class="nm">'+esc(p.name||'(unnamed part)')+
-        (isLow?' <span class="lowbadge">'+((parseInt(p.qty,10)||0)===0?'OUT':'LOW')+'</span>':'')+'</div>'+
+        (isLow?' <span class="lowbadge">'+((parseInt(p.qty,10)||0)===0?'OUT':'LOW')+'</span>':'')+
+        ((p.sellPriceCents==null || p.sellPriceCents==='')?' <span class="lowbadge" style="background:#c8323c;color:#fff" title="No selling price yet — the owner or a manager sets it">NO PRICE</span>':'')+'</div>'+
         '<div class="sub">'+esc(sub)+'</div>'+
         (isLow && (parseInt(p.reorderQty,10)||0)>0
           ? '<div class="sub reorder">↻ Reorder '+(parseInt(p.reorderQty,10)||0)+(p.supplier?' · '+esc(p.supplier):'')+'</div>'
@@ -3287,8 +3320,8 @@ function openReorderModal(){
       (n?'<button type="button" class="btn ghostbtn" id="roCsv" title="Download every line as a .csv" style="flex:0 0 auto;min-height:40px;min-width:0;padding:8px 12px;font-size:13px">⇩ CSV</button>':'')+
       '<button type="button" class="chg-modal-x" id="roX" aria-label="Close">×</button></div></div>'+
     '<div class="ui-msg">'+(n
-      ? (n+' part'+(n===1?'':'s')+' at or below the low-stock point, grouped by supplier.'+((withCost&&grand)?(' Estimated total <b>'+moneyT(grand)+'</b>.'):'')+' Order quantity = the part’s Reorder qty, or enough to reach twice its low point.')
-      : 'Nothing to reorder — every part is above its low-stock point.')+'</div>'+
+      ? (n+' part'+(n===1?'':'s')+' out of stock, or at / below the low-stock point, grouped by supplier.'+((withCost&&grand)?(' Estimated total <b>'+moneyT(grand)+'</b>.'):'')+' Order quantity = the part’s Reorder qty, or enough to reach twice its low point.')
+      : 'Nothing to reorder — nothing is out of stock or below its low-stock point.')+'</div>'+
     groups.map((g,gi)=>{
       const c=g.info||{}; const phone=String(c.phone||'').trim(), web=String(c.website||'').trim();
       const contact=[ phone?('<a href="tel:'+esc(phone.replace(/[^\d+]/g,''))+'">'+esc(phone)+'</a>'):'', web?('<a href="'+esc(/^https?:/i.test(web)?web:('https://'+web))+'" target="_blank" rel="noopener">'+esc(web.replace(/^https?:\/\//i,''))+'</a>'):'' ].filter(Boolean).join(' · ');
@@ -3623,7 +3656,102 @@ function pFitAddFill(){
 })();
 
 let editPartId = null;
+/* ===================== 8z87: automatic key prices =====================
+   autoPriceFor(cost $, category, name) → { cents, group, pct } or null. Smart keys (by sub-category, or "PEPS / prox /
+   smart" in the name) use the smart-key percentage; every other key uses the standard one; anything that is not a key
+   is left alone. Rounded UP to the shop's step ($5), never under the minimum. The price box is only filled while it is
+   empty or still holds the last automatic value — a price somebody typed is never overwritten (it offers a button). */
+function autoPriceFor(cost, category, name){
+  var A; try{ A=TKS.Config.autoPrice(); }catch(e){ A=null; }
+  cost=parseFloat(cost); if(!A || !A.on || !(cost>0)) return null;
+  var sub=''; try{ sub=TKS_FIT.keySub({ name:name||'', category:category||'' }); }catch(e){}
+  var isKey=/^keys\//i.test(String(category||''));
+  var group = (sub==='Smart Key') ? 'smart' : (isKey ? 'std' : '');
+  if(!group) return null;
+  var pct=Math.max(0, parseFloat(group==='smart'?A.smartMarkupPct:A.stdMarkupPct)||0), min=Math.max(0, parseFloat(group==='smart'?A.smartMin:A.stdMin)||0), step=Math.max(0, parseFloat(A.roundTo)||0);
+  var price=cost*(1+pct/100); if(step>0) price=Math.ceil((price-1e-9)/step)*step; if(price<min) price=min;
+  return { cents:Math.round(price*100), group:group, pct:pct };
+}
+/* 8z89 (owner, 2026-11-12: "give me a button to change all prices with one tap based on the rules").
+   repricePlan() works out, for every key in stock that has a cost, the price the rules give and keeps the ones that
+   differ from today's price. The owner sees the plan (how many go up / down, examples, the full list as a file) and only
+   then confirms; the server changes them all at once and keeps the old prices (inv_reprice_apply / _undo, 8z89). */
+function repricePlan(){
+  var out={ changes:[], noCost:0, same:0, notKey:0, up:0, down:0, oldTotal:0, newTotal:0 };
+  (TKS.Inventory.all()||[]).forEach(function(p){ if(!p || p.deletedAt) return;
+    var a=autoPriceFor(p.cost, p.category, p.name);
+    if(!a){ var isKey=/^keys\//i.test(String(p.category||'')) || (function(){ try{ return TKS_FIT.keySub({ name:p.name||'', category:p.category||'' })==='Smart Key'; }catch(e){ return false; } })();
+      if(isKey && !(parseFloat(p.cost)>0)) out.noCost++; else out.notKey++; return; }
+    var old=(p.sellPriceCents==null||p.sellPriceCents==='')?null:Number(p.sellPriceCents);
+    if(old===a.cents){ out.same++; return; }
+    out.changes.push({ id:p.id, name:p.name||p.sku||'(unnamed)', sku:p.sku||'', cost:parseFloat(p.cost)||0, old:old, cents:a.cents, group:a.group, qty:parseInt(p.qty,10)||0 });
+    if(old==null || a.cents>old) out.up++; else out.down++;
+    out.oldTotal+=(old||0); out.newTotal+=a.cents; });
+  out.changes.sort(function(x,y){ return Math.abs((y.old||0)-y.cents)-Math.abs((x.old||0)-x.cents); });
+  return out;
+}
+function repriceOpen(){
+  var P=repricePlan(), n=P.changes.length, $m=function(c){ return (c==null)?'no price':('$'+(c/100).toFixed(2)); };
+  var A=TKS.Config.autoPrice();
+  var ov=document.createElement('div'); ov.className='chg-modal-ov';
+  ov.innerHTML='<div class="chg-modal" id="rpCard" style="max-width:640px"><div class="chg-modal-h"><b>💲 Change every key\'s price</b><button type="button" class="chg-modal-x" id="rpX" aria-label="Close">×</button></div>'+
+    '<div class="ui-msg">'+(!A.on ? 'Automatic pricing is switched off — tick “Work out the sale price from the cost” first.' :
+      n ? ('<b>'+n+' key'+(n===1?'':'s')+' will change</b>: '+P.down+' go down, '+P.up+' go up. '+P.same+' already match the rules.'+
+            (P.noCost?(' <b>'+P.noCost+' key'+(P.noCost===1?' has':'s have')+' no cost</b>, so '+(P.noCost===1?'it is':'they are')+' left alone.'):'')+
+            '<br>Rules: keys = cost + '+A.stdMarkupPct+'%, smart keys = cost + '+A.smartMarkupPct+'%, rounded up to the next $'+A.roundTo+', never under $'+A.stdMin+' / $'+A.smartMin+'.'+
+            '<br>The prices of these '+n+' keys add up to '+$m(P.oldTotal)+' today and '+$m(P.newTotal)+' after.')
+        : ('Nothing to change — every key that has a cost already matches the rules.'+(P.noCost?(' '+P.noCost+' key'+(P.noCost===1?' has':'s have')+' no cost.'):'')))+'</div>'+
+    (n ? ('<div style="max-height:260px;overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--edge);border-radius:10px;margin-top:8px">'+
+          P.changes.slice(0,40).map(function(c){ return '<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 10px;border-bottom:1px solid var(--edge);font-size:13.5px"><span style="min-width:0;overflow-wrap:anywhere">'+esc(c.name)+' <span class="sub">· cost $'+c.cost.toFixed(2)+'</span></span><span style="white-space:nowrap">'+$m(c.old)+' → <b>'+$m(c.cents)+'</b></span></div>'; }).join('')+
+          (n>40?('<div class="sub" style="padding:7px 10px">+ '+(n-40)+' more — they are all in the file.</div>'):'')+'</div>'+
+        '<div class="ui-actions" style="flex-wrap:wrap"><button type="button" class="btn ghostbtn" id="rpCsv">⬇ Full list (file)</button><button type="button" class="btn ghostbtn" id="rpNo">Cancel</button><button type="button" class="btn save" id="rpGo">Change '+n+' price'+(n===1?'':'s')+'</button></div>')
+       : '<div class="ui-actions"><button type="button" class="btn save" id="rpNo">OK</button></div>')+
+    '<div class="sub" id="rpMsg" style="min-height:16px;margin-top:6px"></div></div>';
+  document.body.appendChild(ov);
+  var close=function(){ ov.remove(); };
+  ov.querySelector('#rpX').onclick=close; ov.querySelector('#rpNo').onclick=close; ov.addEventListener('mousedown', function(e){ if(e.target===ov) close(); });
+  var csv=ov.querySelector('#rpCsv'); if(csv) csv.onclick=function(){ var q=function(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?('"'+v.replace(/"/g,'""')+'"'):v; };
+    var lines=['Name,SKU,Type,Cost,Price now,New price,In stock'].concat(P.changes.map(function(c){ return [c.name, c.sku, c.group==='smart'?'Smart key':'Key', c.cost.toFixed(2), c.old==null?'':(c.old/100).toFixed(2), (c.cents/100).toFixed(2), c.qty].map(q).join(','); }));
+    var b=new Blob(['\ufeff'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'}), a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='bittings-price-change-preview.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500); };
+  var go=ov.querySelector('#rpGo'); if(go) go.onclick=function(){ var msg=ov.querySelector('#rpMsg'), sb=null; try{ sb=TKS._sb&&TKS._sb(); }catch(e){}
+    if(!sb || (TKS.isDemo&&TKS.isDemo())){ msg.textContent='Sign in (with a connection) to change prices.'; return; }
+    go.disabled=true; msg.style.color=''; msg.textContent='Changing '+n+' prices…';
+    sb.rpc('inv_reprice_apply', { p_changes:P.changes.map(function(c){ return { id:c.id, cents:String(c.cents) }; }), p_note:'cost + '+A.stdMarkupPct+'% / '+A.smartMarkupPct+'% (smart)' }).then(function(r){
+      if(r.error){ go.disabled=false; msg.style.color='#c8323c'; msg.textContent='Nothing was changed: '+(r.error.message||r.error); return; }
+      var done=(r.data&&r.data.changed)||0;
+      P.changes.forEach(function(c){ try{ TKS.Inventory.applyServerPatch(c.id, { sellPriceCents:c.cents }); }catch(e){} });
+      close(); try{ toast(done+' price'+(done===1?'':'s')+' changed. You can undo it in Settings › Inventory.'); }catch(e){}
+      try{ if(TKS.refresh) TKS.refresh(true); }catch(e){} repriceLast(); try{ renderInventory(); }catch(e){}
+    }, function(e){ go.disabled=false; msg.style.color='#c8323c'; msg.textContent='Nothing was changed: '+((e&&e.message)||'no connection'); }); };
+}
+function repriceLast(){
+  var box=document.getElementById('f_apLast'); if(!box) return; var sb=null; try{ sb=TKS._sb&&TKS._sb(); }catch(e){}
+  if(!sb || (TKS.isDemo&&TKS.isDemo())){ box.innerHTML=''; return; }
+  sb.rpc('inv_reprice_last').then(function(r){ var L=r&&r.data; if(!L || !document.getElementById('f_apLast')){ if(box) box.innerHTML=''; return; }
+    var when=new Date(L.at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    box.innerHTML='<div class="sub" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span>Last change: <b>'+L.items+' price'+(L.items===1?'':'s')+'</b> on '+esc(when)+(L.by?(' by '+esc(L.by)):'')+(L.undone_at?' — <b>undone</b>':'')+'</span>'+
+      (L.undone_at?'':'<button type="button" class="btn ghost" id="f_apUndo" style="min-height:44px">↩ Undo that change</button>')+'</div>';
+    var u=document.getElementById('f_apUndo'); if(u) u.onclick=function(){ uiConfirm({ title:'Undo the price change?', message:'The '+L.items+' prices go back to what they were. A price somebody changed by hand since then is left alone.', okText:'Undo', danger:true }).then(function(ok){ if(!ok) return;
+      u.disabled=true; sb.rpc('inv_reprice_undo', { p_batch:L.id }).then(function(q){ if(q.error){ u.disabled=false; uiAlert({ title:'Not undone', message:q.error.message||String(q.error) }); return; }
+        try{ toast(((q.data&&q.data.restored)||0)+' prices put back.'); }catch(e){} try{ if(TKS.refresh) TKS.refresh(true); }catch(e){} repriceLast(); }, function(){ u.disabled=false; }); }); };
+  }, function(){});
+}
+var pAutoLast='';
+function pAutoSync(){
+  var sell=document.getElementById('pSell'), costEl=document.getElementById('pCost'), hint=document.getElementById('pAutoHint'); if(!sell || !costEl || !hint) return;
+  var cw=document.getElementById('pCostWrap'); if(sell.readOnly || (cw && cw.style.display==='none')){ hint.innerHTML=''; return; }
+  var a=autoPriceFor(costEl.value, pCategoryValue(), document.getElementById('pName').value);
+  if(!a){ hint.innerHTML=''; return; }
+  var v=(a.cents/100).toFixed(2), why='cost $'+(parseFloat(costEl.value)||0).toFixed(2)+' + '+a.pct+'% ('+(a.group==='smart'?'smart key':'key')+')';
+  if(sell.value.trim()==='' || sell.value===pAutoLast){ sell.value=v; pAutoLast=v; hint.textContent='Automatic price: '+why+' = $'+v+'. Change it if you want.'; return; }
+  if(parseFloat(sell.value)===a.cents/100){ hint.textContent='Matches the automatic price ('+why+').'; return; }
+  hint.innerHTML='Automatic price would be <b>$'+v+'</b> ('+esc(why)+'). <button type="button" id="pAutoUse" class="btn ghost" style="min-height:36px;padding:4px 10px;margin-left:4px">Use $'+v+'</button>';
+  var u=document.getElementById('pAutoUse'); if(u) u.onclick=function(){ sell.value=v; pAutoLast=v; pAutoSync(); };
+}
+(function(){ ['pCost','pName'].forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener('input', function(){ try{ pAutoSync(); }catch(_){} }); });
+  ['pGrade','pSub'].forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener('change', function(){ setTimeout(function(){ try{ pAutoSync(); }catch(_){} }, 0); }); }); })();
 function openPart(id){
+  pAutoLast=''; try{ document.getElementById('pAutoHint').innerHTML=''; }catch(e){}   // 8z87
   if(!window.__partFromSet) partReturnView = 'inventory'; window.__partFromSet = false;   // 8z17: back goes to where it was opened
   try{ window.pChipSuggestRefresh && pChipSuggestRefresh(); }catch(_){}   // 8z11
   editPartId = id;
@@ -3655,6 +3783,11 @@ function openPart(id){
   var full = !(TKS.auth && TKS.auth.can) || TKS.auth.can('inventoryWrite');
   var infoOnly = !full && !!id && TKS.auth.can('partInfoEdit');
   ['pName','pSell','pQty','pCost'].forEach(function(k){ var el=document.getElementById(k); if(el){ el.readOnly = infoOnly; el.style.opacity = infoOnly ? '.6' : ''; } });
+  /* 8z83 (owner: "how can Jayden … add keys we don't have in the system yet?"): a technician / front desk adding a NEW part
+     fills in what it is and how many came in; the price is the owner's or a manager's to set (as on existing parts). */
+  var techNew = !full && !id && !!(TKS.auth && TKS.auth.can && TKS.auth.can('invAddNew')) && rvCan();   // 8z86: only while a delivery is assigned
+  (function(){ var cw=document.getElementById('pCostWrap'); if(cw) cw.style.display = (full || techNew) ? '' : 'none';   // 8z83b: whoever ADDS an item enters its price and cost; on an existing item a technician still sees no cost
+    var sn=document.getElementById('pSaveNew'); if(sn) sn.style.display = techNew ? '' : 'none'; })();
   // 8z69: for a part that already exists in the cloud, the quantity box is read-only — a number typed here was written
   // over the real count (and over sales made on other devices) and then wiped by the next stock movement
   (function(){ var q=document.getElementById('pQty'); if(!q) return; var lock=!!id && TKS.isCloud && TKS.isCloud('inventory');
@@ -3663,6 +3796,7 @@ function openPart(id){
     if(lock && !infoOnly) document.getElementById('partNote').textContent='Quantity changes from the stock list: 📍 → Receive or Adjust (kept per location, with a reason).'; })();
   document.getElementById('pSaveInfo').style.display = infoOnly ? '' : 'none';
   if(infoOnly) document.getElementById('partNote').textContent = 'You can change everything except the name, price and quantity. Quantities change through a stock count.';
+  if(techNew) document.getElementById('partNote').textContent = 'New item: fill in what you know — name, price, cost, manufacturer, website link, what it fits — and how many came in (Quantity).';
   show('part');
   if(!infoOnly) document.getElementById('pName').focus();
 }
@@ -3670,7 +3804,112 @@ function openPart(id){
 var partReturnView = 'inventory';
 window.openPartFrom = function(id, back){ partReturnView = back || 'inventory'; window.__partFromSet = true; openPart(id); };
 function partBack(){ var v = partReturnView || 'inventory'; partReturnView = 'inventory';
-  if(v==='reconcile'){ show('reconcile'); try{ window.renderReconcile && window.renderReconcile(); }catch(e){} } else { renderInventory(); show('inventory'); } }
+  if(v==='reconcile'){ show('reconcile'); try{ window.renderReconcile && window.renderReconcile(); }catch(e){} }
+  else if(v==='receive'){ try{ renderReceive(); }catch(e){} show('receive'); }   // 8z83b
+  else { renderInventory(); show('inventory'); } }
+/* ===================== RECEIVE (8z83b): book in a delivery =====================
+   Existing item → type how many came in → inv_receive (stock lands at the shop; any staff member).
+   Not in the list → "New item" opens the part form with everything open, price and cost included → inv_add_new.
+   "Booked in this session" is only a running list on this device so nothing is entered twice; the real record is
+   the stock itself and the Activity log (inventory_receive / inventory_add). */
+var _rvSession=[]; try{ _rvSession=JSON.parse(sessionStorage.getItem('tks_rv_session')||'[]')||[]; }catch(e){ _rvSession=[]; }
+/* 8z86 (owner: "it gave him the option without me telling him he can. I need to assign the receivables to him").
+   Receiving is a task the owner / a manager assigns (server: receive_tasks, 8z86). _rvT is what receive_tasks_list()
+   answered: { manager, can, mine, open[], recent[], team[] }. Until it has answered, only a manager sees the tab. */
+var _rvT=null, _rvTAt=0;
+function rvIsMgr(){ try{ var r=TKS.auth.staffRole&&TKS.auth.staffRole(); return r==='owner'||r==='manager'; }catch(e){ return false; } }
+function rvCan(){ if(_rvT) return !!_rvT.can; try{ if(!(TKS.auth && TKS.auth.isSignedIn()) || (TKS.isDemo&&TKS.isDemo())) return true; }catch(e){ return true; } return rvIsMgr(); }
+function rvApplyAccess(){
+  var can=rvCan();
+  document.querySelectorAll('[data-invtab="receive"]').forEach(function(b){ b.style.display = can ? '' : 'none'; });
+  var add=document.getElementById('invAdd'); if(add){ add.style.display = can ? '' : 'none'; }
+  var bn=document.getElementById('rvBanner');
+  if(bn){ var mine=_rvT && _rvT.mine && !rvIsMgr();
+    bn.innerHTML = mine ? ('<button type="button" class="btn save" id="rvBannerGo" style="width:100%;min-height:48px;margin:0 0 10px">📥 A delivery is assigned to you'+(_rvT.mine.note?(' — '+esc(_rvT.mine.note)):'')+' · tap to book it in</button>') : '';
+    var go=document.getElementById('rvBannerGo'); if(go) go.onclick=function(){ renderReceive(); show('receive'); }; }
+}
+function rvLoadTasks(force){
+  var sb=null; try{ sb=TKS._sb&&TKS._sb(); }catch(e){}
+  if(!sb || !(TKS.auth&&TKS.auth.isSignedIn()) || (TKS.isDemo&&TKS.isDemo())){ rvApplyAccess(); return Promise.resolve(null); }
+  if(!force && _rvT && Date.now()-_rvTAt<60000){ rvApplyAccess(); return Promise.resolve(_rvT); }
+  return sb.rpc('receive_tasks_list').then(function(r){ if(r && !r.error && r.data){ _rvT=r.data; _rvTAt=Date.now(); } rvApplyAccess(); return _rvT; }, function(){ rvApplyAccess(); return _rvT; });
+}
+function rvPaintAssign(){
+  var box=document.getElementById('rvAssign'), work=document.getElementById('rvWork'); if(!box) return;
+  var T=_rvT, can=rvCan(); if(work) work.style.display = can ? '' : 'none';
+  if(!T){ box.innerHTML = can ? '' : '<div class="empty">Deliveries are assigned by the owner or a manager. Nothing is assigned to you right now.</div>'; return; }
+  var when=function(iso){ try{ return new Date(iso).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } };
+  var h='';
+  if(T.manager){
+    h+='<div style="border:1px solid var(--edge);border-radius:14px;padding:12px;margin:0 0 12px"><b style="font-size:16px">Who is booking in the delivery?</b>'+
+       '<div class="sub" style="margin:4px 0 8px">You can always receive yourself. To hand it to someone, pick them here — the Receive tab opens on their login until they tap Finished.</div>'+
+       '<div style="display:flex;gap:8px;flex-wrap:wrap"><select id="rvWho" class="search" style="flex:1 1 160px;min-height:44px"><option value="">Pick a person…</option>'+(T.team||[]).map(function(p){ return '<option value="'+esc(p.user_id)+'">'+esc(p.name||p.role)+'</option>'; }).join('')+'</select>'+
+       '<input id="rvNoteIn" class="search" placeholder="What is it? (optional — e.g. the supplier and order)" maxlength="200" style="flex:2 1 200px;min-height:44px">'+
+       '<button type="button" class="add" id="rvAssignBtn" style="min-height:44px">Assign</button></div><div class="sub" id="rvAssignMsg" style="min-height:0"></div>'+
+       ((T.open||[]).length ? ('<div style="margin-top:10px;font-weight:700">Assigned now</div>'+T.open.map(function(t){ return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--edge)"><span><b>'+esc(t.name)+'</b>'+(t.note?(' — '+esc(t.note)):'')+' <span class="sub">· since '+esc(when(t.created_at))+'</span></span><button type="button" class="btn ghost" data-rvclose="'+esc(t.id)+'" style="min-height:44px">Take it back</button></div>'; }).join('')) : '<div class="sub" style="margin-top:8px">Nobody is assigned right now.</div>')+
+       ((T.recent||[]).length ? ('<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700;min-height:36px;display:flex;align-items:center">Finished deliveries ('+T.recent.length+')</summary>'+T.recent.map(function(t){ var S=Array.isArray(t.summary)?t.summary:[], pcs=S.reduce(function(a,x){ return a+(parseInt(x.qty,10)||0); },0);
+           return '<div style="padding:8px 0;border-top:1px solid var(--edge)"><b>'+esc(t.name)+'</b>'+(t.note?(' — '+esc(t.note)):'')+' <span class="sub">· finished '+esc(when(t.closed_at))+' · '+S.length+' line'+(S.length===1?'':'s')+', '+pcs+' piece'+(pcs===1?'':'s')+'</span>'+
+             (S.length?('<div class="sub">'+S.map(function(x){ return esc(x.name||'item')+(x.isNew?' (new)':'')+' + '+(parseInt(x.qty,10)||0); }).join(' · ')+'</div>'):'')+'</div>'; }).join('')+'</details>') : '')+'</div>';
+  } else if(T.mine){
+    h+='<div style="border:2px solid #1f9d55;border-radius:14px;padding:12px;margin:0 0 12px"><b style="font-size:16px">📥 This delivery is assigned to you</b>'+
+       '<div class="sub" style="margin-top:4px">'+(T.mine.by?('By '+esc(T.mine.by)+' · '):'')+esc(when(T.mine.created_at))+(T.mine.note?(' · '+esc(T.mine.note)):'')+'</div>'+
+       '<button type="button" class="btn save" id="rvFinish" style="width:100%;min-height:48px;margin-top:10px">✓ Finished — everything is booked in</button></div>';
+  } else {
+    h+='<div class="empty">Deliveries are assigned by the owner or a manager. Nothing is assigned to you right now.</div>';
+  }
+  box.innerHTML=h;
+  var sb=null; try{ sb=TKS._sb&&TKS._sb(); }catch(e){}
+  var ab=document.getElementById('rvAssignBtn'); if(ab) ab.onclick=function(){ var who=document.getElementById('rvWho').value, msg=document.getElementById('rvAssignMsg'); if(!who){ msg.textContent='Pick the person first.'; return; }
+    ab.disabled=true; msg.textContent='Assigning…';
+    sb.rpc('receive_task_assign', { p_user:who, p_note:(document.getElementById('rvNoteIn').value||'').trim() }).then(function(r){ ab.disabled=false;
+      if(r.error){ msg.textContent='Not assigned: '+(r.error.message||r.error); return; }
+      try{ toast((r.data&&r.data.name?r.data.name:'They')+' can now book the delivery in.'); }catch(e){} rvLoadTasks(true).then(renderReceive); }, function(e){ ab.disabled=false; msg.textContent='Not assigned: '+((e&&e.message)||'no connection'); }); };
+  box.querySelectorAll('[data-rvclose]').forEach(function(b){ b.onclick=function(){ b.disabled=true; sb.rpc('receive_task_close', { p_id:b.dataset.rvclose, p_summary:[] }).then(function(){ rvLoadTasks(true).then(renderReceive); }, function(){ b.disabled=false; }); }; });
+  var fin=document.getElementById('rvFinish'); if(fin) fin.onclick=function(){
+    uiConfirm({ title:'Finished with this delivery?', message:(_rvSession.length?('You booked in '+_rvSession.length+' line'+(_rvSession.length===1?'':'s')+'. '):'Nothing was booked in on this device. ')+'After this the Receive tab closes until another delivery is assigned to you.', okText:'Finished' }).then(function(ok){ if(!ok) return;
+      fin.disabled=true;
+      sb.rpc('receive_task_close', { p_id:T.mine.id, p_summary:_rvSession.map(function(x){ return { name:x.name||'', sku:x.sku||'', qty:parseInt(x.qty,10)||0, isNew:!!x.isNew }; }) }).then(function(r){
+        if(r && r.error){ fin.disabled=false; uiAlert({ title:'Not saved', message:r.error.message||String(r.error) }); return; }
+        _rvSession=[]; try{ sessionStorage.removeItem('tks_rv_session'); }catch(e){}
+        try{ toast('Delivery finished. Thank you.'); }catch(e){}
+        rvLoadTasks(true).then(function(){ renderInventory(); show('inventory'); }); }, function(){ fin.disabled=false; }); }); };
+}
+function rvNote(o){ try{ _rvSession.unshift(Object.assign({ at:Date.now() }, o)); _rvSession=_rvSession.slice(0,200); sessionStorage.setItem('tks_rv_session', JSON.stringify(_rvSession)); }catch(e){} }
+function renderReceive(){
+  var res=document.getElementById('rvResults'), ses=document.getElementById('rvSession'), sb=document.getElementById('rvSearch'); if(!res) return;
+  rvPaintAssign(); if(!_rvT || Date.now()-_rvTAt>60000) rvLoadTasks(false).then(function(t){ if(t) rvPaintAssign(); });   // 8z86
+  var q=(sb.value||'').trim(), list=[];
+  if(q){ try{ list=(TKS.Inventory.search(q)||[]).filter(function(p){ return !p.deletedAt; }).slice(0,30); }catch(e){ list=[]; } }
+  res.innerHTML = !q ? '<div class="empty">Type what came in — a name, SKU, FCC ID or vehicle — to find it.</div>'
+    : (list.length ? list.map(function(p){
+        var sub=[p.sku, p.fccId?('FCC '+p.fccId):'', p.brand, (p.fitment||'').slice(0,70)].filter(Boolean).join(' · ');
+        return '<div class="crow" data-rv="'+esc(p.id)+'" style="flex-wrap:wrap;gap:8px;cursor:default"><div style="flex:1 1 200px;min-width:0"><div class="nm">'+esc(p.name||'(unnamed)')+'</div>'+
+          '<div class="sub">'+esc(sub)+'</div><div class="sub">In stock now: <b>'+(parseInt(p.qty,10)||0)+'</b></div></div>'+
+          '<div style="display:flex;gap:8px;align-items:center"><input class="rvQty" type="number" inputmode="numeric" min="1" step="1" placeholder="How many" aria-label="How many came in" style="width:110px;min-height:44px">'+
+          '<button type="button" class="btn save rvGo" style="min-height:44px">Receive</button></div><div class="sub rvMsg" style="flex:1 1 100%;min-height:0"></div></div>'; }).join('')
+      : '<div class="empty">Nothing in stock matches “'+esc(q)+'”.</div>')+
+      '<button type="button" class="btn ghost" id="rvNew2" style="width:100%;min-height:48px;margin-top:8px">➕ It is not in the list — add it as a new item</button>';
+  res.querySelectorAll('[data-rv]').forEach(function(row){ var id=row.dataset.rv, qi=row.querySelector('.rvQty'), go=row.querySelector('.rvGo'), msg=row.querySelector('.rvMsg');
+    var run=function(){ var n=parseInt(qi.value,10); if(!(n>0)){ msg.textContent='Type how many came in.'; msg.style.color='#c8323c'; return; }
+      var p=TKS.Inventory.get(id)||{}; go.disabled=true; msg.style.color=''; msg.textContent='Saving…';
+      Promise.resolve(TKS.InvOps.receive(id, n)).then(function(r){ go.disabled=false;
+        if(r && r.error){ msg.style.color='#c8323c'; msg.textContent='Not saved: '+(r.error.message||r.error); return; }
+        try{ TKS.Inventory.applyServerPatch(id, { qty:(parseInt(p.qty,10)||0)+n }); }catch(e){}
+        rvNote({ name:p.name||'', sku:p.sku||'', qty:n }); renderReceive(); try{ toast('Received '+n+' × '+(p.name||'item')+'.'); }catch(e){}
+        try{ if(TKS.refresh) TKS.refresh(false); }catch(e){}
+      }, function(e){ go.disabled=false; msg.style.color='#c8323c'; msg.textContent='Not saved: '+((e&&e.message)||'no connection'); }); };
+    go.onclick=run; qi.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); run(); } }); });
+  var n2=document.getElementById('rvNew2'); if(n2) n2.onclick=function(){ window.openPartFrom(null, 'receive'); };
+  var pieces=_rvSession.reduce(function(s,x){ return s+(parseInt(x.qty,10)||0); },0);
+  ses.innerHTML = _rvSession.length ? ('<div style="border:1px solid var(--edge);border-radius:14px;padding:12px">'+
+      '<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px"><b style="font-size:16px">Booked in this session</b><span class="sub">'+_rvSession.length+' line'+(_rvSession.length===1?'':'s')+' · '+pieces+' piece'+(pieces===1?'':'s')+'</span></div>'+
+      _rvSession.map(function(x){ return '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--edge)"><span>'+esc(x.name||'item')+(x.sku?(' <span class="sub">· '+esc(x.sku)+'</span>'):'')+(x.isNew?' <span class="lowbadge">NEW</span>':'')+'</span><b style="white-space:nowrap">+ '+(parseInt(x.qty,10)||0)+'</b></div>'; }).join('')+
+      '<button type="button" class="btn ghost" id="rvClear" style="margin-top:8px;min-height:44px">Done — clear this list</button><div class="sub" style="margin-top:6px">Clearing the list does not undo anything; the stock is already updated.</div></div>') : '';
+  var cl=document.getElementById('rvClear'); if(cl) cl.onclick=function(){ _rvSession=[]; try{ sessionStorage.removeItem('tks_rv_session'); }catch(e){} renderReceive(); };
+}
+(function(){ var sb=document.getElementById('rvSearch'), t=null; if(sb) sb.addEventListener('input', function(){ clearTimeout(t); t=setTimeout(renderReceive, 180); });
+  var nb=document.getElementById('rvNew'); if(nb) nb.onclick=function(){ window.openPartFrom(null, 'receive'); }; })();
+try{ window.renderReceive=renderReceive; }catch(e){}
 // 8z18: photo on the part screen (owner / manager / technician can add or change it; signed-in cloud only)
 function pPhotoRender(id){
   var wrap=document.getElementById('pPhotoWrap'); if(!wrap) return;
@@ -3719,6 +3958,29 @@ document.getElementById('pSaveInfo').onclick = async function(){
   setTimeout(partBack, 500);
 };
 
+document.getElementById('pSaveNew').onclick = async function(){   // 8z83
+  var btn=this, note=document.getElementById('partNote'), g=function(k){ return (document.getElementById(k).value||'').trim(); };
+  var name=g('pName'); if(!name){ note.textContent='Please type a name for it.'; return; }
+  var qty=parseInt(g('pQty'),10)||0; if(qty<0){ note.textContent='Quantity cannot be negative.'; return; }
+  var link=g('pLink'); if(link && !/^https?:\/\//i.test(link)) link='https://'+link;
+  var sb=null; try{ sb=TKS._sb && TKS._sb(); }catch(e){}
+  if(!sb || (TKS.isDemo && TKS.isDemo())){ note.textContent='Sign in (with a connection) to add a new item.'; return; }
+  var part={ name:name, sku:g('pSku'), category:pCategoryValue(), grade:pGradeValue(), brand:pBrandValue(), fcc_id:g('pFcc').toUpperCase(), chip:g('pChip'),
+             location:g('pLocation'), supplier:g('pSupplier'), vendor_sku:g('pVendorSku'), fitment:g('pFitment'), notes:g('pNotes'), link:link,
+             low_at:String(parseInt(g('pLowAt'),10)||0), reorder_qty:String(parseInt(g('pReorderQty'),10)||0) };
+  var cst=g('pCost'), sel=g('pSell');   // 8z83b: price and cost go in with the new item
+  if(cst!==''){ if(!(parseFloat(cst)>=0)){ note.textContent='The cost is not a number.'; return; } part.cost=String(Math.round(parseFloat(cst)*100)/100); }
+  if(sel!==''){ if(!(parseFloat(sel)>=0)){ note.textContent='The price is not a number.'; return; } part.sell_price_cents=String(Math.round(parseFloat(sel)*100)); }
+  btn.disabled=true; note.textContent='Adding…';
+  var r; try{ r=await sb.rpc('inv_add_new', { p_part:part, p_qty:qty }); }catch(e){ r={ error:e }; }
+  btn.disabled=false;
+  if(!r || r.error){ note.textContent='⚠ '+((r&&r.error&&r.error.message)||'Could not add it — check the connection.'); return; }
+  note.textContent='✓ Added'+(qty?(' — '+qty+' in stock at the shop'):'')+(sel===''?'. It has no price yet (shows NO PRICE).':'.');
+  try{ rvNote({ name:name, sku:part.sku||'', qty:qty, isNew:true }); }catch(e){}
+  var done=function(){ try{ renderInventory(); }catch(e){} setTimeout(partBack, 600); };
+  try{ Promise.resolve(TKS.refresh ? TKS.refresh(true) : null).then(done, done); }catch(e){ done(); }
+};
+
 document.getElementById('pSave').onclick = ()=>{
   const name = document.getElementById('pName').value.trim();
   if(!name){ document.getElementById('partNote').textContent = 'Please enter a part name.'; return; }
@@ -3745,6 +4007,7 @@ document.getElementById('pSave').onclick = ()=>{
   };
   if(editPartId) part.id = editPartId;
   if(editPartId && TKS.isCloud && TKS.isCloud('inventory')) delete part.qty;   // 8z69: the cloud owns the count of an existing part
+  if(!editPartId && partReturnView==='receive'){ try{ rvNote({ name:part.name, sku:part.sku||'', qty:part.qty||0, isNew:true }); }catch(e){} }   // 8z83b
   TKS.Inventory.save(part);
   partBack();
 };
@@ -3860,7 +4123,15 @@ function posSetNastf(type){
   posNastf = type || '';
   document.querySelectorAll('#posNastfSeg button').forEach(b=> b.classList.toggle('on', (b.dataset.n||'')===posNastf));
   posRenderNastfBadge();
+  posD1Sync();
 }
+/* 8z90: a D1 sale at the Register needs the vehicle's colour, miles and tag before it can be paid ("no tag" / "no miles"
+   count as answers). They ride inside the sale's vehicle, which the server keeps whole on the receipt. */
+function posD1Sync(){ const box=document.getElementById('posD1Fields'); if(!box || !window.TKS_RDOCS) return;
+  if(!posNastf){ box.style.display='none'; return; }
+  if(!box.querySelector('.rd1')){ box.innerHTML='<div class="hint" style="margin:0 0 4px;font-weight:700">NASTF D1 — the vehicle (all three are needed)</div>'+TKS_RDOCS.d1FieldsHTML('search'); TKS_RDOCS.d1Bind(box); }
+  box.style.display=''; }
+function posD1Read(){ const box=document.getElementById('posD1Fields'); return (posNastf && box && window.TKS_RDOCS && box.querySelector('.rd1')) ? TKS_RDOCS.d1Read(box) : null; }
 function posRenderNastfBadge(){
   const el=document.getElementById('posNastfBadge'); if(!el) return;
   if(!posNastf || posJobType!=='automotive'){ el.innerHTML=''; return; }
@@ -3910,6 +4181,7 @@ function posRemove(key){ posTicket=posTicket.filter(x=>x.key!==key); posRender()
 function posClear(){ posTicket=[]; posDiscountCents=0; posDiscountReason=''; setChgCustomer(null);
   posVeh={year:'',make:'',model:'',vin:''}; const vinEl=document.getElementById('posVin'); if(vinEl) vinEl.value=''; const vn=document.getElementById('posVehNote'); if(vn) vn.textContent=''; posFillYmm();
   posSetNastf('');
+  { const d1b=document.getElementById('posD1Fields'); if(d1b){ d1b.innerHTML=''; d1b.style.display='none'; } }   // 8z90
   posRender();
   const sr=document.getElementById('chgSendRow'); if(sr){ sr.style.display='none'; sr.innerHTML=''; } }
 function posRender(){
@@ -3920,14 +4192,14 @@ function posRender(){
   } else {
     let rows = posTicket.map((l,idx)=>{
       let sku=''; if(l.type==='part'){ try{ const p=TKS.Inventory.get(l.refId); sku=(p&&p.sku)||''; }catch(_){} } else { sku=(l.lineType||''); }
-      return '<tr><td class="pl-ln">'+(idx+1)+'</td><td class="pl-sku">'+esc2(sku)+'</td>'+
-        '<td class="pl-desc">'+esc2(l.desc)+'</td>'+
-        '<td class="pl-qty"><button data-dec="'+l.key+'">−</button><span>'+(l.qty||1)+'</span><button data-inc="'+l.key+'">+</button></td>'+
+      return '<tr><td class="pl-ln">'+(idx+1)+'</td>'+
+        '<td class="pl-desc">'+esc2(l.desc)+(sku?('<span class="pl-sku">'+esc2(sku)+'</span>'):'')+'</td>'+
+        '<td class="pl-qtyc"><div class="pl-qty"><button data-dec="'+l.key+'" aria-label="One less">−</button><span>'+(l.qty||1)+'</span><button data-inc="'+l.key+'" aria-label="One more">+</button></div></td>'+
         '<td class="pl-price" data-edit="'+l.key+'">'+money2(l.unitCents)+'</td><td class="pl-tot">'+money2(posLineAmtCents(l))+'</td>'+
-        '<td><button class="pl-x" data-rm="'+l.key+'" aria-label="Remove">×</button></td></tr>';
+        '<td class="pl-xc"><button class="pl-x" data-rm="'+l.key+'" aria-label="Remove">×</button></td></tr>';
     }).join('');
-    if(posDiscountCents>0){ rows += '<tr class="discount"><td></td><td></td><td class="pl-desc">Discount'+(posDiscountReason?(' — '+esc2(posDiscountReason)):'')+'</td><td></td><td></td><td class="pl-tot">−'+money2(posDiscountCents)+'</td><td><button class="pl-x" data-rmdisc="1" aria-label="Remove discount">×</button></td></tr>'; }
-    host.innerHTML='<table class="pos-grid"><thead><tr><th>#</th><th>SKU</th><th>Description</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+    if(posDiscountCents>0){ rows += '<tr class="discount"><td></td><td class="pl-desc">Discount'+(posDiscountReason?(' — '+esc2(posDiscountReason)):'')+'</td><td></td><td></td><td class="pl-tot">−'+money2(posDiscountCents)+'</td><td><button class="pl-x" data-rmdisc="1" aria-label="Remove discount">×</button></td></tr>'; }
+    host.innerHTML='<table class="pos-grid"><thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
     host.querySelectorAll('[data-inc]').forEach(b=> b.onclick=()=> posSetQty(b.dataset.inc, +1));
     host.querySelectorAll('[data-dec]').forEach(b=> b.onclick=()=> posSetQty(b.dataset.dec, -1));
     host.querySelectorAll('[data-rm]').forEach(b=> b.onclick=()=> posRemove(b.dataset.rm));
@@ -3977,7 +4249,9 @@ function posBuildPayload(){
     customer:(c.customer||''), customerId:(c.id||null), phone:(c.phone||''), email:(c.email||''),
     location:'shop', technician:tech.name, technicianId:tech.id, taxRate:posTaxRate(),
     discountCents:posDiscountCents, discountReason:posDiscountReason,
-    vehicle: (posJobType==='automotive' && (posVeh.vin||posVeh.make||posVeh.model)) ? posVeh : null,
+    vehicle: (function(){ if(posJobType!=='automotive') return null; const d=posD1Read();   // 8z90: a D1 sale always carries its vehicle (colour / miles / tag)
+      if(d) return Object.assign({}, posVeh, { color:d.color, odometer:d.odometer, plate:d.plate });
+      return (posVeh.vin||posVeh.make||posVeh.model) ? posVeh : null; })(),
     nastf: (posJobType==='automotive' && posNastf) ? posNastf : null,
     lines: posTicket.map(l=> l.type==='part' ? Object.assign({ type:'part', itemId:l.refId, qty:l.qty }, l.priceOverride?{priceCents:l.unitCents}:{})
                           : l.type==='service' ? Object.assign({ type:'service', svc:l.svc, cat:l.cat, qty:l.qty }, l.priceOverride?{priceCents:l.unitCents}:{})  // Setup service priced server-side unless overridden
@@ -4272,6 +4546,7 @@ window.addEventListener('tks-scan', async function(e){
 }; }
 { const hw=document.getElementById('invHardware'); if(hw) hw.onclick=function(){ if(window.TKS_HW) TKS_HW.openSettings(); }; }
 { const lk=document.getElementById('sideLockNow'); if(lk) lk.onclick=function(){ if(window.TKS_CLOCK) TKS_CLOCK.lockNow(); }; }
+{ const mp=document.getElementById('sideMyPin'); if(mp) mp.onclick=function(){ clkMyPin(); }; }   // 8z77
 document.getElementById('posDiscountBtn').onclick=function(){ if(!(TKS.auth.can && TKS.auth.can('editPricing'))){ chgSay('Discounts are manager-only.',false); return; } posDiscountPrompt(); };
 document.getElementById('posClearBtn').onclick=function(){ if(posTicket.length||posDiscountCents>0){ uiConfirm({ title:'Clear ticket?', message:'Remove all lines and any discount from this ticket?', okText:'Clear', danger:true }).then(ok=>{ if(ok) posClear(); }); } };
 document.querySelectorAll('#posJobType button').forEach(b=> b.onclick=()=> posSetJobType(b.dataset.jt));
@@ -4521,6 +4796,8 @@ function posCheckoutThen(method){
   const t=posTotals();
   if(method==='card' && t.totalCents<50){ chgSay('Card needs at least $0.50.',false); return; }
   if(method==='check' && !chgIsCommercial()){ chgSay('Checks are only taken from commercial (business) customers.',false); return; }   // 8z21
+  { const d1=posD1Read(); if(d1){ const miss=TKS_RDOCS.d1Missing(d1, 'NASTF D1'); if(miss){ chgSay(miss, false); try{ document.getElementById('posD1Fields').scrollIntoView({block:'center'}); }catch(e){} return; }   // 8z90
+      if(!(posVeh.make || posVeh.vin)){ chgSay('NASTF D1: pick the vehicle (year, make, model) or enter the VIN.', false); return; } } }
   if(method!=='cash' && (!chgCustomer || !chgCustomer.customer)){ chgSay((method==='card'?'Card':'Check')+" needs the customer's info — tap “Select / add customer”.",false); return; }
   if(!(window.TKS && TKS.POS && TKS.auth.isSignedIn())){ chgSay('Sign in to take a payment.',false); return; }
   posSetBusy(true);
@@ -4531,6 +4808,7 @@ function posCheckoutThen(method){
     if(res && res.error){ posSetBusy(false); chgSay(res.error.message,false); return; }
     const rid = res && res.data; if(!rid){ posSetBusy(false); chgSay('Checkout failed.',false); return; }
     const cust=chgCustomer||{};
+    const d1Sale = posNastf ? { id:rid, number:rid, customer:cust.customer||'', nastf:{ type:posNastf }, vehicle:Object.assign({}, posVeh) } : null;   // 8z90: kept for the photo box (the ticket clears after the sale)
     const stub={ id:rid, number:rid, customer:cust.customer||'', email:cust.email||'', totals:{ total:t.totalCents/100, surcharge:0 } };
     const done=(j)=>{
       posSetBusy(false);
@@ -4552,7 +4830,8 @@ function posCheckoutThen(method){
       }catch(_){/* never block the sale */}
       /* 8z39: a Supabase call has .then but NO .catch, so the old ".catch" here threw, and everything after an approved charge was skipped without a word (stock not taken, ticket not cleared, no receipt buttons). */ Promise.resolve().then(()=>TKS.POS.decrementStock(rid)).then(r=>{ if(r&&r.error) console.warn("[pos] stock not taken for "+rid+": "+r.error.message); }, e=>console.warn("[pos] stock not taken for "+rid, e)); posClear();
       chgSay('✓ '+(method==='card' ? 'Card charge complete — '+money(capt)+(sur?' (incl. 2% credit surcharge)':'') : (payLabel+' recorded — '+money(capt)+'.')),true);
-      showChgSend({ id:rid, number:rid, email:cust.email, items:[{desc:'Register sale'}], totals:{ total:capt/100, surcharge:sur/100 }, payment:payLabel }); };
+      showChgSend({ id:rid, number:rid, email:cust.email, items:[{desc:'Register sale'}], totals:{ total:capt/100, surcharge:sur/100 }, payment:payLabel });
+      try{ const dbx=document.getElementById('chgDocs'); if(dbx){ dbx.innerHTML=''; if(d1Sale && window.TKS_RDOCS) TKS_RDOCS.panel(dbx, d1Sale); } }catch(_){} };   // 8z90
     if(method==='card'){ if(!TKPay.openForReceipt){ posSetBusy(false); chgSay('Payment engine not loaded.',false); return; }
       // Once the Pay Now sheet is up it is modal (full-screen overlay), so the buttons can be
       // released as soon as it has opened; done() also releases on completion.
@@ -4840,9 +5119,9 @@ function shareDepositSlip(){
    (merged MicroBiz history); cashapp / mobile / commercial / other = non-card electronic or account payments. */
 function payMethodLabel(t){ var m=t&&t.method;
   return m==='cash'?'Cash':m==='check'?'Check':m==='reader'?'Card · reader':m==='keyed'?'Card · typed':
-    m==='card'?('Card'+(t.card_brand?' · '+t.card_brand:'')):m==='cashapp'?'Cash App':m==='venmo'?'Venmo':m==='zelle'?'Zelle':m==='mobile'?'Mobile pay':m==='commercial'?'Commercial':m==='other'?'Other':(m||'Payment'); }
-function payBucket(m){ return m==='cash'?'cash':m==='check'?'check':(m==='reader'||m==='keyed'||m==='card')?'card':'other'; }
-function payCanRefund(t){ return t && (t.method==='cash'||t.method==='check'||((t.method==='reader'||t.method==='keyed')&&t.stripe_payment_intent_id)); }
+    m==='card'?('Card'+(t.card_brand?' · '+t.card_brand:'')):m==='link'?'Card · pay link':m==='cashapp'?'Cash App':m==='venmo'?'Venmo':m==='zelle'?'Zelle':m==='mobile'?'Mobile pay':m==='commercial'?'Commercial':m==='other'?'Other':(m||'Payment'); }
+function payBucket(m){ return m==='cash'?'cash':m==='check'?'check':(m==='reader'||m==='keyed'||m==='card'||m==='link')?'card':'other'; }   // 8z75: a pay link is a card payment
+function payCanRefund(t){ return t && (t.method==='cash'||t.method==='check'||((t.method==='reader'||t.method==='keyed'||t.method==='link')&&t.stripe_payment_intent_id)); }
 
 /* ============================ TRANSACTION HISTORY (reports) ============================
    Owner-only analytics over payment_transactions: Total Jobs / Sales / Cost /
@@ -4884,7 +5163,7 @@ function repFeeRates(){ let p={}; try{ p=(TKS.Config.payments&&TKS.Config.paymen
   const n=(v,d)=>{ v=Number(v); return (isNaN(v)||v<0)?d:v; };
   return { tapPct:n(p.feeTapPct,2.7), tapCents:n(p.feeTapCents,5), typedPct:n(p.feeTypedPct,2.9), typedCents:n(p.feeTypedCents,30) }; }
 function repCardFee(t){ if(!t || payBucket(t.method)!=='card') return 0;
-  const r=repFeeRates(), typed=(t.method==='keyed'), pct=typed?r.typedPct:r.tapPct, fix=typed?r.typedCents:r.tapCents;
+  const r=repFeeRates(), typed=(t.method==='keyed'||t.method==='link'), pct=typed?r.typedPct:r.tapPct, fix=typed?r.typedCents:r.tapCents;
   const paid=(t.captured_cents!=null && t.captured_cents>0)?t.captured_cents:((t.base_cents||0)+(t.surcharge_applied?(t.surcharge_cents||0):0));
   if(!(paid>0)) return 0;
   return Math.round(paid*pct/100)+Math.round(fix); }
@@ -5235,6 +5514,75 @@ function repExportCsv(){
   try{ toast('Exported '+rows.length+' payments.'); }catch(e){}
 }
 document.addEventListener('click', function(e){ const b=e.target.closest && e.target.closest('#repExport'); if(b) repExportCsv(); });
+/* 8z79 (owner, 2026-11-12: "in the Reports tab add salaries and commissions paid, including employees and contractors").
+   Three sources, each already kept elsewhere in the app:
+     - hourly wages   — pay periods the owner marked paid in this date range (server: payroll_paid, owner only);
+     - commission     — what technicians earned on paid sales in this range (server: commission_day_rows);
+     - contractors    — jobs "contracted out" whose contractor was marked paid in this range (booking.contract.paidAt).
+   "Left after pay" = the profit above − wages − commission. Contractors are NOT taken off twice: the profit card already
+   removes a contractor's share when the job's sale comes in. */
+let _repPayTok=0;
+async function repPayCard(start, end, techName, profitCents){
+  const tok=++_repPayTok, box=()=>document.getElementById('repPayCard');
+  const role=(function(){ try{ return TKS.auth.staffRole&&TKS.auth.staffRole(); }catch(e){ return null; } })();
+  const sb=(function(){ try{ return TKS._sb&&TKS._sb(); }catch(e){ return null; } })();
+  const demo=(function(){ try{ return !!(TKS.isDemo&&TKS.isDemo()); }catch(e){ return false; } })();
+  const one=techName && techName!=='all', same=n=>String(n||'').trim().toLowerCase()===String(techName||'').trim().toLowerCase();
+  const isoDay=d=>{ const z=new Date(d); z.setMinutes(z.getMinutes()-z.getTimezoneOffset()); return z.toISOString().slice(0,10); };
+  const hm=min=>{ min=Math.max(0,Math.round(min||0)); return Math.floor(min/60)+'h '+String(min%60).padStart(2,'0')+'m'; };
+  const sd=iso=>{ const p=String(iso||'').slice(0,10).split('-'); return p.length===3?new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString('en-US',{month:'short',day:'numeric'}):''; };
+  // 1) hourly wages marked paid (owner only)
+  let wages=[], wagesNote='';
+  if(role==='owner' && sb && !demo){ try{ const r=await sb.rpc('payroll_paid',{ p_from:start.toISOString(), p_to:end.toISOString() }); if(r.error) wagesNote='Could not load ('+(r.error.message||'error')+').'; else wages=(r.data||[]); }catch(e){ wagesNote='Could not load.'; } }
+  else if(role!=='owner') wagesNote='Only the owner sees hourly wages.';
+  if(one) wages=wages.filter(w=>same(w.name));
+  // 2) commission earned
+  let comm=[], commNote='';
+  try{ const r=await TKS.Commission.dayRows(isoDay(start), isoDay(new Date(end.getTime()-1)), null); if(r && r.error) commNote='Could not load.'; else comm=(r&&r.data)||[]; }catch(e){ commNote='Could not load.'; }
+  if(one) comm=comm.filter(c=>same(c.tech_name));
+  const byTech={}; comm.forEach(c=>{ const k=c.tech_name||'Technician'; const g=(byTech[k]=byTech[k]||{c:0,h:0}); g.c+=+c.commission_cents||0; g.h+=+c.held_cents||0; });
+  // 3) contractors marked paid in the range (+ what is owed right now)
+  let conPaid={}, conOwed=0;
+  if(!one){ try{ (TKS.list('bookings')||[]).forEach(b=>{ if(!b || !b.contract || !(Number(b.contract.amount)>0) || /cancel/i.test(String(b.status||''))) return;
+      const cents=Math.round(Number(b.contract.amount)*100), n=String(b.contract.name||'Contractor').trim()||'Contractor', at=Number(b.contract.paidAt)||0;
+      if(at){ if(at>=start.getTime() && at<end.getTime()){ const g=(conPaid[n]=conPaid[n]||{c:0,n:0}); g.c+=cents; g.n+=1; } }
+      else if(/complete/i.test(String(b.status||''))) conOwed+=cents; }); }catch(e){} }
+  if(tok!==_repPayTok || !box()) return;   // the period changed while this was loading
+  const wTot=wages.reduce((s,w)=>s+(+w.gross_cents||0),0), cTot=Object.keys(byTech).reduce((s,k)=>s+byTech[k].c,0), hTot=Object.keys(byTech).reduce((s,k)=>s+byTech[k].h,0), kTot=Object.keys(conPaid).reduce((s,k)=>s+conPaid[k].c,0);
+  const ln=(k,v,strong,sub)=>'<div style="display:flex;justify-content:space-between;gap:10px;padding:'+(sub?'1px 0 1px 14px':'3px 0')+';font-weight:'+(strong?'800':(sub?'400':'700'))+(sub?';font-size:13.5px;opacity:.9':'')+(strong?';border-top:1px solid rgba(128,128,128,.3);margin-top:4px;padding-top:6px;font-size:16px':'')+'"><span>'+k+'</span><span style="white-space:nowrap">'+v+'</span></div>';
+  let h='';
+  h+=ln('Hourly wages paid', repMoney(wTot));
+  h+=wages.map(w=>ln(esc2(w.name)+' — '+esc2(sd(w.period_start))+' to '+esc2(sd(w.period_end))+' · '+hm(w.minutes)+' · pay day '+esc2(sd(w.payday||w.period_end)), repMoney(+w.gross_cents||0), false, true)).join('');
+  if(wagesNote) h+=ln('<span style="font-weight:400">'+esc2(wagesNote)+'</span>', '', false, true);
+  else if(!wages.length) h+=ln('<span style="font-weight:400">No pay period that you marked paid has its pay day in these dates.</span>', '', false, true);
+  h+=ln('Commission earned', repMoney(cTot));
+  h+=Object.keys(byTech).sort().map(k=>ln(esc2(k)+(byTech[k].h>0?(' <span style="font-weight:400">('+repMoney(byTech[k].h)+' more on hold)</span>'):''), repMoney(byTech[k].c), false, true)).join('');
+  if(commNote) h+=ln('<span style="font-weight:400">'+esc2(commNote)+'</span>', '', false, true);
+  else if(!Object.keys(byTech).length) h+=ln('<span style="font-weight:400">None in these dates.</span>', '', false, true);
+  if(!one){ h+=ln('Contractors paid', repMoney(kTot));
+    h+=Object.keys(conPaid).sort().map(k=>ln(esc2(k)+' — '+conPaid[k].n+' job'+(conPaid[k].n>1?'s':''), repMoney(conPaid[k].c), false, true)).join('');
+    if(!Object.keys(conPaid).length) h+=ln('<span style="font-weight:400">None marked paid in these dates.</span>', '', false, true);
+    if(conOwed>0) h+=ln('<span style="font-weight:400;color:#c8323c">You still owe contractors '+repMoney(conOwed)+' for finished jobs.</span>', '', false, true); }
+  h+=ln('Total pay', repMoney(wTot+cTot+kTot), true);
+  if(!one && profitCents!=null){ const left=profitCents-wTot-cTot; h+=ln('Left after pay', '<span style="'+(left<0?'color:#c8323c':'')+'">'+(left<0?'− ':'')+repMoney(Math.abs(left))+'</span>', true); }
+  box().innerHTML='Pay — wages, commission and contractors<b>'+repMoney(wTot+cTot+kTot)+'</b><div style="margin-top:6px;font-size:14.5px">'+h+'</div>'+
+    '<div class="sub" style="margin-top:6px;font-weight:400">Wages are the pay periods you marked paid under Salary / Commission, counted on each period’s pay day (not the day you tapped the button); commission is what was earned on paid sales in these dates'+(hTot>0?' (held amounts are not counted until a manager signs the job off)':'')+'; a contractor counts on the day you mark the job paid. '+
+    (one?'Showing one technician — contractors are left out.':'“Left after pay” is the profit above minus wages and commission. Contractors are already taken off that profit when their job is paid for, so they are not taken off twice.')+' Gross pay, before payroll taxes.</div>';
+}
+/* 8z78: every tax-exempt sale of the period with the certificate it relied on — what the Tax Commission asks for when it
+   reviews the exemptions taken on a return (customer, address, kind of exemption, permit number, date, amount). */
+function repExemptCsv(){
+  const ex=_repExport.exempt||[]; if(!ex.length){ try{ toast('No tax-exempt sales in this period.'); }catch(e){} return; }
+  const q=function(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?('"'+v.replace(/"/g,'""')+'"'):v; };
+  const head=['Date','Document','Customer','Exemption','Name on permit / card','Address','Type of business','Permit / exemption number','Expires','Sale amount (no tax charged)','Paid by','Applied by','Photo on file','Signed'];
+  const lines=[head.join(',')].concat(ex.map(function(x){ const e=x.r.taxExempt||{};
+    return [ new Date(x.t.created_at).toLocaleDateString('en-US'), x.r.number||x.t.invoice_id||'', x.r.customer||'', e.kindLabel||e.kind||'', e.holderName||'', e.holderAddress||x.r.address||'', e.businessType||'', e.permitNumber||'', e.expiresOn||'',
+      (x.amt/100).toFixed(2), x.t.method||'', e.appliedBy||x.t.technician||'', e.hasDoc?'yes':'no', e.signedAt?'yes':'no' ].map(q).join(','); }));
+  const blob=new Blob(['\ufeff'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'}), a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='bittings-tax-exempt-sales-'+(_repExport.label||'export')+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  try{ toast('Exported '+ex.length+' tax-exempt sale'+(ex.length>1?'s':'')+'.'); }catch(e){}
+}
+document.addEventListener('click', function(e){ const b=e.target.closest && e.target.closest('#repExemptCsv'); if(b) repExemptCsv(); });
 
 /* 8z72: Activity → "⚠ Errors": what went wrong in the app on any device (written by app/store.js as "app_error"). */
 async function showAppErrors(){
@@ -5538,6 +5886,22 @@ async function renderReports(){
       '</div>'+
       '<div class="sub" style="margin-top:6px;font-weight:400">Card fees are worked out at '+fr.tapPct+'% + '+fr.tapCents+'¢ on the reader and '+fr.typedPct+'% + '+fr.typedCents+'¢ for a typed card (change in Settings → Payments). Cash, check and other payments have no fee. Sales tax is not counted as sales.</div></div>');
   }catch(e){}
+  try{ cards.insertAdjacentHTML('beforeend', '<div class="chip" id="repPayCard" style="flex:1 1 100%;text-align:left">Pay — wages, commission and contractors<div class="sub" style="margin-top:6px;font-weight:400">Loading…</div></div>');
+       repPayCard(start, end, sel.value, tot.profit); }catch(e){}   // 8z79
+  try{ // 8z78: tax-exempt sales in this period, for the sales tax return — and what paperwork is still owed
+    const ex=[]; rows.forEach(t=>{ if(t.status!=='completed' && t.status!=='partially_refunded') return; const r=recBy[t.invoice_id]; if(r && r.taxExempt) ex.push({ t:t, r:r, amt:Math.max(0,(t.base_cents||0)-(t.tax_cents||0)-(t.refunded_cents||0)) }); });
+    _repExport.exempt=ex;
+    const exTot=ex.reduce((s,x)=>s+x.amt,0);
+    let owed=0; try{ owed=(window.TKS_EXEMPT?TKS_EXEMPT.all():[]).filter(c=>!TKS_EXEMPT.expired(c) && TKS_EXEMPT.missing(c).length).length; }catch(e){}
+    cards.insertAdjacentHTML('beforeend',
+      '<div class="chip" id="repExemptCard" style="flex:1 1 100%;text-align:left">Tax-exempt sales<b>'+repMoney(exTot)+'</b>'+
+      '<div style="margin-top:6px;font-size:14px;font-weight:400">'+
+        (ex.length ? ex.slice(0,8).map(x=>'<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0"><span>'+esc2(new Date(x.t.created_at).toLocaleDateString([], {month:'short',day:'numeric'}))+' · '+esc2(x.r.number||'')+' · '+esc2(x.r.customer||'')+' — '+esc2(window.TKS_EXEMPT?TKS_EXEMPT.label(x.r.taxExempt):'exempt')+'</span><span style="white-space:nowrap">'+repMoney(x.amt)+'</span></div>').join('')+(ex.length>8?'<div class="sub">+ '+(ex.length-8)+' more — they are all in the file</div>':'')
+                   : '<div class="sub" style="margin:0">None in this period.</div>')+
+      '</div>'+
+      (owed?'<div class="sub" style="margin-top:6px;font-weight:700;color:#c8323c">'+owed+' exemption'+(owed>1?'s':'')+' on file still need paperwork — Settings → Sales tax.</div>':'')+
+      (ex.length?'<button type="button" class="btn ghost" id="repExemptCsv" style="margin-top:8px;min-height:44px">⬇ Exempt sales (file for the tax return)</button>':'')+'</div>');
+  }catch(e){}
   drawRepChart(v.chart, buckets, agg, m, byMethod);
   repBreakdown(rows, start, end);   // 8z23
   // Transaction list (period rows, newest first)
@@ -5556,7 +5920,7 @@ async function renderReports(){
   }).join('');
   list.querySelectorAll('.repRefund').forEach(b=> b.onclick=async()=>{
     const id=b.dataset.id, pi=b.dataset.pi, method=b.dataset.method, inv=b.dataset.inv;
-    const isCard=(method==='reader'||method==='keyed');
+    const isCard=(method==='reader'||method==='keyed'||method==='link');
     if(!(await TKS_ACCESS.confirmDanger({ title:'Refund / void this '+(isCard?'card charge':method+' payment')+'?', message:'Parts on this sale go back to stock when it is fully refunded or voided. This can’t be undone.', confirmLabel:'Refund / Void' }))) return;
     b.disabled=true; const old=b.textContent; b.textContent='…';
     let r2; try{ r2 = isCard ? await TKPay.refundCard(pi) : await TKPay.voidCashCheck(id); }catch(e){ r2={error:String(e)}; }
@@ -5870,12 +6234,23 @@ function syncOwnerTiles(){
   document.querySelectorAll('[data-go="timesheets"]').forEach(el=>{ el.style.display = (window.TKS&&TKS.auth&&TKS.auth.isSignedIn()) ? '' : 'none'; });
   // Lock now (shifts): only when the time-clock is actually armed on this workstation.
   const lk=document.getElementById('sideLockNow'); if(lk) lk.style.display = (window.TKS_CLOCK && TKS_CLOCK.isActive && TKS_CLOCK.isActive()) ? '' : 'none';
+  // 8z77: every signed-in person can set their own PIN (it used to live only in Settings, which a technician cannot open)
+  const mp=document.getElementById('sideMyPin'); if(mp) mp.style.display = (window.TKS&&TKS.auth&&TKS.auth.isSignedIn() && !(TKS.isDemo&&TKS.isDemo())) ? '' : 'none';
 }
 /* ===== 8z62 (owner, 2026-11-11): Clock in / Clock out button in the top bar, on any device =====
    Until now the clock only ran on a registered shop workstation (auto clock-in at login, clock-out from the lock screen,
    which also signs out). A technician on a phone had no clock at all — and after-hours commission needs him CLOCKED OUT
    while still signed in. Same server functions (shift_status / shift_clock_in / shift_clock_out). Not shown to the owner. */
-const clkState={known:false,open:null,at:0,busy:false};
+const clkState={known:false,open:null,at:0,busy:false,rule:null,ruleAt:0};
+/* 8z76 (owner, 2026-11-12): "technician clock-in has to be done on the shop PC — cannot be done on mobile. After they've
+   clocked in they can clock out on their phone, but never in." The server enforces it (shift_clock_in checks that the
+   request comes from a registered shop computer); this only decides what the button looks like. A shop computer is one
+   marked in Settings → Time clock & lock ("This device is a shop computer") — its id + secret live in this browser. */
+function clkDev(){ try{ const id=localStorage.getItem('tks_tc_device_id'), tk=localStorage.getItem('tks_tc_device_token'); return (id&&tk)?{ p_device_id:id, p_device_token:tk }:{}; }catch(e){ return {}; } }
+function clkIsShopPc(){ return !!clkDev().p_device_id; }
+function clkPhoneBlocked(){ try{ const r=clkState.rule; return !!(r && r.shop_only && r.shop_computers>0 && TKS.auth.staffRole()==='technician' && !clkIsShopPc()); }catch(e){ return false; } }
+function clkLoadRule(force){ const sb=clkSb(); if(!sb) return; if(!force && Date.now()-clkState.ruleAt<5*60000) return; clkState.ruleAt=Date.now();
+  try{ sb.rpc('shift_rules').then(r=>{ if(r && !r.error && r.data){ clkState.rule=r.data; clkPaint(); } }, ()=>{}); }catch(e){} }
 function clkSb(){ try{ return (window.TKS&&TKS._sb&&TKS._sb())||null; }catch(e){ return null; } }
 function clkEligible(){ try{ const a=TKS.auth; if(!(a&&a.isSignedIn())) return false; if(TKS.isDemo&&TKS.isDemo()) return false;
   const r=a.staffRole&&a.staffRole(); return !!r && r!=='owner' && !!clkSb(); }catch(e){ return false; } }
@@ -5885,23 +6260,76 @@ if(typeof window.toast!=='function') window.toast=function(m){ try{ if(window.TK
 function clkTime(s){ try{ return new Date(s).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } }
 function clkPaint(){
   const slot=document.getElementById('clkSlot'); if(!slot) return;
-  if(!clkEligible() || !clkState.known){ slot.innerHTML=''; return; }
+  const mine = clkEligible() && clkState.known;
   const on=clkState.open;
-  slot.innerHTML = on
+  const blocked=!on && clkPhoneBlocked();
+  let h = !mine ? '' : on
     ? '<button type="button" class="clk out" id="clkBtn">🟢 On the clock since '+esc2(clkTime(on.clock_in))+' · <b style="color:inherit">Clock out</b></button>'
+    : blocked ? '<button type="button" class="clk in" id="clkBtn" style="opacity:.8">⏱ Clock in at the shop computer</button>'
     : '<button type="button" class="clk in" id="clkBtn">⏱ Clock in</button>';
-  const b=document.getElementById('clkBtn'); if(b){ b.disabled=clkState.busy; b.onclick = on ? clkAskOut : clkIn; }
+  // 8z77: on a shop computer anyone can clock in with their own PIN, whoever is signed in
+  if(clkStationOn()) h += '<button type="button" class="clk out" id="clkPinBtn" title="Type your own PIN to clock in. The computer stays signed in as it is.">🔢 Clock in by PIN</button>';
+  slot.innerHTML = h;
+  const b=document.getElementById('clkBtn'); if(b){ b.disabled=clkState.busy; b.onclick = on ? clkAskOut : blocked ? clkWhyBlocked : clkIn; }
+  const pb=document.getElementById('clkPinBtn'); if(pb) pb.onclick=clkPinStation;
+}
+/* 8z77 (owner, 2026-11-12): "He doesn't have a settings to add a PIN." Two gaps behind that one sentence:
+   - "My PIN" was only in Settings → Access & managers, which a technician cannot open  → clkMyPin(), in the menu for everyone;
+   - the shop computer had no quick way to clock a technician in (the lock screen wants a full login first)
+     → clkPinStation(): type your PIN, you are clocked in, the computer stays signed in as it was (server: shift_clock_in_pin). */
+function clkStationOn(){ try{ return clkIsShopPc() && !!(TKS.auth&&TKS.auth.isSignedIn()) && !(TKS.isDemo&&TKS.isDemo()) && !!clkSb(); }catch(e){ return false; } }
+function clkPinField(){ const i=document.getElementById('uiPI'); if(!i) return; try{ i.setAttribute('autocomplete','off'); i.setAttribute('maxlength','6'); i.setAttribute('name','tks-clock-pin'); i.style.webkitTextSecurity='disc'; i.style.letterSpacing='.3em'; i.style.fontSize='22px'; }catch(e){} }
+function clkPinStation(){
+  const sb=clkSb(); if(!sb) return;
+  const p=uiPrompt({ title:'Clock in', label:'Type your own PIN', inputmode:'numeric', placeholder:'••••', okText:'Clock in',
+    help:'4 digits (6 for a manager or owner). No PIN yet? Set one on your own phone: menu → My PIN.' });
+  clkPinField();
+  p.then(v=>{ if(v==null) return; v=String(v).trim();
+    if(!/^\d{4}$|^\d{6}$/.test(v)){ uiAlert({ title:'Clock in', message:'A PIN is 4 digits (6 for a manager or owner).' }).then(clkPinStation); return; }
+    sb.rpc('shift_clock_in_pin', Object.assign({ p_pin:v }, clkDev())).then(r=>{
+      if(r.error){ uiAlert({ title:'Could not clock in', message:clkErr(r.error) }); return; }
+      const d=r.data||{};
+      if(!d.ok){ uiAlert({ title:'Could not clock in', message:d.error||'That PIN is not recognised.' }).then(clkPinStation); return; }
+      uiAlert({ title: d.already_open ? 'Already on the clock' : '✓ Clocked in',
+        message: d.already_open ? ((d.name||'You')+' has been on the clock since '+clkTime(d.clock_in)+'. Nothing changed.')
+                                : ((d.name||'You')+' — clocked in at '+clkTime(d.clock_in)+'. Clock out later from your phone.') });
+      clkRefresh(true);
+      try{ if(document.getElementById('view-timesheets').classList.contains('active')) renderTimesheets(); }catch(e){}
+    }, e=>{ uiAlert({ title:'Could not clock in', message:clkErr(e) }); });
+  });
+}
+function clkMyPin(){
+  const a=window.TKS&&TKS.auth; if(!(a&&a.isSignedIn()) || (TKS.isDemo&&TKS.isDemo())){ uiAlert({ title:'My PIN', message:'Sign in first to set your PIN.' }); return; }
+  const r=a.staffRole&&a.staffRole(), n=(r==='owner'||r==='manager')?6:4;
+  const had=!!(clkState.rule && clkState.rule.has_pin);
+  uiPrompt({ title: had?'Change my PIN':'Set my PIN', label:'Pick '+n+' digits', inputmode:'numeric', placeholder:n===6?'123456':'1234', okText:'Save my PIN',
+    help:'This is the PIN you type on the shop computer to clock in. Only you know it; nobody else can see it.' }).then(v=>{
+    if(v==null) return; v=String(v).trim();
+    if(!new RegExp('^\\d{'+n+'}$').test(v)){ uiAlert({ title:'My PIN', message:'Your PIN must be exactly '+n+' digits.' }).then(clkMyPin); return; }
+    Promise.resolve(a.setMyPin(v)).then(res=>{
+      if(res && res.error){ uiAlert({ title:'PIN not saved', message:clkErr(res.error) }).then(clkMyPin); return; }
+      if(clkState.rule) clkState.rule.has_pin=true; clkLoadRule(true);
+      uiAlert({ title:'✓ PIN saved', message:'On the shop computer, tap "Clock in by PIN" and type it to clock in.' });
+    }, e=>{ uiAlert({ title:'PIN not saved', message:clkErr(e) }); });
+  });
+  const i=document.getElementById('uiPI'); if(i){ i.setAttribute('autocomplete','off'); i.setAttribute('maxlength',String(n)); }
 }
 function clkRefresh(force){
   if(!clkEligible()) return; if(!force && Date.now()-clkState.at<60000) return;
   clkState.at=Date.now(); const sb=clkSb();
   try{ sb.rpc('shift_status').then(r=>{ if(!r || r.error) return; clkState.known=true; clkState.open=r.data||null; clkPaint(); }, ()=>{}); }catch(e){}
+  clkLoadRule(force);
+}
+function clkWhyBlocked(){
+  const hasPin=!!(clkState.rule && clkState.rule.has_pin);
+  if(hasPin){ uiAlert({ title:'Clock in at the shop', message:'On the shop computer, tap "Clock in by PIN" and type your PIN. Once you are on the clock you can clock out from this phone.' }); return; }
+  uiConfirm({ title:'Clock in at the shop', message:'Clocking in is done on the shop computer: tap "Clock in by PIN" there and type your PIN. You do not have a PIN yet — set one now, it takes a few seconds.', okText:'Set my PIN', cancelText:'Later' }).then(y=>{ if(y) clkMyPin(); });
 }
 function clkErr(e){ return (e&&e.message)?String(e.message):'No connection — try again.'; }
 function clkIn(){
   const sb=clkSb(); if(!sb || clkState.busy) return; clkState.busy=true; clkPaint();
-  sb.rpc('shift_clock_in').then(r=>{ clkState.busy=false;
-    if(r.error){ clkToast('Could not clock in: '+clkErr(r.error)); clkPaint(); return; }
+  sb.rpc('shift_clock_in', clkDev()).then(r=>{ clkState.busy=false;
+    if(r.error){ if(/shop computer/i.test(clkErr(r.error))){ clkLoadRule(true); clkWhyBlocked(); } else clkToast('Could not clock in: '+clkErr(r.error)); clkPaint(); return; }
     clkState.known=true; clkState.open={id:r.data&&r.data.id, clock_in:(r.data&&r.data.clock_in)||new Date().toISOString()}; clkState.at=Date.now();
     clkPaint(); clkToast('Clocked in at '+clkTime(clkState.open.clock_in));
   }, e=>{ clkState.busy=false; clkPaint(); clkToast('Could not clock in: '+clkErr(e)); });
@@ -6391,7 +6819,16 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       p.innerHTML = '<h2>Sales tax</h2><div class="sub">Default rate for taxable goods. Oklahoma exempts separately-stated labor — keep labor on its own line and it\'s excluded automatically. You can override the rate per receipt.</div>'+
         '<label>Default tax rate (%)</label><input id="f_taxRate" type="number" step="0.001" inputmode="decimal" value="'+(cfg.taxRate||'')+'" placeholder="e.g. 8.625">'+
         '<label>Taxable line categories</label>'+
-        TAX_CATS.map(c=>'<label class="toggle"><input type="checkbox" class="taxcat" data-k="'+c.key+'" '+(cfg.taxableByCategory[c.key]?'checked':'')+'> '+esc(c.label)+'</label>').join('');
+        TAX_CATS.map(c=>'<label class="toggle"><input type="checkbox" class="taxcat" data-k="'+c.key+'" '+(cfg.taxableByCategory[c.key]?'checked':'')+'> '+esc(c.label)+'</label>').join('')+
+        /* 8z78: tax-exempt customers */
+        '<label style="margin-top:20px">Tax-exempt customers</label>'+
+        '<div class="sub" style="margin:0 0 8px;line-height:1.5">To leave sales tax off a sale, tap <b>Tax exempt</b> on the quote, invoice, receipt or job and record the customer\'s paperwork. Oklahoma only lets you skip the tax when you hold that paperwork (you have 90 days from the sale to get it):'+
+          '<br>• <b>Resale</b> (a dealer, another locksmith): name, address, type of business, sales tax permit number and a signature.'+
+          '<br>• <b>Government, school, church, tribe</b>: a copy of their Tax Commission letter or card and a signed statement.'+
+          '<br>• <b>100% disabled veteran</b>: they show the exemption card at every sale; keep a photo of it, or the name, address and number.'+
+          '<br>Look a permit up on <a href="https://oktap.tax.ok.gov/" target="_blank" rel="noopener">OkTAP</a> (Searches → sales tax permit look-up), then tap <b>I checked this permit</b>. Nothing here is ever deleted; a withdrawn certificate stays on record. <b>Reports</b> lists every exempt sale for your sales tax return.</div>'+
+        '<div id="f_txList"></div>';
+      try{ if(window.TKS_EXEMPT) TKS_EXEMPT.manage(gid('f_txList')); }catch(e){}
     }
     else if(key==='payments'){
       p.innerHTML = '<h2>Payments</h2><div class="sub">How charges are taken. Card processing runs through Stripe.</div>'+
@@ -6581,14 +7018,30 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
         '<label style="margin-top:12px">Lock the screen after this many idle minutes</label>'+
         '<input id="f_tcIdle" type="number" min="1" max="120" step="1" value="'+(parseInt(tc.idleMin,10)||5)+'" placeholder="5">'+
         '<div class="hint">Default 5. Applies to workstations (below). Stepping away locks the screen; a PIN gets you right back in — you stay clocked in (locking is not a clock-out).</div>'+
-        '<label class="toggle" style="margin-top:14px"><input type="checkbox" id="f_tcDevice" '+(devOn?'checked':'')+'> <b>This device is a shop workstation</b> (lock &amp; clock here)</label>'+
+        '<div class="card" style="margin-top:14px;padding:12px;border:1px solid rgba(128,128,128,.3);border-radius:12px">'+
+          '<label style="margin:0">Where technicians clock in</label>'+
+          '<label class="toggle" style="margin-top:8px"><input type="checkbox" id="f_tcShopOnly"> <b>Technicians clock in on a shop computer only</b></label>'+
+          '<div class="hint">They can still clock <b>out</b> from a phone. Owners and managers are not affected. It takes effect once at least one shop computer is marked below — until then phones keep working, so nobody is locked out.</div>'+
+          '<div class="hint" id="f_tcShopOnlyMsg" style="min-height:16px"></div>'+
+        '</div>'+
+        '<label class="toggle" style="margin-top:14px"><input type="checkbox" id="f_tcDevice" '+(devOn?'checked':'')+'> <b>This device is a shop computer</b> (technicians clock in here)</label>'+
         '<div class="hint">Set this on the <b>shop PC</b> only. Leave it OFF on phones/tablets your techs use in the field — those keep working normally (no lock, no auto clock-in). This choice is remembered on this device.</div>'+
         '<div class="hint">Registering needs a <b>manager/owner sign-in on this device</b>. Only registered workstations can <b>switch users by PIN</b>; everywhere else a PIN only unlocks your own screen.</div>'+
         '<div class="hint" id="f_tcDeviceMsg" style="min-height:16px"></div>'+
         '<div id="f_tcDevices" style="margin-top:10px"></div>'+
-        '<div class="hint" style="margin-top:8px">Each person sets their own PIN under <b>Access &amp; managers → My PIN</b>. PINs are unique within your shop.</div>';
+        '<div class="hint" style="margin-top:8px">Each person sets their own PIN from the menu → <b>🔢 My PIN</b> (signed in as themselves, on their own phone is fine). PINs are unique within your shop. On this computer, <b>Clock in by PIN</b> in the top bar clocks a person in without signing anyone out.</div>';
       (function(){
         var cb=gid('f_tcDevice'), msg=gid('f_tcDeviceMsg'), listEl=gid('f_tcDevices');
+        // 8z76: the "shop computer only" rule lives on the server (shops.tech_clock_in_shop_only), not in the settings blob
+        (function(){ var so=gid('f_tcShopOnly'), sm=gid('f_tcShopOnlyMsg'); if(!so) return;
+          var sbx=null; try{ sbx=TKS._sb&&TKS._sb(); }catch(e){}
+          if(!sbx || (TKS.isDemo&&TKS.isDemo())){ so.disabled=true; if(sm) sm.textContent='Sign in to change this.'; return; }
+          function show(d){ if(!d) return; so.checked=!!d.shop_only; if(sm) sm.textContent = d.shop_only ? (d.shop_computers>0 ? ('On — '+d.shop_computers+' shop computer'+(d.shop_computers===1?'':'s')+' marked. Technicians cannot clock in from a phone.') : 'On, but NOT in force yet: no shop computer is marked. Open Bittings on the shop computer, sign in, come to this screen and tick the box below.') : 'Off — technicians can clock in from any device.'; }
+          sbx.rpc('shift_rules').then(function(r){ if(r && !r.error) show(r.data); }, function(){});
+          so.onchange=function(){ var want=so.checked; so.disabled=true; if(sm) sm.textContent='Saving…';
+            sbx.rpc('shift_set_shop_only',{ p_on:want }).then(function(r){ so.disabled=false; if(r.error){ so.checked=!want; if(sm) sm.textContent='Could not save: '+(r.error.message||r.error); return; } show(r.data); try{ clkLoadRule(true); }catch(e){} }, function(){ so.disabled=false; so.checked=!want; if(sm) sm.textContent='Could not save — no connection.'; }); };
+          window.__tcShowRule=function(){ sbx.rpc('shift_rules').then(function(r){ if(r && !r.error) show(r.data); }, function(){}); };
+        })();
         var canCloud = !!(window.TKS && TKS.auth && TKS.auth.isSignedIn && TKS.auth.isSignedIn() && !(TKS.isDemo && TKS.isDemo()) && window.TKS_CLOCK && TKS_CLOCK.registerDevice);
         function renderDevices(){
           if(!canCloud || !listEl) return;
@@ -6605,7 +7058,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
           if(!canCloud){ try{ if(window.TKS_CLOCK) TKS_CLOCK.setDeviceEnabled(want); else localStorage.setItem('tks_tc_device', want?'1':'0'); }catch(e){} if(msg) msg.textContent = want ? 'Marked locally. Sign in as a manager on this device to register it for PIN switching.' : ''; return; }
           cb.disabled=true; msg.textContent = want ? 'Registering this device…' : 'Un-registering…';
           var p = want ? TKS_CLOCK.registerDevice('Workstation · '+(navigator.platform||'PC')) : TKS_CLOCK.unregisterDevice();
-          p.then(function(r){ cb.disabled=false; if(r && r.ok){ msg.textContent = want ? '✓ Registered — PIN switching works on this device now.' : 'Un-registered.'; } else { cb.checked=!want; try{ localStorage.setItem('tks_tc_device', (!want)?'1':'0'); }catch(e){} msg.textContent='Could not '+(want?'register':'un-register')+': '+((r&&r.error)||'unknown error'); } renderDevices(); });
+          p.then(function(r){ cb.disabled=false; try{ if(window.__tcShowRule) window.__tcShowRule(); clkLoadRule(true); }catch(e){} if(r && r.ok){ msg.textContent = want ? '✓ This is now a shop computer — technicians can clock in here.' : 'Un-registered.'; } else { cb.checked=!want; try{ localStorage.setItem('tks_tc_device', (!want)?'1':'0'); }catch(e){} msg.textContent='Could not '+(want?'register':'un-register')+': '+((r&&r.error)||'unknown error'); } renderDevices(); });
         };
       })();
     }
@@ -6613,9 +7066,35 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       p.innerHTML='<h2>Inventory (optional)</h2><div class="sub">Already have a parts list in a spreadsheet? Import it now — upload an .xlsx or .csv, match your columns to the app\'s fields, preview, and import. Duplicates are skipped.</div>'+
         '<button type="button" class="btn save" id="invImport" style="flex:none;width:100%">📥 Import inventory from a file</button>'+
         '<div class="hint">You can also do this anytime later from the <b>Inventory</b> tile. Nothing here is required to finish setup.</div>'+
+        /* 8z87: automatic key prices */
+        (function(){ var A=TKS.Config.autoPrice(), num=function(id,v,ph){ return '<input id="'+id+'" type="number" inputmode="decimal" min="0" step="1" value="'+esc(String(v==null?'':v))+'" placeholder="'+ph+'" style="max-width:120px">'; };
+          return '<div class="panel" id="apBlock" style="margin-top:16px;padding:12px 14px"><label style="margin-top:0">Automatic key prices</label>'+
+            '<div class="sub" style="margin:0 0 8px;line-height:1.5">When a key is added with its cost, the sale price is worked out for you: cost plus the percentage below, rounded up, never under the minimum. Whoever adds the key can still change it. Prices already in your stock list are not touched.</div>'+
+            '<label class="toggle"><input type="checkbox" id="f_apOn" '+(A.on?'checked':'')+'> <b>Work out the sale price from the cost</b></label>'+
+            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:8px">'+
+              '<div><label>Remote-head, flip, transponder and remote keys — add %</label>'+num('f_apStd', A.stdMarkupPct, '150')+'<div class="hint" id="f_apStdEx"></div></div>'+
+              '<div><label>Smart keys — add %</label>'+num('f_apSmart', A.smartMarkupPct, '200')+'<div class="hint" id="f_apSmartEx"></div></div>'+
+              '<div><label>Lowest price for a key $</label>'+num('f_apStdMin', A.stdMin, '25')+'</div>'+
+              '<div><label>Lowest price for a smart key $</label>'+num('f_apSmartMin', A.smartMin, '75')+'</div>'+
+              '<div><label>Round up to the next $</label>'+num('f_apRound', A.roundTo, '5')+'<div class="hint">0 = no rounding</div></div>'+
+            '</div><div class="hint" id="f_apMsg" style="min-height:16px"></div>'+
+            '<div style="border-top:1px solid var(--edge);margin-top:10px;padding-top:10px">'+
+              '<button type="button" class="btn save" id="f_apAll" style="width:100%;min-height:48px">💲 Change every key\'s price to these rules…</button>'+
+              '<div class="hint" style="margin-top:6px">Shows you exactly what will change first. Nothing changes until you confirm, and you can undo it afterwards.</div>'+
+              '<div id="f_apLast" style="margin-top:8px"></div></div></div>'; })()+
         suppliersBlockHTML()+     // 8i: suppliers & their house brands (saves as you type)
         univBrandsBlockHTML();    // 8i: universal key brands you stock (saved as you tick; also on Programmers › My tools)
       bindSuppliers(p); bindUnivBrands(p);
+      (function(){ var ids=['f_apOn','f_apStd','f_apSmart','f_apStdMin','f_apSmartMin','f_apRound'], msg=gid('f_apMsg'); if(!gid('f_apOn')) return;
+        var read=function(){ var n=function(id,d){ var v=parseFloat(gid(id).value); return (isNaN(v)||v<0)?d:v; }; return { on:gid('f_apOn').checked, stdMarkupPct:n('f_apStd',150), smartMarkupPct:n('f_apSmart',200), stdMin:n('f_apStdMin',0), smartMin:n('f_apSmartMin',0), roundTo:n('f_apRound',0) }; };
+        var ex=function(){ var a=read(), m=function(p){ return (100-100/(1+p/100)).toFixed(0); }, pr=function(c,p,min){ var x=c*(1+p/100); if(a.roundTo>0) x=Math.ceil((x-1e-9)/a.roundTo)*a.roundTo; return Math.max(x,min).toFixed(2); };
+          gid('f_apStdEx').textContent='A key that costs you $25.00 sells for $'+pr(25,a.stdMarkupPct,a.stdMin)+' ('+m(a.stdMarkupPct)+'% margin).';
+          gid('f_apSmartEx').textContent='A smart key that costs you $55.00 sells for $'+pr(55,a.smartMarkupPct,a.smartMin)+' ('+m(a.smartMarkupPct)+'% margin).'; };
+        var t=null, save=function(){ try{ TKS.Config.save({ autoPrice: read() }); msg.textContent='✓ Saved'; }catch(e){ msg.textContent='Could not save.'; } };
+        ids.forEach(function(id){ var el=gid(id); el.oninput=function(){ ex(); clearTimeout(t); t=setTimeout(save, 600); }; el.onchange=function(){ ex(); clearTimeout(t); save(); }; });
+        ex();
+        var all=gid('f_apAll'); if(all) all.onclick=function(){ clearTimeout(t); save(); repriceOpen(); };
+        repriceLast(); })();
       const ib=gid('invImport');
       ib.onclick=()=>{ if(window.TKImport && TKImport.open){ TKImport.open({}); } else { appAlertLite('Importer not loaded','Reload the page and try again.'); } };
     }
@@ -6658,7 +7137,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
   const SVC_CATS2=[['automotive','Automotive'],['residential','Residential'],['commercial','Commercial'],['safe','Safe & Vault'],['emergency','Emergency'],['accesscontrol','Access Control'],['other','Other']];
   const SVC_CAT_LABEL=Object.fromEntries(SVC_CATS2);
   const CATALOG={
-    automotive:['Car lockout','Car key duplication / spare','Car key replacement (lost all keys)','Transponder / chip key programming','Key fob / remote programming','Smart / proximity key programming','Push-to-start programming','Ignition repair / replacement','Broken key extraction','ECU / immobilizer programming','High-security / laser-cut key cutting','Motorcycle / powersport keys','Fleet vehicle keys'],
+    automotive:['Car lockout','Car key duplication / spare','Car key replacement (lost all keys)','Transponder / chip key programming','Key fob / remote programming','Smart / proximity key programming','Ignition repair / replacement','Broken key extraction','ECU / immobilizer programming','High-security / laser-cut key cutting','Motorcycle / powersport keys','Fleet vehicle keys'],
     residential:['House lockout','Rekey','Lock change / replacement','Lock repair','Deadbolt installation','Smart lock installation','Key duplication','Master key system','Mailbox lock','Garage / gate keys'],
     commercial:['Commercial lockout','Commercial rekey','Commercial lock change / install','Master key system','Panic / exit device (push bar)','Door closer install / repair','File cabinet / desk locks','High-security locks','Storefront / mortise locks'],
     safe:['Safe opening / lockout','Safe combination change','Safe installation / moving','Safe repair','Gun safe service'],
@@ -7724,8 +8203,10 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     return '<div class="sch-card '+stCls(b.status)+(paid?' sch-paid':'')+'" data-open="'+esc(b.id)+'"'+(canReassign()?' draggable="true"':'')+'>'+
       '<div class="ct"><span class="dot"></span><span class="tm">'+esc(fmtTime(b.time)||'—')+'</span></div>'+
       '<div class="cn">'+jobIcon(b)+' '+esc(custName(b))+'</div>'+
-      '<div class="cm">'+esc(typeWord(b))+(vehStr(b)?(' · '+esc(vehStr(b))):'')+'</div>'+
-      (addrStr(b)?('<div class="cm">'+esc(addrStr(b))+'</div>'):'')+
+      '<div class="cm">'+esc(typeWord(b))+(vehStr(b)?(' · '+esc(vehStr(b))):'')+((Array.isArray(b.moreVehicles)&&b.moreVehicles.length)?(' <b>+ '+b.moreVehicles.length+' more vehicle'+(b.moreVehicles.length>1?'s':'')+'</b>'):'')+'</div>'+
+      ((Array.isArray(b.moreVehicles)&&b.moreVehicles.length)?b.moreVehicles.map(function(v,i){ return '<div class="cm">🚗 '+(i+2)+'. '+esc([v.year,v.make,v.model].filter(Boolean).join(' ')||v.text||v.vin||'vehicle')+'</div>'; }).join(''):'')+   // 8z84
+      (b.serviceWhere==='shop'?'<div class="cm" style="font-weight:700">🏪 In shop — customer comes in</div>':(addrStr(b)?('<div class="cm">'+esc(addrStr(b))+'</div>'):''))+   // 8z78
+      (b.taxExempt?'<div class="cm">🏛 Tax exempt</div>':'')+
       (String(b.internalNotes||'').trim()?('<div class="cm" style="font-style:italic">🔒 '+esc(String(b.internalNotes).trim().slice(0,90))+(String(b.internalNotes).trim().length>90?'…':'')+'</div>'):'')+   // 8z45
       ((b.quote && Number(b.quote.total)>0)?('<div class="cm" style="font-weight:800">💵 $'+Number(b.quote.total).toFixed(2)+'</div>'):'')+   // 8z42
       ((b.contract && (b.contract.name || Number(b.contract.amount)>0) && (function(){ try{ var r=TKS.auth.staffRole(); return r==='owner'||r==='manager'; }catch(e){ return false; } })())?('<div class="cm">🤝 '+esc(b.contract.name||'Contractor')+(Number(b.contract.amount)>0?(' · $'+Number(b.contract.amount).toFixed(2)):'')+(b.contract.paidAt?' · paid':'')+'</div>'):'')+   // 8z56
@@ -7926,46 +8407,15 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
   // TKS.Bookings.save (local mirror + cloud bookings adapter) then, signed in, TKS.Jobs.assign for the lead
   // tech (manager+, server-enforced). Status pushes (TKS.Jobs.setStatus / cancel) stay with the caller.
   // ---------- 8z33: shared "Keys for this vehicle" helpers (wizard; the quick form has its own copy from 8z32) ----------
-  var KFV_GROUPS=[['Smart Key','Smart keys'],['Remote Head / Flip','Flip keys'],['Remote / Fob','Remotes'],['Super Remote','Super remotes'],['Transponder','Transponder keys'],['Key Shell','Shells'],['Mechanical','Blades / mechanical']];
-  // 8z34 (owner): "PEPS" / "proximity" / "prox" in the name = push-to-start = a smart key, whatever the category says
-  var KFV_PROX=/(peps|prox|proximity|prx)/i;
-  function kfvSub(p){ if(KFV_PROX.test(String(p.name||''))) return 'Smart Key'; return String(p.category||'').split('/').slice(1).join('/').trim(); }
-  // chip family from free text ("Hitag Pro (ID49)" = "Hitag Pro ID49 (128-bit)")
-  function kfvChip(c){ c=String(c||'').toLowerCase(); if(!c) return '';
-    if(/hitag\s*pro|id\s*49/.test(c)) return 'id49'; if(/hitag\s*aes|\b4a\b/.test(c)) return '4a'; if(/honda\s*g|id\s*47/.test(c)) return 'id47';
-    if(/\b8a\b|toyota\s*h|\bh[\s-]*chip|128-bit aes/.test(c)) return '8a'; if(/4d-?72|toyota\s*g|\bg[\s-]*chip/.test(c)) return '4d72';
-    var d=/4d-?(\d\d)/.exec(c); if(d) return '4d'+d[1]; if(/id\s*46|philips\s*46|circle|pcf79/.test(c)) return 'id46';
-    if(/megamos.*48|id\s*48/.test(c)) return 'id48'; if(/megamos|id\s*13|pk3/.test(c)) return 'id13'; if(/\b4c\b/.test(c)) return '4c'; if(/n\s*chip/.test(c)) return 'nchip';
-    return c.replace(/[^a-z0-9]/g,''); }
+  /* 8z76: the matcher itself moved to app/fitment.js (TKS_FIT.keysFor) so the quote builder shows the same keys as the
+     Scheduler. Checked on the shop's real stock list: 1,260 vehicle look-ups, identical results. These are thin wrappers. */
+  var KFV_GROUPS=(window.TKS_FIT && TKS_FIT.KEY_GROUPS) || [];
+  function kfvSub(p){ return (window.TKS_FIT && TKS_FIT.keySub) ? TKS_FIT.keySub(p) : String((p&&p.category)||'').split('/').slice(1).join('/').trim(); }
+  function kfvChip(c){ return (window.TKS_FIT && TKS_FIT.chipFamily) ? TKS_FIT.chipFamily(c) : String(c||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
   function kfvList(y, mk, md, ign){
-    var list=[]; try{ list=TKS.Inventory.forVehicle({year:y, make:mk, model:md})||[]; }catch(e){}
-    list=list.filter(function(p){ return /^keys\//i.test(String(p.category||'')); }); var hidden='';
-    // 8z35: transponders / blades / shells that list only the make (+ years) — kept when their chip matches this car's keys
-    var chips={}; list.forEach(function(p){ var k=kfvChip(p.chip); if(k) chips[k]=1; }); var haveChip=Object.keys(chips).length>0;
-    var loose=[]; try{ loose=TKS.Inventory.forVehicle({year:y, make:mk, model:md}, {loose:true})||[]; }catch(e){}
-    var seen={}; list.forEach(function(p){ seen[p.id]=1; });
-    loose.forEach(function(p){ if(seen[p.id]) return; var sb=String(p.category||'').split('/').slice(1).join('/').trim();
-      if(['Transponder','Mechanical','Key Shell'].indexOf(sb)<0) return;
-      var ck=kfvChip(p.chip), note;
-      if(sb==='Transponder'){ if(haveChip){ if(!chips[ck]) return; note='✓ same chip as this car\'s keys'; } else note='Fits '+mk+' — check the chip'; }
-      else note='Fits '+mk;
-      list.push(Object.assign({}, p, { _kfvNote:note })); seen[p.id]=1; });   // a copy — never tag the stock record itself
-    if(ign==='keyed'){ list=list.filter(function(p){ return kfvSub(p)!=='Smart Key'; }); hidden='smart keys hidden — turn-key ignition'; }
-    if(ign==='push'){ list=list.filter(function(p){ return ['Remote Head / Flip','Transponder'].indexOf(kfvSub(p))<0; }); hidden='flip & transponder keys hidden — push-to-start'; }
-    var groups=[]; KFV_GROUPS.concat([['__other','Other']]).forEach(function(g){ var items=list.filter(function(p){ var sb=kfvSub(p); return g[0]==='__other' ? !KFV_GROUPS.some(function(k){ return k[0]===sb; }) : sb===g[0]; }); if(items.length) groups.push([g[1], items]); });
-    // 8z57: keys that list this make and year but NOT this model (or have no Fits at all and only say it in their name) used
-    // to be invisible here — a 2013 Jetta showed "no keys" while VW 2011–2016 remotes sat on the shelf. They are offered
-    // separately as "might fit", never mixed in with the confirmed ones.
-    var maybe=[]; try{
-      var seen2={}; list.forEach(function(p){ seen2[p.id]=1; });
-      var veh={ year:y, make:mk, model:md }, all=(TKS.list('inventory')||[]).filter(function(p){ return p && !p.deletedAt && /^keys\//i.test(String(p.category||'')); });
-      loose.forEach(function(p){ if(!seen2[p.id] && /^keys\//i.test(String(p.category||''))){ maybe.push(Object.assign({}, p, { _kfvNote:'Lists '+mk+' for this year, no model — check it fits' })); seen2[p.id]=1; } });
-      if(window.TKS_FIT) all.forEach(function(p){ if(seen2[p.id] || String(p.fitment||'').trim()) return;
-        if(TKS_FIT.filter([{ fitment:String(p.name||'') }], veh, { loose:true }).length){ maybe.push(Object.assign({}, p, { _kfvNote:'No Fits saved — the name says '+mk+' for this year. Check it fits' })); seen2[p.id]=1; } });
-      if(ign==='keyed') maybe=maybe.filter(function(p){ return kfvSub(p)!=='Smart Key'; });
-      if(ign==='push') maybe=maybe.filter(function(p){ return ['Remote Head / Flip','Transponder'].indexOf(kfvSub(p))<0; });
-    }catch(e){ maybe=[]; }
-    return { groups:groups, count:list.length, hidden:hidden, list:list, maybe:maybe };
+    var all=[]; try{ all=TKS.Inventory.all()||[]; }catch(e){}
+    try{ if(window.TKS_FIT && TKS_FIT.keysFor) return TKS_FIT.keysFor(all, { year:y, make:mk, model:md }, ign); }catch(e){}
+    return { groups:[], count:0, hidden:'', list:[], maybe:[] };
   }
   function kfvMoney(c){ return (c==null||c==='')?'':'$'+(Number(c)/100).toFixed(2); }
   function kfvCard(p, added){
@@ -8412,15 +8862,19 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       '<div class="row2"><div><label>Phone</label><input id="sjPhone" value="'+esc(cust.phone||'')+'"></div><div><label>Service / details</label><input id="sjSvc" value="'+esc(b.subType||'')+'" placeholder="lockout, AKL, rekey…"></div></div>'+
       '<div class="row2"><div><label>Date</label><input type="date" id="sjDate" value="'+esc(b.date||presetDate||'')+'"></div><div><label>Time</label><input type="time" id="sjTime" value="'+esc(b.time||'')+'"></div></div>'+
       (function(){ var a0=(b.addr&&(b.addr.street||b.addr.city))?b.addr:parseAddress(addrStr(b));   // 8z31
-        return '<label>Street address</label><input id="sjStreet" value="'+esc(a0.street||'')+'" placeholder="123 Main St" autocomplete="off">'+
+        return '<label>Where is the work done?</label><div class="seg2" id="sjWhere"><button type="button" data-w="mobile"'+(b.serviceWhere==='mobile'?' class="on"':'')+'>🚐 Mobile — we go to them</button><button type="button" data-w="shop"'+(b.serviceWhere==='shop'?' class="on"':'')+'>🏪 In shop — they come in</button></div>'+   // 8z78
+          '<div id="sjAddrWrap"'+(b.serviceWhere==='shop'?' style="display:none"':'')+'>'+
+          '<label>Street address</label><input id="sjStreet" value="'+esc(a0.street||'')+'" placeholder="123 Main St" autocomplete="off">'+
           '<label>Apt / Unit #</label><input id="sjUnit" value="'+esc(a0.unit||'')+'" placeholder="Apt 4B, Unit 12, Suite 200…" autocomplete="off">'+
           '<div class="row2"><div><label>City</label><input id="sjCity" value="'+esc(a0.city||'')+'" autocomplete="off"></div>'+
           '<div style="display:flex;gap:8px"><div style="flex:0 0 76px"><label>State</label><select id="sjState">'+stateOptions(a0.state||'OK')+'</select></div>'+
-          '<div style="flex:1;min-width:0"><label>ZIP</label><input id="sjZip" value="'+esc(a0.zip||'')+'" inputmode="numeric" maxlength="10" autocomplete="off"></div></div></div>'; })()+
+          '<div style="flex:1;min-width:0"><label>ZIP</label><input id="sjZip" value="'+esc(a0.zip||'')+'" inputmode="numeric" maxlength="10" autocomplete="off"></div></div></div></div>'; })()+
       '<div id="sjVeh"'+(jt==='auto'?'':' style="display:none"')+'>'+
         '<label>VIN</label><div class="vinrow"><input id="sjVin" maxlength="17" style="text-transform:uppercase" value="'+esc(veh.vin||'')+'"><button type="button" id="sjVinBtn">Decode</button></div>'+
         '<div class="row2"><div><label>Year</label><select id="sjYear">'+TKS_YMM.yearOptionsHTML(veh.year||'')+'</select></div><div><label>Make</label><select id="sjMake">'+TKS_YMM.makeOptionsHTML(veh.make||'')+'</select></div></div>'+
         '<div class="row2"><div><label>Model</label><select id="sjModel">'+TKS_YMM.modelOptionsHTML(veh.make||'', veh.year||'', veh.model||'')+'</select></div><div><label>Ignition</label><select id="sjIgn"><option value="">—</option><option value="push"'+(veh.ignition==='push'?' selected':'')+'>Push-to-start</option><option value="keyed"'+(veh.ignition==='keyed'?' selected':'')+'>Keyed</option></select></div></div>'+
+        '<div id="sjMoreVeh"></div>'+   // 8z84: a 2nd, 3rd… vehicle on the same job
+        '<button type="button" class="btn ghost" id="sjAddVeh" style="width:100%;min-height:44px;margin:8px 0 0">➕ Add another vehicle</button>'+
       '</div>'+
       '<div id="sjKeys"></div>'+   // 8z32: keys for this vehicle
       '<div id="sjCharges"></div>'+   // 8z42: what to charge (lines + total), set by the office
@@ -8464,7 +8918,34 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     // prices already in place, so the technician only takes the payment. A technician sees the lines but cannot edit them.
     var chargeLines=(Array.isArray(b.items)?b.items:[]).map(function(x){ return { desc:String(x.desc||''), qty:parseInt(x.qty,10)||1, each:(x.each!=null&&x.each!=='')?String(x.each):'', taxable:!!x.taxable }; });
     var chargeLock=false; try{ chargeLock=(TKS.auth && TKS.auth.staffRole && TKS.auth.staffRole()==='technician'); }catch(e){}
-    function chTaxRate(){ try{ return Number(TKS.Config.get().taxRate)||0; }catch(e){ return 0; } }
+    /* 8z84 (owner: "we will go to them and do multiple cars"): vehicles 2, 3… on the job. Year / make / model / VIN each.
+       The key picker above stays with the first vehicle; keys for the others are added on the invoice, where every
+       vehicle has its own key list. */
+    var jobMoreVeh=(Array.isArray(b.moreVehicles)?b.moreVehicles:[]).map(function(v){ return { year:String(v.year||''), make:String(v.make||''), model:String(v.model||''), vin:String(v.vin||''), text:String(v.text||'') }; });
+    function renderMoreVeh(){ var box=q('sjMoreVeh'); if(!box) return;
+      box.innerHTML=jobMoreVeh.map(function(v,i){ return '<div data-mv="'+i+'" style="border:1px dashed var(--edge);border-radius:12px;padding:10px;margin-top:10px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Vehicle '+(i+2)+'</b><button type="button" class="mvX" aria-label="Remove vehicle '+(i+2)+'" style="width:44px;height:44px;border:1px solid var(--edge);border-radius:10px;background:transparent;color:#c8323c;font-size:20px;cursor:pointer">&times;</button></div>'+
+        '<label>VIN</label><input class="mvVin" maxlength="17" style="text-transform:uppercase" value="'+esc(v.vin)+'" placeholder="optional">'+
+        '<div class="row2"><div><label>Year</label><select class="mvY">'+TKS_YMM.yearOptionsHTML(v.year||'')+'</select></div><div><label>Make</label><select class="mvMk">'+TKS_YMM.makeOptionsHTML(v.make||'')+'</select></div></div>'+
+        '<label>Model</label><select class="mvMd">'+TKS_YMM.modelOptionsHTML(v.make||'', v.year||'', v.model||'')+'</select></div>'; }).join('');
+      box.querySelectorAll('[data-mv]').forEach(function(row){ var v=jobMoreVeh[+row.dataset.mv]; if(!v) return;
+        var y=row.querySelector('.mvY'), mk=row.querySelector('.mvMk'), md=row.querySelector('.mvMd'), vin=row.querySelector('.mvVin');
+        y.onchange=function(){ v.year=y.value; v.make=''; v.model=''; renderMoreVeh(); };
+        mk.onchange=function(){ v.make=mk.value; v.model=''; renderMoreVeh(); };
+        md.onchange=function(){ v.model=md.value; };
+        vin.oninput=function(){ v.vin=vin.value.trim().toUpperCase(); };
+        vin.onchange=function(){ var n=v.vin; if(!/^[A-HJ-NPR-Z0-9]{17}$/.test(n) || !(window.TKS&&TKS.decodeVin)) return;
+          TKS.decodeVin(n).then(function(res){ v.year=String(res.year||v.year||''); v.make=String(res.make||v.make||''); v.model=String(res.model||v.model||''); renderMoreVeh(); }, function(){}); };
+        row.querySelector('.mvX').onclick=function(){ jobMoreVeh.splice(+row.dataset.mv,1); renderMoreVeh(); }; });
+    }
+    function moreVehForSave(){ return jobMoreVeh.filter(function(v){ return v.make || v.vin || v.text; }).map(function(v){ return { year:v.year, make:v.make, model:v.model, vin:v.vin, text:v.text||'' }; }); }
+    setTimeout(function(){ renderMoreVeh(); var ab=q('sjAddVeh'); if(ab) ab.onclick=function(){ jobMoreVeh.push({ year:'', make:'', model:'', vin:'', text:'' }); renderMoreVeh(); }; }, 0);
+    // 8z78: where the work is done (tap the chosen one again to clear) and a tax exemption on the job
+    var jobWhere=(b.serviceWhere==='shop'||b.serviceWhere==='mobile')?b.serviceWhere:'';
+    var jobExempt=(b.taxExempt && typeof b.taxExempt==='object')?b.taxExempt:null;
+    ov.querySelectorAll('#sjWhere button').forEach(function(btn){ btn.onclick=function(){ jobWhere=(jobWhere===btn.dataset.w)?'':btn.dataset.w;
+      ov.querySelectorAll('#sjWhere button').forEach(function(x){ x.classList.toggle('on', x.dataset.w===jobWhere); }); q('sjAddrWrap').style.display=(jobWhere==='shop'?'none':''); }; });
+    function chTaxRate(){ if(jobExempt) return 0; try{ return Number(TKS.Config.get().taxRate)||0; }catch(e){ return 0; } }
     function chSvcs(){ try{ return (TKS.Config.services()||[]).filter(function(x){ return x && x.value; }); }catch(e){ return []; } }
     function chCents(v){ var n=Math.round(parseFloat(v)*100); return isNaN(n)||n<0?0:n; }
     function chPartsCents(){ var c=0;
@@ -8503,7 +8984,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     function chTotalsHTML(){ var t=chTotals(), row=function(a,v,bold){ return '<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0'+(bold?';font-weight:800;font-size:17px;border-top:1px solid var(--edge);margin-top:4px;padding-top:6px':'')+'"><span>'+a+'</span><span>'+v+'</span></div>'; };
       if(!chargeLines.length && !t.parts && !(!conLock && conCents()>0)) return '<div class="hint" style="margin:0">No charges yet. Add what the customer will pay for and the technician just takes the payment.</div>';
       var con=conLock?0:conCents();
-      return row('Charges', chMoney(t.lines))+(t.parts?row('Keys picked above', chMoney(t.parts)):'')+row('Tax'+(t.rate?(' ('+t.rate+'%)'):''), chMoney(t.tax))+row('Total', chMoney(t.total), true)+
+      return row('Charges', chMoney(t.lines))+(t.parts?row('Keys picked above', chMoney(t.parts)):'')+row(jobExempt?'Tax — exempt':('Tax'+(t.rate?(' ('+t.rate+'%)'):'')), chMoney(t.tax))+row('Total', chMoney(t.total), true)+
         (con>0?(row('Contractor'+(String(conName).trim()?(' ('+esc(String(conName).trim())+')'):''), '− '+chMoney(con))+row('You keep', (t.total-con<0?'− ':'')+chMoney(Math.abs(t.total-con)), true)):''); }
     function chSyncTotals(){ var el=q('sjChTot'); if(el) el.innerHTML=chTotalsHTML(); }
     function renderCharges(){ var box=q('sjCharges'); if(!box) return;
@@ -8525,7 +9006,12 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
           '</div></div>'; }).join('')+
         (chargeLock?'':'<button type="button" class="btn ghost" id="sjChAdd" style="width:100%;margin:8px 0 0;min-height:44px">+ Add a charge</button>')+
         '<div id="sjChTot" style="margin-top:10px">'+chTotalsHTML()+'</div>'+
+        (chargeLock?(jobExempt?'<div class="hint" style="margin:8px 0 0">🏛 Tax exempt — '+esc(window.TKS_EXEMPT?TKS_EXEMPT.label(jobExempt):'')+'</div>':''):'<button type="button" class="btn ghost" id="sjExBtn" style="width:100%;margin:8px 0 0;min-height:44px">'+(jobExempt?('🏛 Tax exempt ✓ ('+esc(window.TKS_EXEMPT?TKS_EXEMPT.label(jobExempt):'')+') — change or remove'):'🏛 Tax exempt…')+'</button>')+
       '</div>';
+      var exb=q('sjExBtn'); if(exb) exb.onclick=function(){ if(!window.TKS_EXEMPT) return;   // 8z78
+        var ad=''; try{ ad=composeAddress({ street:q('sjStreet').value.trim(), unit:q('sjUnit').value.trim(), city:q('sjCity').value.trim(), state:q('sjState').value, zip:q('sjZip').value.trim() }); }catch(e){}
+        TKS_EXEMPT.open({ customer:{ id:custId||null, name:q('sjName').value.trim(), phone:q('sjPhone').value.trim(), address:(q('sjStreet').value.trim()?ad:'') }, current:jobExempt,
+          onDone:function(snap, warn){ jobExempt=snap||null; renderCharges(); if(warn){ try{ toast(warn); }catch(e){} } } }); };
       box.querySelectorAll('[data-chrow]').forEach(function(row){ var l=chargeLines[+row.dataset.chrow]; if(!l) return;
         var d=row.querySelector('.chD'), qy=row.querySelector('.chQ'), ea=row.querySelector('.chE'), tx=row.querySelector('.chT'), x=row.querySelector('.chX');
         var sug=row.querySelector('.chSug'), pick=row.querySelector('.chPick');
@@ -8666,6 +9152,8 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       var tv=q('sjTech').value||''; if(tv){ var tm=memberById(tv); r.technician=tm?tm.name:''; r.technicianId=(tv.indexOf('name:')===0)?null:tv; }
       if(!chargeLock){ var cs=chargesForSave(); r.items=cs.items; r.quote=cs.quote; }
       if(!conLock) r.contract=contractForSave();
+      r.serviceWhere=jobWhere||''; if(jobExempt) r.taxExempt=jobExempt; if(b.fromEstimate) r.fromEstimate=b.fromEstimate;   // 8z78
+      if(jt==='auto'){ var mvd=moreVehForSave(); if(mvd.length) r.moreVehicles=mvd; }   // 8z84
       return r; }
     function sjHasContent(r){ return !!(r.customer.name || r.customer.phone || r.subType || r.addr.street || (r.items&&r.items.length) || r.internalNotes || (r.vehicle&&(r.vehicle.vin||r.vehicle.make))); }
     var sjDead=false;   // set once the form is finished with (created / draft saved / cleared) so a late timer cannot write a stale draft
@@ -8684,6 +9172,9 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       if(!chargeLock){ var chS=chargesForSave(); rec.items=chS.items; rec.quote=chS.quote; }   // 8z42
       if(!conLock) rec.contract=contractForSave();   // 8z56
       rec.internalNotes=(q('sjINotes').value||'').trim();   // 8z45
+      rec.serviceWhere=jobWhere||''; if(jobExempt) rec.taxExempt=jobExempt; else delete rec.taxExempt;   // 8z78
+      { var mvs=(jt==='auto')?moreVehForSave():[]; if(mvs.length) rec.moreVehicles=mvs; else delete rec.moreVehicles; }   // 8z84
+      if(b.fromEstimate && !rec.fromEstimate) rec.fromEstimate=b.fromEstimate;   // 8z78: the estimates list shows "on the schedule"
       rec.addr={ street:q('sjStreet').value.trim(), unit:q('sjUnit').value.trim(), city:q('sjCity').value.trim(), state:q('sjState').value, zip:q('sjZip').value.trim() };   // 8z31
       rec.address=composeAddress(rec.addr);
       if(jt==='auto'){ rec.vehicle={year:(q('sjYear').value||'').trim(),make:(q('sjMake').value||'').trim(),model:(q('sjModel').value||'').trim(),vin:(q('sjVin').value||'').trim().toUpperCase(),ignition:(q('sjIgn')||{}).value||''}; }
@@ -8731,6 +9222,9 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
         address:String(qj.address||''), items:its, fromEstimate:String(qj.fromEstimate||''),
         internalNotes:[qj.fromEstimate?('From estimate '+qj.fromEstimate):'', String(qj.internalNotes||'')].filter(Boolean).join(' — ') };
       if(qj.fromLead) nb.fromLead=String(qj.fromLead);
+      if(qj.serviceWhere==='shop'||qj.serviceWhere==='mobile') nb.serviceWhere=qj.serviceWhere;   // 8z78
+      if(qj.taxExempt && typeof qj.taxExempt==='object') nb.taxExempt=qj.taxExempt;
+      if(Array.isArray(qj.moreVehicles) && qj.moreVehicles.length) nb.moreVehicles=qj.moreVehicles;   // 8z84
       if(jt0==='auto') nb.vehicle={ year:String(v.year||''), make:String(v.make||''), model:String(v.model||''), vin:String(v.vin||''), ignition:'' };
       jobDraftSet('tks_sj_draft', nb);
       setTimeout(function(){ try{ openForm(null); toast(qj.fromLead ? 'Lead brought over — check the details and pick the day and time.' : ('Estimate '+(qj.fromEstimate||'')+' brought over — pick the day and time.')); }catch(e){} }, 450);

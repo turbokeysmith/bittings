@@ -313,6 +313,37 @@
   .qi-chk.sub{padding-left:30px;font-size:12.5px;color:#5a616c;cursor:default;}
   .qi-item{border:1px solid #e3e6ea;border-radius:10px;padding:8px;margin-bottom:7px;background:#fafbfc;}
   .qi-item .top{display:flex;gap:6px;align-items:center;margin-bottom:6px;}
+  /* 8z76: "Keys for this vehicle" in the builder — what you stock that fits, with shelf prices (Quick quote first of all) */
+  .qi-keys{border:2px solid rgba(34,153,74,.3);border-radius:12px;padding:10px;margin-top:8px;background:rgba(34,153,74,.06);}
+  .qk-h{font-weight:800;font-size:15px;color:#14171b;}
+  .qi-mveh{border:1.5px dashed #c9ced8;border-radius:12px;padding:10px;margin-top:10px;}
+  .qi-mveh .mv-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;font-weight:800;color:#14171b;}
+  [data-bt-theme="dark"] .qi-mveh{border-color:#3a414c;} [data-bt-theme="dark"] .qi-mveh .mv-h{color:#f4f5f7;}
+  .qk-sub{font-size:12.5px;color:#5a616c;margin-top:3px;line-height:1.4;}
+  .qk-facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .qk-facts span{font-size:12px;font-weight:700;border-radius:8px;padding:3px 8px;background:#eef2ff;color:#27348b;}
+  .qk-g{font-size:11.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#5a616c;margin:10px 0 5px;}
+  .qk-g.maybe{color:#8a5a00;}
+  .qk-row{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #e3e6ea;border-radius:11px;padding:8px 9px;margin-bottom:6px;}
+  .qk-main{flex:1;min-width:0;}
+  .qk-n{font-weight:700;font-size:14px;line-height:1.25;color:#14171b;}
+  .qk-d{font-size:12px;color:#5a616c;margin-top:2px;overflow-wrap:anywhere;}
+  .qk-s{font-size:12px;font-weight:700;margin-top:3px;}
+  .qk-s.in{color:#156632;} .qk-s.out{color:#a3252e;}
+  .qk-tag{font-size:10.5px;font-weight:800;border-radius:6px;padding:1px 6px;margin-left:5px;white-space:nowrap;}
+  .qk-tag.oem{background:#fdecea;color:#a3252e;} .qk-tag.am{background:#eef2ff;color:#3949ab;}
+  .qk-r{flex:0 0 auto;text-align:right;}
+  .qk-p{font-weight:800;font-size:15px;color:#14171b;}
+  .qk-add{margin-top:4px;min-height:44px;min-width:74px;border:0;border-radius:10px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;}
+  .qk-added{margin-top:4px;border:2px solid #22994a;border-radius:10px;background:#eaf7ee;color:#156632;font-weight:800;padding:8px 9px;font-size:13px;white-space:nowrap;}
+  .qk-more{width:100%;min-height:44px;margin-top:6px;border:1px dashed #b7791f;border-radius:10px;background:transparent;color:#8a5a00;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;}
+  [data-bt-theme="dark"] .qk-h,[data-bt-theme="dark"] .qk-n,[data-bt-theme="dark"] .qk-p{color:#f4f5f7;}
+  [data-bt-theme="dark"] .qk-sub,[data-bt-theme="dark"] .qk-d,[data-bt-theme="dark"] .qk-g{color:#aab1bc;}
+  [data-bt-theme="dark"] .qk-row{background:#252a32;border-color:#3a414c;}
+  [data-bt-theme="dark"] .qk-facts span{background:#27304a;color:#c9d4ff;}
+  [data-bt-theme="dark"] .qk-s.in{color:#6fdc9f;} [data-bt-theme="dark"] .qk-s.out{color:#ff9aa2;}
+  [data-bt-theme="dark"] .qk-g.maybe,[data-bt-theme="dark"] .qk-more{color:#f2c46a;}
+  [data-bt-theme="dark"] .qk-added{background:#1d2a22;color:#6fdc9f;}
   /* 8z74: our own "pick a service" list under the description (the browser's suggestion list does not open on Android) */
   .qiSug{display:none;max-height:216px;overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid #c7ccd3;border-radius:10px;margin:-2px 0 7px;background:#fff;}
   .qiSugO{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;min-height:44px;padding:10px 12px;border:0;border-bottom:1px solid #e3e6ea;background:transparent;color:#14171b;font-size:15px;cursor:pointer;font-family:inherit;}
@@ -527,6 +558,7 @@ try{ if(window.self!==window.top){
       <button data-f="invoice" onclick="setHistFilter('invoice')">Invoices</button>
       <button data-f="estimate" onclick="setHistFilter('estimate')">Estimates</button>
     </div>
+    <input id="histSearch" type="search" placeholder="Search name, phone, number or vehicle" autocomplete="off" oninput="renderHistList()" style="width:100%;min-height:44px;margin:0 0 10px;padding:9px 12px;border-radius:10px;border:1px solid #555;background:#1f1f1f;color:#fff;font-size:15px">
     <div id="histList"></div>
   </div>
 </div>
@@ -553,13 +585,18 @@ try{ if(window.self!==window.top){
 <script src="app/cloud-config.js"></script>
 <script src="app/store.js"></script>
 <script src="app/vendor/jsqr-1.4.0.js"></script><!-- 8r: QR decoder fallback for camera-scan (iPhone Safari) -->
-<script src="app/camera-scan.js"></script><!-- 8r: scan keys OUT / back IN with the phone camera (TKS_CAM) -->
+<script src="app/camera-scan.js"></script>
+<script src="app/hardware.js"></script><!-- 8z80: the receipt printer (Bittings Print Helper on the counter computer) -->
+<script>try{ if(window.TKS_HW && TKS_HW.scanner) TKS_HW.scanner.stop(); }catch(e){}</script><!-- this page keeps its own scanning; only the printer is used here --><!-- 8r: scan keys OUT / back IN with the phone camera (TKS_CAM) -->
 <script src="app/access.js"></script>
 <script src="app/lishi-seed.js"></script>
 <script src="app/ymm-catalog.js"></script><!-- 8x: full make/model/year list -->
 <script src="app/ymm.js"></script>
 <!-- Vehicle fitment parser (Fits list → year/make/model matching) — shared with the main app -->
 <script src="app/fitment.js"></script>
+<script src="app/taxexempt.js"></script>
+<script src="app/vendor/qrcode-generator-1.4.4.js"></script><!-- 8z90: the QR code that opens a receipt's photo page on a phone -->
+<script src="app/receipt-docs.js"></script><!-- 8z90: D1 photos filed against a receipt + the required colour / miles / tag --><!-- 8z78: tax-exempt sales (certificate on file + the box at the sale) -->
 <script src="app/d1.js"></script>
 <script src="app/ui/contrast-guard.js"></script>
 <script>/* 8z72: offline shell (see sw.js) */ try{ if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(function(){}); }catch(e){}</script><!-- 8z70: dark-mode readability (text that is too faint against what is behind it is corrected) -->
@@ -808,14 +845,71 @@ function resultActions(buttons){
     if(b.primary) el.className="primary"; el.onclick=b.onClick; row.appendChild(el); });
   chat.appendChild(row); scrollDown(); return row;
 }
+/* 8z80 (owner, 2026-11-12: "I was not able to print a receipt using the shop PC … we need to be able to print a physical
+   receipt"). Until now only the Register could reach the receipt printer; a document made here could only be saved or
+   sent as a PDF. 🖨 Print: if this computer has the Bittings Print Helper (the counter computer with the Star printer) the
+   receipt prints there; on any other computer it offers the full-page copy for that computer's own printer. */
+function paperCopy(r){
+  const t=r.totals||computeTotals(r.items||[], r.payment, receiptTaxRate(r)), est=(r.docType==="estimate");
+  let wt=""; try{ wt=warrantyTermText(r)||""; }catch(e){}
+  return { number:r.number||"", date:r.date||"", docType:r.docType||"receipt", customer:r.noCustomer?"":(r.customer||""), technician:r.technician||"",
+    payment:est?"":(r.payment||""), status:est?"":(r.status||""),
+    items:(r.items||[]).filter(it=>it && !it.declined).map(it=>({ desc:String(it.desc||"")+(it.vehicle?(" - "+it.vehicle):""), amount:it.amount, qty:parseInt(it.qty,10)||1, isDiscount:!!it.isDiscount })),
+    moreVehicles:moreVehList(r).map(l=>l.replace(/\s*\u00b7\s*/g," - ")),
+    totals:t, vehicleText:vehicleString(r)||"", vin:r.vin||"", serviceWhere:r.serviceWhere||"", taxExempt:r.taxExempt||null,
+    exemptLabel:(r.taxExempt && window.TKS_EXEMPT)?TKS_EXEMPT.label(r.taxExempt).replace(/\s*·\s*/g," - "):"", warrantyText:wt, notes:r.notes||"" };
+}
+function printFullPage(r){
+  let out; try{ out=makePDF(r, "en", true, true); }catch(e){ appAlert("Print failed", (e&&e.message)||"Could not build the page."); return; }
+  if(!(out && out.blob)) return;
+  const url=URL.createObjectURL(out.blob), w=window.open(url, "_blank");
+  if(!w){ const a=document.createElement("a"); a.href=url; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+  setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 60000);
+}
+function printPaper(r, btn, reprint){
+  const say=m=>{ if(btn){ btn.textContent=m; } }, was=btn?btn.textContent:"";
+  const back=()=>{ if(btn){ setTimeout(()=>{ btn.textContent=was; btn.disabled=false; }, 2500); } };
+  const hw=window.TKS_HW;
+  const noPrinter=()=>{ if(btn){ btn.textContent=was; btn.disabled=false; }
+    appConfirm("No receipt printer on this computer", "The receipt printer is connected to the counter computer. Open a full-page copy to print on this computer's own printer instead?").then(ok=>{ if(ok) printFullPage(r); }); };
+  if(hw && hw.printDoc){ hw.printDoc(paperCopy(r), { btn:btn, reprint:!!reprint, paidAt:r.paidAt, fullPage:()=>printFullPage(r), ask:(t,b)=>appConfirm(t,b), alert:(t,b)=>appAlert(t,b) }); return; }   // 8z81: the shared routine
+  if(!(hw && hw.thermal)){ noPrinter(); return; }
+  if(btn){ btn.disabled=true; } say("🖨 Printing…");
+  /* Send the receipt straight to the helper. (The first version asked the helper for its status first and gave up after
+     3 seconds — but that status check alone takes about 3 seconds on the counter computer, so it always fell back to
+     the PDF.) Nothing listening on this computer fails at once → offer the full-page copy; the helper answering with an
+     error means the printer itself has a problem → say so. */
+  // the cash drawer opens only for a payment taken in the last few minutes — never on a reprint
+  const fresh=!reprint && r.paidAt && (Date.now()-Number(r.paidAt) < 10*60000);
+  hw.thermal.printReceipt(paperCopy(r), { force:true, noDrawer:!fresh }).then(()=>{ say("✓ Sent to the printer"); back(); },
+    e=>{ const m=String((e&&e.message)||"");
+      if(/reach the Bittings Print Helper/i.test(m)){ noPrinter(); return; }
+      if(btn){ btn.textContent=was; btn.disabled=false; }
+      appAlert("Did not print", (m||"The printer did not answer.")+" Check that the receipt printer is on and has paper."); });
+}
+/* 8z84 (owner, 2026-11-12: "we need to be able to add a 2nd, 3rd vehicle … a couple that come in for multiple different
+   vehicles, or we go to them and do multiple cars"). r.moreVehicles = [{year, make, model, vin, text}] holds vehicles 2, 3…
+   (the first stays in vehYear / vehMake / vehModel / vin, so everything written before still works). A line that belongs
+   to one vehicle carries it.vehicle (its label); when printed, that label is added after the description. */
+function moreVehList(r){ return (Array.isArray(r&&r.moreVehicles)?r.moreVehicles:[]).map(function(v){ if(!v) return ""; var n=[v.year,v.make,v.model].filter(Boolean).join(" ")||String(v.text||"").trim();
+  return [n, v.vin?("VIN "+v.vin):"", v.d1===true?("NASTF D1 — "+[v.color, v.odometer?(/^no /i.test(v.odometer)?v.odometer:(v.odometer+" mi")):"", v.plate?(/^no /i.test(v.plate)?v.plate:("tag "+v.plate)):""].filter(Boolean).join(", ")):""].filter(Boolean).join(" · "); }).filter(Boolean); }
+/* 8z90: colour / tag / miles of the first vehicle — a document keeps them at the top level, a Register sale inside its vehicle object */
+function d1Of(r){ var v=(r && typeof r.vehicle==="object" && r.vehicle)?r.vehicle:{}; return { color:String((r&&r.vehColor)||v.color||""), plate:String((r&&r.plate)||v.plate||""), odometer:String((r&&r.odometer!=null&&r.odometer!=="")?r.odometer:(v.odometer||"")) }; }
+function docWithVehicles(r){ try{ if(!r || !Array.isArray(r.items) || !r.items.some(function(it){ return it && it.vehicle; })) return r;
+  return Object.assign({}, r, { items:r.items.map(function(it){ return (it && it.vehicle) ? Object.assign({}, it, { desc:String(it.desc||"")+" — "+it.vehicle }) : it; }) }); }catch(e){ return r; } }
+/* 8z78: what a document says about a tax exemption and about where the work is done (preview, PDF and lists). */
+function exemptLines(r){ try{ return (r && r.taxExempt && window.TKS_EXEMPT) ? TKS_EXEMPT.certLines(r.taxExempt) : (r && r.taxExempt ? ["TAX EXEMPT"] : []); }catch(e){ return []; } }
+function whereLine(r){ if(!r) return ""; if(r.serviceWhere==="shop") return "Service: In shop"+((SETTINGS&&SETTINGS.address)?(" — "+SETTINGS.address):""); if(r.serviceWhere==="mobile") return "Service: Mobile (we come to you)"; return ""; }
 /* Empty state — nothing open (the builder was cancelled). */
 function showHome(){
   if(window.RO_RECEIPTS) return;
   chat.innerHTML='<div class="res-home"><h2>Receipts &amp; invoices</h2>'+
     '<p>Build a receipt, invoice or estimate on one screen — parts, services, NASTF D1 paperwork, payment and signature.</p>'+
     '<button type="button" class="primary" id="homeNew">⚡ New document</button>'+
+    '<button type="button" id="homeEst">📋 Estimates</button>'+
     '<button type="button" id="homeHist">History</button></div>';
   chat.querySelector("#homeNew").onclick=()=>openNewDocument();
+  chat.querySelector("#homeEst").onclick=()=>{ setHistFilter("estimate"); openHist(); };
   chat.querySelector("#homeHist").onclick=()=>openHist();
 }
 /* Open a fresh builder (optionally pre-filled from a Start-a-job draft). */
@@ -852,6 +946,10 @@ function jobDraftToPrefill(d){
   if(d.fromDispatch) p.fromDispatch=true;
   if(d.customer) p.customer=String(d.customer);
   if(d.address) p.address=String(d.address);
+  if(d.serviceWhere==="shop"||d.serviceWhere==="mobile") p.serviceWhere=d.serviceWhere;   // 8z78
+  if(d.fromEstimate) p.fromEstimate=String(d.fromEstimate);   // 8z81
+  if(Array.isArray(d.moreVehicles) && d.moreVehicles.length) p.moreVehicles=d.moreVehicles;   // 8z84
+  if(d.taxExempt && typeof d.taxExempt==="object") p.taxExempt=d.taxExempt;
   if(d.internalNotes) p.internalNotes=String(d.internalNotes);   // 8z45   // 8z41: the job's address was handed over but never used
   // 8n: Start-a-job can also pass the chosen customer record → phone / email ride along (name wins if both given)
   if(d.customerInfo && typeof d.customerInfo==="object"){ const ci=d.customerInfo; if(!p.customer && ci.name) p.customer=String(ci.name); if(ci.phone) p.phone=String(ci.phone); if(ci.email) p.email=String(ci.email); if(ci.id) p.customerId=String(ci.id); }
@@ -1265,16 +1363,19 @@ function estimateToJob(r){
   const d={ fromEstimate:r.number||"", estimateId:r.id||"", serviceType:r.serviceType||"",
     customer:{ name:r.noCustomer?"":(r.customer||""), phone:r.phone||"", email:r.email||"" }, address:r.address||"",
     vehicle:{ year:r.vehYear||"", make:r.vehMake||"", model:r.vehModel||"", vin:r.vin||"" }, vehicleText:r.vehicle||"",
-    items:lines, notes:r.notes||"", internalNotes:r.internalNotes||"", ts:Date.now() };
+    items:lines, notes:r.notes||"", internalNotes:r.internalNotes||"", serviceWhere:r.serviceWhere||"", taxExempt:r.taxExempt||null, moreVehicles:Array.isArray(r.moreVehicles)?r.moreVehicles:[], ts:Date.now() };
   try{ sessionStorage.setItem("tks_quote_job", JSON.stringify(d)); }catch(e){}
   location.href="index.html?go=schedule&newjob=quote";
 }
 /* 8r: the result-screen buttons (also rebuilt after a "Scan back in"). */
 function finishedActions(r){
   if(r && String(r.internalNotes||"").trim()) resultNote("🔒 Internal note (staff only): "+String(r.internalNotes).trim());   // 8z45
+  // 8z75: a pay link went out for this invoice and it has not been paid yet
+  try{ if(r && r.payLinkSentAt && r.docType!=="estimate" && !receiptClosed(r)) resultNote("🔗 Pay link sent "+new Date(r.payLinkSentAt).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+" — not paid yet. It turns to Paid here on its own."); }catch(e){}
   const _acts=[];
   if(r.docType!=="estimate" && !receiptClosed(r)) _acts.push({label:"💳 Pay Now", primary:true, onClick:()=>openPayNow(r)});   // 8z48: nothing left to pay on a closed receipt
   if(!receiptLockedForMe(r)) _acts.push({label:"✏️ Edit", onClick:()=>editReceipt(r)});   // 8z48
+  _acts.push({label:"🖨 Print", onClick:(ev)=>printPaper(r, ev && ev.currentTarget)});   // 8z80: paper copy
   if(receiptScannedUnits(r).length) _acts.push({label:"↩ Scan back in", onClick:()=>scanBackInFromReceipt(r)});
   if(r.docType==="estimate"){   // 8z65: what happens after a quote — book it, or bill it
     _acts.push({label:"📅 Schedule this job", primary:true, onClick:()=>estimateToJob(r)});
@@ -1284,8 +1385,24 @@ function finishedActions(r){
   _acts.push({label:"New Document", primary:_acts.length===1, onClick:()=>openNewDocument()});
   if(r.jobId) _acts.push({label:"← Back to Scheduler", onClick:()=>{ location.href="index.html?go=schedule"; }});   // 8z44: came from a job → one tap back to the board
   resultActions(_acts);
+  d1PhotoBox(r);   // 8z90: a NASTF document shows its photo box under the buttons
 }
 function renderFinished(r){ renderReceiptCard(r); finishedActions(r); }
+/* 8z90: a NASTF document shows its photo box under the buttons — what is on file, what is missing, and how to add them */
+function hasD1(r){ return !!(r && ((r.nastf && r.nastf.type) || (Array.isArray(r.moreVehicles) && r.moreVehicles.some(v=>v && v.d1===true)))); }
+function d1PhotoBox(r){ try{ if(!hasD1(r) || !r.id || !window.TKS_RDOCS || r.docType==="estimate") return; const b=document.createElement("div"); b.className="d1-docs"; chat.appendChild(b); TKS_RDOCS.panel(b, r); scrollDown(); }catch(e){} }
+/* a phone that scanned the QR code lands here: bittings.html?docs=<receipt id> → that receipt's photo page and nothing else */
+function openDocsPage(id){
+  const find=()=>getHistory().find(x=>String(x.id)===String(id))||null;
+  const draw=(r)=>{ chat.innerHTML='<div class="res-home" style="text-align:left"><h2 style="margin-bottom:4px">📎 Photos for '+escapeHtml(r.number||"this receipt")+'</h2><p style="margin:0 0 6px">'+escapeHtml(r.customer||"")+(vehicleString(r)?(" · "+escapeHtml(vehicleString(r))):"")+'</p><div id="docsHere"></div><button type="button" id="docsDone" style="margin-top:10px">Done</button></div>';
+    TKS_RDOCS.panel(chat.querySelector("#docsHere"), r, { qr:false }); chat.querySelector("#docsDone").onclick=()=>{ location.href="bittings.html?receipts=1"; }; };
+  const r0=find(); if(r0){ draw(r0); return; }
+  chat.innerHTML='<div class="res-home"><h2>Finding that receipt…</h2><p>One moment.</p></div>';
+  let tries=0; const again=()=>{ const r=find(); if(r){ draw(r); return; }
+    if(++tries>12){ chat.innerHTML='<div class="res-home"><h2>Receipt not found</h2><p>This phone could not find that receipt. Make sure it is signed in to the same shop, then scan the code again.</p><button type="button" class="primary" onclick="location.href=\'bittings.html?receipts=1\'">Open Receipts</button></div>'; return; }
+    try{ if(tries%3===1 && window.TKS && TKS.refresh) TKS.refresh(true); }catch(e){} setTimeout(again, 1200); };
+  again();
+}
 /* 8r: running per-job log. Each event fires ONCE — flags on the item (declineLoggedQty, addLogged,
    unitIdsLogged) stop a later edit/re-save from logging it again. Demo/offline → TKS.Audit.log is a no-op. */
 function logDispatchEvents(r){
@@ -1362,6 +1479,7 @@ function scanBackInFromReceipt(r){
    ON-SCREEN RECEIPT CARD
    ========================================================== */
 function buildReceiptCardHTML(r, actionsHTML){
+  r=docWithVehicles(r);   // 8z84
   const t=r.totals;
   const status=r.status;
   const sColor= status==="Paid in Full"?"var(--green)"
@@ -1384,7 +1502,7 @@ function buildReceiptCardHTML(r, actionsHTML){
   });
   let sub="";
   const hasDiscount = t.discount>0;
-  if(t.tax>0 || t.surcharge>0 || hasDiscount){
+  if(t.tax>0 || t.surcharge>0 || hasDiscount || r.taxExempt){
     // Show gross subtotal + discount when a discount exists
     if(hasDiscount){
       sub+='<div class="rc-subrow"><span>Subtotal</span><span>'+money(t.grossSubtotal)+'</span></div>';
@@ -1396,6 +1514,7 @@ function buildReceiptCardHTML(r, actionsHTML){
       if(!hasDiscount) sub+='<div class="rc-subrow"><span>Subtotal</span><span>'+money(t.subtotal)+'</span></div>';
       sub+='<div class="rc-subrow"><span>Sales Tax ('+t.taxRate+'%)</span><span>'+money(t.tax)+'</span></div>';
     }
+    if(r.taxExempt && !(t.tax>0)) sub+='<div class="rc-subrow"><span>Sales Tax</span><span>EXEMPT</span></div>';   // 8z78
     if(t.surcharge>0){
       sub+='<div class="rc-subrow"><span>Card Surcharge ('+t.surchargeRate+'%)</span><span>'+money(t.surcharge)+'</span></div>';
     }
@@ -1427,9 +1546,13 @@ function buildReceiptCardHTML(r, actionsHTML){
   if(r.phone)   billTo+='<div class="rc-line">Phone: '+escapeHtml(r.phone)+'</div>';
   if(r.email)   billTo+='<div class="rc-line">Email: '+escapeHtml(r.email)+'</div>';
   if(r.address) billTo+='<div class="rc-line">Address: '+escapeHtml(r.address)+'</div>';
+  {const _w=whereLine(r); if(_w) billTo+='<div class="rc-line">'+escapeHtml(_w)+'</div>';}   // 8z78
   {const _v=vehicleString(r); if(_v) billTo+='<div class="rc-line">Vehicle: '+escapeHtml(_v)+'</div>';}
   if(r.vin)     billTo+='<div class="rc-line">VIN: '+escapeHtml(r.vin)+'</div>';
-  if(r.plate)   billTo+='<div class="rc-line">Plate: '+escapeHtml(r.plate)+'</div>';
+  moreVehList(r).forEach(function(l,i){ billTo+='<div class="rc-line">Vehicle '+(i+2)+': '+escapeHtml(l)+'</div>'; });   // 8z84
+  {const _d=d1Of(r); if(_d.color) billTo+='<div class="rc-line">Color: '+escapeHtml(_d.color)+'</div>';   // 8z90
+   if(_d.plate) billTo+='<div class="rc-line">Plate: '+escapeHtml(_d.plate)+'</div>';
+   if(_d.odometer && !r.nastf) billTo+='<div class="rc-line">Miles: '+escapeHtml(_d.odometer)+'</div>'; }
   if(r.odometer!==undefined && r.odometer!=="") billTo+='<div class="rc-line">Odometer: '+escapeHtml(r.odometer)+'</div>';
   if(r.dlNumber)billTo+='<div class="rc-line">DL #: '+escapeHtml(r.dlNumber)+'</div>';
 
@@ -1481,6 +1604,7 @@ function buildReceiptCardHTML(r, actionsHTML){
           return (line1||terms)?('<div style="margin-top:8px">'+line1+terms+'</div>'):'';
        })()+
        (r.notes?'<div class="rc-notes">Notes: '+escapeHtml(r.notes)+'</div>':'')+
+       (function(){ const L=exemptLines(r); return L.length?('<div class="rc-notes" style="font-style:normal"><b>'+escapeHtml(L[0])+'</b><br>'+L.slice(1).map(escapeHtml).join('<br>')+'</div>'):''; })()+
      '</div>'+
      (actionsHTML||'')+
    '</div>';
@@ -1577,6 +1701,7 @@ function shareDocument(r, lang, forCustomer){
    PDF GENERATION
    ========================================================== */
 function makePDF(r, lang, forCustomer){
+  r=docWithVehicles(r);   // 8z84
   lang = lang || "en";
   // Spanish is always customer-facing
   if(lang === "es") forCustomer = true;
@@ -1637,13 +1762,14 @@ function makePDF(r, lang, forCustomer){
   bl("Phone", r.phone);
   bl("Email", r.email);
   bl("Address", r.address);
+  if(r.serviceWhere==="shop") bl("Service", "In shop"+((SETTINGS&&SETTINGS.address)?(" — "+SETTINGS.address):"")); else if(r.serviceWhere==="mobile") bl("Service", "Mobile (we come to you)");   // 8z78
   bl("Vehicle", vehicleString(r));
   bl("VIN", r.vin);
+  moreVehList(r).forEach(function(l,i){ bl("Vehicle "+(i+2), l); });   // 8z84
   // DL #, Plate, Odometer are NASTF audit fields — hide from customer copy
   if(!forCustomer){
     bl("DL #", r.dlNumber);
-    bl("Plate", r.plate);
-    if(r.odometer!==undefined && r.odometer!=="") bl("Odometer", r.odometer);
+    { const _d=d1Of(r); bl("Color", _d.color); bl("Plate", _d.plate); if(_d.odometer!=="") bl("Odometer", _d.odometer); }   // 8z90
   }
 
   // ---- NASTF-specific blocks ----
@@ -1729,7 +1855,7 @@ function makePDF(r, lang, forCustomer){
   let toY=rY+22;
   doc.setFontSize(10);
   const hasDiscountP = t.discount>0;
-  if(t.tax>0 || t.surcharge>0 || hasDiscountP){
+  if(t.tax>0 || t.surcharge>0 || hasDiscountP || r.taxExempt){
     doc.setFont("helvetica","normal"); doc.setTextColor(...GRAY);
     if(hasDiscountP){
       doc.text(tr("Subtotal",lang),306,toY);
@@ -1753,6 +1879,7 @@ function makePDF(r, lang, forCustomer){
       doc.text(tr("Sales Tax",lang)+" ("+t.taxRate+"%)",306,toY);
       doc.text(money(t.tax),562,toY,{align:"right"}); toY+=15;
     }
+    if(r.taxExempt && !(t.tax>0)){ doc.text(tr("Sales Tax",lang),306,toY); doc.text("EXEMPT",562,toY,{align:"right"}); toY+=15; }   // 8z78
     if(t.surcharge>0){
       doc.text(tr("Card Surcharge",lang)+" ("+t.surchargeRate+"%)",306,toY);
       doc.text(money(t.surcharge),562,toY,{align:"right"}); toY+=8;
@@ -1797,6 +1924,12 @@ function makePDF(r, lang, forCustomer){
     doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
     doc.text(r.notes,40,nY+14,{maxWidth:520});
   }
+  // 8z78: the exemption this sale relied on (left column, small print, above the signature)
+  { const L=exemptLines(r);
+    if(L.length){ let eY = toY + 60 + (r.notes ? (28 + 12*Math.max(1, doc.splitTextToSize(String(r.notes),520).length)) : 0); if(eY>600) eY=600;
+      doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(50,50,50); doc.text(L[0],40,eY); eY+=11;
+      doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(90,90,90);
+      L.slice(1).forEach(function(line){ const parts=doc.splitTextToSize(String(line),250); parts.forEach(function(p){ if(eY<650){ doc.text(p,40,eY); eY+=9; } }); }); } }
 
   // signature
   if(r.signature){
@@ -1846,6 +1979,7 @@ function setHistFilter(f){
   document.querySelectorAll(".hist-filter button").forEach(b=>{
     b.classList.toggle("active", b.dataset.f===f);
   });
+  try{ document.querySelector("#histPanel .pp-head b").textContent=(f==="estimate")?"Estimates":"History"; }catch(e){}   // 8z78
   renderHistList();
 }
 function openHist(){ renderHistList(); document.getElementById("histPanel").classList.add("open"); }
@@ -1853,10 +1987,18 @@ function closeHist(){ document.getElementById("histPanel").classList.remove("ope
 function renderHistList(){
   const list=document.getElementById("histList");
   let hist=getHistory();
+  { // 8z81: an estimate that became an invoice / receipt is not listed any more — only the document it became
+    const conv={}; hist.forEach(x=>{ if(x && x.fromEstimate) conv[x.fromEstimate]=1; });
+    hist=hist.filter(r=>!((r.docType||"receipt")==="estimate" && conv[r.number])); }
   if(histFilter!=="all"){ hist=hist.filter(r=> (r.docType||"receipt")===histFilter); }
+  // 8z78: search + (for estimates) which ones are already on the schedule
+  const _hq=((document.getElementById("histSearch")||{}).value||"").trim().toLowerCase();
+  if(_hq){ const _hd=_hq.replace(/\D/g,""); hist=hist.filter(r=>{ const hay=[r.number,r.customer,r.contact,r.email,r.address,vehicleString(r),r.vin,moreVehList(r).join(" "),(r.items||[]).map(i=>i&&i.desc).join(" ")].join(" ").toLowerCase();
+    return hay.indexOf(_hq)>=0 || (_hd.length>=4 && String(r.phone||"").replace(/\D/g,"").indexOf(_hd)>=0); }); }
+  const _booked={}; try{ (TKS.Bookings.all()||[]).forEach(b=>{ if(b && b.fromEstimate && !b.deletedAt && !/cancel/i.test(String(b.status||""))) _booked[b.fromEstimate]=b; }); }catch(e){}
   list.innerHTML="";
   if(hist.length===0){
-    list.innerHTML='<div class="pp-empty">No documents yet.</div>';
+    list.innerHTML='<div class="pp-empty">'+(_hq?"Nothing matches that search.":(histFilter==="estimate"?"No estimates yet. Make one from Quick quote.":"No documents yet."))+'</div>';
     return;
   }
   hist.forEach((r,idx)=>{
@@ -1882,19 +2024,27 @@ function renderHistList(){
     div.className="hist-item "+type;
     // Use doc number (stable id) instead of array index (changes on edit/delete/filter)
     const dn=escapeHtml(r.number);
-    let actions='<button data-act="share" data-num="'+dn+'">📤 Send</button>'+
+    // 8z78: an estimate leads with what you do next — put it on the schedule, or change it (any role: nothing has been sold yet)
+    const bk=(type==="estimate")?_booked[r.number]:null;
+    let actions=(type==="estimate" ? ('<button data-act="sched" data-num="'+dn+'" style="background:var(--red);border-color:var(--red);color:#fff;font-weight:700">'+(bk?"📅 Schedule again":"📅 Schedule")+'</button>'+
+                                      '<button data-act="edit" data-num="'+dn+'" style="font-weight:700">✏️ Edit</button>') : '')+
+                '<button data-act="print" data-num="'+dn+'">🖨 Print</button>'+
+                '<button data-act="share" data-num="'+dn+'">📤 Send</button>'+
                 '<button data-act="pdf" data-num="'+dn+'">PDF</button>'+
                 '<button data-act="pdfes" data-num="'+dn+'">PDF (ES)</button>'+
-                '<button data-cap="editPricing" data-act="edit" data-num="'+dn+'">Edit</button>';   // edit invoice = manager/owner
+                (type==="estimate" ? '' : '<button data-cap="editPricing" data-act="edit" data-num="'+dn+'">Edit</button>');   // edit invoice = manager/owner
     if(type==="invoice") actions += '<button data-act="paid" data-num="'+dn+'">Mark Paid</button>';
     if(type==="estimate") actions += '<button data-act="toinv" data-num="'+dn+'">→ Invoice</button>';
+    const tags=[ (Array.isArray(r.moreVehicles)&&r.moreVehicles.length)?("🚗 "+(r.moreVehicles.length+1)+" vehicles"):"", r.serviceWhere==="shop"?"🏪 In shop":(r.serviceWhere==="mobile"?"🚐 Mobile":""), r.taxExempt?"🏛 Tax exempt":"",
+      bk?("📅 On the schedule"+(bk.date?(" "+bk.date):"")+(bk.time?(" "+bk.time):"")):"" ].filter(Boolean).join(" · ");
     actions += '<button data-cap="hardDelete" data-act="del" data-num="'+dn+'">Delete</button>';   // invoice hard-delete = owner only (hidden for others by access.js)
     div.innerHTML=
       '<div class="hi-top"><span class="hi-num">'+escapeHtml(r.number)+'</span>'+
       warrantyPillCompactHTML(r)+
       '<span class="hi-amt">'+money(total)+'</span></div>'+
       '<div class="hi-cust">'+escapeHtml(r.customer||"(no name)")+'</div>'+
-      '<div class="hi-desc">'+escapeHtml(r.date||"")+' · '+escapeHtml(descPart)+'</div>'+
+      '<div class="hi-desc">'+escapeHtml(r.date||"")+' · '+escapeHtml(descPart)+(r.phone?(' · '+escapeHtml(r.phone)):'')+'</div>'+
+      (tags?'<div class="hi-desc" style="color:#d8dbe2;font-weight:600">'+escapeHtml(tags)+'</div>':'')+
       (warrantyPillHTML(r)?'<div style="margin-top:5px">'+warrantyPillHTML(r)+'</div>':'')+
       '<div class="hi-actions">'+actions+'</div>';
     list.appendChild(div);
@@ -1909,6 +2059,8 @@ function renderHistList(){
       if(!r.totals){ r.totals=computeTotals(r.items||[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}], r.payment, receiptTaxRate(r)); }
       if(!r.items) r.items=[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}];
       if(act==="share") shareDocument(r, "en", true);
+      else if(act==="sched"){ closeHist(); estimateToJob(r); }   // 8z78
+      else if(act==="print") printPaper(r, b, true);   // 8z80: a reprint never opens the cash drawer
       else if(act==="pdf") makePDF(r, "en");
       else if(act==="pdfes") makePDF(r, "es");
       else if(act==="del"){
@@ -2155,6 +2307,7 @@ function roViewerDownload(){
 }
 function roViewerPrint(){
   if(!roViewerReceipt) return;
+  if(window.TKS_HW && TKS_HW.printDoc){ printPaper(roViewerReceipt, document.getElementById('roViewerPrint'), true); return; }   // 8z81: receipt printer first
   var out; try{ out=makePDF(roViewerReceipt, 'en', false, true); }
   catch(e){ appAlert('Print failed', (e&&e.message)||'Could not build the PDF.'); return; }
   if(out && out.blob){
@@ -2183,6 +2336,7 @@ function roSetTab(t){
 function roRenderAll(){
   var list=document.getElementById('roList'); if(!list) return;
   var hist=getHistory().slice(), q=(roQuery||'').trim().toLowerCase();
+  (function(){ var conv={}; hist.forEach(function(x){ if(x && x.fromEstimate) conv[x.fromEstimate]=1; }); hist=hist.filter(function(r){ return !((r.docType||'receipt')==='estimate' && conv[r.number]); }); })();   // 8z81: converted estimates are not listed
   if(q){ hist=hist.filter(function(r){
     return [r.number,r.customer,r.date,r.address,r.vin,roVehStr(r),(r.items||[]).map(function(i){return i.desc;}).join(' ')]
       .join(' ').toLowerCase().indexOf(q)>=0; }); }
@@ -2294,7 +2448,10 @@ function boot(){
     let draft=null;
     try{ const raw=sessionStorage.getItem('tks_job_draft'); if(raw){ sessionStorage.removeItem('tks_job_draft'); draft=JSON.parse(raw); } }catch(e){ draft=null; }
     // 8z65 Quick quote: a customer calls for a price → the builder opens as an Estimate, no name needed
-    if(/[?&]quote=1/.test(location.search)){ const pf=draft ? (jobDraftToPrefill(draft)||{}) : {}; pf.docType="estimate"; pf.quote=true; openNewDocument(pf); }   // 8z71: a website lead being quoted comes with its details
+    const _dm=/[?&]docs=([^&]+)/.exec(location.search);
+    if(_dm && window.TKS_RDOCS){ openDocsPage(decodeURIComponent(_dm[1])); }   // 8z90: scanned QR → this receipt's photo page
+    else if(/[?&]estimates=1/.test(location.search)){ showHome(); setHistFilter("estimate"); openHist(); }   // 8z78: menu → Estimates
+    else if(/[?&]quote=1/.test(location.search)){ const pf=draft ? (jobDraftToPrefill(draft)||{}) : {}; pf.docType="estimate"; pf.quote=true; openNewDocument(pf); }   // 8z71: a website lead being quoted comes with its details
     else openNewDocument(draft ? jobDraftToPrefill(draft) : null);
     }
   }
@@ -2412,18 +2569,101 @@ function _receiptsRefresh(){
         <div style="background:#f3f4f6;border:1px solid #e3e6ea;border-radius:12px;padding:12px;margin-bottom:12px">
           ${taxRows}
           <div style="display:flex;justify-content:space-between;margin-top:${taxC>0?'4px':'0'}"><span>Amount${taxC>0?' (incl. tax)':''}</span><b>${m(S.baseCents)}</b></div>
-          <div style="font-size:12px;color:#f2b43a;margin-top:6px">Then a 2% surcharge (${m(sur)}) is added on top for <b>credit</b> cards only — debit &amp; prepaid are never surcharged.</div>
+          <div id="pnSur" style="font-size:12px;color:#f2b43a;margin-top:6px">Then a 2% surcharge (${m(sur)}) is added on top for <b>credit</b> cards only — debit &amp; prepaid are never surcharged.</div>
         </div>
-        <div style="display:flex;gap:8px;margin-bottom:12px"><button class="pnM" data-m="reader">🏪 Reader</button><button class="pnM" data-m="keyed">⌨️ Type card</button></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px"><button class="pnM" data-m="reader">🏪 Reader</button><button class="pnM" data-m="keyed">⌨️ Type card</button><button class="pnM" data-m="link">🔗 Send link</button></div>
         <div id="pnBody"></div><div id="pnStatus" style="font-size:13px;margin-top:10px;min-height:18px"></div>
       </div></div>`);
     document.body.appendChild(modal);
     modal.querySelector("#pnX").onclick=close;
     modal.addEventListener("click",e=>{ if(e.target===modal) close(); });
     modal.querySelectorAll(".pnM").forEach(b=>{ const on=b.dataset.m===S.method;
-      b.style.cssText="flex:1;padding:11px;border-radius:11px;border:1.5px solid "+(on?"#f2b43a":"#e3e6ea")+";background:"+(on?"rgba(242,180,58,.14)":"transparent")+";color:#14171b;font-weight:700;cursor:pointer";
-      b.onclick=()=>{ S.method=b.dataset.m; render(); }; });
-    (S.method==="reader"?renderReader:renderKeyed)();
+      b.style.cssText="flex:1;min-width:0;min-height:44px;padding:11px 6px;border-radius:11px;border:1.5px solid "+(on?"#f2b43a":"#e3e6ea")+";background:"+(on?"rgba(242,180,58,.14)":"transparent")+";color:#14171b;font-weight:700;font-size:13.5px;cursor:pointer";
+      b.onclick=()=>{ if(S.method===b.dataset.m) return; S.method=b.dataset.m; render(); }; });
+    (S.method==="reader"?renderReader:S.method==="link"?renderLink:renderKeyed)();
+  }
+
+  /* ---------- 8z75 (owner, 2026-11-12): PAY LINK — "send a link for payment when out in the field" ----------
+     The customer pays on their OWN phone: the link opens a small page (pay.html) with the shop, invoice number and amount,
+     then Stripe's secure card page. Money goes to the shop's own Stripe account like every card sale. NO 2% surcharge on a
+     link (owner decision — a link cannot tell credit from debit before the customer pays; the reader and typed card keep it).
+     The link never expires, always charges the invoice's current total, and stops working once the invoice is paid.
+     The server (stripe-webhook) records the payment and marks the invoice paid by itself — this sheet does not need to stay open. */
+  function linkUrl(i,k){ const u=new URL("pay.html", location.href); u.search="?i="+encodeURIComponent(i)+"&k="+encodeURIComponent(k); u.hash=""; return u.toString(); }
+  function linkPhone(){ const d=String((S.receipt&&S.receipt.phone)||"").replace(/\D/g,""); return d.length===10?d:(d.length===11&&d[0]==="1"?d.slice(1):""); }
+  function linkText(){ const r=S.receipt||{}, shop=(typeof SETTINGS!=="undefined"&&SETTINGS&&SETTINGS.name)||"";
+    return (shop?shop+": ":"")+"invoice "+(r.number||"")+" — "+m(S.baseCents)+". Pay securely here: "+S.link; }
+  function renderLink(){
+    const body=modal.querySelector("#pnBody");
+    const sur=modal.querySelector("#pnSur"); if(sur) sur.innerHTML="<b>No surcharge on a pay link.</b> The customer pays "+m(S.baseCents)+" by card on their own phone.";
+    if(!S.link){
+      body.innerHTML=`<div style="font-size:13.5px;color:#5a616c;line-height:1.5;margin-bottom:10px">Text the customer a link. They pay by card on their own phone and this invoice marks itself paid — no reader needed.</div>${payBtn("Create pay link","pnGo")}`;
+      modal.querySelector("#pnGo").onclick=startLink; return;
+    }
+    const ph=linkPhone(), fmt=ph?("("+ph.slice(0,3)+") "+ph.slice(3,6)+"-"+ph.slice(6)):"";
+    const b2="flex:1;min-width:0;min-height:48px;padding:12px 8px;border-radius:11px;border:1px solid #c7ccd3;background:#f3f4f6;color:#14171b;font-weight:700;font-size:14.5px;cursor:pointer";
+    body.innerHTML=`<label style="font-size:12px;color:#5a616c">Pay link for ${esc(S.receipt.number||"this invoice")}</label>
+      <input id="pnLink" readonly value="${esc(S.link)}" style="width:100%;box-sizing:border-box;margin:4px 0 10px;padding:11px;border:1px solid #c7ccd3;border-radius:10px;background:#f3f4f6;color:#14171b;font-size:13px">
+      ${ph?`<a id="pnSms" href="#" style="display:block;text-align:center;text-decoration:none;width:100%;box-sizing:border-box;padding:14px;border-radius:11px;background:linear-gradient(180deg,#22994a,#156632);color:#fff;font-weight:800;font-size:16px;margin-bottom:8px">💬 Text it to ${esc(fmt)}</a>`:""}
+      <div style="display:flex;gap:8px"><button type="button" id="pnShare" style="${b2}">📤 Share…</button><button type="button" id="pnCopy" style="${b2}">📋 Copy link</button></div>
+      <div style="font-size:12.5px;color:#5a616c;line-height:1.5;margin-top:10px">${ph?"":"No phone number on this invoice — use Share or Copy. "}You can close this. The invoice turns to Paid on its own when the customer pays.</div>`;
+    const sms=modal.querySelector("#pnSms");
+    // sms: link — "?&body=" is the form both iPhone and Android accept
+    if(sms){ sms.href="sms:+1"+ph+"?&body="+encodeURIComponent(linkText()); sms.onclick=()=>{ noteLinkSent("text"); }; }
+    modal.querySelector("#pnLink").onclick=function(){ try{ this.select(); }catch(_){} };
+    modal.querySelector("#pnCopy").onclick=async()=>{ let ok=false;
+      try{ await navigator.clipboard.writeText(S.link); ok=true; }catch(_){ try{ const i=modal.querySelector("#pnLink"); i.focus(); i.select(); ok=document.execCommand("copy"); }catch(__){} }
+      status(ok?"Link copied — paste it into a text or email.":"Couldn't copy — press and hold the link above to copy it.", ok?"ok":"bad"); if(ok) noteLinkSent("copy"); };
+    const sh=modal.querySelector("#pnShare");
+    if(!navigator.share) sh.style.display="none";
+    else sh.onclick=()=>{ navigator.share({ text:linkText() }).then(()=>noteLinkSent("share"),()=>{}); };
+    watchLink();
+  }
+  async function startLink(){
+    const go=modal&&modal.querySelector("#pnGo"); if(go){ go.disabled=true; go.textContent="Creating link…"; }
+    status("");
+    const j=await call("pay-link",{ action:"create", invoiceId:S.receipt.id });
+    if(!modal || S.method!=="link") return;
+    if(j.error || !j.k){ if(go){ go.disabled=false; go.textContent="Create pay link"; } status(j.error||"Could not create the link — try again.","bad"); return; }
+    S.linkI=j.i; S.linkK=j.k; S.link=linkUrl(j.i, j.k);
+    if(j.amount_cents && j.amount_cents!==S.baseCents) S.baseCents=j.amount_cents;   // what the server will charge (worked out from the lines)
+    renderLink(); status("Link ready.","ok");
+  }
+  // remember on the invoice that a link went out (shown on the card and in History)
+  function noteLinkSent(how){ try{ const r=S.receipt; if(!r) return; r.payLinkSentAt=Date.now(); r.payLinkVia=how; if(typeof _syncReceiptInHistory==="function") _syncReceiptInHistory(r); }catch(_){} }
+  // while this sheet is open, notice the payment (the server has already recorded it by then)
+  function watchLink(){
+    if(S.linkWatch) return; S.linkWatch=true; let n=0; const mine=S;
+    const tick=async()=>{
+      if(!modal || S!==mine || S.completed) return;
+      if(S.method==="link" && S.linkK){
+        const j=await call("pay-link",{ action:"info", i:S.linkI, k:S.linkK });
+        if(!modal || S!==mine) return;
+        if(j && j.ok && j.paid){ linkPaid(j); return; }
+      }
+      n++; if(n<150) setTimeout(tick, n<40?4000:10000);   // ~20 minutes, then stop asking (the invoice still marks itself paid)
+    };
+    setTimeout(tick, 5000);
+  }
+  function linkPaid(j){
+    S.completed=true; S.method="link";
+    status("✓ Paid by link — "+m(j.amount_cents||S.baseCents)+" (no surcharge)","ok");
+    try{ const r=S.receipt; if(r){
+      if(r.docType==="invoice"){ r.docType="receipt"; if(r.number) r.number=String(r.number).replace(/^INV/,"TKS"); }
+      r.status="Paid in Full"; r.paidAt=Date.now(); r.payment="Card";
+      try{ const capt=Number(j.amount_cents); if(capt>0) r.totals=Object.assign({}, r.totals||{}, { surcharge:0, total:capt/100 }); }catch(_){}
+      if(typeof _syncReceiptInHistory==="function") _syncReceiptInHistory(r);
+      if(typeof applyStockForReceipt==="function") applyStockForReceipt(r);
+      if(typeof renderHistList==="function"){ try{ renderHistList(); }catch(_){} }
+      const body=modal&&modal.querySelector("#pnBody");
+      if(body){ body.innerHTML=""; const wrap=document.createElement("div"); wrap.style.cssText="display:flex;gap:8px;margin-top:4px";
+        const mk=(label,fn)=>{ const b=document.createElement("button"); b.type="button"; b.textContent=label;
+          b.style.cssText="flex:1;min-height:44px;padding:13px;border-radius:11px;border:1px solid #e3e6ea;background:#f3f4f6;color:#14171b;font-weight:700;cursor:pointer"; b.onclick=fn; return b; };
+        { const pb=mk("🖨 Print receipt",()=>printPaper(r, pb)); wrap.appendChild(pb); }   // 8z80
+        wrap.appendChild(mk("⬇ Download receipt",()=>{ try{ makePDF(r,"en",true); }catch(e){ appAlert("PDF unavailable", "Couldn't build the PDF — open the receipt and use Print."); } }));
+        wrap.appendChild(mk("📤 Send receipt",()=>{ try{ shareDocument(r,"en",true); }catch(e){ appAlert("Share unavailable", "Sharing isn't available on this device — open the receipt and use Share or Print."); } }));
+        body.appendChild(wrap); }
+    } }catch(_){}
   }
   function payBtn(label,id){ return `<button id="${id}" style="width:100%;padding:13px;border-radius:11px;border:none;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;cursor:pointer">${label}</button>`; }
 
@@ -2523,6 +2763,7 @@ function _receiptsRefresh(){
             const mkBtn=(label)=>{ const b=document.createElement("button"); b.type="button";
               b.style.cssText="flex:1;min-height:44px;padding:13px;border-radius:11px;border:1px solid #e3e6ea;background:#f3f4f6;color:#14171b;font-weight:700;cursor:pointer";
               b.textContent=label; return b; };
+            const pr=mkBtn("🖨 Print receipt"); pr.onclick=()=>printPaper(r, pr); wrap.appendChild(pr);   // 8z80
             const dl=mkBtn("⬇ Download receipt");
             dl.onclick=()=>{ try{ makePDF(r,"en",true); }catch(e){ appAlert("PDF unavailable", "Couldn't build the PDF — open the receipt and use Print."); } };
             const sn=mkBtn("📤 Send receipt");
@@ -2858,16 +3099,22 @@ function canEditPricing(){
       <div id="qiContactWrap" style="display:none"><label class="qi-l">Contact person <span class="m">(at the business)</span></label><input id="qiContact" class="qi-i" placeholder="e.g. Joey"></div>
       <div class="qi-row"><div><label class="qi-l">Phone</label><input id="qiPhone" class="qi-i" type="tel"></div><div><label class="qi-l">Email</label><input id="qiEmail" class="qi-i" type="email"></div></div>
       <label class="qi-l">Address</label><input id="qiAddr" class="qi-i">
+      <label class="qi-l">Where is the work done? <span class="m">(optional)</span></label>
+      <div class="qi-seg" id="qiWhere"><button type="button" class="qiWB" data-w="shop">🏪 In shop — they come in</button><button type="button" class="qiWB" data-w="mobile">🚐 Mobile — we go to them</button></div>
       <div id="qiVehWrap" style="display:none">
         <label class="qi-l">Vehicle <span class="m" id="qiVehOpt">(optional)</span></label>
         <div class="qi-row"><select id="qiVYear" class="qi-i" style="flex:0 0 96px"></select><select id="qiVMake" class="qi-i"></select><select id="qiVModel" class="qi-i"></select></div>
         <input id="qiVin" class="qi-i" placeholder="VIN (auto-fills year / make / model)" autocomplete="off" style="margin-top:6px">
         <div id="qiVinMsg" class="qi-note"></div>
         <input id="qiVehText" class="qi-i" placeholder="Or describe the vehicle (if it isn't in the lists)" style="margin-top:6px">
+        <div id="qiKeys"></div>
+        <div id="qiMoreVeh"></div>
+        <button type="button" class="qi-add" id="qiAddVeh" style="margin-top:8px">➕ Add another vehicle</button>
       </div>
       <label class="qi-l">Line items <span class="req">*</span></label><div id="qiItems"></div>
       <button type="button" class="qi-add" id="qiAdd">+ Add item</button><button type="button" class="qi-add" id="qiAddDisc"${canDisc?"":' style="display:none"'}>− Discount${(!pricing&&techDiscMax>0)?(" (up to "+esc(techDiscMax)+"%)"):""}</button>
       <div class="qi-tot" id="qiTot" aria-live="polite"></div>
+      <div id="qiExWrap" style="margin:8px 0 2px"><button type="button" class="qi-add" id="qiExBtn">🏛 Tax exempt…</button><div id="qiExInfo" class="qi-note" style="display:none"></div></div>
       <div id="qiPayWrap">
         <label class="qi-l">Payment method</label>
         <div class="qi-seg" id="qiPay">${PAY_METHODS.map(p=>'<button type="button" class="qiPB" data-p="'+p+'">'+p+'</button>').join("")}<button type="button" class="qiPB" data-p="Not specified" id="qiPayNS">Not specified</button></div>
@@ -2902,6 +3149,29 @@ function canEditPricing(){
     const getType=seg(".qiTB","t", (src.docType&&/^(receipt|invoice|estimate)$/.test(src.docType))?src.docType:"receipt", ()=>{ syncPay(); syncWarranty(); try{ syncCustomerType(); }catch(e){} });
     const getSvc=seg(".qiSB","s", (src.serviceType&&svcOpts.indexOf(src.serviceType)>=0)?src.serviceType:svcOpts[0], ()=>{ syncNastfVisibility(); buildPresets(); syncVehicle(); syncRowCats(); });
     const getCT=seg(".qiCB","c", (src.customerType==="business")?"business":"individual", syncCustomerType);
+    // 8z78 (owner: "select in shop on the estimate if a customer calls and says they will be coming into the shop"):
+    // where the work is done. Optional; tap the chosen one again to clear it.
+    let where=(src.serviceWhere==="shop"||src.serviceWhere==="mobile")?src.serviceWhere:"";
+    const paintWhere=()=>$$(".qiWB").forEach(b=>b.classList.toggle("on", b.dataset.w===where));
+    $$(".qiWB").forEach(b=>b.onclick=()=>{ where=(where===b.dataset.w)?"":b.dataset.w; paintWhere(); }); paintWhere();
+    // 8z78: tax exempt. The exemption is a snapshot of the customer's certificate (app/taxexempt.js); while it is set the
+    // document's tax rate is 0. Every role can apply one — the paperwork is what makes it valid, and Reports lists every exempt sale.
+    let exempt=(src.taxExempt&&typeof src.taxExempt==="object")?src.taxExempt:null, exKey=null;
+    const exCust=()=>({ id:src.customerId||null, name:($q("#qiName").value||"").trim(), phone:($q("#qiPhone").value||"").trim(), address:($q("#qiAddr").value||"").trim() });
+    function paintEx(force){
+      const btn=$q("#qiExBtn"), info=$q("#qiExInfo"); if(!btn||!info) return;
+      const c=exCust(), key=(exempt?exempt.certId:"")+"|"+c.name.toLowerCase()+"|"+c.phone.replace(/\D/g,"");
+      if(!force && key===exKey) return; exKey=key;
+      const rateInp=$q("#qiTaxRate"); if(rateInp){ rateInp.disabled=!!exempt; if(exempt) rateInp.value=""; }
+      if(exempt){ btn.textContent="🏛 Tax exempt ✓ — change or remove"; info.style.display="";
+        info.innerHTML="<b>No sales tax on this document.</b> "+esc(window.TKS_EXEMPT?TKS_EXEMPT.label(exempt):"Tax exempt")+" — "+esc(exempt.holderName||""); return; }
+      btn.textContent="🏛 Tax exempt…";
+      let hit=null; try{ hit=(window.TKS_EXEMPT && c.name)?TKS_EXEMPT.find(c):null; }catch(e){}
+      if(hit){ info.style.display=""; info.innerHTML="This customer has a tax exemption on file ("+esc(TKS_EXEMPT.label(TKS_EXEMPT.snapshot(hit)))+"). Tap <b>Tax exempt</b> to use it on this document."; }
+      else { info.style.display="none"; info.innerHTML=""; }
+    }
+    $q("#qiExBtn").onclick=()=>{ if(!window.TKS_EXEMPT){ appAlert("Tax exempt","Not loaded yet — tap Update and try again."); return; }
+      TKS_EXEMPT.open({ customer:exCust(), current:exempt, onDone:(snap,warn)=>{ exempt=snap||null; paintEx(true); paintTotals(); if(warn) appAlert("Tax exempt", warn); } }); };
     const payDef=(src.payment && (PAY_METHODS.indexOf(src.payment)>=0 || src.payment==="Not specified"))?src.payment:"Cash";
     const getPay=seg(".qiPB","p", payDef);
     const stDef=(src.status && STATUSES.some(s=>s[0]===src.status))?src.status:"Paid in Full";
@@ -2956,6 +3226,7 @@ function canEditPricing(){
       const fields=(NASTF_FIELDS[nastfType]) || [];
       fields.forEach(f=>{
         if(f.key==="address") return; // the main Address field already collects it
+        if(f.key==="plate" || f.key==="odometer") return;   // 8z90: asked below, with colour — all three have to be answered
         const lab=document.createElement("label"); lab.className="qi-l";
         lab.innerHTML=esc(f.ask)+(f.req?' <span class="req">*</span>':'')+(f.hint?' <span class="m">— '+esc(f.hint)+'</span>':'');
         nastfFieldsBox.appendChild(lab);
@@ -2966,11 +3237,16 @@ function canEditPricing(){
         if(isEdit && edit[f.key]!=null && edit[f.key]!=="") el.value=edit[f.key];
         nastfFieldsBox.appendChild(el);
       });
+      if(nastfType && window.TKS_RDOCS){   // 8z90: colour, miles and tag — required on every D1
+        const w=node('<div id="qiD1Veh0"><div class="qi-note" style="font-weight:700;margin:8px 0 0">The vehicle — all three are needed</div>'+TKS_RDOCS.d1FieldsHTML("qi-i")+'</div>');
+        nastfFieldsBox.appendChild(w);
+        TKS_RDOCS.d1Set(w, { color:(isEdit?edit.vehColor:src.vehColor)||"", odometer:(isEdit?edit.odometer:src.odometer), plate:(isEdit?edit.plate:src.plate)||"" });
+      }
       const jl=nastfFieldsBox.querySelector('.qiNF[data-key="jobLocation"]'), addr=$q("#qiAddr");
       if(jl && addr && addr.value.trim() && !jl.value) jl.value=addr.value.trim();
     }
     function setNastf(t, fromUser){
-      nastfType=t||""; paintNastfBtns(); renderNastfChecklist(); renderNastfFields();
+      nastfType=t||""; paintNastfBtns(); renderNastfChecklist(); renderNastfFields(); try{ syncVehD1(); }catch(e){}
       // The D1 type implies the customer type (same rule the chat applied).
       if(fromUser){ if(nastfType==="Customer D1") getCT.set("individual",true); else if(nastfType) getCT.set("business",true); }
       syncCustomerType();
@@ -2980,7 +3256,9 @@ function canEditPricing(){
     function getNastf(){
       if(getSvc()!=="Automotive" || !nastfType) return null;
       const vals={}; $$(".qiNF").forEach(el=>{ vals[el.dataset.key]=(el.value||"").trim(); });
-      return {type:nastfType, values:vals, fields:(NASTF_FIELDS[nastfType]||[])};
+      const d1=window.TKS_RDOCS?TKS_RDOCS.d1Read($q("#qiD1Veh0")):{ color:"", odometer:"", plate:"" };   // 8z90
+      vals.vehColor=d1.color; vals.odometer=d1.odometer; vals.plate=d1.plate;
+      return {type:nastfType, values:vals, d1:d1, fields:(NASTF_FIELDS[nastfType]||[])};
     }
 
     // ---- Vehicle (shown for Automotive, or whenever the document already carries vehicle data) ----
@@ -3252,6 +3530,118 @@ function canEditPricing(){
       return r;
     }
     $q("#qiAdd").onclick=()=>{ const r=addItem(); try{ r.querySelector(".qiDesc").focus(); }catch(e){} };
+
+    /* ---------- 8z76 (owner, 2026-11-12): "for the quick quote I need to put in a vehicle and get the key information —
+       what fits, what the prices are" ----------
+       Pick year / make / model (or type a VIN) and the keys YOU stock for that vehicle appear right under it: name, OEM or
+       aftermarket, FCC ID / chip / SKU, how many are on the shelf and the shelf price — the same matching the Scheduler's
+       "Keys for this vehicle" uses (TKS_FIT.keysFor). "+ Add" puts the key on the document as a line at that price.
+       Above the list: what the shop's vehicle reference says (keyway, chip system, how it is programmed). */
+    const keysBox=$q("#qiKeys"); let keysTimer=null; const mainKeysSt={open:false}, extraVeh=[];   // 8z84: one key list per vehicle
+    function keyMoney(c){ return (c==null||c==="")?"no price":"$"+(Number(c)/100).toFixed(2); }
+    function partsOnDoc(){ const mm={}; $$(".qi-item").forEach(r=>{ if(r.dataset.part) mm[r.dataset.part]=1; }); return mm; }
+    function renderKeys(){ if(!modal || !keysBox || !keysBox.isConnected) return;   // the builder was closed before a late repaint ran
+      paintKeys(keysBox, vehObj(), mainKeysSt, 0); try{ extraVeh.forEach((x,i)=>paintKeys(x.keysBox, x.get(), x.st, i+1)); syncRowVeh(); }catch(e){} }
+    function paintKeys(keysBox, v, st, vIdx){
+      if(!keysBox || !modal || !keysBox.isConnected) return;   // the builder was closed before a late repaint ran
+      if(!(window.TKS_FIT && TKS_FIT.keysFor && window.TKS && TKS.Inventory) || !v.make){ keysBox.innerHTML=""; return; }
+      if(!v.model){ keysBox.innerHTML='<div class="qi-keys"><div class="qk-h">🔑 Keys for this vehicle</div><div class="qk-sub">Pick the model to see the keys you stock for it and their prices.</div></div>'; return; }
+      let L; try{ L=TKS_FIT.keysFor(TKS.Inventory.all(), v, ""); }catch(e){ L={groups:[],list:[],maybe:[]}; }
+      let facts=null; try{ facts=TKS_FIT.vehicleFacts?TKS_FIT.vehicleFacts(v):null; }catch(e){}
+      const on=partsOnDoc();
+      const card=p=>{ const q=parseInt(p.qty,10)||0, grade=String(p.grade||""), tag=/oem/i.test(grade)?'<span class="qk-tag oem">OEM</span>':(/aftermarket/i.test(grade)?'<span class="qk-tag am">AM</span>':"");
+        return '<div class="qk-row"><div class="qk-main"><div class="qk-n">'+esc(p.name||p.sku||"Key")+tag+'</div>'+
+          '<div class="qk-d">'+esc([p.fccId?("FCC "+p.fccId):"", p.chip||"", p.sku||""].filter(Boolean).join(" · "))+'</div>'+
+          '<div class="qk-s '+(q>0?"in":"out")+'">'+(q>0?("In stock: "+q):"Out of stock")+(p._kfvNote?(' <span style="font-weight:600">· '+esc(p._kfvNote)+'</span>'):"")+'</div></div>'+
+          '<div class="qk-r"><div class="qk-p">'+esc(keyMoney(p.sellPriceCents))+'</div>'+(on[p.id]?'<div class="qk-added">✓ Added</div>':'<button type="button" class="qk-add" data-id="'+esc(p.id)+'">+ Add</button>')+'</div></div>'; };
+      let h='<div class="qi-keys"><div class="qk-h">🔑 Keys for '+esc(TKS_FIT.vehLabel(v))+'</div>';
+      if(facts){ const bits=[facts.keyway?("Keyway "+facts.keyway):"", facts.transponder?("Chip system: "+facts.transponder):"", facts.programming?("Programming: "+facts.programming):"", facts.oemOnly?"OEM key only":"", facts.nastf?"NASTF needed":""].filter(Boolean);
+        if(bits.length) h+='<div class="qk-facts">'+bits.map(b=>"<span>"+esc(b)+"</span>").join("")+'</div>'+(facts.exactModel?"":'<div class="qk-sub">From your vehicle reference for '+esc(v.make)+' (no entry for this exact model).</div>'); }
+      if(!L.list.length) h+='<div class="qk-sub">No keys in your stock list this exact vehicle in their “Fits”'+(L.maybe.length?". See the ones that might fit below.":". Add the vehicle to a key’s Fits (Stock → the key) and it shows here.")+'</div>';
+      L.groups.forEach(g=>{ h+='<div class="qk-g">'+esc(g[0])+'</div>'+g[1].map(card).join(""); });
+      if(L.maybe.length){ h+='<button type="button" class="qk-more" id="qkMore">'+(st.open?"Hide":"Show")+' '+L.maybe.length+' that might fit (make and year only)</button>';
+        if(st.open) h+='<div class="qk-g maybe">Might fit — not confirmed for this model</div>'+L.maybe.map(card).join(""); }
+      if(L.list.length || L.maybe.length) h+='<div class="qk-sub" style="margin-top:6px">Shelf prices from Stock. “+ Add” puts the key on this document as a line — add programming and the service call below.</div>';
+      keysBox.innerHTML=h+'</div>';
+      keysBox.querySelectorAll(".qk-add").forEach(b=>{ b.onclick=()=>addKeyLine(b.dataset.id, vIdx); });
+      const more=keysBox.querySelector("#qkMore"); if(more) more.onclick=()=>{ st.open=!st.open; renderKeys(); };
+    }
+    function addKeyLine(id, vIdx){ let p=null; try{ p=TKS.Inventory.get(id); }catch(e){} if(!p) return;
+      // an untouched blank line is replaced by the key rather than left sitting above it
+      $$(".qi-item").forEach(r=>{ if(r.dataset.disc || r.dataset.part || (r._meta&&r._meta.fromDispatch)) return; const d=r.querySelector(".qiDesc"), a=r.querySelector(".qiAmt"); if(d && a && !d.value.trim() && !a.value.trim()) r.remove(); });
+      const sc=parseFloat(p.cost);
+      addItem({ desc:p.name||p.sku||"Key", amount:(p.sellPriceCents!=null && p.sellPriceCents!=="")?(Number(p.sellPriceCents)/100).toFixed(2):"", qty:1, partId:String(p.id), category:"Materials", taxable:catDefaultTax("Materials"), unitCost:(!isNaN(sc)&&sc>0)?sc:0 });
+      try{ const nr=itemsBox.lastElementChild; if(nr && vIdx!=null) nr._vehIdx=vIdx; }catch(e){}   // 8z84: the key belongs to the vehicle whose list it came from (only used once there is a 2nd vehicle)
+      renderKeys(); try{ paintTotals(); }catch(e){} }
+    /* ---- 8z84: vehicles 2, 3… — each with its own year / make / model, VIN look-up and key list ---- */
+    const moreBox=$q("#qiMoreVeh");
+    function vehLabelAt(i){ if(i===0){ const v=vehObj(); return (v.make?[v.year,v.make,v.model].filter(Boolean).join(" "):(($q("#qiVehText").value||"").trim())) || "Vehicle 1"; }
+      const x=extraVeh[i-1]; if(!x) return ""; const v=x.get(); return (v.make?[v.year,v.make,v.model].filter(Boolean).join(" "):((x.text.value||"").trim())) || ("Vehicle "+(i+1)); }
+    function vehLabels(){ const out=[vehLabelAt(0)]; extraVeh.forEach((x,i)=>out.push(vehLabelAt(i+1))); return out; }
+    // each line gets a "For which vehicle?" choice once there is more than one vehicle
+    function syncRowVeh(){ const labels=vehLabels(), n=labels.length;
+      $$(".qi-item").forEach(r=>{ if(r.dataset.disc) return; let w=r.querySelector(".qiVehW");
+        if(n<2){ if(w) w.style.display="none"; return; }
+        if(!w){ w=node('<div class="qiVehW" style="margin-top:6px"><label class="qi-l" style="margin:0 0 2px">For which vehicle?</label><select class="qi-i qiVehSel"></select></div>'); r.appendChild(w);
+          w.querySelector("select").onchange=function(){ r._vehIdx=(this.value==="")?null:parseInt(this.value,10); }; }
+        w.style.display=""; const sel=w.querySelector("select"), html='<option value="">The whole job — not one vehicle</option>'+labels.map((l,i)=>'<option value="'+i+'">'+esc((i+1)+". "+l)+'</option>').join("");
+        if(sel._h!==html){ sel._h=html; sel.innerHTML=html; }
+        sel.value=(r._vehIdx!=null && r._vehIdx>=0 && r._vehIdx<n)?String(r._vehIdx):""; });
+    }
+    function renumberVeh(){ extraVeh.forEach((x,i)=>{ x.el.querySelector(".mvT").textContent="Vehicle "+(i+2); }); }
+    function addVehBlock(pre){ pre=pre||{};
+      const el=node('<div class="qi-mveh"><div class="mv-h"><span class="mvT">Vehicle</span><button type="button" class="qi-ib mvX" title="Remove this vehicle" aria-label="Remove this vehicle" style="flex:0 0 44px">✕</button></div>'+
+        '<div class="qi-row"><select class="qi-i mvY" style="flex:0 0 96px" aria-label="Year"></select><select class="qi-i mvMk" aria-label="Make"></select><select class="qi-i mvMd" aria-label="Model"></select></div>'+
+        '<input class="qi-i mvVin" placeholder="VIN (auto-fills year / make / model)" autocomplete="off" style="margin-top:6px"><div class="qi-note mvMsg"></div>'+
+        '<input class="qi-i mvText" placeholder="Or describe the vehicle (if it isn\'t in the lists)" style="margin-top:6px">'+
+        '<div class="mvD1" style="display:none"><label class="qi-l">NASTF D1 for this vehicle? <span class="req">*</span></label><div class="qi-seg"><button type="button" class="mvD1B" data-d="1">Yes — D1 for this vehicle</button><button type="button" class="mvD1B" data-d="0">No</button></div><div class="mvD1F" style="display:none"></div></div>'+
+        '<div class="mvKeys"></div></div>');
+      moreBox.appendChild(el);
+      const yEl=el.querySelector(".mvY"), mkEl=el.querySelector(".mvMk"), mdEl=el.querySelector(".mvMd"), vinEl=el.querySelector(".mvVin"), msg=el.querySelector(".mvMsg"), text=el.querySelector(".mvText");
+      const fill=(cy,cmk,cmd)=>{ yEl.innerHTML=TKS_YMM.yearOptionsHTML(cy); mkEl.innerHTML=TKS_YMM.makeOptionsHTML(cmk); mdEl.innerHTML=TKS_YMM.modelOptionsHTML(cmk,cy,cmd); };
+      try{ fill(pre.year||"", pre.make||"", pre.model||""); }catch(e){}
+      if(pre.make && mkEl.value!==pre.make && !pre.text) text.value=[pre.year,pre.make,pre.model].filter(Boolean).join(" ");
+      vinEl.value=pre.vin||""; if(pre.text) text.value=pre.text;
+      const x={ el, text, vinEl, keysBox:el.querySelector(".mvKeys"), st:{open:false}, get:()=>({ year:yEl.value||"", make:mkEl.value||"", model:mdEl.value||"" }), d1:(pre.d1===true?true:(pre.d1===false?false:null)) };
+      { // 8z90: the D1 choice for this vehicle (only asked while the document is a NASTF job)
+        const f=el.querySelector(".mvD1F"), paint=()=>{ el.querySelectorAll(".mvD1B").forEach(b=>b.classList.toggle("on", (b.dataset.d==="1")===(x.d1===true) && x.d1!==null)); f.style.display=(x.d1===true)?"":"none"; };
+        if(window.TKS_RDOCS){ f.innerHTML=TKS_RDOCS.d1FieldsHTML("qi-i"); TKS_RDOCS.d1Set(f, { color:pre.color||"", odometer:pre.odometer, plate:pre.plate||"" }); }
+        el.querySelectorAll(".mvD1B").forEach(b=>b.onclick=()=>{ x.d1=(b.dataset.d==="1"); paint(); }); paint(); x.d1Box=f; }
+      extraVeh.push(x); renumberVeh();
+      yEl.addEventListener("change", ()=>{ fill(yEl.value,"",""); keysLater(); });
+      mkEl.addEventListener("change", ()=>{ fill(yEl.value,mkEl.value,""); keysLater(); });
+      mdEl.addEventListener("change", ()=>keysLater()); text.addEventListener("change", ()=>keysLater());
+      let lastVin="";
+      const tryDecode=()=>{ const v=(vinEl.value||"").trim().toUpperCase(); if(v===lastVin) return;
+        if(!/^[A-HJ-NPR-Z0-9]{17}$/.test(v)){ msg.textContent=(v.length>=17?"That doesn't look like a 17-character VIN.":""); return; }
+        lastVin=v; msg.style.color=""; msg.textContent="Decoding VIN…"; if(!(window.TKS&&TKS.decodeVin)){ msg.textContent=""; return; }
+        TKS.decodeVin(v).then(res=>{ try{ fill(res.year||"", res.make||"", res.model||""); }catch(e){}
+          if(res.make && mkEl.value!==res.make && !text.value.trim()) text.value=[res.year,res.make,res.model].filter(Boolean).join(" ");
+          msg.textContent="✓ "+[res.year,res.make,res.model].filter(Boolean).join(" "); keysLater();
+        }).catch(e=>{ msg.style.color="#b3242f"; msg.textContent=(e&&e.message)||"Couldn't decode that VIN — enter the vehicle manually."; }); };
+      vinEl.addEventListener("change", tryDecode); vinEl.addEventListener("blur", tryDecode);
+      vinEl.addEventListener("input", ()=>{ if((vinEl.value||"").replace(/\s/g,"").length===17) tryDecode(); });
+      el.querySelector(".mvX").onclick=()=>{ const i=extraVeh.indexOf(x); if(i<0) return; const gone=i+1;
+        extraVeh.splice(i,1); el.remove(); renumberVeh();
+        $$(".qi-item").forEach(r=>{ if(r._vehIdx==null) return; if(r._vehIdx===gone) r._vehIdx=null; else if(r._vehIdx>gone) r._vehIdx-=1; });   // its lines go back to "the whole job"
+        keysLater(); };
+      setTimeout(()=>{ try{ keysLater(); }catch(e){} }, 0);   // (keysLater is set up just below — a saved document's vehicles are added before that line runs)
+      try{ syncVehD1(); }catch(e){}
+      return x;
+    }
+    $q("#qiAddVeh").onclick=()=>{ const x=addVehBlock(); try{ x.el.scrollIntoView({ block:"center" }); }catch(e){} };
+    (Array.isArray(src.moreVehicles)?src.moreVehicles:[]).forEach(v=>{ if(v && (v.make||v.text||v.vin)) addVehBlock(v); });
+    try{ $q("#qiVehText").addEventListener("change", ()=>keysLater()); }catch(e){}
+    function moreVehForSave(){ const nt=(function(){ try{ return !!getNastf(); }catch(e){ return false; } })();
+      return extraVeh.map((x,i)=>{ const v=x.get(), o={ year:v.year, make:v.make, model:v.model, vin:(x.vinEl.value||"").trim().toUpperCase(), text:(x.text.value||"").trim() };
+        if(nt){ o.d1=x.d1; if(x.d1===true && window.TKS_RDOCS){ const d=TKS_RDOCS.d1Read(x.d1Box); o.color=d.color; o.odometer=d.odometer; o.plate=d.plate; } }   // 8z90
+        o._n=i+2; return o; }).filter(v=>v.make||v.text||v.vin); }
+    function syncVehD1(){ let on=false; try{ on=!!nastfType && getSvc()==="Automotive"; }catch(e){} extraVeh.forEach(x=>{ const w=x.el.querySelector(".mvD1"); if(w) w.style.display=on?"":"none"; }); }
+    const keysLater=()=>{ clearTimeout(keysTimer); keysTimer=setTimeout(renderKeys, 60); };
+    ["#qiVYear","#qiVMake","#qiVModel"].forEach(s=>{ const el=$q(s); if(el) el.addEventListener("change", keysLater); });
+    { const applyVeh0=modal._qiApplyVeh; if(applyVeh0) modal._qiApplyVeh=function(){ const r=applyVeh0.apply(this, arguments); keysLater(); return r; }; }   // a decoded VIN fills the vehicle
+    try{ new MutationObserver(keysLater).observe(itemsBox, { childList:true }); }catch(e){}   // a line removed → its key can be added again
+    keysLater();
     $q("#qiAddDisc").onclick=()=>{ if(!canDisc) return; const r=addDisc(); try{ r.querySelector(".qiDV").focus(); }catch(e){} };
 
     // ---- Technician / tax / warranty ----
@@ -3276,7 +3666,7 @@ function canEditPricing(){
       $q("#qiAmountPaid").value=(edit.amountPaid!=null&&edit.amountPaid!=="")?edit.amountPaid:"";
       if(edit.warranty!=null) $q("#qiWarranty").checked=!!edit.warranty;
     }
-    (src.items||[]).forEach(it=>{ if(!it) return; if(it.isDiscount){ if(pricing || isEdit) addDisc(it); } else addItem(it); });
+    (src.items||[]).forEach(it=>{ if(!it) return; if(it.isDiscount){ if(pricing || isEdit) addDisc(it); } else { const rr=addItem(it); if(rr && it.vehIdx!=null && extraVeh.length) rr._vehIdx=parseInt(it.vehIdx,10); } });   // 8z84
     if(!itemsBox.querySelector(".qi-item:not(.disc)")) addItem();
     syncNastfVisibility(); syncVehicle();
     if(isEdit && edit.nastf && edit.nastf.type && getSvc()==="Automotive") setNastf(edit.nastf.type, false); else syncCustomerType();
@@ -3287,6 +3677,7 @@ function canEditPricing(){
     function paintTotals(){
       if(!modal || !itemsBox.isConnected) return;   // the builder was closed (Create / Cancel) before this ran
       const box=$q("#qiTot"); if(!box) return;
+      paintEx();
       const its=[];
       itemsBox.querySelectorAll(".qi-item").forEach(row=>{
         if(row.dataset.disc){ const v=parseFloat(row.querySelector(".qiDV").value); if(isNaN(v)||v<=0) return;
@@ -3304,14 +3695,15 @@ function canEditPricing(){
       let rate=null;
       if(pricing){ const v=($q("#qiTaxRate").value||"").trim(); if(v!=="") rate=parseFloat(v)||0; }
       else if(isEdit && edit.taxRate!=null && edit.taxRate!=="") rate=edit.taxRate;
+      if(exempt) rate=0;   // 8z78
       const t=computeTotals(its, pay, rate);
       const row=(l,v,c)=>'<div'+(c?' class="'+c+'"':'')+'><span>'+l+'</span><span>'+v+'</span></div>';
       let h="";
       if(t.discount>0) h+=row("Items",money(t.grossSubtotal))+row("Discount","− "+money(t.discount));
       h+=row("Total before tax",money(t.subtotal),"big");
-      h+=row("Sales tax ("+t.taxRate+"%)",money(t.tax));
+      h+=row(exempt?"Sales tax — exempt":("Sales tax ("+t.taxRate+"%)"),money(t.tax));
       if(t.surcharge>0) h+=row("Card surcharge ("+t.surchargeRate+"%)",money(t.surcharge));
-      h+=row("Total with tax",money(t.total));
+      h+=row(exempt?"Total":"Total with tax",money(t.total));
       if(box._h!==h){ box._h=h; box.innerHTML=h; }
     }
     ["input","change","click"].forEach(ev=>modal.addEventListener(ev,()=>setTimeout(paintTotals,0)));
@@ -3322,7 +3714,7 @@ function canEditPricing(){
     // ---- Wire up ----
     const cancel=()=>{ close(); if(typeof onCancel==="function") onCancel(); };
     $q("#qiX").onclick=cancel; $q("#qiCancel").onclick=cancel;
-    $q("#qiGo").onclick=()=>submit({getType,getSvc,getPay,getStatus,getCT,getNastf,getNastfChecklist,getSig:()=>sigData,edit,isEdit,pricing,techDiscMax,src,setErr});
+    $q("#qiGo").onclick=()=>submit({getType,getSvc,getPay,getStatus,getCT,getNastf,getNastfChecklist,getSig:()=>sigData,getExempt:()=>exempt,getWhere:()=>where,getVehLabels:()=>vehLabels(),getMoreVeh:()=>moreVehForSave(),edit,isEdit,pricing,techDiscMax,src,setErr});
     try{ if(!isEdit && !$q("#qiName").value) $q("#qiName").focus(); }catch(e){}
   };
 
@@ -3339,9 +3731,17 @@ function canEditPricing(){
     if(nastf){
       for(const f of nastf.fields){ if(f.req && f.key!=="address" && !nastf.values[f.key]){ err("NASTF ("+nastf.type+"): “"+f.ask+"” is required."); return; } }
       if(nastf.type==="Auction/Fleet D1" && !/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)){ err("A 17-character VIN is required for Auction/Fleet D1."); return; }
+      if(window.TKS_RDOCS){   // 8z90
+        const m0=TKS_RDOCS.d1Missing(nastf.d1, "NASTF D1"); if(m0){ err(m0); try{ $q("#qiD1Veh0").scrollIntoView({block:"center"}); }catch(e){} return; }
+        const mv=(S.getMoreVeh?S.getMoreVeh():[]);
+        for(const v of mv){ const nm="Vehicle "+v._n;
+          if(v.d1!==true && v.d1!==false){ err(nm+": choose whether it needs a NASTF D1 — Yes or No."); return; }
+          if(v.d1===true){ const m1=TKS_RDOCS.d1Missing(v, nm+" (NASTF D1)"); if(m1){ err(m1); return; } } }
+      }
     }
     // ---- line items (+ discount lines) ----
     const its=[]; let bad=null;
+    const _vl=(S.getVehLabels?S.getVehLabels():[]), _mv=(S.getMoreVeh?S.getMoreVeh():[]);   // 8z84
     modal.querySelectorAll(".qi-item").forEach(row=>{
       if(bad) return;
       if(row.dataset.disc){
@@ -3378,6 +3778,7 @@ function canEditPricing(){
       if(M.declined || M.declinedQty>0){ it.declined=!!M.declined; it.declineReason=M.declineReason||""; it.declinedQty=M.declined?(M.dispatchQty||M.declinedQty||1):M.declinedQty; }
       if(M.declineLoggedQty!=null) it.declineLoggedQty=M.declineLoggedQty;
       if(M.addLogged) it.addLogged=true;
+      if(_mv.length && row._vehIdx!=null && row._vehIdx>=0 && row._vehIdx<=_mv.length && _vl[row._vehIdx]){ it.vehIdx=row._vehIdx; it.vehicle=_vl[row._vehIdx]; }   // 8z84
       if(Array.isArray(M.unitIdsLogged) && M.unitIdsLogged.length) it.unitIdsLogged=M.unitIdsLogged.slice();
       its.push(it);
     });
@@ -3398,6 +3799,7 @@ function canEditPricing(){
     R.serviceType=svc;
     R.vehYear=($q("#qiVYear").value||"").trim(); R.vehMake=($q("#qiVMake").value||"").trim(); R.vehModel=($q("#qiVModel").value||"").trim();
     R.vin=vin; R.vehicle=($q("#qiVehText").value||"").trim();
+    _mv.forEach(v=>{ delete v._n; }); if(_mv.length) R.moreVehicles=_mv; else delete R.moreVehicles;   // 8z84
     R.technician=($q("#qiTech").value||"").trim() || R.technician || currentTechnician();
     R.notes=($q("#qiNotes").value||"").trim();
     R.internalNotes=(($q("#qiINotes")||{}).value||"").trim();   // 8z45: staff only — no print / PDF / share path reads this field
@@ -3405,6 +3807,12 @@ function canEditPricing(){
     if(S.src && S.src.fromDispatch) R.fromDispatch=true;
     if(S.pricing){ const v=($q("#qiTaxRate").value||"").trim(); R.taxRate = v!=="" ? (parseFloat(v)||0) : configTaxRate(); }
     else if(R.taxRate==null || R.taxRate==="") R.taxRate=configTaxRate();
+    { // 8z78: tax exempt → rate 0 + the certificate snapshot; removing it puts the shop's rate back
+      const ex=S.getExempt?S.getExempt():null;
+      if(ex){ R.taxRate=0; R.taxExempt=ex; }
+      else if(R.taxExempt){ delete R.taxExempt; const tv=S.pricing?(($q("#qiTaxRate").value||"").trim()):""; if(tv==="") R.taxRate=configTaxRate(); }
+      const w=S.getWhere?S.getWhere():""; if(w) R.serviceWhere=w; else delete R.serviceWhere;
+      if(!S.isEdit && S.src && S.src.fromEstimate && dt!=="estimate" && !R.fromEstimate) R.fromEstimate=String(S.src.fromEstimate); }   // 8z81: billed from a job that came from an estimate
     // payment + status (exactly the chat's values, so Reports / Closeout keep working)
     if(dt==="estimate"){ R.payment="Not specified"; R.status=""; delete R.amountPaid; }
     else if(dt==="invoice"){ R.payment=S.getPay()||"Not specified"; R.status="Unpaid"; delete R.amountPaid; }
@@ -3423,6 +3831,7 @@ function canEditPricing(){
     if(nastf){
       nastfInfo={type:nastf.type};
       nastf.fields.forEach(f=>{ if(f.key==="address") return; R[f.key]=nastf.values[f.key]||""; });
+      R.vehColor=nastf.values.vehColor||""; R.plate=nastf.values.plate||""; R.odometer=nastf.values.odometer||"";   // 8z90
       const cl=S.getNastfChecklist(); if(cl) R.nastfChecklist=cl; else delete R.nastfChecklist;
     } else { nastfInfo=null; delete R.nastfChecklist; }
     // hand off to the shared save/result path

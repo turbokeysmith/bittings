@@ -1,5 +1,6 @@
 import Stripe from "npm:stripe@16";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { recordLinkPayment } from "../_shared/paylink.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20", httpClient: Stripe.createFetchHttpClient() });
 const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -79,7 +80,23 @@ Deno.serve(async (req) => {
       // surcharge is whatever was captured above the pre-surcharge base (credit cards only).
       try {
         const tq = await supa.from("payment_transactions").select("invoice_id, shop_id, base_cents, tax_cents, surcharge_applied").eq("stripe_payment_intent_id", pi.id).limit(1);
-        const t = tq.data?.[0];
+        let t: any = tq.data?.[0];
+        // (8z75) PAY LINK: a Checkout payment has no row yet — the reader / typed-card flows write theirs
+        // before the charge, a link cannot (Stripe creates the PaymentIntent only when the customer pays).
+        // Only when NO row exists for this intent AND pay-link stamped it method=link. Card flows above
+        // always find their row, so they never reach this.
+        if (!t && !tq.error && (pi.metadata as any)?.method === "link") {
+          let charge: any = null;
+          try { const full = await stripe.paymentIntents.retrieve(pi.id, { expand: ["latest_charge"] }, ao); charge = full.latest_charge; } catch (_) { /* card brand is optional */ }
+          try { t = await recordLinkPayment(supa, pi, (event as any).account ? String((event as any).account) : null, charge); }
+          catch (recErr) {
+            // The customer HAS paid but our ledger could not write it. Forget this event and answer 500
+            // so Stripe sends it again (it retries for days) — same approach as a failed capture above.
+            console.error("pay-link record failed", pi.id, String((recErr as any)?.message ?? recErr));
+            await supa.from("payment_events").delete().eq("id", event.id);
+            return new Response("pay-link record failed — retry", { status: 500 });
+          }
+        }
         if (t?.invoice_id && t?.shop_id) {
           const captured = Number(pi.amount_received ?? 0);
           const base = Number(t.base_cents ?? captured);

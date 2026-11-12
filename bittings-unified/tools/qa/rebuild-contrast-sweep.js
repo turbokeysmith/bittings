@@ -64,7 +64,7 @@ function scan(where) {
     await pg.goto('http://127.0.0.1:8088/index.html', { waitUntil: 'networkidle2' }).catch(() => {}); await sleep(2200);
     const theme = await pg.evaluate(() => document.documentElement.getAttribute('data-bt-theme'));
     console.log('theme attribute:', theme);
-    const views = await pg.evaluate(() => Array.from(document.querySelectorAll('.bt-sidebar .bt-nav__item[data-go]')).filter(x => x.style.display !== 'none' && x.dataset.go !== 'quote').map(x => x.dataset.go));
+    const views = await pg.evaluate(() => Array.from(document.querySelectorAll('.bt-sidebar .bt-nav__item[data-go]')).filter(x => x.style.display !== 'none' && x.dataset.go !== 'quote' && x.dataset.go !== 'estimates').map(x => x.dataset.go));
     for (const v of views) {
       if (MODE === 'phone' && v === 'payments') continue;
       await pg.evaluate((v) => document.querySelector('.bt-sidebar .bt-nav__item[data-go="' + v + '"]').click(), v); await sleep(700);

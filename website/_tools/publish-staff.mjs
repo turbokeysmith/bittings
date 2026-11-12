@@ -12,7 +12,7 @@ const REPO = path.resolve(here, '..', '..');
 const SRC = path.join(REPO, 'bittings-unified');
 const SITE = path.join(REPO, 'website', 'site');
 const DST = path.join(SITE, 'staff');
-const FILES = ['index.html', 'bittings.html', 'signin.html', 'sw.js', 'cloud-test.html', 'Bittings.ico', 'favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'tks_logo.png', 'tks_mark.png'];
+const FILES = ['index.html', 'bittings.html', 'signin.html', 'pay.html', 'sw.js', 'cloud-test.html', 'Bittings.ico', 'favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'tks_logo.png', 'tks_mark.png'];
 
 function copyDir(a, b) { fs.mkdirSync(b, { recursive: true }); for (const e of fs.readdirSync(a, { withFileTypes: true })) { const s = path.join(a, e.name), d = path.join(b, e.name); if (e.isDirectory()) copyDir(s, d); else fs.copyFileSync(s, d); } }
 

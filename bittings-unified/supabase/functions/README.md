@@ -31,6 +31,7 @@ supabase functions deploy pay-status        --project-ref gcshuhlksjznksspbigl
 supabase functions deploy pay-refund        --project-ref gcshuhlksjznksspbigl                 # card refund
 supabase functions deploy pay-void          --project-ref gcshuhlksjznksspbigl                 # cash/check void
 supabase functions deploy pay-terminal      --project-ref gcshuhlksjznksspbigl
+supabase functions deploy pay-link          --project-ref gcshuhlksjznksspbigl --no-verify-jwt  # 8z75 pay-by-link: staff "create" checks the session itself; "info"/"checkout" are public and need the link's key
 ```
 Runtime: `stripe-node@16` via `npm:` specifier + `Stripe.createFetchHttpClient()`; webhooks use the
 async `constructEventAsync` (required in Deno). API version pinned `2024-06-20`.

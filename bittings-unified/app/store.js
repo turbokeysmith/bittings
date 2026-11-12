@@ -643,7 +643,9 @@
     isLow: function (p) {
       var qty = parseInt(p.qty, 10) || 0;
       var low = parseInt(p.lowAt, 10) || 0;
-      return low > 0 && qty <= low;
+      // 8z82 (owner: "I have things at 0 quantity … and it says nothing to reorder"): out of stock always counts, even
+      // when no low-stock point was ever set (none had been — so nothing was ever "low").
+      return qty <= 0 || (low > 0 && qty <= low);
     },
     lowCount: function () {
       var self = this;
@@ -897,6 +899,7 @@
     jobStatus:      ['owner','manager','technician'],  // change job status (front_desk cannot); own-job enforced server-side
     invMove:        ['owner','manager','technician'],  // move stock between locations (inv_move) — front_desk cannot
     invReceive:     ['owner','manager','front_desk','technician'],  // receive new stock to shop (inv_receive) — 8z9: techs too (owner)
+    invAddNew:      ['owner','manager','front_desk','technician'],  // 8z83: add a part the system has never seen (inv_add_new) — price / cost stay with manager+
     takePayment:    ['owner','manager','front_desk','technician'],  // take a payment / new charge — all staff
     keycodes:       ['owner','manager','technician'],  // dealer/OEM keycode portals — front_desk cannot
     vendorTools:    ['owner','manager']                // vendor list + NASTF tiles — manager/owner only
@@ -967,6 +970,12 @@
     locations: { van: true, shop: false },
     // NASTF D1 filing window (days) — manager-set in Setup; drives the D1 countdown badge.
     nastf: { d1Days: 5 },
+    /* 8z87 (owner, 2026-11-12): automatic sale price for a key from its cost. He had been pricing at about 5x cost
+       (80% margin) and found it too expensive once programming, the service call and travel are added on top. Starting
+       point: remote-head / flip / transponder / remote keys = cost + 150% (2.5x, 60% margin); smart keys = cost + 200%
+       (3x, 67% margin); rounded up to the next $5; never under the minimum. All of it is his to change in
+       Settings › Inventory. */
+    autoPrice: { on: true, stdMarkupPct: 150, smartMarkupPct: 200, roundTo: 5, stdMin: 25, smartMin: 75 },
     // Shift/time-clock + screen-lock (phase 7). OFF by default — the owner turns
     // it on in Settings → Time clock when ready to test. idleMin = minutes before
     // the workstation locks. (Per-device "this is a workstation" flag is a local
@@ -1035,6 +1044,7 @@
       payments: Object.assign({}, d.payments, c.payments || {}),
       locations: Object.assign({}, d.locations, c.locations || {}),
       nastf: Object.assign({}, d.nastf, c.nastf || {}),
+      autoPrice: Object.assign({}, d.autoPrice, c.autoPrice || {}),   // 8z87
       timeclock: Object.assign({}, d.timeclock, c.timeclock || {}),
       // warranty was missing from this whitelist, so Setup's warranty months/default were
       // silently dropped on every save/load and Config.warranty() always fell back to "off".
@@ -1180,6 +1190,7 @@
       warranty: function () { return getConfig().warranty || { months: 0, defaultOn: false }; },
       locations: function () { return getConfig().locations; },
       nastf: function () { return getConfig().nastf || { d1Days: 5 }; },
+      autoPrice: function () { return getConfig().autoPrice || { on: false }; },   // 8z87
       d1Days: function () { var n = getConfig().nastf || {}; var d = parseInt(n.d1Days, 10); return (d >= 1) ? d : 5; },
       prefs: function () { return getConfig().prefs || {}; },
       quickLinks: function () { return getConfig().quickLinks; },
@@ -1207,7 +1218,7 @@
         partial = partial || {};
         var cur = getConfig();
         var merged = Object.assign({}, cur);
-        ['identity', 'payments', 'access', 'setup', 'locations', 'warranty', 'nastf', 'prefs'].forEach(function (g) {
+        ['identity', 'payments', 'access', 'setup', 'locations', 'warranty', 'nastf', 'prefs', 'autoPrice'].forEach(function (g) {   // 8z87: + autoPrice
           if (partial[g]) merged[g] = Object.assign({}, cur[g], partial[g]);
         });
         if (partial.taxableByCategory) merged.taxableByCategory = Object.assign({}, cur.taxableByCategory, partial.taxableByCategory);

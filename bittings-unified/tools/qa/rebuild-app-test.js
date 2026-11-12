@@ -40,7 +40,7 @@ const active = pg => pg.evaluate(() => (document.querySelector('.view.active') |
         check(tag + ': bottom bar = Schedule, Quote, Receipts, Stock, More', JSON.stringify(r.bar) === JSON.stringify(['📅 Schedule', '💬 Quote', '🧾 Receipts', '📦 Stock', '⋯ More']), r.bar); }
       // walk every menu item that is shown
       const walk = [];
-      for (const go of r.side.filter(g => g !== 'quote' && g !== 'reconcile' && g !== 'returns')) {
+      for (const go of r.side.filter(g => g !== 'quote' && g !== 'estimates' && g !== 'reconcile' && g !== 'returns')) {
         if (cfg.phone && go === 'payments') continue;   // Register is desktop-only
         await pg.evaluate((go) => { const el = document.querySelector('.bt-sidebar .bt-nav__item[data-go="' + go + '"]'); el.click(); }, go); await sleep(350);
         walk.push(go + ':' + (await active(pg)));
