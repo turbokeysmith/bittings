@@ -424,6 +424,7 @@
     <div class="sub">Receipts &amp; invoices</div>
   </div>
   <a class="hdr-btn" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center" title="Back to all apps">‹ Apps</a>
+  <button class="hdr-btn" id="updBtn" type="button" title="Get the newest version of the app" onclick="try{location.replace(location.pathname+'?_='+Date.now());}catch(e){location.reload();}">🔄</button><!-- 8z72 -->
   <button class="hdr-btn" onclick="openHist()">History</button>
   <button class="hdr-btn" id="settingsBtn" onclick="location.href='index.html?go=settings'" title="Setup &amp; Settings (opens the app's Settings)">⚙</button>
 </header>
@@ -462,11 +463,10 @@
   </div>
 </div>
 
-</div>
-
 <!-- Persistent app navigation — main + quick menu, always one tap away (bottom bar on phones). -->
 <nav id="appnav"><!-- 8u: same tabs as the main app's phone menu -->
-  <a href="index.html?go=startjob"><span class="ic">🔑</span>Start job</a>
+  <a href="index.html?go=schedule"><span class="ic">📅</span>Schedule</a>
+  <a href="bittings.html?quote=1"><span class="ic">💬</span>Quote</a>
   <a href="bittings.html?receipts=1" class="active"><span class="ic">🧾</span>Receipts</a>
   <a href="index.html?go=customers"><span class="ic">👤</span>Customers</a>
   <a href="index.html?go=inventory"><span class="ic">📦</span>Stock</a>
@@ -523,9 +523,9 @@ try{ if(window.self!==window.top){
 
 <!-- Shared data layer + cloud (so Receipts shares ONE deduped customer list with
      the rest of the app and syncs to the cloud when a staff member is signed in). -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Stripe.js for the typed-card (field) path; card data goes straight to Stripe. -->
-<script src="https://js.stripe.com/v3/"></script>
+<script src="app/vendor/supabase-js-2.119.0.js"></script><!-- 8z64: the same pinned copy the main app uses, served from our own address (was "latest 2.x" from a CDN) -->
+<!-- Stripe.js for the typed-card (field) path; card data goes straight to Stripe. 8z64: async — only needed once a card is typed. -->
+<script async src="https://js.stripe.com/v3/"></script>
 <script src="app/cloud-config.js"></script>
 <script src="app/store.js"></script>
 <script src="app/vendor/jsqr-1.4.0.js"></script><!-- 8r: QR decoder fallback for camera-scan (iPhone Safari) -->
@@ -537,6 +537,8 @@ try{ if(window.self!==window.top){
 <!-- Vehicle fitment parser (Fits list → year/make/model matching) — shared with the main app -->
 <script src="app/fitment.js"></script>
 <script src="app/d1.js"></script>
+<script src="app/ui/contrast-guard.js"></script>
+<script>/* 8z72: offline shell (see sw.js) */ try{ if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(function(){}); }catch(e){}</script><!-- 8z70: dark-mode readability (text that is too faint against what is behind it is corrected) -->
 <script>
 "use strict";
 
@@ -582,10 +584,6 @@ const LINE_CATEGORIES = [
   {key:"AfterHours",   label:"After-Hours",       defaultTax:false},
   {key:"Discount",     label:"Discount",          defaultTax:false, isDiscount:true}
 ];
-function catLabel(key){
-  const c = LINE_CATEGORIES.find(c=>c.key===key);
-  return c ? c.label : key;
-}
 function catDefaultTax(key){
   // Owner config (cloud-synced) overrides the built-in default per category.
   try{ const cfg=(window.TKS&&TKS.Config)?TKS.Config.get():null;
@@ -1147,7 +1145,7 @@ function finish(){
   receipt.nastf=stampD1Nastf(nastfInfo, receipt.nastf);   // start/keep the D1 filing countdown
   if(!receipt.technician) receipt.technician=currentTechnician();  // groundwork for commission
   // Save customer/shop to DB (if we have at least a name)
-  if(receipt.customer){
+  if(receipt.customer && !receipt.noCustomer){
     const isContracting = nastfInfo && nastfInfo.type==="Contracting D1";
     if(isContracting){
       const list=getShops();
@@ -1221,6 +1219,31 @@ function finish(){
   }
   finishedActions(receipt);
 }
+/* 8z65: turn an estimate into an invoice. A NEW document with its own id and INV number; the estimate is kept.
+   (Before, the copy kept the estimate's id, so the two records could overwrite each other.) */
+function estimateToInvoice(r){
+  const inv=JSON.parse(JSON.stringify(r));
+  inv.id="rcpt_"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  inv.docType="invoice"; inv.status="Unpaid";
+  inv.number=nextDocNumber("invoice");
+  inv.date=todayStr(); inv.savedAt=Date.now();
+  inv.fromEstimate=r.number;
+  delete inv.signature;
+  const hist=getHistory(); hist.unshift(inv); saveHistory(hist);
+  return inv;
+}
+/* 8z65: book the job an estimate was written for — hands the customer, vehicle and priced lines to the Scheduler's new-job form. */
+function estimateToJob(r){
+  const lines=(r.items||[]).filter(it=>it && !it.isDiscount && !it.declined).map(it=>{
+    const q=Math.max(1, parseInt(it.qty,10)||1), amt=Number(it.amount)||0;
+    return { desc:String(it.desc||"Service"), qty:q, each:Math.round(amt/q*100)/100, amount:amt, taxable:!!it.taxable, partId:it.partId||"" }; });
+  const d={ fromEstimate:r.number||"", estimateId:r.id||"", serviceType:r.serviceType||"",
+    customer:{ name:r.noCustomer?"":(r.customer||""), phone:r.phone||"", email:r.email||"" }, address:r.address||"",
+    vehicle:{ year:r.vehYear||"", make:r.vehMake||"", model:r.vehModel||"", vin:r.vin||"" }, vehicleText:r.vehicle||"",
+    items:lines, notes:r.notes||"", internalNotes:r.internalNotes||"", ts:Date.now() };
+  try{ sessionStorage.setItem("tks_quote_job", JSON.stringify(d)); }catch(e){}
+  location.href="index.html?go=schedule&newjob=quote";
+}
 /* 8r: the result-screen buttons (also rebuilt after a "Scan back in"). */
 function finishedActions(r){
   if(r && String(r.internalNotes||"").trim()) resultNote("🔒 Internal note (staff only): "+String(r.internalNotes).trim());   // 8z45
@@ -1228,6 +1251,11 @@ function finishedActions(r){
   if(r.docType!=="estimate" && !receiptClosed(r)) _acts.push({label:"💳 Pay Now", primary:true, onClick:()=>openPayNow(r)});   // 8z48: nothing left to pay on a closed receipt
   if(!receiptLockedForMe(r)) _acts.push({label:"✏️ Edit", onClick:()=>editReceipt(r)});   // 8z48
   if(receiptScannedUnits(r).length) _acts.push({label:"↩ Scan back in", onClick:()=>scanBackInFromReceipt(r)});
+  if(r.docType==="estimate"){   // 8z65: what happens after a quote — book it, or bill it
+    _acts.push({label:"📅 Schedule this job", primary:true, onClick:()=>estimateToJob(r)});
+    _acts.push({label:"🧾 Make it an invoice", onClick:()=>{ const inv=estimateToInvoice(r); chat.innerHTML=""; resultNote("Created "+inv.number+" from "+r.number+"."); renderFinished(inv); }});
+    _acts.push({label:"💬 New quote", onClick:()=>openNewDocument({ docType:"estimate", quote:true })});
+  }
   _acts.push({label:"New Document", primary:_acts.length===1, onClick:()=>openNewDocument()});
   if(r.jobId) _acts.push({label:"← Back to Scheduler", onClick:()=>{ location.href="index.html?go=schedule"; }});   // 8z44: came from a job → one tap back to the board
   resultActions(_acts);
@@ -1862,27 +1890,30 @@ function renderHistList(){
         const note = (r.stockApplied||r.posStockApplied) ? "This cannot be undone. Any parts used will be added back to stock." : "This cannot be undone.";
         appConfirm("Delete "+r.number+"?", note).then(ok=>{
           if(!ok) return;
-          const finishDelete=()=>{ hist.splice(i,1); saveHistory(hist); renderHistList(); };
+          const finishDelete=()=>{ const live=getHistory(), j=live.indexOf(r); if(j>=0){ live.splice(j,1); saveHistory(live); } renderHistList(); };   // 8z64: by the record itself, not by a position worked out before the question
           // Restock must COMPLETE before the receipt row disappears (the server reads the receipt to know what to put back).
           if(r.stockApplied||r.posStockApplied){ Promise.resolve(reverseStockForReceipt(r)).then(finishDelete, finishDelete); } else finishDelete();
         });
       }else if(act==="paid"){
-        appConfirm("Mark "+r.number+" as Paid?", "This converts the invoice to a receipt.").then(ok=>{
-          if(!ok) return;
-          r.docType="receipt"; r.status="Paid in Full";
-          r.number=r.number.replace(/^INV/,"TKS");
-          r.paidAt=Date.now();
-          applyStockForReceipt(r);   // consume parts now that it's paid (once)
-          saveHistory(hist); renderHistList();
+        /* 8z69: "Mark Paid" used to change the status and nothing else — no payment was recorded, so the money never
+           reached Closeout, Reports or commission. Now it asks how it was paid and records it like the builder does. */
+        showModal({ title:"How was "+r.number+" paid?", body:"The payment is recorded for today, so it shows in Closeout and Reports.",
+          buttons:[{label:"Cancel",kind:"no",value:""},{label:"💳 Card",kind:"no",value:"card"},{label:"Other",kind:"no",value:"other"},{label:"📱 Zelle / app",kind:"no",value:"zelle"},{label:"🧾 Check",kind:"no",value:"check"},{label:"💵 Cash",kind:"yes",value:"cash"}] }).then(method=>{
+          if(!method) return;
+          if(method==="card"){ closeHist(); openPayNow(r); return; }
+          const label={cash:"Cash",check:"Check",zelle:"Zelle",other:"Other"}[method];
+          const local=()=>{ r.docType="receipt"; r.status="Paid in Full"; r.payment=label; r.number=String(r.number||"").replace(/^INV/,"TKS"); r.paidAt=Date.now();
+            applyStockForReceipt(r);   // consume parts now that it's paid (once)
+            saveHistory(getHistory()); renderHistList(); };
+          if(!(cloudReady() && typeof window.recordCashSale==="function" && r.id)){ local(); return; }   // demo / not signed in: on this device only
+          window.recordCashSale(r, method).then(res=>{
+            if(!res || res.error){ appAlert("Not recorded", "The payment was NOT recorded: "+((res&&res.error)||"no answer")+". Nothing was changed."); return; }
+            r.cashLogged=true; local();
+          });
         });
       }else if(act==="toinv"){
         // Convert estimate to invoice (new doc, keeps original estimate)
-        const inv=JSON.parse(JSON.stringify(r));
-        inv.docType="invoice"; inv.status="Unpaid";
-        inv.number=nextDocNumber("invoice");
-        inv.date=todayStr(); inv.savedAt=Date.now();
-        inv.fromEstimate=r.number;
-        hist.unshift(inv); saveHistory(hist); renderHistList();
+        const inv=estimateToInvoice(r); renderHistList();
         appAlert("Done", "Created "+inv.number+" from "+r.number);
       }else if(act==="edit"){
         editReceipt(r);
@@ -2228,11 +2259,18 @@ function boot(){
     // 8z46: the app's Receipts list (or a job that already has a receipt) hands over ONE existing document to edit in place
     let editDoc=null;
     try{ const er=sessionStorage.getItem('tks_edit_receipt'); if(er){ sessionStorage.removeItem('tks_edit_receipt'); editDoc=JSON.parse(er); } }catch(e){ editDoc=null; }
-    if(editDoc && (editDoc.id||editDoc.number)){ try{ sessionStorage.removeItem('tks_job_draft'); }catch(e){} editReceipt(editDoc); }
+    // 8z69: "Card — take it now" on an unpaid invoice (customer page) lands here: show that document and open Pay Now on it
+    let payDoc=null;
+    try{ const pr=sessionStorage.getItem('tks_pay_receipt'); if(pr){ sessionStorage.removeItem('tks_pay_receipt'); const want=JSON.parse(pr);
+      payDoc=getHistory().find(x=>(want.id&&x.id===want.id)||(want.number&&x.number===want.number))||null; } }catch(e){ payDoc=null; }
+    if(payDoc){ try{ sessionStorage.removeItem('tks_job_draft'); }catch(e){} chat.innerHTML=""; renderFinished(payDoc); if(payDoc.docType!=="estimate" && !receiptClosed(payDoc)) openPayNow(payDoc); }
+    else if(editDoc && (editDoc.id||editDoc.number)){ try{ sessionStorage.removeItem('tks_job_draft'); }catch(e){} editReceipt(editDoc); }
     else {
     let draft=null;
     try{ const raw=sessionStorage.getItem('tks_job_draft'); if(raw){ sessionStorage.removeItem('tks_job_draft'); draft=JSON.parse(raw); } }catch(e){ draft=null; }
-    openNewDocument(draft ? jobDraftToPrefill(draft) : null);
+    // 8z65 Quick quote: a customer calls for a price → the builder opens as an Estimate, no name needed
+    if(/[?&]quote=1/.test(location.search)){ const pf=draft ? (jobDraftToPrefill(draft)||{}) : {}; pf.docType="estimate"; pf.quote=true; openNewDocument(pf); }   // 8z71: a website lead being quoted comes with its details
+    else openNewDocument(draft ? jobDraftToPrefill(draft) : null);
     }
   }
   // When the cloud config finishes loading (async), re-pull identity in case it changed.
@@ -2253,17 +2291,24 @@ function _receiptsRefresh(){
   try{ if(typeof syncOwnerUI==='function') syncOwnerUI(); }catch(e){}
   try{ if(typeof hydrateIdentityFromConfig==='function') hydrateIdentityFromConfig(); }catch(e){}
 }
+// 8z68: a change that has not reached the cloud is said out loud (app/store.js keeps it and tries again by itself)
+(function(){ function say(m){ try{ if(window.TKS_ACCESS && TKS_ACCESS.toast){ TKS_ACCESS.toast(m); return; } }catch(e){} try{ appAlert('Heads up', m); }catch(e){} }
+  window.addEventListener('tks:save-failed', function(e){ var d=(e&&e.detail)||{};
+    say(d.retrying ? '⚠ Not saved to the cloud yet — still trying. Keep this page open.' : '⚠ The cloud did not accept a change. Reload to see what is really saved.'); });
+  window.addEventListener('tks:save-ok', function(){ say('✓ Saved to the cloud'); });
+})();
 (function receiptsCloudBootstrap(){
   try{
     var cfg = window.TKS_CLOUD;
     if(!cfg || !cfg.AUTO_CONNECT) return;
     if(!window.supabase || !window.supabase.createClient) return;
     if(window.TKS && TKS.onChange) TKS.onChange(_receiptsRefresh);
-    var probe = window.supabase.createClient(cfg.url, cfg.anonKey);
-    probe.auth.getSession().then(function(res){
-      if(!res || !res.data || !res.data.session) return;   // not signed in -> stay local
-      TKS.connectCloud({ url:cfg.url, anonKey:cfg.anonKey }).then(_receiptsRefresh).catch(function(){});
-    }).catch(function(){});
+    if(!(TKS.hasStoredSession && TKS.hasStoredSession())) return;   // not signed in -> stay local
+    // 8z64: connectCloud opens from the copy saved on this device and catches up behind (see app/store.js)
+    window.TKS_CONNECTING = TKS.connectCloud({ url:cfg.url, anonKey:cfg.anonKey }).then(_receiptsRefresh).catch(function(){});
+    var lastSync=Date.now();
+    document.addEventListener('visibilitychange', function(){
+      if(document.visibilityState==='visible' && Date.now()-lastSync>30000){ lastSync=Date.now(); try{ TKS.refresh(); }catch(e){} } });
   }catch(e){}
 })();
 
@@ -2767,7 +2812,7 @@ function canEditPricing(){
     const svcOpts=serviceOptions();
     if(src.serviceType && svcOpts.indexOf(src.serviceType)<0) svcOpts.push(src.serviceType);   // keep a retired type on an old receipt
     modal=node(`<div class="qi-ov"><div class="qi-box" role="dialog" aria-modal="true" aria-label="Document builder">
-      <div class="qi-head"><b id="qiTitle">${isEdit?("✏️ Edit "+esc(edit.number||"document")):"⚡ New document"}</b><button type="button" class="qi-x" id="qiX" aria-label="Close">&times;</button></div>
+      <div class="qi-head"><b id="qiTitle">${isEdit?("✏️ Edit "+esc(edit.number||"document")):((prefill&&prefill.quote)?"💬 Quick quote":"⚡ New document")}</b><button type="button" class="qi-x" id="qiX" aria-label="Close">&times;</button></div>
       <label class="qi-l">Type</label>
       <div class="qi-seg" id="qiType"><button type="button" class="qiTB" data-t="receipt">Receipt (paid)</button><button type="button" class="qiTB" data-t="invoice">Invoice (unpaid)</button><button type="button" class="qiTB" data-t="estimate">Estimate</button></div>
       <label class="qi-l">Service</label>
@@ -2828,7 +2873,7 @@ function canEditPricing(){
     }
 
     // ---- Type / Service / Customer type / Payment / Status / Signature ----
-    const getType=seg(".qiTB","t", (src.docType&&/^(receipt|invoice|estimate)$/.test(src.docType))?src.docType:"receipt", ()=>{ syncPay(); syncWarranty(); });
+    const getType=seg(".qiTB","t", (src.docType&&/^(receipt|invoice|estimate)$/.test(src.docType))?src.docType:"receipt", ()=>{ syncPay(); syncWarranty(); try{ syncCustomerType(); }catch(e){} });
     const getSvc=seg(".qiSB","s", (src.serviceType&&svcOpts.indexOf(src.serviceType)>=0)?src.serviceType:svcOpts[0], ()=>{ syncNastfVisibility(); buildPresets(); syncVehicle(); syncRowCats(); });
     const getCT=seg(".qiCB","c", (src.customerType==="business")?"business":"individual", syncCustomerType);
     const payDef=(src.payment && (PAY_METHODS.indexOf(src.payment)>=0 || src.payment==="Not specified"))?src.payment:"Cash";
@@ -2856,7 +2901,7 @@ function canEditPricing(){
     function syncPaid(){ $q("#qiPaidWrap").style.display=(getType()==="receipt" && getStatus()==="Partial Payment")?"block":"none"; }
     function syncCustomerType(){ const biz=getCT()==="business";
       $q("#qiContactWrap").style.display=biz?"block":"none";
-      $q("#qiNameL").innerHTML=(nastfType==="Contracting D1" ? "Contracting shop / dealer (bill-to)" : biz ? "Business name" : "Customer name")+' <span class="req">*</span>';
+      $q("#qiNameL").innerHTML=(nastfType==="Contracting D1" ? "Contracting shop / dealer (bill-to)" : biz ? "Business name" : "Customer name")+(getType()==="estimate" ? ' <span class="m">(optional for an estimate)</span>' : ' <span class="req">*</span>');
       $q("#qiName").placeholder = biz ? "Company name" : "Name"; }
 
     // ---- NASTF (automotive only): type → photo checklist + the audit fields (NASTF_FIELDS) ----
@@ -3193,6 +3238,7 @@ function canEditPricing(){
     // ---- 8z61 (owner, 2026-11-11): running totals under the line items — the total BEFORE tax, then tax and the total.
     // Reads the rows the same way submit() does, but never complains about a half-typed line.
     function paintTotals(){
+      if(!modal || !itemsBox.isConnected) return;   // the builder was closed (Create / Cancel) before this ran
       const box=$q("#qiTot"); if(!box) return;
       const its=[];
       itemsBox.querySelectorAll(".qi-item").forEach(row=>{
@@ -3237,8 +3283,10 @@ function canEditPricing(){
     const $q=s=>modal.querySelector(s);
     const err=S.setErr; err("");
     const name=($q("#qiName").value||"").trim();
-    if(!name){ err((S.getCT()==="business"?"Business":"Customer")+" name is required."); return; }
     const svc=S.getSvc(), dt=S.getType();
+    // 8z65: an estimate for a caller who has not given a name is fine — it is filed as "Phone quote" and no customer record is made
+    const noName=!name && dt==="estimate";
+    if(!name && !noName){ err((S.getCT()==="business"?"Business":"Customer")+" name is required."); return; }
     const vin=($q("#qiVin").value||"").trim().toUpperCase();
     const nastf=S.getNastf();
     if(nastf){
@@ -3296,7 +3344,8 @@ function canEditPricing(){
     // ---- Build the receipt: MERGE over the existing document when editing ----
     const R = S.isEdit ? JSON.parse(JSON.stringify(S.edit)) : {};
     const ct=S.getCT();
-    R.customer=name; R.customerType=ct;
+    R.customer=noName?"Phone quote":name; R.customerType=ct;
+    if(noName) R.noCustomer=true; else delete R.noCustomer;
     R.contact = (ct==="business") ? ($q("#qiContact").value||"").trim() : "";
     R.phone=($q("#qiPhone").value||"").trim(); R.email=($q("#qiEmail").value||"").trim(); R.address=($q("#qiAddr").value||"").trim();
     R.serviceType=svc;
@@ -3345,7 +3394,10 @@ function canEditPricing(){
 })();
 
 // Start the app last, so all of the above (Pay Now + Quick invoice) is defined first.
-boot();
+// 8z64: wait for the device copy (a few milliseconds) so the builder opens already knowing the customers, the stock and
+// who is signed in. On a first load with nothing saved yet, open after 1.2 s regardless, as before.
+(function(){ var started=false; function go(){ if(started) return; started=true; boot(); }
+  var p=window.TKS_CONNECTING; if(p && p.then){ p.then(go, go); setTimeout(go, 1200); } else go(); })();
 </script>
 </body>
 </html>

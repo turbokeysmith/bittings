@@ -1,6 +1,6 @@
 # Turbo Keysmith — Project Handoff (read me first)
 
-**Last updated:** 2026-11-11 19:23 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
+**Last updated:** 2026-11-12 05:33 CST (Claude Code, on the new shop PC "TK-Main", remote session) &nbsp;·&nbsp; see the **Changelog** (section 11) for the
 timeline of what was done and when. **🚀 The public website is now LIVE on `https://turbokeysmith.com`
 via Cloudflare (see the 2026-06-19 changelog entry).** Repo folder is now **`turbokeysmith-main/`**, split into
 **`website/`** (public site) and **`bittings-unified/`** (the staff app — active source tree; the older
@@ -408,7 +408,102 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-11-12, later (📥 website leads · 💾 nightly backup · ⚠ error log · offline)
+- **Website leads have their own spot.** The contact form on turbokeysmith.com (English and Spanish) now also sends
+  each enquiry to Bittings. Menu → **Leads** shows them (with a count of new ones) and each lead has **📅 Add to
+  Scheduler** (opens a new job already filled in), **💬 Quote** (opens the Quick quote with the person filled in),
+  **📞 Call** and **✕ Dismiss**. The e-mail to the shop still goes out as before. A lead is not a customer until it
+  is booked or quoted. *(New database table `web_leads`; the form can only add a lead, never read anything.)*
+- **The database is now backed up every night.** Checked 12 Nov: the cloud plan has **no backups of its own**. A copy
+  of every table is saved to `D:\Work\Backups\db` on the office PC at 2:30 AM (Windows scheduled task "Bittings
+  database backup"); the newest 30 and the first of each month are kept. Part photos are not included. It is on the
+  same PC — copy the folder elsewhere now and then. Upgrading Supabase to Pro adds real daily backups (recommended).
+- **An error log the owner can read.** When something goes wrong in the app on any device (a script error, a failed
+  save), it is written to **Activity → ⚠ Errors** with who, when, which screen and what happened.
+- **A visible "🔄 Update" button** at the top of the app (next to Sign out) and on the Receipts page: gets the newest
+  version and re-syncs. ("Update app" is also still under More.)
+- **Opens with no connection.** After one normal visit, the app and the Receipts page open offline and show the last
+  saved jobs, stock, customers and documents. Online it always loads fresh. A change made offline is kept and sent
+  when the connection returns — **as long as the page stays open** (closing it first still loses the change).
+- **Reports → ⬇ Export**: the period on screen as a CSV file for the accountant (one row per payment: sale, tax,
+  surcharge, collected, refunded, cost, document number, customer).
+- **Fixed a mistake from earlier the same night:** every **Year** dropdown (Quick quote, Scheduler job form, Register,
+  Inventory) was empty for a few hours on 12 Nov. The change that let 2027 be picked had left a note on the same line as
+  the code that fills the list, which switched that code off. Found from the owner's report, fixed, and a test now checks it.
+- **Not built:** pay-by-link (texting a customer a link to pay). It needs new Stripe work that cannot be tested without
+  a real payment — to be done with the owner present. Texting from the app was left out on purpose.
+- Status: tested on this PC with a stand-in for the cloud; the lead function and the backup were run against the
+  live cloud (test lead in the QA shop, then removed). **Pending sign-off on real devices.**
+
+### 2026-11-12 (🛡️ seven till risks fixed)
+The module-by-module review listed ways money, stock or customer data could go wrong. The owner said "fix them all".
+None of these needed a database change.
+- **A card sale that was paid but never took its parts off stock is now caught up.** (Late tap, closed tab, lost signal.)
+  Any signed-in device checks for such sales a few minutes after they are paid and takes the stock, once. Imported
+  history is never touched. *One real case from 11 Nov 3:12 PM (a Register card sale) predates the fix — check that part's count by hand.*
+- **Stock counts that stick.** Signed in, the ± buttons on the stock list open "Stock by location" (Receive / Adjust)
+  instead of changing a total the cloud later wiped; the part page's quantity box is read-only for a part that already
+  exists; saving a part never writes a count.
+- **"Mark as paid" records a real payment.** On a customer's unpaid invoice and in Receipts → History it now asks how it
+  was paid (Cash / Check / Zelle·app / Other / Card) and records it, so the money shows in Closeout, Reports and
+  commission. Card opens Pay Now on that document.
+- **The cash drawer opens only for cash and check sales** — not for card sales, reprints or previews. Opening it by hand
+  from Hardware settings is now written to the activity log.
+- **Abandoned Register tickets are no longer shown as documents**, and an unpaid or part-paid receipt is tagged
+  UNPAID / PART PAID instead of PAID.
+- **A new customer with the same name as an existing one asks first** ("Update them" / "Add as new") instead of silently
+  replacing that person's phone, email and address.
+- **Register tax follows each service's own tax setting**, and saving Settings no longer drops that setting.
+- **Dark mode is readable everywhere** (owner: "white backgrounds with silver writing — you can't see it"). The dark theme
+  keeps many cards and pop-ups white on purpose; some of them were getting the dark theme's pale text (white on white —
+  e.g. the headings in "Stock by location"), and text sitting on the dark page was getting the light theme's dim grey
+  (Sign out, Home, counts, the phone bottom bar). Fixed for the known cases, plus a safety net that checks every piece
+  of text in dark mode against what is behind it and darkens / lightens the same colour until it can be read — so
+  pop-ups and screens nobody listed are covered too. A sweep of every screen and the main pop-ups went from about
+  100 hard-to-read spots to none (phone) and one borderline status pill (computer). Light mode is unchanged.
+- **The Receipts list draws 60 documents at a time** with "Show more" (it used to draw all ~1,800 on every change);
+  search still looks through all of them.
+- Status: tested on this PC with a stand-in for the cloud (owner login, phone size); **pending sign-off on real devices.**
+
 ### 2026-11-11 (🌐 Bittings gets its own address · 💳 card money goes straight to the shop)
+- **⚡ The app opens fast now (late evening rebuild).** Before, every screen change downloaded every receipt, every part,
+  every customer and every job again and waited for it; the Receipts page did the same all over again. Now each device
+  keeps the last copy the cloud confirmed, opens from it straight away, and catches up in the background (only receipts
+  that changed are fetched). The copy is per signed-in person and is wiped on sign-out and on the sign-in page.
+  Devices also pick up each other's changes when the app comes back to the front, without a reload.
+- **"Start a job" is gone** (owner decision, 11 Nov). One way to begin work: the **Scheduler** ("+ New job"), which is
+  now the home screen on a phone (the Register stays home on a computer). Old "start job" links land on the home screen.
+  Key and tool look-ups are still under **Lishi & Keys** and **Programmers**.
+  A sale with no job starts from the **Receipts** list: **＋ New receipt / invoice** (and **💬 Quote**) at the top.
+- **New: Quick quote** (menu and phone bottom bar). For a customer who calls for a price: the document builder opens as
+  an Estimate, no name needed (filed as "Phone quote", no customer record is made). The finished estimate has
+  **📅 Schedule this job** (opens a new job in the Scheduler already filled in — customer, vehicle, priced lines) and
+  **🧾 Make it an invoice** (one tap; a new invoice with its own number, the estimate is kept).
+- **Fixed: keys / parts pulled for a job now arrive on the invoice with the tax box already ticked** (as Materials).
+  Before, only the lines typed by the office carried their tax setting; parts arrived as untaxed labor.
+- **Fixed:** an invoice made from an estimate used to share the estimate's internal id (the two could overwrite each
+  other). Deleting a receipt and editing a customer now find the record again at the moment of saving.
+- **Phone bottom bar** default is now Schedule · Quote · Receipts · Stock · More (a bar someone already customised is kept).
+- **A save the cloud did not accept is no longer treated as saved.** Before, if saving a receipt, job, customer or part
+  failed (connection dropped, or the cloud said no), the app carried on as if it had worked and the change was lost on the
+  next reload. Now it shows "Not saved to the cloud yet — still trying", tries again by itself, and says "Saved" when it
+  goes through. A change the cloud refuses is reported once. A retried save can never make a second copy of a record.
+- **Small clean-ups from the module-by-module review:** two unused files (about 130 KB) are no longer loaded on every
+  open; the year lists go to next year (2027 vehicles could not be picked); the Lishi "In stock?" pill reads the shop's
+  real stock (it said "Not in stock" wrongly when signed in); two unused dashboard functions removed; the messages
+  "Getting the latest version…" and "Bottom bar saved" now actually show.
+- **The review also listed things that are NOT fixed yet** (cash drawer opening on every print, "Mark as paid" not
+  reaching Closeout, stock ± buttons that do not stick when signed in, Register tax ignoring the Setup categories, and
+  more) — see `REBUILD_PLAN.md`, "Module review".
+- **Not changed:** the card-payment path, the database, the page-cache rule that stops phones sitting on an old copy.
+- **Stripe "refunds" explained:** they are not refunds. The app authorizes the sale plus the 2% credit surcharge, then
+  captures only the sale amount when the card turns out to be debit; Stripe shows the un-captured 2% as "refunded".
+  Nobody is charged it and there is no fee on it. Removing it means reading the card type before charging — planned,
+  to be done with the owner present and a real card (see `REBUILD_PLAN.md`).
+- **Restore point:** git tag `working-2026-11-11` (+ branch `backup/working-2026-11-11`, zip in `D:\Work\Backups`).
+  `REBUILD_PLAN.md` at the repo root has the full plan, what is done, what is left, and how to go back.
+- Status of all of the above: tested on this PC at phone size (owner and technician) with test data and a stand-in for
+  the cloud; **pending sign-off on a real iPhone and Android with real logins.**
 - **The staff app now also lives at `https://bittings.app`** (sign-in at `https://bittings.app/signin`). The old address,
   `turbokeysmith.com/staff/`, still works and shows the very same app; both are kept identical until the switch-over.
   `www.bittings.app`, `getbittings.com` and `www.getbittings.com` forward to it.

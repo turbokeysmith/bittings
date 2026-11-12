@@ -106,7 +106,7 @@
         deleted_at: o.deletedAt || null, deleted_by: o.deletedBy || null }; }
     },
     inventory: {
-      table: 'inventory', readTable: 'inventory_safe', idStrategy: 'text', filter: null,   // read via cost-masking view (cost null for non-managers)
+      table: 'inventory', readTable: 'inventory_safe', idStrategy: 'text', filter: null, serverOwned: ['qty'],   // 8z69: qty is never sent on an UPDATE (inserts still carry the opening count)   // read via cost-masking view (cost null for non-managers)
       fromRow: function (r) { return {
         id: r.id, name: r.name, sku: r.sku, category: r.category, qty: r.qty, lowAt: r.low_at,
         unit: r.unit, cost: r.cost, sellPriceCents: r.sell_price_cents, location: r.location, notes: r.notes,
@@ -140,21 +140,114 @@
         customer_name: (o.customer && o.customer.name) || null }; }
     },
     receipts: {
-      table: 'receipts', readTable: 'receipts_safe', idStrategy: 'text', filter: null, hideDeleted: true,   // 8z45: a removed receipt (deleted_at) is still sent to managers — keep it out of every list   // read via cost-masking view (per-line cost null for non-managers); writes still target receipts
+      table: 'receipts', readTable: 'receipts_safe', idStrategy: 'text', filter: null, hideDeleted: true, delta: true,
+      skip: function (r) { return /^pos_/.test(String(r.id || '')) && !!r.data && r.data.status === 'Unpaid'; },   // 8z69: unpaid Register tickets   // 8z64: delta = read only rows changed since the last read (updated_at is kept by a trigger; a removed receipt is a soft delete)   // 8z45: a removed receipt (deleted_at) is still sent to managers — keep it out of every list   // read via cost-masking view (per-line cost null for non-managers); writes still target receipts
       fromRow: function (r) { return Object.assign({}, r.data, { id: r.id }); },
       toRow: function (o) { return { id: o.id, data: o }; }
     }
   };
 
-  function makeCloudAdapter(sb) {
+  /* ------------------------------------------------------------------ *
+   *  8z64 (2026-11-11) DEVICE CACHE — why the app opens fast.           *
+   *  Every page load used to download every table (all receipts, all    *
+   *  stock, ...) and wait for it before showing anything — and moving    *
+   *  between the app and the Receipts page did it all over again.        *
+   *  Now the last copy the server confirmed is kept on the device        *
+   *  (IndexedDB, one copy PER SIGNED-IN USER, so one person never sees   *
+   *  what another role was sent). A page opens from that copy at once    *
+   *  and brings itself up to date in the background.                     *
+   *  Only server-confirmed rows are stored — never unsaved edits.        *
+   *  The sign-in page wipes it, and so does signing out.                 *
+   * ------------------------------------------------------------------ */
+  var DevCache = (function () {
+    var DB = 'tks_cache', STORE = 'kv', VER = 1, dbp = null;
+    function open() {
+      if (dbp) return dbp;
+      dbp = new Promise(function (res) {
+        try {
+          if (!global.indexedDB) return res(null);
+          var rq = global.indexedDB.open(DB, VER);
+          rq.onupgradeneeded = function () { try { rq.result.createObjectStore(STORE); } catch (e) {} };
+          rq.onsuccess = function () { res(rq.result); };
+          rq.onerror = function () { res(null); };
+          rq.onblocked = function () { res(null); };
+        } catch (e) { res(null); }
+      });
+      return dbp;
+    }
+    function get(k) {
+      return open().then(function (db) {
+        if (!db) return null;
+        return new Promise(function (res) {
+          try { var rq = db.transaction(STORE, 'readonly').objectStore(STORE).get(k);
+            rq.onsuccess = function () { res(rq.result == null ? null : rq.result); }; rq.onerror = function () { res(null); }; }
+          catch (e) { res(null); }
+        });
+      });
+    }
+    function set(k, v) {
+      return open().then(function (db) {
+        if (!db) return false;
+        return new Promise(function (res) {
+          try { var tx = db.transaction(STORE, 'readwrite'); tx.objectStore(STORE).put(v, k);
+            tx.oncomplete = function () { res(true); }; tx.onerror = function () { res(false); }; tx.onabort = function () { res(false); }; }
+          catch (e) { res(false); }
+        });
+      });
+    }
+    function wipe() {
+      var was = dbp; dbp = null;
+      return Promise.resolve(was).then(function (db) { try { if (db) db.close(); } catch (e) {} }).then(function () {
+        return new Promise(function (res) {
+          try { if (!global.indexedDB) return res(false);
+            var rq = global.indexedDB.deleteDatabase(DB);
+            rq.onsuccess = function () { res(true); }; rq.onerror = function () { res(false); }; rq.onblocked = function () { res(false); }; }
+          catch (e) { res(false); }
+        });
+      });
+    }
+    return { get: get, set: set, wipe: wipe };
+  })();
+  // The signed-in user's id + email straight from the remembered session token — no network, no waiting.
+  function storedSessionUser() {
+    try {
+      var ls = global.localStorage;
+      for (var i = 0; i < ls.length; i++) {
+        var k = ls.key(i);
+        if (k && k.indexOf('sb-') === 0 && k.indexOf('-auth-token') !== -1) {
+          var o = JSON.parse(ls.getItem(k) || 'null');
+          var u = (o && (o.user || (o.currentSession && o.currentSession.user))) || null;
+          if (u && u.id) return { id: String(u.id), email: u.email ? String(u.email) : '' };
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+  // Nobody signed in on this device → nothing may stay behind from an earlier user.
+  try { if (!storedSessionUser()) DevCache.wipe(); } catch (e) {}
+
+  function makeCloudAdapter(sb, cacheUid) {
     var cache = {};       // logicalKey -> array (the synchronous view screens read)
     var shadow = {};      // logicalKey -> last-synced snapshot (to diff on write)
     var localKeys = {};   // logicalKey -> true  (table missing / failed: use localStorage instead)
+    var chain = {};       // logicalKey -> promise: a refresh and a save of the same table never overlap
+    var sync = {};        // logicalKey -> { full: ms of the last full read, max: newest updated_at seen (ISO) }
 
     function snapshot(arr) { return JSON.parse(JSON.stringify(arr || [])); }
+    function byId(arr) { var m = {}; (arr || []).forEach(function (r) { if (r && r.id) m[r.id] = r; }); return m; }
+    function enqueue(key, fn) { var p = (chain[key] || Promise.resolve()).then(fn, fn); chain[key] = p.then(function () {}, function () {}); return p; }
+    // keep the device copy = what the server last confirmed (the shadow), never an unsaved edit
+    var persistT = {};
+    function persist(key) {
+      if (!cacheUid) return;
+      if (persistT[key]) clearTimeout(persistT[key]);
+      persistT[key] = setTimeout(function () { persistT[key] = null;
+        try { DevCache.set(cacheUid + ':' + key, { rows: shadow[key] || [], sync: sync[key] || null, at: Date.now() }); } catch (e) {}
+      }, 400);
+    }
 
     // load one logical key into the cache
-    function hydrateKey(key) {
+    function fetchRows(key, since) {
       var cfg = CLOUD_MAP[key];
       // 8z39: the cloud hands back at most 1000 rows per request. Receipts passed 1000 (1,763 on 2026-11-11), so a
       // single request silently dropped the rest — including a sale taken minutes earlier. Read in pages of 1000,
@@ -163,6 +256,7 @@
       function page(from) {
         var q = sb.from(cfg.readTable || cfg.table).select('*');   // reads may use a role-safe view; writes still target cfg.table
         if (cfg.filter) Object.keys(cfg.filter).forEach(function (k) { q = q.eq(k, cfg.filter[k]); });
+        if (since) q = q.gt('updated_at', since);   // 8z64: only what changed since the last read
         return q.order('id', { ascending: true }).range(from, from + PAGE - 1).then(function (res) {
           if (res.error) throw res.error;
           var got = res.data || [];
@@ -171,12 +265,78 @@
           return page(from + PAGE);
         });
       }
-      return page(0).then(function (all) {
+      return page(0);
+    }
+    function newest(rows, prev) { var m = prev || ''; (rows || []).forEach(function (r) { if (r && r.updated_at && String(r.updated_at) > m) m = String(r.updated_at); }); return m; }
+    function hydrateKey(key) {
+      var cfg = CLOUD_MAP[key];
+      return fetchRows(key, null).then(function (all) {
+        sync[key] = { full: Date.now(), max: newest(all, '') };
         if (cfg.hideDeleted) all = all.filter(function (r) { return !r.deleted_at; });
+        if (cfg.skip) all = all.filter(function (r) { return !cfg.skip(r); });
         cache[key] = all.map(cfg.fromRow);
         shadow[key] = snapshot(cache[key]);
+        persist(key);
         return cache[key];
       });
+    }
+
+    /* 8z64: bring one table up to date WITHOUT replacing the array or the row objects the screens already hold
+       (a screen that read the list a moment ago and then saves it must not wipe out a row another device just added).
+       Rows edited or added here and not saved yet are left alone — the save queued behind this pushes them. */
+    function applyFresh(key, fresh, partial, goneIds) {
+      var cur = cache[key] || (cache[key] = []), prevBy = byId(shadow[key]), curBy = byId(cur), freshBy = byId(fresh);
+      var mine = {}, removedHere = {}, changed = false;
+      cur.forEach(function (o) { if (!o.id) return; var p = prevBy[o.id]; if (!p || JSON.stringify(o) !== JSON.stringify(p)) mine[o.id] = 1; });
+      Object.keys(prevBy).forEach(function (id) { if (!curBy[id]) removedHere[id] = 1; });
+      for (var i = cur.length - 1; i >= 0; i--) {
+        var o = cur[i]; if (!o.id || mine[o.id]) continue;
+        var f = freshBy[o.id];
+        if (!f) { if (!partial || (goneIds && goneIds[o.id])) { cur.splice(i, 1); changed = true; } continue; }
+        if (JSON.stringify(o) !== JSON.stringify(f)) { Object.keys(o).forEach(function (k) { delete o[k]; }); Object.assign(o, snapshot([f])[0]); changed = true; }
+      }
+      fresh.forEach(function (f) { if (f.id && !curBy[f.id] && !removedHere[f.id]) { cur.push(snapshot([f])[0]); changed = true; } });
+      if (partial) {   // only some rows came back: patch those into what the server is known to have
+        var sh = shadow[key] || (shadow[key] = []), shBy = byId(sh);
+        fresh.forEach(function (f) { var c = snapshot([f])[0]; if (shBy[f.id]) { sh[sh.indexOf(shBy[f.id])] = c; } else sh.push(c); });
+        if (goneIds) shadow[key] = sh.filter(function (r) { return !goneIds[r.id]; });
+      } else shadow[key] = snapshot(fresh);
+      return changed;
+    }
+    var FULL_EVERY_MS = 15 * 60 * 1000;   // a table read by "changed since" still gets a full read this often (catches hard deletes)
+    function refreshKey(key, forceFull) {
+      if (isLocal(key)) return Promise.resolve(false);
+      return enqueue(key, function () {
+        var cfg = CLOUD_MAP[key], st = sync[key] || {};
+        var delta = !forceFull && cfg.delta && st.max && st.full && (Date.now() - st.full) < FULL_EVERY_MS;
+        // overlap two minutes so a row saved just before the last read finished is never skipped
+        var since = delta ? new Date(Date.parse(st.max) - 120000).toISOString() : null;
+        return fetchRows(key, since).then(function (rows) {
+          var gone = null;
+          if (cfg.hideDeleted) { gone = {}; rows.forEach(function (r) { if (r.deleted_at) gone[r.id] = 1; }); }
+          var live = cfg.hideDeleted ? rows.filter(function (r) { return !r.deleted_at; }) : rows;
+          if (cfg.skip) { gone = gone || {}; live = live.filter(function (r) { if (cfg.skip(r)) { gone[r.id] = 1; return false; } return true; }); }
+          sync[key] = { full: delta ? st.full : Date.now(), max: newest(rows, delta ? st.max : '') || st.max || '' };
+          var ch = applyFresh(key, live.map(cfg.fromRow), !!delta, gone);
+          persist(key);
+          return ch;
+        });
+      });
+    }
+    function refreshAll(forceFull) {
+      return Promise.all(Object.keys(CLOUD_MAP).map(function (key) {
+        return refreshKey(key, forceFull).catch(function (e) { if (global.console) console.warn('[TKS cloud] refresh "' + key + '" failed (keeping the saved copy):', (e && e.message) || e); return false; });
+      })).then(function (r) { return r.some(Boolean); });
+    }
+    // Open from the copy saved on this device. Resolves true only when EVERY table had one.
+    function adoptCached() {
+      if (!cacheUid) return Promise.resolve(false);
+      var keys = Object.keys(CLOUD_MAP);
+      return Promise.all(keys.map(function (key) { return DevCache.get(cacheUid + ':' + key); })).then(function (got) {
+        if (got.some(function (g) { return !g || !Array.isArray(g.rows); })) return false;
+        keys.forEach(function (key, i) { cache[key] = got[i].rows; shadow[key] = snapshot(got[i].rows); sync[key] = got[i].sync || null; });
+        return true;
+      }, function () { return false; });
     }
 
     // Resilient: hydrate every table independently. If a table is missing or
@@ -200,7 +360,8 @@
     function isLocal(key) { return !!localKeys[key]; }
 
     // diff cache vs shadow and push inserts / updates / deletes
-    function flush(key) {
+    function flush(key) { return enqueue(key, function () { return doFlush(key); }); }
+    function doFlush(key) {
       var cfg = CLOUD_MAP[key];
       var cur = cache[key] || [], prev = shadow[key] || [];
       var prevById = {}; prev.forEach(function (r) { if (r.id) prevById[r.id] = r; });
@@ -215,24 +376,46 @@
       prev.forEach(function (o) { if (o.id && !curById[o.id]) deletes.push(o); });
 
       var ops = [];
+      /* 8z68: every write is checked. Before, an error on an insert or update was ignored and the row was then marked
+         as saved — a receipt, job or customer could look saved and never reach the cloud. Now a write that fails stays
+         "not saved yet": it is kept out of the device copy, tried again (a dropped connection) or reported (the cloud
+         said no), and the page is told through 'tks:save-failed' / 'tks:save-ok'. */
+      var failed = { upd: {}, ins: [], del: [], refused: 0, transient: 0 };
+      function settle(p) { return p.then(function (res) { return res || {}; }, function (e) { return { error: e || { message: 'request failed' }, status: 0 }; }); }
+      function note(res) {   // true = the cloud has it
+        if (!res.error) return true;
+        var st = Number(res.status) || 0;
+        if (st >= 400 && st < 500 && st !== 408 && st !== 429) failed.refused++; else failed.transient++;
+        return false;
+      }
       // deletes — verify the server actually removed the row. An RLS-blocked delete
       // returns 0 rows (no error); we must NOT let it vanish locally (no phantom deletes).
       var blockedDeletes = [];
       deletes.forEach(function (o) {
-        ops.push(sb.from(cfg.table).delete().eq('id', o.id).select().then(function (res) {
+        ops.push(settle(sb.from(cfg.table).delete().eq('id', o.id).select()).then(function (res) {
           if (!res.error && Array.isArray(res.data) && res.data.length === 0) blockedDeletes.push(o);
+          else if (!note(res)) failed.del.push(o);
           return res;
         }));
       });
       // updates
-      updates.forEach(function (o) { ops.push(sb.from(cfg.table).update(cfg.toRow(o)).eq('id', o.id)); });
+      updates.forEach(function (o) { var id = o.id; var urow = cfg.toRow(o); (cfg.serverOwned || []).forEach(function (k) { delete urow[k]; });
+        ops.push(settle(sb.from(cfg.table).update(urow).eq('id', id)).then(function (res) { if (!note(res)) failed.upd[id] = 1; return res; })); });
       // inserts
       inserts.forEach(function (o) {
         var row = cfg.toRow(o);
-        if (cfg.idStrategy === 'uuid' && !isUuid(o.id)) { delete row.id; } // let DB mint a uuid
-        ops.push(sb.from(cfg.table).insert(row).select().then(function (res) {
+        if (cfg.idStrategy === 'uuid' && !isUuid(o.id)) {
+          // 8z68: mint the id here, so trying the same insert again can never make a second copy of the record
+          var nid = null; try { nid = (global.crypto && global.crypto.randomUUID) ? global.crypto.randomUUID() : null; } catch (e) { nid = null; }
+          if (nid) { o.id = nid; row.id = nid; } else delete row.id;   // (very old browser: let the DB mint it, as before)
+        }
+        else if (cfg.idStrategy === 'uuid' && isUuid(o.id)) row.id = o.id;   // a repeat of that insert must carry the same id (toRow leaves the id out)
+        ops.push(settle(sb.from(cfg.table).insert(row).select()).then(function (res) {
+          // "already exists" on a repeat = the first try did reach the cloud and only its answer was lost → it is saved
+          if (res.error && String(res.error.code || '') === '23505' && row.id) return { data: [{ id: row.id }] };
           // adopt the DB-generated id back into the cache record
           if (!res.error && res.data && res.data[0] && res.data[0].id) o.id = res.data[0].id;
+          if (!note(res)) failed.ins.push(o);
           return res;
         }));
       });
@@ -245,9 +428,36 @@
           try { global.dispatchEvent(new CustomEvent('tks:access-blocked', { detail: { action: 'delete', key: key, count: blockedDeletes.length } })); } catch (e) {}
           changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
         }
-        shadow[key] = snapshot(cache[key]);
+        var next = snapshot(cache[key]);
+        var nFail = Object.keys(failed.upd).length + failed.ins.length + failed.del.length;
+        if (nFail) {
+          // what the cloud did NOT take stays different from "what the server has", so it is tried again and is never
+          // written to the device copy as if it were saved
+          var insIds = {}; failed.ins.forEach(function (o) { if (o.id) insIds[o.id] = 1; });
+          next = next.filter(function (r) { return !(r.id && insIds[r.id]); });
+          next = next.map(function (r) { return (r.id && failed.upd[r.id] && prevById[r.id]) ? snapshot([prevById[r.id]])[0] : r; });
+          failed.del.forEach(function (o) { next.push(snapshot([o])[0]); });
+        }
+        shadow[key] = next;
+        persist(key);
+        if (nFail) {
+          if (global.console) console.warn('[TKS cloud flush] ' + key + ': ' + nFail + ' change(s) not saved (' + failed.refused + ' refused, ' + failed.transient + ' no answer)');
+          tries[key] = (tries[key] || 0) + 1;
+          var again = failed.transient > 0 && tries[key] <= 6;
+          try { global.dispatchEvent(new CustomEvent('tks:save-failed', { detail: { key: key, count: nFail, refused: failed.refused, retrying: again } })); } catch (e) {}
+          if (again) { unsaved[key] = 1; setTimeout(function () { scheduleFlush(key); }, Math.min(60000, (global.TKS && global.TKS._retryMs || 5000) * Math.pow(2, tries[key] - 1))); }
+        } else {
+          tries[key] = 0;
+          if (unsaved[key]) { unsaved[key] = 0; try { global.dispatchEvent(new CustomEvent('tks:save-ok', { detail: { key: key } })); } catch (e) {} }
+        }
       }).catch(function (e) { if (global.console) console.warn('[TKS cloud flush]', key, e); });
     }
+    var tries = {}, unsaved = {};   // per table: failed attempts in a row · whether a "not saved" notice is outstanding
+    // 8z72: back online → push what could not be saved, then catch up with the other devices
+    try { global.addEventListener('online', function () {
+      Object.keys(unsaved).forEach(function (k) { if (unsaved[k]) { tries[k] = 0; scheduleFlush(k); } });
+      setTimeout(function () { try { global.TKS.refresh(); } catch (e) {} }, 1500);
+    }); } catch (e) {}
 
     var pending = {};
     function scheduleFlush(key) {
@@ -258,6 +468,9 @@
     return {
       name: 'cloud',
       hydrate: hydrateAll,
+      adoptCached: adoptCached,
+      refresh: refreshAll,
+      detachCache: function () { cacheUid = null; },   // a different person is now signed in on this page: stop writing to the first person's device copy
       isLocal: isLocal,
       // reads/writes for a table that didn't hydrate go to localStorage instead,
       // so the app keeps working table-by-table as you bring the cloud online.
@@ -267,12 +480,13 @@
       patchServer: function (key, id, fields) {
         if (isLocal(key)) return false;
         [cache, shadow].forEach(function (store) { var r = (store[key] || []).find(function (x) { return x.id === id; }); if (r) Object.assign(r, fields); });
+        persist(key);
         changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
         return true;
       },
       saveRaw: function (key, arr) {
         if (isLocal(key)) return LocalAdapter.saveRaw(key, arr);
-        cache[key] = arr; scheduleFlush(key); return true;
+        cache[key] = arr; tries[key] = 0; scheduleFlush(key); return true;
       }
     };
   }
@@ -946,7 +1160,8 @@
         if (this.isOwner()) return 'Owner';            // email-owner fallback while the role loads / offline
         return this.isSignedIn() ? 'Staff' : '';
       },
-      signOut: function () { return (authState.sb && authState.sb.auth) ? authState.sb.auth.signOut() : Promise.resolve(); }
+      signOut: function () { var out = function () { return (authState.sb && authState.sb.auth) ? authState.sb.auth.signOut() : Promise.resolve(); };
+        return DevCache.wipe().then(out, out); }   // 8z64: nothing stays on the device after signing out
     },
 
     /* ---------------------------------------------------------------- *
@@ -1063,29 +1278,74 @@
         return Promise.reject(new Error('Supabase JS not loaded — add the supabase-js <script> first.'));
       }
       var sb = global.supabase.createClient(opts.url, opts.anonKey);
-      var cloud = makeCloudAdapter(sb);
-      return cloud.hydrate().then(function () {
-        ADAPTER = cloud;                       // <<< the actual switch
-        authState.sb = sb;
-        // capture the signed-in user and keep it fresh on sign-in/out
+      var demo = _demoOn();
+      var known = demo ? null : storedSessionUser();          // who is signed in, read without any network call
+      var cloud = makeCloudAdapter(sb, known ? known.id : null);
+      var notify = function () { changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} }); return true; };
+      var roleKey = known ? (known.id + ':role') : null;
+      var wired = false;
+      function wireAuth() {
+        if (wired) return; wired = true;
+        // keep the signed-in user fresh on sign-in/out
         try {
-          sb.auth.onAuthStateChange(function (_evt, session) {
-            authState.user = (session && session.user) ? { id: session.user.id, email: session.user.email } : null;
+          sb.auth.onAuthStateChange(function (evt, session) {
+            var u = (session && session.user) ? { id: session.user.id, email: session.user.email } : null;
+            if (evt === 'SIGNED_OUT' || !u) { try { DevCache.wipe(); } catch (e) {} }
+            // The session ended without the person tapping Sign out (expired or removed on the server): this page was
+            // opened from the device copy, so it must not keep showing it — start over, which lands on the sign-in page.
+            if (evt === 'SIGNED_OUT' && authState.user && !demo) { try { setTimeout(function () { global.location.reload(); }, 400); } catch (e) {} }
+            // 8z64: a token refresh or the session supabase reports at start-up is the same person — keep the role we have
+            // instead of blanking it and asking again (that made every screen repaint twice).
+            var same = !!(u && authState.user && authState.user.id === u.id);
+            if (!same) { try { cloud.detachCache(); } catch (e) {} }
+            authState.user = u;
+            if (same && authState.staffRole) return;
             authState.staffRole = null;
-            fetchStaffRole(sb).then(function () { changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} }); });
-            changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} });
+            fetchStaffRole(sb).then(function (r) { if (roleKey && r) DevCache.set(roleKey, r); notify(); });
+            notify();
           });
         } catch (e) {}
-        return sb.auth.getUser().then(function (res) {
-          var u = res && res.data && res.data.user;
+      }
+      // who + role + shop settings: three independent questions, asked at the same time
+      function whoRoleConfig() {
+        var who = sb.auth.getSession().then(function (res) {
+          var u = res && res.data && res.data.session && res.data.session.user;
           authState.user = u ? { id: u.id, email: u.email } : null;
-        }).catch(function () {}).then(function () { return fetchStaffRole(sb); }).then(function () {
-          // pull the cloud-synced owner config (tax settings), then notify the UI
-          var done = function () { changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} }); return true; };
-          try { return global.TKS.Config.load().then(done, done); } catch (e) { return done(); }
+        }).catch(function () {}).then(function () { return fetchStaffRole(sb); })
+          .then(function (r) { if (roleKey && r) DevCache.set(roleKey, r); return r; });
+        var conf; try { conf = global.TKS.Config.load().then(function () {}, function () {}); } catch (e) { conf = Promise.resolve(); }
+        return Promise.all([who, conf]);
+      }
+      authState.sb = sb;
+      var warm = known ? Promise.all([cloud.adoptCached(), DevCache.get(roleKey)]) : Promise.resolve([false, null]);
+      return warm.then(function (w) {
+        if (w[0]) {
+          // ---- opened from the copy on this device: show it now, catch up behind ----
+          ADAPTER = cloud;                     // <<< the actual switch
+          authState.user = { id: known.id, email: known.email };
+          authState.staffRole = w[1] || null;
+          wireAuth();
+          global.TKS.ready = Promise.all([cloud.refresh(false), whoRoleConfig()]).then(notify, notify);
+          try { setTimeout(function () { global.TKS._flushErrorQueue && global.TKS._flushErrorQueue(); }, 3000); } catch (e) {}
+          return notify();
+        }
+        // ---- first load on this device (or after signing in): download, all at once instead of one after another ----
+        return Promise.all([cloud.hydrate(), whoRoleConfig()]).then(function () {
+          ADAPTER = cloud;                     // <<< the actual switch
+          wireAuth();
+          global.TKS.ready = Promise.resolve(true);
+          return notify();
         });
       });
-    }
+    },
+    /* 8z64: bring every table up to date now (other devices' changes) — screens repaint only if something changed.
+       Pages call this when they come back to the front. */
+    refresh: function (forceFull) {
+      if (ADAPTER.name !== 'cloud' || !ADAPTER.refresh) return Promise.resolve(false);
+      return ADAPTER.refresh(!!forceFull).then(function (changed) { if (changed) changeHandlers.forEach(function (fn) { try { fn(); } catch (e) {} }); return changed; });
+    },
+    hasStoredSession: function () { return !!storedSessionUser(); },
+    clearDeviceCache: function () { return DevCache.wipe(); }
   };
 
   /* ===================================================================
@@ -1101,6 +1361,53 @@
   // client via TKS._sb() — without this it was undefined, so those cloud
   // screens silently fell back to "sign in first" even when signed in.
   global.TKS._sb = _sb;
+
+  /* 8z71: WEBSITE LEADS (table web_leads; the public contact form writes them through submit_web_lead).
+     Staff read them and change their status; nothing here is cached on the device. */
+  global.TKS.Leads = {
+    list: function () {
+      if (_demoOn() || !authState.sb) return Promise.resolve({ data: _demoGet('tks_demo_leads', []), error: null });
+      return _sb().from('web_leads').select('*').neq('status', 'dismissed').order('created_at', { ascending: false }).limit(200);
+    },
+    setStatus: function (id, status) {
+      if (_demoOn() || !authState.sb) { var l = _demoGet('tks_demo_leads', []); l.forEach(function (x) { if (x.id === id) x.status = status; }); _demoSet('tks_demo_leads', l); return _demoOk(null); }
+      return _sb().from('web_leads').update({ status: status, handled_by: authState.user ? authState.user.id : null, handled_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', id);
+    }
+  };
+
+  /* 8z72: ERROR LOG. Anything that goes wrong in the app on any device — a script error, a failed promise, a save the
+     cloud did not take — is written to the activity log (action "app_error") with the screen, the message and where
+     it happened, so the owner can read it under Activity → Errors instead of nobody knowing. At most 8 per page load,
+     each message once. Signed out / demo: kept on the device (the last 20) and sent after the next sign-in. */
+  (function () {
+    var sent = 0, seen = {}, QK = 'tks_err_queue';
+    function push(row) {
+      try {
+        if (authState.sb && authState.user && !_demoOn()) { authState.sb.rpc('log_activity', { p_action: 'app_error', p_entity_type: row.kind, p_entity_id: row.page, p_detail: row.detail }).then(function () {}, function () {}); return; }
+        var q = read(QK, []); q.push(row); write(QK, q.slice(-20));
+      } catch (e) {}
+    }
+    function report(kind, msg, extra) {
+      try {
+        msg = String(msg || '').slice(0, 300); if (!msg || seen[msg] || sent >= 8) return;
+        if (/^Script error\.?$/.test(msg)) return;                    // a third-party script the browser will not describe
+        if (/ResizeObserver loop/.test(msg)) return;                   // harmless browser notice
+        seen[msg] = 1; sent++;
+        var page = (global.location ? global.location.pathname.split('/').pop() : '') || 'index';
+        var view = ''; try { view = ((global.document.querySelector('.view.active') || {}).id || '').replace('view-', ''); } catch (e) {}
+        var detail = Object.assign({ msg: msg, screen: view || page, at: new Date().toISOString(), online: (global.navigator ? global.navigator.onLine : null),
+          device: (global.navigator ? String(global.navigator.userAgent).replace(/^Mozilla\/5\.0 /, '').slice(0, 110) : '') }, extra || {});
+        push({ kind: kind, page: page, detail: detail });
+      } catch (e) {}
+    }
+    try {
+      global.addEventListener('error', function (e) { if (!e) return; report('script', e.message, { file: String(e.filename || '').split('/').pop().split('?')[0], line: e.lineno || 0, stack: (e.error && e.error.stack) ? String(e.error.stack).slice(0, 500) : '' }); });
+      global.addEventListener('unhandledrejection', function (e) { var r = e && e.reason; report('promise', (r && r.message) || String(r), { stack: (r && r.stack) ? String(r.stack).slice(0, 500) : '' }); });
+      global.addEventListener('tks:save-failed', function (e) { var d = (e && e.detail) || {}; report('save', 'A change to "' + d.key + '" was not saved (' + (d.refused ? 'the cloud refused it' : 'no answer from the cloud') + ')', { count: d.count, retrying: !!d.retrying }); });
+    } catch (e) {}
+    global.TKS.reportError = report;
+    global.TKS._flushErrorQueue = function () { try { var q = read(QK, []); if (!q.length || !authState.sb || !authState.user || _demoOn()) return; write(QK, []); q.forEach(push); } catch (e) {} };
+  })();
 
   /* ===================================================================
      DEMO MODE (offline pitch). START-DEMO.html seeds localStorage and sets

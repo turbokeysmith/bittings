@@ -238,6 +238,9 @@
       });
     } catch(err){ /* localStorage unavailable — still show success for the demo */ }
 
+    // 8z71: put the lead in the shop's Bittings app (Leads screen). Fire-and-forget, like the e-mail below.
+    try{ fetch('https://gcshuhlksjznksspbigl.supabase.co/rest/v1/rpc/submit_web_lead',{method:'POST',keepalive:true,headers:{'apikey':'sb_publishable_ZAbJ-2SEResLrdsLvbgh1A_puY6vDL0','Authorization':'Bearer sb_publishable_ZAbJ-2SEResLrdsLvbgh1A_puY6vDL0','Content-Type':'application/json'},body:JSON.stringify({p_shop:'7a1754e6-e2f1-40eb-9c03-9d9a1e891bce',p_name:name,p_phone:phone,p_email:field('cEmail').value.trim(),p_address:field('cAddress').value.trim(),p_service:service,p_notes:notes,p_lang:'en',p_page:location.pathname})}).catch(function(){}); }catch(e){}
+
     // Email the lead to the shop (Web3Forms). Fire-and-forget; the lead is
     // also saved above, so a network hiccup never blocks the success screen.
     if (WEB3FORMS_KEY) {

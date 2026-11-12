@@ -37,7 +37,8 @@
   function seatsLeft() { var s = _seats || {}; if (!s.allowed) return null; return Math.max(0, Number(s.allowed) - Number(s.used || 0)); }
 
   // Resolve the current tier: demo/offline → local flag; cloud → shop_tier() RPC.
-  function load() {
+  var _loadedAt = 0;
+  function load(force) {
     try {
       if (localStorage.getItem('tks_demo_mode') === '1') {
         _tier = localStorage.getItem('tks_demo_tier') || 'pro';
@@ -49,11 +50,14 @@
     try {
       if (window.TKS && TKS.auth && TKS.auth.isSignedIn && TKS.auth.isSignedIn() && TKS._sb) {
         var sb = TKS._sb();
+        // 8z64: this runs on every change notice; the plan does not change minute to minute. load(true) forces a fresh read.
+        if (!force && _loadedAt && (Date.now() - _loadedAt) < 60000) { applyGates(); return Promise.resolve(_tier); }
+        _loadedAt = Date.now();
         return Promise.all([sb.rpc('shop_tier'), sb.rpc('seat_usage')]).then(function (res) {
-          if (res[0] && !res[0].error && res[0].data) _tier = res[0].data;
+          if (res[0] && !res[0].error && res[0].data) _tier = res[0].data; else _loadedAt = 0;   // no answer → ask again on the next notice
           var su = res[1] && res[1].data && res[1].data[0]; if (su) _seats = { used: su.used, allowed: su.allowed };
           applyGates(); return _tier;
-        }).catch(function () { applyGates(); return _tier; });
+        }).catch(function () { _loadedAt = 0; applyGates(); return _tier; });
       }
     } catch (e) {}
     applyGates(); return Promise.resolve(_tier);

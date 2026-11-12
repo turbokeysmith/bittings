@@ -7,6 +7,7 @@
 <title>Bittings — Sign in</title>
 <!-- Follow the global Light/Dark toggle (shared with the main app via localStorage), before paint. -->
 <script>try{if(localStorage.getItem('bt_theme')==='dark')document.documentElement.setAttribute('data-bt-theme','dark');}catch(e){}</script>
+<script>/* 8z64: the sign-in page wipes the copy of the shop's data kept on this device (app/store.js DevCache) */ try{ indexedDB.deleteDatabase('tks_cache'); }catch(e){}</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{--bg:#f6f7f9;--card:#ffffff;--edge:#e3e6ea;--ink:#14171b;--dim:#5a616c;--red:#c8323c;--red-deep:#8f1f27;--green:#22994a;--amber:#f2b43a;}
@@ -516,5 +517,6 @@ $('fDelete').onclick=async ()=>{
 
 refresh();
 </script>
+<script src="app/ui/contrast-guard.js"></script><!-- 8z70: dark-mode readability (text that is too faint against what is behind it is corrected) -->
 </body>
 </html>

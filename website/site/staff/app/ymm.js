@@ -24,6 +24,7 @@
   function modelList(make, year){
     var mk=(make||'').trim(); if(!mk) return [];
     var yr=Number(year)||0, seen={}, out=[];
+    if(yr>2026) yr=2026;   // 8z67: the model catalog ends at 2026 — a newer year lists the newest models we know instead of none
     function add(n){ n=(n||'').trim(); if(!n) return; var k=n.toLowerCase(); if(seen[k]) return; seen[k]=1; out.push(n); }
     try{ var cat=(window.TKS_LISHI_SEED && TKS_LISHI_SEED.models) || {};
       var key=Object.keys(cat).filter(function(k){ return k.toLowerCase()===mk.toLowerCase(); })[0];
@@ -50,7 +51,10 @@
     modelList: modelList,
     // <select> option strings for each box, each honoring a current value.
     yearOptionsHTML: function(cur, lo){
-      var hi=2026, low=lo||1995, items=[]; for(var y=hi;y>=low;y--) items.push(String(y));
+      // 8z67: the list goes to next year (it was capped at 2026). 8z73: the note for that change had been put on the same
+      // line as the loop below and commented it out — every Year list was empty for a few hours on 2026-11-12.
+      var hi=Math.max(2026, new Date().getFullYear()+1), low=lo||1995, items=[];
+      for(var y=hi;y>=low;y--) items.push(String(y));
       if(cur && items.indexOf(String(cur))<0) items.unshift(String(cur));
       return optionsHTML(items, cur, 'Year…');
     },

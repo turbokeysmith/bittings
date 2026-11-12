@@ -432,9 +432,11 @@
     }
 
     // 8z26: tokens → plain lines for the helper (it draws them through the Star driver)
+    // 8z69: only a cash or check sale opens the drawer (it used to open on every print — card sales, reprints, previews)
+    function wantsDrawer(r) { return /cash|check/i.test(String((r && r.payment) || '')); }
     function helperLines(r) {
       var w = prefs.thermal.width || 48, out = [], drawer = false;
-      tokens(r, { drawer: true, logo: false }).forEach(function (tk) {
+      tokens(r, { drawer: wantsDrawer(r), logo: false }).forEach(function (tk) {
         if (tk.t === 'text') out.push({ text: tk.align === 'left' ? tk.data : String(tk.data).trim(), align: tk.align, bold: tk.bold, big: tk.big });
         else if (tk.t === 'rule') out.push({ text: rule(w), align: 'left' });
         else if (tk.t === 'barcode') out.push({ text: '# ' + tk.data, align: 'center' });
@@ -448,7 +450,7 @@
         return helperCall('/receipt', { lines: job.lines, cols: prefs.thermal.width || 48, drawer: job.drawer && prefs.thermal.drawerKick, copies: Math.max(1, prefs.thermal.copies || 1) }); }
       if (!sdkReady()) return Promise.reject(new Error('Star Web SDK not loaded — add StarWebPrintBuilder.js + StarWebPrintTrader.js (see Hardware settings).'));
       var copies = Math.max(1, prefs.thermal.copies || 1);
-      var chain = buildRequest(r, { drawer: true, logo: true }).then(function (req) { return send(req); });
+      var chain = buildRequest(r, { drawer: wantsDrawer(r), logo: true }).then(function (req) { return send(req); });
       for (var i = 1; i < copies; i++) {
         chain = chain.then(function () { return buildRequest(r, { drawer: false, logo: true }); }).then(send);
       }
@@ -769,7 +771,9 @@
       helperStatus().then(function (j) { st.textContent = '● connected — receipt: ' + (j.receiptPrinter || 'none') + ' · labels: ' + (j.labelPrinter || 'none'); st.style.color = '#7fd49b'; })
         .catch(function () { st.textContent = '● not found on this computer'; st.style.color = '#f2b43a'; }); }
     chk(); $('hwHelpChk').onclick = chk;
-    $('hwDrawer').onclick = function () { thermal.openDrawer().then(function () { toast('Drawer opened.'); }).catch(function (e) { toast(e.message, false); }); };
+    $('hwDrawer').onclick = function () { thermal.openDrawer().then(function () { toast('Drawer opened.');
+        try { if (window.TKS && TKS.Audit) TKS.Audit.log('drawer_open_manual', 'drawer', 'counter', { from: 'Hardware settings' }); } catch (e) {}   // 8z69
+      }).catch(function (e) { toast(e.message, false); }); };
 
     // thermal preview / test
     $('hwThPrev').onclick = function () { save(); modal('Thermal preview (' + prefs.thermal.width + ' cols)', pre(thermal.previewText(sampleReceipt(), { width: prefs.thermal.width, drawer: true, logo: true }))); };
