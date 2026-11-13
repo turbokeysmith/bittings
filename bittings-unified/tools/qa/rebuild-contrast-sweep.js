@@ -105,8 +105,10 @@ function scan(where) {
     await pg.evaluate(() => { try { openHist(); } catch (e) {} }); await sleep(500); await grab('receipts: history panel', true);
     await pg.evaluate(() => { try { closeHist(); openCustPicker(function () {}, false, null); } catch (e) {} }); await sleep(400); await grab('receipts: customer picker', true);
     await pg.evaluate(() => { try { closeCust(); appConfirm('TEST title', 'TEST body'); } catch (e) {} }); await sleep(300); await grab('receipts: confirm box', true);
-    await pg.goto('http://127.0.0.1:8088/bittings.html?receipts=1', { waitUntil: 'domcontentloaded' }); await sleep(1200); await grab('receipts: read-only list', true);
-    await pg.evaluate(() => { const v = document.querySelector('#roList button, #roList .ro-item'); if (v) v.click(); }); await sleep(500); await grab('receipts: viewer', true);
+    /* changed with the list merge: the old read-only list (bittings.html?receipts=1) is gone; the one list is the main app's Receipts & invoices screen */
+    await pg.goto('http://127.0.0.1:8088/index.html', { waitUntil: 'domcontentloaded' }); await sleep(2500);
+    await pg.evaluate(() => { const b = document.querySelector('.bt-sidebar [data-go="receipts"]'); if (b) b.click(); }); await sleep(1200); await grab('receipts & invoices: list', true);
+    await pg.evaluate(() => { const v = document.querySelector('#rcList .ro-open'); if (v) v.click(); }); await sleep(500); await grab('receipts & invoices: viewer', true);
     await pg.goto('http://127.0.0.1:8088/signin.html', { waitUntil: 'domcontentloaded' }); await sleep(900); await grab('sign-in page', true);
     console.log('page errors:', errs.length, errs.slice(0, 3));
   } finally { await b.close(); srv.close(); }

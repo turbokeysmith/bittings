@@ -55,7 +55,7 @@ function stubPayService() {
     }, UID, KEY);
 
     // ================= staff side: Pay Now → Send link =================
-    await pg.goto('http://127.0.0.1:8088/bittings.html?receipts=1', { waitUntil: 'domcontentloaded' });
+    await pg.goto('http://127.0.0.1:8088/bittings.html', { waitUntil: 'domcontentloaded' });
     await pg.waitForFunction(() => window.TKS && TKS.adapter && TKS.adapter() === 'cloud', { timeout: 15000 }); await sleep(3000);
     await pg.evaluate(stubPayService);
     await pg.evaluate(() => { const r = (TKS.list('receipts') || []).find(x => x.id === 'rcpt_t9'); window.__r = r; return openPayNow(r); }); await sleep(900);

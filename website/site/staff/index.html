@@ -1215,8 +1215,8 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
   #view-receipts .rc-st{font-size:11.5px;font-weight:800;margin-top:2px;text-align:right;}
   #view-receipts .rc-notes{font-size:11.5px;color:#555;margin-top:10px;padding-top:8px;border-top:1px dashed #ccc;font-style:italic;}
   #view-receipts .hi-warr{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;align-self:center;margin:0 8px;}
-  #view-receipts .rc-tabs{display:flex;gap:8px;margin-bottom:12px;}
-  #view-receipts .rc-tabs button{flex:1;padding:11px;border-radius:11px;border:1px solid var(--edge);background:var(--card);color:var(--ink);font-weight:800;font-size:14px;cursor:pointer;}
+  #view-receipts .rc-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  #view-receipts .rc-tabs button{flex:1 1 70px;min-height:44px;padding:8px 6px;border-radius:11px;border:1px solid var(--edge);background:var(--card);color:var(--ink);font-weight:800;font-size:14px;cursor:pointer;}
   #view-receipts .rc-tabs button.on{background:var(--red);color:#fff;border-color:var(--red);}
   #view-receipts .rc-search{width:100%;background:var(--card);border:1px solid var(--edge);border-radius:12px;padding:12px 14px;color:var(--ink);font-size:16px;outline:none;margin-bottom:14px;box-sizing:border-box;}
   #view-receipts .rc-list{display:flex;flex-direction:column;gap:10px;}
@@ -1228,15 +1228,17 @@ html[data-bt-theme="dark"] #view-lishi .cautbtn{color:#f2b43a;}
   #view-receipts .ro-cust{font-weight:700;margin-top:3px;}
   #view-receipts .ro-desc{font-size:12.5px;color:var(--dim);margin-top:2px;}
   #view-receipts .ro-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-  #view-receipts .rc-rowactions{display:flex;gap:8px;margin-top:10px;border-top:1px solid var(--edge);padding-top:10px;}
-  #view-receipts .rc-rowactions button{flex:1;min-height:44px;padding:9px 4px;border-radius:9px;border:1px solid var(--edge);background:transparent;color:var(--ink);font-weight:700;font-size:12.5px;cursor:pointer;}
+  #view-receipts .rc-rowactions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;border-top:1px solid var(--edge);padding-top:10px;}
+  #view-receipts .rc-filed{display:flex;align-items:center;gap:8px;min-height:44px;margin-top:8px;font-weight:700;font-size:13px;color:var(--ink);}
+  #view-receipts .rc-filed input{width:22px;height:22px;}
+  #view-receipts .rc-rowactions button{flex:1 1 72px;min-height:44px;padding:9px 4px;border-radius:9px;border:1px solid var(--edge);background:transparent;color:var(--ink);font-weight:700;font-size:12.5px;cursor:pointer;}
   #view-receipts .rc-empty{color:var(--dim);text-align:center;padding:40px 10px;}
   #view-receipts .rc-viewer{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;z-index:1000;padding:20px;overflow:auto;}
   #view-receipts .rc-viewer.open{display:flex;}
   #view-receipts .rc-vsheet{background:var(--card);border-radius:14px;max-width:640px;width:100%;align-self:flex-start;overflow:hidden;}
-  #view-receipts .rc-vbar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--edge);color:var(--ink);font-weight:800;}
-  #view-receipts .rc-vactions{margin-left:auto;display:flex;gap:8px;}
-  #view-receipts .rc-vactions button{padding:8px 12px;border-radius:9px;border:1px solid var(--edge);background:transparent;color:var(--ink);font-weight:700;cursor:pointer;font-size:13px;}
+  #view-receipts .rc-vbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--edge);color:var(--ink);font-weight:800;}
+  #view-receipts .rc-vactions{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px;}
+  #view-receipts .rc-vactions button{min-height:44px;padding:8px 12px;border-radius:9px;border:1px solid var(--edge);background:transparent;color:var(--ink);font-weight:700;cursor:pointer;font-size:13px;}
   #view-receipts .rc-vdoc{padding:18px;background:var(--bg2);max-height:74vh;overflow:auto;}
 </style>
 <style id="tier-css">
@@ -1320,7 +1322,7 @@ window.tksDemoOn = function(){
       <button class="bt-nav__item" data-go="schedule"><span class="bt-nav__ic">📅</span>Scheduler</button>
       <button class="bt-nav__item" data-go="estimates"><span class="bt-nav__ic">💬</span>Quotes &amp; estimates</button><!-- 8z78: every estimate — edit it or put it on the schedule --><!-- 8z65: opens the document builder as an Estimate -->
       <button class="bt-nav__item pos-desktop-only" data-go="payments"><span class="bt-nav__ic">💳</span>Register</button>
-      <button class="bt-nav__item" data-go="receipts"><span class="bt-nav__ic">🧾</span>Receipts</button>
+      <button class="bt-nav__item" data-go="receipts"><span class="bt-nav__ic">🧾</span>Receipts &amp; invoices</button>
       <button class="bt-nav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
       <button class="bt-nav__item" data-go="leads" id="navLeads"><span class="bt-nav__ic">📥</span>Leads</button><!-- 8z71: enquiries from the website contact form -->
       <div class="bt-navhead bt-navgrp">Keys &amp; stock</div>
@@ -1574,15 +1576,15 @@ window.tksDemoOn = function(){
   
   <!-- ===== Receipts (de-iframed → native #view-receipts; renders via shared TKS_RECEIPTS engine) ===== -->
   <div class="view" id="view-receipts">
-    <div class="bt-pagehead" style="flex-wrap:wrap"><div><div class="eyebrow" id="rcSub">Read-only history &middot; search &amp; reprint</div><h1>Receipts</h1></div>
+    <div class="bt-pagehead" style="flex-wrap:wrap"><div><div class="eyebrow" id="rcSub">Paid receipts and invoices &middot; search also finds quotes</div><h1>Receipts &amp; invoices</h1></div>
       <!-- 8z66: with Start a job gone, this is where a sale with no job begins on a phone (the document builder page) -->
       <div class="bt-pagehead__actions" style="flex-wrap:wrap"><button type="button" class="bt-btn bt-btn--brand" id="rcNewDoc" style="min-height:44px">＋ New receipt / invoice</button><button type="button" class="bt-btn bt-btn--secondary" id="rcNewQuote" style="min-height:44px">💬 Quote</button></div></div>
-    <div class="rc-tabs" id="rcTabs"><button data-rt="all" class="on">All</button><button data-rt="nastf">NASTF &middot; D1</button></div>
-    <input class="rc-search" id="rcSearch" placeholder="Search receipts — number, customer, vehicle, VIN…">
+    <div class="rc-tabs" id="rcTabs"><button data-rt="all" class="on">All</button><button data-rt="receipt">Receipts</button><button data-rt="invoice">Invoices</button><button data-rt="nastf">NASTF &middot; D1</button></div>
+    <input class="rc-search" id="rcSearch" placeholder="Search number, customer, vehicle, VIN…">
     <div id="rcList" class="rc-list"></div>
     <div class="rc-viewer" id="rcViewer" aria-hidden="true"><div class="rc-vsheet">
       <div class="rc-vbar"><span id="rcViewerTitle">Document</span><div class="rc-vactions">
-        <button id="rcvPrint">🖨 Print</button><button id="rcvDownload">⬇ Download</button><button id="rcvClose" aria-label="Close">✕</button>
+        <button id="rcvPrint">🖨 Print</button><button id="rcvDownload">⬇ Download</button><button id="rcvPdfEs">⬇ PDF (ES)</button><button id="rcvReturn" title="Start a return / warranty for this invoice">↩ Return</button><button id="rcvClose" aria-label="Close">✕</button>
       </div></div><div class="rc-vdoc" id="rcViewerDoc"></div>
     </div></div>
   </div>
@@ -2056,6 +2058,7 @@ document.getElementById('backBtn').onclick = function(){ if(this.dataset.to) sho
   var RESUME_PARENT={part:'inventory', form:'customers'}; if(resume && RESUME_PARENT[resume]) resume=RESUME_PARENT[resume];
   if(resume){ window._tksResumePending=true; window._tksHadResume=true; }
   try{ var first=(document.querySelector('.view.active')||{}).id; first=first?first.replace('view-',''):homeView();
+    window._tksQuery0=location.search;   /* the next line drops the query from the address bar, so keep it for the ?go= / ?menu=1 links read further down */
     if(!resume){ history.replaceState({tksView:'__root'}, '', location.pathname+location.search); history.pushState({tksView:first}, '', location.pathname); } }catch(e){}
   if(resume){ var _rt=0; var SUBTAB={reconcile:['inventory','[data-invtab="reconcile"]'], invreport:['reports','[data-reptab="invreport"]'], returns:['reports','[data-reptab="returns"]'], commission:['commission',null]};
     var _go=(function(){ var target=SUBTAB[resume]?SUBTAB[resume][0]:resume; var bt=document.querySelector('[data-go="'+target+'"]');
@@ -2226,7 +2229,7 @@ document.querySelectorAll('.bt-themetoggle [data-bt-set]').forEach(function(b){
    e.g. the Receipts page links here to "Customers"). Fires the matching nav button so the
    exact same load/render path runs as a real tap. */
 try{
-  var _goView = new URLSearchParams(location.search).get('go');
+  var _goView = new URLSearchParams(window._tksQuery0 || location.search).get('go');
   if(_goView){
     // Only follow the deep link once the nav item is actually SHOWN for this role. Owner-only
     // items start display:none and are revealed when the role loads; clicking a hidden button
@@ -2244,7 +2247,7 @@ try{
         return;
       }
       var _b = document.querySelector('[data-go="'+_goView+'"]');
-      if(!_b) return;
+      if(!_b){ try{ goHomeView(); }catch(e){} return; }   // a link to a screen that no longer exists (e.g. the old ?go=startjob) lands on home
       var _hidden = _b.style.display==='none' || _b.classList.contains('tks-cap-hidden');
       if(!_hidden){ _b.click(); return; }
       if(++_goTries<30) setTimeout(_tryGo, 200);
@@ -2529,7 +2532,7 @@ function jobInvoiceGuard(b){
       if(ok){ try{ sessionStorage.setItem('tks_edit_receipt', JSON.stringify(ex)); location.href='bittings.html'; return false; }catch(e){}   /* 8z46: straight into the builder on that receipt */
         try{ document.querySelectorAll('.sch-modal').forEach(function(x){ x.remove(); }); }catch(e){}
         try{ const nb=document.querySelector('.bt-nav__item[data-go="receipts"]'); if(nb) nb.click(); else if(window.show) window.show('receipts'); }catch(e){}
-        setTimeout(function(){ try{ const s=document.querySelector('#view-receipts #rcSearch'); if(s){ s.value=String(ex.number||ex.id); s.dispatchEvent(new Event('input',{bubbles:true})); } }catch(e){} }, 250); }
+        setTimeout(function(){ try{ const tb=document.querySelector('#view-receipts #rcTabs [data-rt="all"]'); if(tb) tb.click(); const s=document.querySelector('#view-receipts #rcSearch'); if(s){ s.value=String(ex.number||ex.id); s.dispatchEvent(new Event('input',{bubbles:true})); } }catch(e){} }, 250); }
       return false; });
 }
 function jobToInvoiceDraft(b){
@@ -6480,7 +6483,59 @@ function clkRefresh(force){
   try{ sb.rpc('shift_status').then(r=>{ if(!r || r.error) return; clkState.known=true; clkState.open=r.data||null; clkPaint(); }, ()=>{}); }catch(e){}
   clkLoadRule(force);
 }
+/* 8z105 (owner, 2026-11-13: "Jayden is at the shop computer right now … it's telling him he needs to clock in at the shop
+   computer"): the mark lives in ONE browser, and it had been ticked in a different one. A computer that is not marked now
+   says so, and can ask for approval: a code shows here, an owner / manager approves it from their own phone
+   (server: device_pair_start / _pending / _approve / _finish). */
+function clkLooksLikeComputer(){ try{ return !(window.matchMedia && matchMedia('(pointer:coarse)').matches) || Math.min(screen.width, screen.height) >= 700; }catch(e){ return false; } }
+function clkBrowserName(){ try{ const u=navigator.userAgent; return (/Edg\//.test(u)?'Edge':/Chrome\//.test(u)?'Chrome':/Firefox\//.test(u)?'Firefox':/Safari\//.test(u)?'Safari':'Browser')+' on '+(/Windows/.test(u)?'Windows':/Mac OS/.test(u)?'Mac':/Android/.test(u)?'Android':/iPhone|iPad/.test(u)?'iPad / iPhone':'a computer'); }catch(e){ return 'a computer'; } }
+function clkPairStart(){
+  const sb=clkSb(); if(!sb) return;
+  sb.rpc('device_pair_start', { p_name:'Shop computer · '+clkBrowserName() }).then(r=>{
+    if(r.error || !r.data || !r.data.id){ uiAlert({ title:'Could not start', message:clkErr(r.error) }); return; }
+    const d=r.data; let over=false, iv=null;
+    const ov=document.createElement('div'); ov.className='chg-modal-ov'; ov.id='clkPairOv';
+    ov.innerHTML='<div class="chg-modal" style="max-width:420px"><div class="chg-modal-h"><b>Waiting for approval</b><button type="button" class="chg-modal-x" data-x aria-label="Close">×</button></div>'+
+      '<div class="ui-msg">Ask the owner or a manager to open Bittings on their own phone. A request to approve this computer appears there (it is also in Settings → Time clock &amp; lock). The code they see must match this one:</div>'+
+      '<div id="clkPairCode" style="font-size:44px;font-weight:800;letter-spacing:.18em;text-align:center;margin:14px 0;color:var(--ink)">'+esc2(d.code)+'</div>'+
+      '<div class="ui-msg" id="clkPairMsg" style="text-align:center">Waiting… this screen updates by itself.</div>'+
+      '<div class="ui-actions"><button type="button" class="btn" data-x style="min-height:44px">Cancel</button></div></div>';
+    document.body.appendChild(ov);
+    const close=()=>{ over=true; if(iv) clearInterval(iv); ov.remove(); };
+    ov.querySelectorAll('[data-x]').forEach(b=>{ b.onclick=close; });
+    const poll=()=>{ if(over) return;
+      sb.rpc('device_pair_finish', { p_id:d.id }).then(q=>{ if(over) return; const x=(q && !q.error && q.data) || {};
+        if(x.ok && x.id && x.token){
+          try{ localStorage.setItem('tks_tc_device_id', x.id); localStorage.setItem('tks_tc_device_token', x.token); localStorage.setItem('tks_tc_device','1'); }catch(e){}
+          close(); try{ if(window.TKS_CLOCK && TKS_CLOCK.init) TKS_CLOCK.init(); }catch(e){}
+          clkLoadRule(true); clkPaint();
+          uiConfirm({ title:'✓ This is now a shop computer', message:'Technicians can clock in here from now on — with the Clock in button, or "Clock in by PIN" when someone else is signed in.', okText:'Clock in now', cancelText:'Close' }).then(y=>{ if(y && !clkState.open) clkIn(); });
+        } else if(x.state==='expired' || x.state==='gone'){
+          close(); uiAlert({ title:'Not approved', message: x.state==='expired' ? 'Nobody approved it within 15 minutes. Tap Clock in to try again.' : 'The request was refused or is no longer there. Tap Clock in to try again.' });
+        }
+      }, ()=>{});
+    };
+    iv=setInterval(poll, 3000); poll();
+  }, e=>{ uiAlert({ title:'Could not start', message:clkErr(e) }); });
+}
+/* an owner / manager is asked, wherever they are in the app, when a computer is waiting to be approved */
+const clkPairSeen={};
+function clkPairWatch(){
+  try{ const a=window.TKS && TKS.auth; if(!(a && a.isSignedIn()) || (TKS.isDemo && TKS.isDemo()) || document.hidden) return;
+    const role=a.staffRole && a.staffRole(); if(role!=='owner' && role!=='manager') return;
+    const sb=clkSb(); if(!sb) return;
+    sb.rpc('device_pair_pending').then(q=>{ const rows=(q && !q.error && Array.isArray(q.data)) ? q.data : []; const d=rows.find(x=>x && !clkPairSeen[x.id]); if(!d) return; clkPairSeen[d.id]=1;
+      uiConfirm({ title:'Approve a shop computer?', message:(d.who||'Someone')+' is asking to make "'+(d.name||'a computer')+'" a shop computer, so technicians can clock in there. Code on its screen: '+d.code+'. Approve only if that code is showing on the computer right now.', okText:'✓ Approve', cancelText:'Not now' }).then(y=>{ if(!y) return;
+        sb.rpc('device_pair_approve', { p_id:d.id, p_ok:true }).then(x=>{ const ok=!!(x && !x.error && x.data && x.data.ok);
+          uiAlert({ title: ok?'✓ Approved':'Not approved', message: ok?'That computer is being set up now. Technicians can clock in there in a few seconds.':'That request has run out. Ask them to tap Clock in → "Set up this computer" again.' }); }, ()=>{}); }); }, ()=>{});
+  }catch(e){}
+}
+try{ setInterval(clkPairWatch, 20000); setTimeout(clkPairWatch, 5000); document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) clkPairWatch(); }); }catch(e){}
 function clkWhyBlocked(){
+  if(clkLooksLikeComputer()){
+    uiConfirm({ title:'This computer is not set up yet', message:'Technicians clock in on a shop computer, and this browser has not been marked as one. An owner or manager can approve it from their own phone — it takes a minute, and they do not need to be here.', okText:'Set up this computer', cancelText:'Not now' }).then(y=>{ if(y) clkPairStart(); });
+    return;
+  }
   const hasPin=!!(clkState.rule && clkState.rule.has_pin);
   if(hasPin){ uiAlert({ title:'Clock in at the shop', message:'On the shop computer, tap "Clock in by PIN" and type your PIN. Once you are on the clock you can clock out from this phone.' }); return; }
   uiConfirm({ title:'Clock in at the shop', message:'Clocking in is done on the shop computer: tap "Clock in by PIN" there and type your PIN. You do not have a PIN yet — set one now, it takes a few seconds.', okText:'Set my PIN', cancelText:'Later' }).then(y=>{ if(y) clkMyPin(); });
@@ -6650,7 +6705,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
   function closeDrawer(){ if(_sb)_sb.classList.remove('is-open'); if(_scrim)_scrim.classList.remove('is-open'); }
   if(_more) _more.addEventListener('click', function(){ if(_sb)_sb.classList.add('is-open'); if(_scrim)_scrim.classList.add('is-open'); });
   // 8z74: "More" on the Receipts page lands here (index.html?menu=1) with the full menu already out
-  try{ if(/[?&]menu=1/.test(location.search)){ setTimeout(function(){ if(_sb)_sb.classList.add('is-open'); if(_scrim)_scrim.classList.add('is-open'); }, 350);
+  try{ if(/[?&]menu=1/.test(window._tksQuery0 || location.search)){ setTimeout(function(){ if(_sb)_sb.classList.add('is-open'); if(_scrim)_scrim.classList.add('is-open'); }, 350);
     try{ history.replaceState(null, '', location.pathname); }catch(e){} } }catch(e){}
   if(_scrim) _scrim.addEventListener('click', closeDrawer);
   if(_sb) _sb.addEventListener('click', function(e){ if(e.target.closest('.bt-nav__item')) closeDrawer(); });
@@ -7185,6 +7240,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
           '<div class="hint">They can still clock <b>out</b> from a phone. Owners and managers are not affected. It takes effect once at least one shop computer is marked below — until then phones keep working, so nobody is locked out.</div>'+
           '<div class="hint" id="f_tcShopOnlyMsg" style="min-height:16px"></div>'+
         '</div>'+
+        '<div id="f_tcPair" style="margin-top:14px"></div>'+
         '<label class="toggle" style="margin-top:14px"><input type="checkbox" id="f_tcDevice" '+(devOn?'checked':'')+'> <b>This device is a shop computer</b> (technicians clock in here)</label>'+
         '<div class="hint">Set this on the <b>shop PC</b> only. Leave it OFF on phones/tablets your techs use in the field — those keep working normally (no lock, no auto clock-in). This choice is remembered on this device.</div>'+
         '<div class="hint">Registering needs a <b>manager/owner sign-in on this device</b>. Only registered workstations can <b>switch users by PIN</b>; everywhere else a PIN only unlocks your own screen.</div>'+
@@ -7213,6 +7269,20 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
           }); }catch(e){}
         }
         renderDevices();
+        (function(){ var pb=gid('f_tcPair'); if(!pb || !canCloud) return;   // 8z105
+          var last=null;
+          function draw(){ if(!document.body.contains(pb)) return;
+            TKS._sb().rpc('device_pair_pending').then(function(q){ if(!document.body.contains(pb)) return; var rows=(q && !q.error && Array.isArray(q.data)) ? q.data : [], key=JSON.stringify(rows); if(key===last) return; last=key;
+              pb.innerHTML = rows.length ? ('<div class="card" style="padding:12px;border:2px solid var(--red,#c8323c);border-radius:12px"><label style="margin:0">A computer is waiting for your approval</label>'+rows.map(function(d){
+                  return '<div style="margin-top:10px"><div><b>'+esc(d.who||'Someone')+'</b> is asking to make <b>'+esc(d.name||'a computer')+'</b> a shop computer.</div>'+
+                    '<div data-paircode style="font-size:30px;font-weight:800;letter-spacing:.15em;margin:6px 0">'+esc(d.code)+'</div><div class="hint">Approve only if this code is on that computer\'s screen right now.</div>'+
+                    '<div style="display:flex;gap:8px;margin-top:8px"><button type="button" class="btn save" data-pairok="'+esc(d.id)+'" style="flex:1;min-height:44px">✓ Approve</button><button type="button" class="btn" data-pairno="'+esc(d.id)+'" style="flex:1;min-height:44px">Refuse</button></div></div>'; }).join('')+'</div>')
+                : '<div class="hint"><b>Not at the shop?</b> On the shop computer, tap <b>Clock in</b> → <b>Set up this computer</b>. A code appears there and a request to approve it shows up here, on your phone.</div>';
+              pb.querySelectorAll('[data-pairok],[data-pairno]').forEach(function(b){ b.onclick=function(){ var ok=b.hasAttribute('data-pairok'); b.disabled=true;
+                TKS._sb().rpc('device_pair_approve',{ p_id:b.getAttribute(ok?'data-pairok':'data-pairno'), p_ok:ok }).then(function(){ last=null; draw(); setTimeout(function(){ renderDevices(); try{ if(window.__tcShowRule) window.__tcShowRule(); }catch(e){} }, 5000); }, function(){ last=null; draw(); }); }; });
+            }, function(){}); }
+          var iv=setInterval(function(){ if(!document.body.contains(pb)){ clearInterval(iv); return; } draw(); }, 5000); draw();
+        })();
         if(!cb) return;
         cb.onchange=function(){
           var want=this.checked;
@@ -9866,7 +9936,7 @@ try{ if('serviceWorker' in navigator && location.protocol==='https:') navigator.
    opens exactly as it does from the menu (role / plan gates included). Edit: More → "Edit bottom bar", or press and hold the bar. */
 (function(){
   var DEF=['schedule','estimates','receipts','inventory'], MAX=4;   // Scheduler first, then Quotes & estimates (Customers is under More)
-  var SHORT={estimates:'Quotes',inventory:'Stock',schedule:'Schedule',programmers:'Programs',history:'Closeout',lishi:'Lishi',timesheets:'Hours',commission:'Pay'};
+  var SHORT={receipts:'Receipts',estimates:'Quotes',inventory:'Stock',schedule:'Schedule',programmers:'Programs',history:'Closeout',lishi:'Lishi',timesheets:'Hours',commission:'Pay'};
   function who(){ try{ return (TKS.auth&&TKS.auth.email&&TKS.auth.email())||''; }catch(e){ return ''; } }
   function key(){ return 'tks_bottombar:'+(who()||'_'); }
   function saved(){ try{ var v=JSON.parse(localStorage.getItem(key())||'null'); return Array.isArray(v)?v:null; }catch(e){ return null; } }

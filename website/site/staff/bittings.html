@@ -170,9 +170,9 @@
   }
   .modal-box .mtitle{font-size:16px;font-weight:700;color:#fff;margin-bottom:10px;}
   .modal-box .mbody{font-size:14px;color:#ddd;line-height:1.5;margin-bottom:16px;}
-  .modal-box .mbtns{display:flex;gap:8px;}
+  .modal-box .mbtns{display:flex;flex-wrap:wrap;gap:8px;}   /* wraps, so a long row of answers (Mark paid: six) never runs off a phone screen */
   .modal-box .mbtns button{
-    flex:1;border:none;padding:12px;border-radius:8px;
+    flex:1 1 84px;min-height:44px;border:none;padding:12px;border-radius:8px;
     font-size:14px;font-weight:700;
   }
   .mbtn-yes{background:var(--red);color:#fff;}
@@ -463,49 +463,17 @@
   </div>
   <a class="hdr-btn" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center" title="Back to all apps">‹ Apps</a>
   <button class="hdr-btn" id="updBtn" type="button" title="Get the newest version of the app" onclick="try{location.replace(location.pathname+'?_='+Date.now());}catch(e){location.reload();}">🔄</button><!-- 8z72 -->
-  <button class="hdr-btn" onclick="openHist()">History</button>
+  <button class="hdr-btn" onclick="location.href='index.html?go=receipts'">Receipts</button>
   <button class="hdr-btn" id="settingsBtn" onclick="location.href='index.html?go=settings'" title="Setup &amp; Settings (opens the app's Settings)">⚙</button>
 </header>
 
 <div id="chat"></div><!-- results surface: the finished receipt card + actions, or the empty-state panel -->
 
-<!-- Read-only Receipts surface (view/search/reprint + the NASTF D1 worklist).
-     Charging/creating happens only on the register (desktop) + Start-a-Job (mobile). -->
-<div id="roWrap">
-  <div class="ro-head">
-    <div><h2>Receipts</h2><div class="ro-sub" id="roSub">Read-only history · search &amp; reprint</div></div>
-  </div>
-  <div class="ro-tabs" id="roTabs">
-    <button type="button" data-rt="all" class="on">All</button>
-    <button type="button" data-rt="nastf">NASTF</button>
-  </div>
-  <input id="roSearch" class="ro-search" type="search" placeholder="Search receipts — number, customer, vehicle, VIN…" autocomplete="off">
-  <div id="roList"></div>
-</div>
-
-<!-- In-app invoice viewer: renders the existing PDF engine to an inline preview
-     (no auto-download). Read-only — no edit/charge path. The PDF carries sell
-     prices only (never cost/margin), so it's safe for every role. -->
-<div id="roViewer" class="ro-viewer" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Invoice viewer">
-  <div class="ro-viewer-bar">
-    <span class="ro-viewer-title" id="roViewerTitle">Invoice</span>
-    <div class="ro-viewer-btns">
-      <button type="button" id="roViewerPrint">🖨 Print</button>
-      <button type="button" id="roViewerDl">⬇ Download</button>
-      <button type="button" id="roViewerReturn" title="Start a return / warranty for this invoice">↩ Return</button>
-      <button type="button" id="roViewerClose" aria-label="Close viewer">✕</button>
-    </div>
-  </div>
-  <div class="ro-viewer-body">
-    <div id="roViewerDoc" class="ro-viewer-doc"></div>
-  </div>
-</div>
-
 <!-- Persistent app navigation — main + quick menu, always one tap away (bottom bar on phones). -->
 <nav id="appnav"><!-- 8z74: the SAME bottom bar as the main app (this person's own picks), then More -->
   <a href="index.html?go=schedule"><span class="ic">📅</span>Schedule</a>
   <a href="bittings.html?estimates=1"><span class="ic">💬</span>Quotes</a>
-  <a href="bittings.html?receipts=1" class="active"><span class="ic">🧾</span>Receipts</a>
+  <a href="index.html?go=receipts"><span class="ic">🧾</span>Receipts</a>
   <a href="index.html?go=inventory"><span class="ic">📦</span>Stock</a>
   <a href="index.html?menu=1"><span class="ic">⋯</span>More</a>
 </nav>
@@ -515,11 +483,14 @@
    saves the tabs this person picked (tks_bottombar_view) — and "More" opens the main app with its full menu out. */
 try{ (function(){
   var v=null; try{ v=JSON.parse(localStorage.getItem('tks_bottombar_view')||'null'); }catch(e){}
+  /* the fixed fallback bar: highlight Quotes on the Quotes & estimates screen, Receipts anywhere else */
+  var nav0=document.getElementById('appnav'), isQ0=/[?&](quote|estimates)=1/.test(location.search);
+  if(nav0){ [].forEach.call(nav0.querySelectorAll('a'), function(a){ var h=a.getAttribute('href')||''; a.classList.toggle('active', isQ0 ? /estimates=1/.test(h) : /go=receipts/.test(h)); }); }
   if(!Array.isArray(v) || !v.length) return;
   var nav=document.getElementById('appnav'); if(!nav) return;
   var isQuote=/[?&](quote|estimates)=1/.test(location.search), html='';
   v.slice(0,4).forEach(function(o){ if(!o || !o.go) return;
-    var href = (o.go==='quote'||o.go==='estimates') ? 'bittings.html?estimates=1' : o.go==='receipts' ? 'bittings.html?receipts=1' : ('index.html?go='+encodeURIComponent(o.go));
+    var href = (o.go==='quote'||o.go==='estimates') ? 'bittings.html?estimates=1' : o.go==='receipts' ? 'index.html?go=receipts' : ('index.html?go='+encodeURIComponent(o.go));
     var on = ((o.go==='quote'||o.go==='estimates') && isQuote) || (o.go==='receipts' && !isQuote);
     var a=document.createElement('a'); a.href=href; if(on) a.className='active';
     var ic=document.createElement('span'); ic.className='ic'; ic.textContent=o.ic||'•'; a.appendChild(ic); a.appendChild(document.createTextNode(o.label||o.go));
@@ -914,10 +885,10 @@ function showHome(){
     '<p>Build a receipt, invoice or estimate on one screen — parts, services, NASTF D1 paperwork, payment and signature.</p>'+
     '<button type="button" class="primary" id="homeNew">⚡ New document</button>'+
     '<button type="button" id="homeEst">📋 Estimates</button>'+
-    '<button type="button" id="homeHist">History</button></div>';
+    '<button type="button" id="homeHist">Receipts</button></div>';
   chat.querySelector("#homeNew").onclick=()=>openNewDocument();
   chat.querySelector("#homeEst").onclick=()=>{ setHistFilter("estimate"); openHist(); };
-  chat.querySelector("#homeHist").onclick=()=>openHist();
+  chat.querySelector("#homeHist").onclick=()=>{ location.href="index.html?go=receipts"; };
 }
 /* Open a fresh builder (optionally pre-filled from a Start-a-job draft). */
 function openNewDocument(prefill){
@@ -1396,11 +1367,11 @@ function d1PhotoBox(r){ try{ if(!hasD1(r) || !r.id || !window.TKS_RDOCS || r.doc
 function openDocsPage(id){
   const find=()=>getHistory().find(x=>String(x.id)===String(id))||null;
   const draw=(r)=>{ chat.innerHTML='<div class="res-home" style="text-align:left"><h2 style="margin-bottom:4px">📎 Photos for '+escapeHtml(r.number||"this receipt")+'</h2><p style="margin:0 0 6px">'+escapeHtml(r.customer||"")+(vehicleString(r)?(" · "+escapeHtml(vehicleString(r))):"")+'</p><div id="docsHere"></div><button type="button" id="docsDone" style="margin-top:10px">Done</button></div>';
-    TKS_RDOCS.panel(chat.querySelector("#docsHere"), r, { qr:false, pdf:(x)=>makePDF(x, "en", false, true) }); chat.querySelector("#docsDone").onclick=()=>{ location.href="bittings.html?receipts=1"; }; };
+    TKS_RDOCS.panel(chat.querySelector("#docsHere"), r, { qr:false, pdf:(x)=>makePDF(x, "en", false, true) }); chat.querySelector("#docsDone").onclick=()=>{ location.href="index.html?go=receipts"; }; };
   const r0=find(); if(r0){ draw(r0); return; }
   chat.innerHTML='<div class="res-home"><h2>Finding that receipt…</h2><p>One moment.</p></div>';
   let tries=0; const again=()=>{ const r=find(); if(r){ draw(r); return; }
-    if(++tries>12){ chat.innerHTML='<div class="res-home"><h2>Receipt not found</h2><p>This phone could not find that receipt. Make sure it is signed in to the same shop, then scan the code again.</p><button type="button" class="primary" onclick="location.href=\'bittings.html?receipts=1\'">Open Receipts</button></div>'; return; }
+    if(++tries>12){ chat.innerHTML='<div class="res-home"><h2>Receipt not found</h2><p>This phone could not find that receipt. Make sure it is signed in to the same shop, then scan the code again.</p><button type="button" class="primary" onclick="location.href=\'index.html?go=receipts\'">Open Receipts</button></div>'; return; }
     try{ if(tries%3===1 && window.TKS && TKS.refresh) TKS.refresh(true); }catch(e){} setTimeout(again, 1200); };
   again();
 }
@@ -1977,6 +1948,7 @@ function makePDF(r, lang, forCustomer){
    ========================================================== */
 function setHistFilter(f){
   histFilter=f;
+  try{ const _hf=document.querySelector("#histPanel .hist-filter"); if(_hf) _hf.style.display=(f==="estimate")?"none":""; }catch(e){}   // no All/Receipts/Invoices chips on Quotes & estimates
   document.querySelectorAll(".hist-filter button").forEach(b=>{
     b.classList.toggle("active", b.dataset.f===f);
   });
@@ -2062,7 +2034,19 @@ function renderHistList(){
       const hist=getHistory();
       const i=hist.findIndex(x=>x.number===num);
       if(i<0) return;
-      const r=hist[i];
+      histAction(act, hist[i], b, renderHistList);
+    };
+  });
+  try{ if(window.TKS_ACCESS) TKS_ACCESS.applyGates(list); }catch(e){}   // gate the freshly-rendered action buttons (e.g. owner-only Delete)
+}
+
+/* One document action (Print / Send / PDF / Delete / Mark Paid / Edit / schedule / → Invoice) — the body that used to live inside
+   the click handler above, moved here unchanged so the main app's Receipts & invoices list can reach Mark paid and Delete through
+   bittings.html?docact=paid|del&num=… without a second copy of the payment / stock code.
+   done()   = what to do after the action finished (the list passes renderHistList)
+   cancel() = optional: what to do when the person backed out or nothing was changed. */
+function histAction(act, r, b, done, cancel){
+  done=done||function(){}; cancel=cancel||function(){};
       if(!r.totals){ r.totals=computeTotals(r.items||[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}], r.payment, receiptTaxRate(r)); }
       if(!r.items) r.items=[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}];
       if(act==="share") shareDocument(r, "en", true);
@@ -2073,8 +2057,8 @@ function renderHistList(){
       else if(act==="del"){
         const note = (r.stockApplied||r.posStockApplied) ? "This cannot be undone. Any parts used will be added back to stock." : "This cannot be undone.";
         appConfirm("Delete "+r.number+"?", note).then(ok=>{
-          if(!ok) return;
-          const finishDelete=()=>{ const live=getHistory(), j=live.indexOf(r); if(j>=0){ live.splice(j,1); saveHistory(live); } renderHistList(); };   // 8z64: by the record itself, not by a position worked out before the question
+          if(!ok){ cancel(); return; }
+          const finishDelete=()=>{ const live=getHistory(), j=live.indexOf(r); if(j>=0){ live.splice(j,1); saveHistory(live); } done(); };   // 8z64: by the record itself, not by a position worked out before the question
           // Restock must COMPLETE before the receipt row disappears (the server reads the receipt to know what to put back).
           if(r.stockApplied||r.posStockApplied){ Promise.resolve(reverseStockForReceipt(r)).then(finishDelete, finishDelete); } else finishDelete();
         });
@@ -2083,28 +2067,25 @@ function renderHistList(){
            reached Closeout, Reports or commission. Now it asks how it was paid and records it like the builder does. */
         showModal({ title:"How was "+r.number+" paid?", body:"The payment is recorded for today, so it shows in Closeout and Reports.",
           buttons:[{label:"Cancel",kind:"no",value:""},{label:"💳 Card",kind:"no",value:"card"},{label:"Other",kind:"no",value:"other"},{label:"📱 Zelle / app",kind:"no",value:"zelle"},{label:"🧾 Check",kind:"no",value:"check"},{label:"💵 Cash",kind:"yes",value:"cash"}] }).then(method=>{
-          if(!method) return;
+          if(!method){ cancel(); return; }
           if(method==="card"){ closeHist(); openPayNow(r); return; }
           const label={cash:"Cash",check:"Check",zelle:"Zelle",other:"Other"}[method];
           const local=()=>{ r.docType="receipt"; r.status="Paid in Full"; r.payment=label; r.number=String(r.number||"").replace(/^INV/,"TKS"); r.paidAt=Date.now();
             applyStockForReceipt(r);   // consume parts now that it's paid (once)
-            saveHistory(getHistory()); renderHistList(); };
+            saveHistory(getHistory()); done(); };
           if(!(cloudReady() && typeof window.recordCashSale==="function" && r.id)){ local(); return; }   // demo / not signed in: on this device only
           window.recordCashSale(r, method).then(res=>{
-            if(!res || res.error){ appAlert("Not recorded", "The payment was NOT recorded: "+((res&&res.error)||"no answer")+". Nothing was changed."); return; }
+            if(!res || res.error){ appAlert("Not recorded", "The payment was NOT recorded: "+((res&&res.error)||"no answer")+". Nothing was changed.").then(()=>cancel()); return; }
             r.cashLogged=true; local();
           });
         });
       }else if(act==="toinv"){
         // Convert estimate to invoice (new doc, keeps original estimate)
-        const inv=estimateToInvoice(r); renderHistList();
+        const inv=estimateToInvoice(r); done();
         appAlert("Done", "Created "+inv.number+" from "+r.number);
       }else if(act==="edit"){
         editReceipt(r);
       }
-    };
-  });
-  try{ if(window.TKS_ACCESS) TKS_ACCESS.applyGates(list); }catch(e){}   // gate the freshly-rendered action buttons (e.g. owner-only Delete)
 }
 
 /* ---------- Edit an existing document — always through the Quick invoice (merge-save) ---------- */
@@ -2233,197 +2214,43 @@ function applyBranding(){
   document.title = "Documents — Bittings";   // window/tab = product brand; shop name stays in the header
 }
 
-/* ===== Read-only Receipts mode — view/search/reprint + NASTF D1 worklist.
-   Entered via ?receipts=1 (the "Receipts" nav). The builder never runs here;
-   charging/creating lives on the register (desktop) + Start-a-Job (mobile). ===== */
-var RO_RECEIPTS = /[?&](receipts|history)=1/.test(location.search);
-var roTab='all', roQuery='';
-function roVehStr(r){ try{ return vehicleString(r)||''; }catch(e){ return ''; } }
-function roDesc(r){
-  var veh=roVehStr(r), isAuto=(r.serviceType==="Automotive")||veh;
-  if(isAuto && veh) return veh;
-  if(!isAuto && r.address) return r.address;
-  var fd=(r.items&&r.items[0])?r.items[0].desc:(r.descLine||"");
-  var extra=(r.items&&r.items.length>1)?(" +"+(r.items.length-1)+" more"):"";
-  return (fd||"")+extra;
+/* ===== The old read-only Receipts list that lived here (?receipts=1 / ?history=1) is gone — the main app's
+   "Receipts & invoices" screen (index.html?go=receipts) is the one list. This page now only:
+   - sends a plain ?receipts=1 / ?history=1 to that screen, and
+   - runs ?docact=paid|del&num=<document number> for it (Mark paid / Delete use the code above, then go back to the list). ===== */
+var DOC_ACT = (function(){ var m=/[?&]docact=(paid|del)(?:&|$)/.exec(location.search), n=/[?&]num=([^&]*)/.exec(location.search);
+  if(!m) return null; var num=""; try{ num=n?decodeURIComponent(n[1].replace(/\+/g," ")):""; }catch(e){ num=n?n[1]:""; } return { act:m[1], num:num }; })();
+var LEAVING_FOR_LIST = false;
+if(/[?&](receipts|history)=1/.test(location.search) && !DOC_ACT && !/[?&](docs|estimates|quote)=/.test(location.search)){
+  LEAVING_FOR_LIST = true;
+  try{ location.replace('index.html?go=receipts'); }catch(e){ location.href='index.html?go=receipts'; }
 }
-function roFindReceipt(id, num){
-  var h=getHistory();
-  return h.find(function(x){ return (id && x.id===id) || (num && x.number===num); });
+/* Back to the list. After a change the page waits a moment first: saves to the cloud go out a fraction of a second later
+   (app/store.js), and leaving at once would drop them. If a save fails it stays put, so the "not saved" notice can be read. */
+function docActBack(wait){
+  var left=false, failed=false;
+  var go=function(){ if(left) return; left=true; try{ location.replace('index.html?go=receipts'); }catch(e){ location.href='index.html?go=receipts'; } };
+  if(!wait){ go(); return; }
+  try{ chat.innerHTML='<div class="res-home"><h2>Saving…</h2><p>One moment.</p></div>'; }catch(e){}
+  window.addEventListener('tks:save-failed', function(){ failed=true; });
+  window.addEventListener('tks:save-ok', function(){ if(failed) go(); });
+  setTimeout(function(){ if(!failed) go(); }, 1800);
 }
-function roActionsHTML(r){
-  var id=escapeHtml((r&&r.id)||''), dn=escapeHtml((r&&(r.number||r.id))||'');
-  return '<button data-ract="view" data-id="'+id+'" data-num="'+dn+'">👁 View</button>'+
-         '<button data-ract="share" data-id="'+id+'" data-num="'+dn+'">📤 Send</button>'+
-         '<button data-ract="pdfes" data-id="'+id+'" data-num="'+dn+'">PDF (ES)</button>';
+function docActRun(){
+  var a=window.DOC_ACT; if(!a) return;
+  var r=null; try{ r=getHistory().find(function(x){ return x && a.num && x.number===a.num; })||null; }catch(e){}
+  if(!r || (a.act==="paid" && (r.docType||"receipt")!=="invoice")){ docActBack(false); return; }   // not found (or not an unpaid invoice): back to the list
+  if(a.act==="del" && !(window.TKS_ACCESS && TKS_ACCESS.can && TKS_ACCESS.can("hardDelete"))){
+    appAlert("Owner only", "Only the owner can delete a document.").then(function(){ docActBack(false); }); return; }
+  try{ chat.innerHTML=""; if(a.act==="paid") renderFinished(r); else chat.innerHTML='<div class="res-home"><h2>'+escapeHtml(r.number||"")+'</h2></div>'; }catch(e){}
+  histAction(a.act, r, null, function(){ docActBack(true); }, function(){ docActBack(false); });
 }
-function roWireActions(){
-  document.querySelectorAll('#roList .ro-actions button').forEach(function(b){
-    b.onclick=function(ev){
-      if(ev) ev.stopPropagation();
-      var r=roFindReceipt(b.dataset.id, b.dataset.num);
-      if(!r){ appAlert('Not loaded yet', 'This receipt isn’t loaded on this device yet — open the All tab and search for it.'); return; }
-      var act=b.dataset.ract;
-      if(act==='view') roOpenViewer(r);
-      else if(act==='share') shareDocument(r,'en',true);
-      else if(act==='pdfes') makePDF(r,'es');
-    };
-  });
-}
-// Tap a row's body → open the in-app viewer (the default way to look at an invoice).
-function roWireOpen(){
-  document.querySelectorAll('#roList .ro-open').forEach(function(el){
-    var go=function(){ var r=roFindReceipt(el.dataset.id, el.dataset.num);
-      if(r) roOpenViewer(r); else appAlert('Not loaded yet', 'This receipt isn’t loaded on this device yet — try the All tab.'); };
-    el.onclick=go;
-    el.onkeydown=function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } };
-  });
-}
-
-/* ---- In-app invoice viewer: shows the receipt as live HTML (renders reliably on
-   every phone, unlike a blob-PDF iframe which goes blank on mobile). Download + Print
-   build the PDF on demand from the SAME engine. The view shows sell prices only —
-   never cost/margin — so it's safe for every role. ---- */
-var roViewerReceipt=null;
-function roOpenViewer(r){
-  if(!r) return;
-  // legacy receipts may lack totals/items — rebuild them the same way the history list does
-  try{
-    if(!r.items) r.items=[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}];
-    if(!r.totals) r.totals=computeTotals(r.items, r.payment, (typeof receiptTaxRate==='function'?receiptTaxRate(r):(r.taxRate||0)));
-  }catch(e){}
-  roViewerReceipt=r;
-  var docEl=document.getElementById('roViewerDoc');
-  if(docEl){
-    try{ docEl.innerHTML=buildReceiptCardHTML(r); docEl.scrollTop=0; }
-    catch(e){ docEl.innerHTML='<div style="padding:26px;text-align:center;color:#e7e9ee">Couldn’t render this receipt — tap <b>⬇ Download</b> for the PDF.</div>'; }
-  }
-  var ttl=document.getElementById('roViewerTitle'); if(ttl) ttl.textContent=((typeof docLabel==='function'?docLabel(r.docType):'Document'))+' '+(r.number||r.id||'');
-  var v=document.getElementById('roViewer'); if(v){ v.classList.add('open'); v.setAttribute('aria-hidden','false'); }
-  document.body.style.overflow='hidden';
-}
-function roCloseViewer(){
-  var v=document.getElementById('roViewer'); if(v){ v.classList.remove('open'); v.setAttribute('aria-hidden','true'); }
-  var docEl=document.getElementById('roViewerDoc'); if(docEl) docEl.innerHTML='';
-  document.body.style.overflow=''; roViewerReceipt=null;
-}
-function roViewerDownload(){
-  if(!roViewerReceipt) return;
-  try{ makePDF(roViewerReceipt, 'en', false); }   // 3-arg → saves the PDF (download)
-  catch(e){ appAlert('Download failed', (e&&e.message)||'Could not build the PDF.'); }
-}
-function roViewerPrint(){
-  if(!roViewerReceipt) return;
-  if(window.TKS_HW && TKS_HW.printDoc){ printPaper(roViewerReceipt, document.getElementById('roViewerPrint'), true); return; }   // 8z81: receipt printer first
-  var out; try{ out=makePDF(roViewerReceipt, 'en', false, true); }
-  catch(e){ appAlert('Print failed', (e&&e.message)||'Could not build the PDF.'); return; }
-  if(out && out.blob){
-    var url=URL.createObjectURL(out.blob);
-    var w=window.open(url, '_blank');   // open the PDF (native viewer has Print/Share)
-    if(!w){ var a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
-    setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 60000);
-  }
-}
-// Start a return from the invoice: hand off to the app's Returns area (list lives under Reports).
-function roStartReturn(){
-  if(!roViewerReceipt) return;
-  var payload={ id:roViewerReceipt.id||'', number:roViewerReceipt.number||'' };
-  try{ if(window.self!==window.top){ window.parent.postMessage({type:'tks:start-return', receipt:payload}, location.origin); roCloseViewer(); return; } }catch(e){}
-  try{ sessionStorage.setItem('tks_start_return', JSON.stringify(payload)); }catch(e){}
-  location.href='index.html';
-}
-function roOpen(){ document.body.classList.add('ro-mode'); roSetTab(roTab); }
-function roSetTab(t){
-  roTab=(t==='nastf')?'nastf':'all';
-  document.querySelectorAll('#roTabs button').forEach(function(b){ b.classList.toggle('on', b.dataset.rt===roTab); });
-  var s=document.getElementById('roSearch'); if(s) s.style.display=(roTab==='all')?'block':'none';
-  var sub=document.getElementById('roSub'); if(sub) sub.textContent=(roTab==='nastf')?'Outstanding D1 worklist · soonest-due first':'Read-only history · search & reprint';
-  if(roTab==='nastf') roRenderNastf(); else roRenderAll();
-}
-function roRenderAll(){
-  var list=document.getElementById('roList'); if(!list) return;
-  var hist=getHistory().slice(), q=(roQuery||'').trim().toLowerCase();
-  (function(){ var conv={}; hist.forEach(function(x){ if(x && x.fromEstimate) conv[x.fromEstimate]=1; }); hist=hist.filter(function(r){ return !((r.docType||'receipt')==='estimate' && conv[r.number]); }); })();   // 8z81: converted estimates are not listed
-  if(q){ hist=hist.filter(function(r){
-    return [r.number,r.customer,r.date,r.address,r.vin,roVehStr(r),(r.items||[]).map(function(i){return i.desc;}).join(' ')]
-      .join(' ').toLowerCase().indexOf(q)>=0; }); }
-  hist.sort(function(a,b){ return (b.savedAt||0)-(a.savedAt||0); });
-  if(!hist.length){ list.innerHTML='<div class="ro-empty">'+(q?'No receipts match “'+escapeHtml(roQuery)+'”.':'No receipts yet — charge a job on the register or Start-a-Job.')+'</div>'; return; }
-  list.innerHTML=hist.map(function(r){
-    var type=r.docType||'receipt', total=r.totals?r.totals.total:(r.amount||0);
-    var isN=!!(r.nastf&&r.nastf.type);
-    var badge=(isN&&window.TKS_D1)?TKS_D1.pillHTML(r.nastf,{showType:true,small:true}):'';
-    var warrFull=warrantyPillHTML(r);
-    var badgeRow=(warrFull||badge)?('<div class="ro-badges">'+warrFull+badge+'</div>'):'';
-    return '<div class="ro-item '+type+(isN?' nastf':'')+'">'+
-      '<div class="ro-open" data-id="'+escapeHtml(r.id||'')+'" data-num="'+escapeHtml(r.number||r.id||'')+'" role="button" tabindex="0" title="Tap to view">'+
-        '<div class="ro-top"><span class="ro-num">'+escapeHtml(r.number||r.id||'')+'</span>'+warrantyPillCompactHTML(r)+'<span class="ro-amt">'+money(total)+'</span></div>'+
-        '<div class="ro-cust">'+escapeHtml(r.customer||'(no name)')+'</div>'+
-        '<div class="ro-desc">'+escapeHtml(r.date||'')+' · '+escapeHtml(roDesc(r))+'</div>'+
-        badgeRow+
-      '</div>'+
-      '<div class="ro-actions">'+roActionsHTML(r)+'</div></div>';
-  }).join('');
-  roWireActions(); roWireOpen();
-}
-function roRenderNastf(){
-  var list=document.getElementById('roList'); if(!list) return;
-  list.innerHTML='<div class="ro-empty">Loading the D1 worklist…</div>';
-  if(!(window.TKS&&TKS.NASTF&&TKS.NASTF.worklist)){ list.innerHTML='<div class="ro-empty">Sign in to load the NASTF worklist.</div>'; return; }
-  TKS.NASTF.worklist(true).then(function(res){
-    if(res&&res.error) throw res.error;
-    var rows=(res&&res.data)||[];
-    if(!rows.length){ list.innerHTML='<div class="ro-empty">No NASTF jobs yet. Tag a job NASTF on the register or Start-a-Job to start a D1 clock.</div>'; return; }
-    list.innerHTML=rows.map(function(row){
-      var r=roFindReceipt(row.id, row.number);
-      var nastf={ type:row.nastf_type, d1Days:row.d1_days, d1DueDate:row.d1_due, d1Filed:row.d1_filed, d1FiledByName:row.d1_filed_by_name };
-      var badge=window.TKS_D1?TKS_D1.pillHTML(nastf,{showType:false}):'';
-      var canFile=!!row.can_file;
-      var filedBy=(row.d1_filed&&row.d1_filed_by_name)?(' · by '+escapeHtml(row.d1_filed_by_name)):'';
-      var note=canFile?'':' · only the staff who did this job (or a manager) can file';
-      var chk='<label class="ro-filed'+(canFile?'':' locked')+'">'+
-        '<input type="checkbox" data-d1id="'+escapeHtml(row.id)+'" '+(row.d1_filed?'checked':'')+(canFile?'':' disabled')+'>'+
-        '<span>D1 filed ✓'+filedBy+'</span></label>';
-      return '<div class="ro-item nastf">'+
-        '<div class="ro-open" data-id="'+escapeHtml(row.id||'')+'" data-num="'+escapeHtml(row.number||row.id||'')+'" role="button" tabindex="0" title="Tap to view">'+
-          '<div class="ro-top"><span class="ro-num">'+escapeHtml(row.number||row.id)+'</span><span class="ro-amt">'+escapeHtml(row.nastf_type||'')+'</span></div>'+
-          '<div class="ro-cust">'+escapeHtml(row.customer||'(no name)')+'</div>'+
-          '<div class="ro-desc">'+escapeHtml(row.doc_date||'')+note+'</div>'+
-          '<div class="ro-badges">'+badge+'</div>'+
-        '</div>'+chk+
-        '<div class="ro-actions">'+roActionsHTML(r||{id:row.id,number:row.number})+'</div></div>';
-    }).join('');
-    roWireActions(); roWireOpen();
-    list.querySelectorAll('input[data-d1id]').forEach(function(cb){
-      cb.onchange=function(){
-        var id=cb.dataset.d1id, want=cb.checked; cb.disabled=true;
-        TKS.NASTF.setFiled(id, want).then(function(res){
-          if(res&&res.error) throw res.error;
-          roRenderNastf();
-        }).catch(function(e){ cb.checked=!want; cb.disabled=false; appAlert('D1 status', (e&&e.message)||'Could not update D1 status — you may not be assigned to this job.'); });
-      };
-    });
-  }).catch(function(e){ list.innerHTML='<div class="ro-empty">Could not load the worklist'+(e&&e.message?(': '+escapeHtml(e.message)):'')+'.</div>'; });
-}
-(function(){
-  var s=document.getElementById('roSearch'); if(s) s.addEventListener('input', function(){ roQuery=s.value; roRenderAll(); });
-  document.querySelectorAll('#roTabs button').forEach(function(b){ b.onclick=function(){ roSetTab(b.dataset.rt); }; });
-  // re-render the All tab when cloud data syncs in after boot (receipts arrive async)
-  if(window.TKS && TKS.onChange) TKS.onChange(function(){ if(document.body.classList.contains('ro-mode') && roTab==='all') roRenderAll(); });
-  // in-app viewer controls
-  var vc=document.getElementById('roViewerClose'); if(vc) vc.onclick=roCloseViewer;
-  var vd=document.getElementById('roViewerDl'); if(vd) vd.onclick=roViewerDownload;
-  var vp=document.getElementById('roViewerPrint'); if(vp) vp.onclick=roViewerPrint;
-  var vr=document.getElementById('roViewerReturn'); if(vr) vr.onclick=roStartReturn;
-  var vbody=document.getElementById('roViewer');
-  if(vbody) vbody.addEventListener('click', function(e){ if(e.target===vbody) roCloseViewer(); });   // tap the backdrop to close
-  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var v=document.getElementById('roViewer'); if(v && v.classList.contains('open')) roCloseViewer(); } });
-})();
 
 /* ==========================================================
    BOOT
    ========================================================== */
 function boot(){
+  if(window.LEAVING_FOR_LIST) return;   // a plain ?receipts=1 is on its way to the main app's list
   // Business identity ALWAYS comes from the main app (TKS.Config / the Setup wizard).
   // Bittings never shows its own welcome/setup screen — it pulls the shop's identity
   // from the shared config and just works (blank is fine until the owner fills Setup).
@@ -2439,7 +2266,7 @@ function boot(){
   }catch(e){}
   try{ saveSettingsObj(SETTINGS); }catch(e){}   // cache locally so we never re-prompt
   applyBranding();
-  if(window.RO_RECEIPTS) roOpen();
+  if(window.DOC_ACT) docActRun();
   else {
     // Start-a-job handoff: index.html writes a one-shot sessionStorage draft → pre-fill the builder.
     // 8z46: the app's Receipts list (or a job that already has a receipt) hands over ONE existing document to edit in place

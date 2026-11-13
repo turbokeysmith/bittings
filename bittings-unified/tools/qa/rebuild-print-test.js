@@ -113,8 +113,12 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     await pg.waitForFunction(() => window.TKS && TKS.adapter && TKS.adapter() === 'cloud', { timeout: 15000 }); await sleep(2500);
     await pg.evaluate(() => document.querySelector('.bt-sidebar .bt-nav__item[data-go="receipts"]').click()); await sleep(1200);
     r = await pg.evaluate(() => Array.from(document.querySelectorAll('#rcList .ro-item')).map(x => ({ num: x.querySelector('.ro-num').innerText, print: !!x.querySelector('[data-act="print"]'), text: x.innerText.replace(/\s+/g, ' ').slice(0, 160) })));
-    check('Receipts tab: every row has 🖨 Print, and the converted estimate is not listed', r.length === 4 && r.every(x => x.print) && !r.some(x => x.num === 'EST-TEST-0004') && r.some(x => x.num === 'TKS-TEST-0005'), r);
-    check('Receipts tab: an estimate still waiting is labelled as one', r.some(x => x.num === 'EST-TEST-0003' && /Estimate — not billed yet/.test(x.text)), r.filter(x => /EST/.test(x.num)));
+    /* changed with the list merge: the list is receipts + invoices only (3 rows); a waiting quote shows up only when searched */
+    check('Receipts & invoices list: every row has 🖨 Print, quotes are not listed, and the converted estimate is not listed', r.length === 3 && r.every(x => x.print) && !r.some(x => /^EST-/.test(x.num)) && r.some(x => x.num === 'TKS-TEST-0005'), r);
+    await pg.evaluate(() => { const s = document.getElementById('rcSearch'); s.value = 'EST-TEST-0003'; s.dispatchEvent(new Event('input', { bubbles: true })); }); await sleep(300);
+    r = await pg.evaluate(() => Array.from(document.querySelectorAll('#rcList .ro-item')).map(x => ({ num: x.querySelector('.ro-num').innerText, text: x.innerText.replace(/\s+/g, ' ').slice(0, 160) })));
+    check('Receipts & invoices list: an estimate found by search is labelled as one', r.some(x => x.num === 'EST-TEST-0003' && /Estimate — not billed yet/.test(x.text)), r);
+    await pg.evaluate(() => { const s = document.getElementById('rcSearch'); s.value = ''; s.dispatchEvent(new Event('input', { bubbles: true })); }); await sleep(300);
     const before = jobs.length;
     await pg.evaluate(() => { const it = Array.from(document.querySelectorAll('#rcList .ro-item')).find(x => /TKS-TEST-0001/.test(x.innerText)); it.querySelector('[data-act="print"]').click(); }); await sleep(1200);
     const j5 = jobs[jobs.length - 1] || {}; const t5 = (j5.lines || []).map(l => l.text).join('\n');

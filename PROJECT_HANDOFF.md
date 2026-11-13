@@ -408,7 +408,42 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
-### 2026-11-13, evening (big labels: fill, logo, "Fits:", Vertical / Horizontal · one "Quotes & estimates" screen) — LIVE (85abf43de1d6), NOT committed
+### 2026-11-13, late (one "Receipts & invoices" list · approve a shop computer from a phone · founder price = 12 months) — LIVE (ff60d6de7577)
+- **Menu cleanup step 3 — one receipts list.** There were three lists of the same documents; now:
+  - the main app's list (`#view-receipts`, `app/receipts-view.js`) is "Receipts & invoices": tabs All / Receipts / Invoices /
+    NASTF · D1; unconverted estimates only appear when searching; invoices show Paid / Unpaid; new row buttons
+    "✓ Mark paid" (unpaid invoices) and "Delete" (owner, `data-cap="hardDelete"`); viewer gained PDF (ES) and ↩ Return;
+    the NASTF tab uses the server worklist and has the "D1 filed" tick (ported from the old list).
+  - Mark paid / Delete are NOT re-implemented: they hand over to `bittings.html?docact=paid|del&num=<number>`, which runs
+    the same code as before (now a named function `histAction(act, r, btn, done, cancel)`) and returns to
+    `index.html?go=receipts` (after a 1.8 s wait so the cloud save goes out — a guess, watch it on a slow connection).
+    `recordCashSale`, `openPayNow`, `applyStockForReceipt`, `reverseStockForReceipt` are unchanged.
+  - `bittings.html?receipts=1` / `?history=1` (the old read-only list) now redirect to the main list; its code was removed.
+    The QR link `bittings.html?docs=<id>` is untouched. The History panel remains only as the Quotes & estimates screen
+    (type chips hidden there); the bottom bar highlights Quotes on it.
+  - Found on the way: `index.html?go=<screen>` links never worked — the query string was dropped from the address before
+    it was read. Fixed (`window._tksQuery0`); a `?go=` to a screen that no longer exists lands on home.
+  - Test: `tools/qa/rebuild-receipts-list-test.js` (port 8095).
+- **Shop computer by approval (8z105).** Incident: the technician was told to "clock in at the shop computer" while standing
+  at it — the mark lives in ONE browser (localStorage `tks_tc_device_id` / `_token`) and had been ticked in another one.
+  Now an unmarked computer says "This computer is not set up yet" → "Set up this computer" shows a 6-digit code; an
+  owner / manager is asked on their own phone (popup anywhere in the app, and Settings → Time clock & lock) and approves;
+  the computer collects its secret by itself. SQL `supabase/phase8/8z105_shop_computer_pairing.sql` (APPLIED): table
+  `shop_device_requests` (no direct access), `device_pair_start / _pending / _approve / _finish`; requests die after
+  15 minutes; all in audit_log. App: `clkPairStart`, `clkPairWatch`, `clkLooksLikeComputer` in index.html. Phones are
+  unchanged (still sent to the shop computer). Test: `tools/qa/rebuild-shop-computer-test.js` (port 8096).
+  NOT yet tried on the real counter computer with a real approval from the owner's phone.
+- **Website:** founder prices now last the first 12 months, then the regular price, with an email at least 30 days before
+  (index.html plans + legal.html). That 30-day email is a promise with nothing automated behind it yet — see next item.
+- **Asked for, NOT built (owner to confirm go-ahead):** automated 30-day founder-price notice (price rise gated on a logged
+  notice; needs an email-sending service); failed-payment banner → lock after a grace period (suggested 7 days) with a
+  link to Stripe's billing portal; plan ↔ feature audit. State today: billing functions exist in Stripe TEST mode
+  (`billing-checkout`, `billing-webhook`, `billing-portal`, `subscriptions`, `tier_allows` / `require_tier`, `app/tier.js`).
+  Gaps: the $19 Lookup plan has no Stripe price (unpaid = Lookup for free); the webhook does not set `seats_included`;
+  a past-due shop silently drops to Lookup; Timesheets / Key systems / Leads / labels are not in the feature matrix;
+  the Starter 1% card fee is unverified.
+
+### 2026-11-13, evening (big labels: fill, logo, "Fits:", Vertical / Horizontal · one "Quotes & estimates" screen) — LIVE, committed 074ee30
 - **Print box (8z103):** the 1/2/3/5/10 chips are gone — a number box (`#plNum`) and one "Print all (N in stock)" button.
 - **Big labels (tier 3, 8z103 + 8z104)** in `app/hardware.js` `layoutFor` → `build3(k, g)`:
   type is scaled up as far as it goes (k up to 4) without dropping a line; a long key name shrinks on its own; leftover
