@@ -92,6 +92,8 @@
     { id: 'large',  label: 'Large — 3 × 2 in',        hint: 'Key bags', wIn: 3.0,  hIn: 2.0 },
     { id: 'xl',     label: 'Extra large — 4 × 2 in',  hint: 'Big bags and boxes', wIn: 4.0,  hIn: 2.0 },
     { id: 'xxl',    label: '4 × 3 in',                     hint: 'Boxes and totes', wIn: 4.0,  hIn: 3.0 },
+    { id: 'tall',   label: '2 × 3 in',                     hint: 'Key bags (tall roll)', wIn: 2.0,  hIn: 3.0 },
+    { id: 'ship',   label: '4 × 6 in',                     hint: 'Large bags and boxes', wIn: 4.0,  hIn: 6.0 },
     { id: 'custom', label: 'Custom size',                       hint: 'Type your own width and height', wIn: 0, hIn: 0 }
   ];
   function sizeSpec(id) {
@@ -101,6 +103,12 @@
     if (s.id === 'custom') return { id: 'custom', label: s.label, hint: s.hint, wIn: parseFloat(L.customW) || 2.5, hIn: parseFloat(L.customH) || 1.5 };
     return s;
   }
+  /* 8z104: Vertical / Horizontal on the big sizes. A size is a ROLL (width across the printer × length). "h" = the label
+     reads wider than tall, "v" = taller than wide; when that is not how the roll feeds, the label is turned a quarter. */
+  function canTurn(id) { var sp = sizeSpec(id); return Math.min(sp.wIn, sp.hIn) >= 1.75 && Math.abs(sp.wIn - sp.hIn) > 0.05; }
+  function natural(id) { var sp = sizeSpec(id); return sp.wIn >= sp.hIn ? 'h' : 'v'; }
+  function orientOf(id) { var o = (prefs.labels.orient || {})[id]; return (canTurn(id) && (o === 'h' || o === 'v')) ? o : natural(id); }
+  function isTurned(id, orient) { return canTurn(id) && (orient === 'h' || orient === 'v' ? orient : orientOf(id)) !== natural(id); }
   function validSize(id) { return LABEL_SIZES.some(function (s) { return s.id === id; }); }
   // keep widthIn/heightIn (older code) in step with the chosen default size
   function syncLabelDims() { var sp = sizeSpec(prefs.labels.size); prefs.labels.widthIn = sp.wIn; prefs.labels.heightIn = sp.hIn; }
@@ -609,6 +617,32 @@
     }
     function gradeName(g) { g = String(g || '').trim(); if (/^oem/i.test(g)) return 'OEM'; if (/after/i.test(g)) return 'Aftermarket'; return g; }
 
+    // 8z103: the shop logo for labels — the same cropped, solid-black picture the receipt printer uses. It loads once
+    // (ensureLogo) and is then used by the layout, the ZPL, the on-screen sample and the Niimbot picture.
+    var _lblLogo = { src: null, img: null };
+    function ensureLogo() {
+      var src = ''; try { src = identity().logo || ''; } catch (e) {}
+      if (!src) { _lblLogo = { src: '', img: null }; return Promise.resolve(null); }
+      if (_lblLogo.src === src) return Promise.resolve(_lblLogo.img);
+      return Promise.resolve().then(function () { return thermal.logoForHelper(); }).then(function (b64) {
+        if (!b64) { _lblLogo = { src: src, img: null }; return null; }
+        return new Promise(function (res) { var im = new Image();
+          im.onload = function () { _lblLogo = { src: src, img: im }; res(im); }; im.onerror = function () { _lblLogo = { src: src, img: null }; res(null); };
+          im.src = 'data:image/png;base64,' + b64; });
+      }).catch(function () { return null; });
+    }
+    function logoReady() { return _lblLogo.img || null; }
+    function logoGFA(e) {
+      var im = logoReady(); if (!im) return '';
+      var c = document.createElement('canvas'); c.width = e.w; c.height = e.h; var x = c.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, e.w, e.h); x.drawImage(im, 0, 0, e.w, e.h);
+      var d = x.getImageData(0, 0, e.w, e.h).data, rowBytes = Math.ceil(e.w / 8), hex = '';
+      for (var py = 0; py < e.h; py++) for (var bx = 0; bx < rowBytes; bx++) { var v = 0;
+        for (var bit = 0; bit < 8; bit++) { var px = bx * 8 + bit; if (px < e.w) { var i = (py * e.w + px) * 4; if (d[i] + d[i + 1] + d[i + 2] < 384) v |= (0x80 >> bit); } }
+        hex += (v < 16 ? '0' : '') + v.toString(16).toUpperCase(); }
+      return '^FO' + e.x + ',' + e.y + '^GFA,' + (rowBytes * e.h) + ',' + (rowBytes * e.h) + ',' + rowBytes + ',' + hex + '^FS';
+    }
+
     function layoutFor(part, unit, sizeId, opt) {
       opt = opt || {}; part = part || {}; unit = unit || null;
       var sp = sizeSpec(sizeId || prefs.labels.size);
@@ -617,6 +651,9 @@
       var PW = Math.round(wIn * dpi), LL = Math.round(hIn * dpi);
       var m = Math.round(0.06 * dpi);
       var shift = (opt.shiftX != null) ? Math.max(0, parseInt(opt.shiftX, 10) || 0) : Math.max(0, parseInt(prefs.labels.shiftX, 10) || 0);   // 8z102: opt.shiftX (the Niimbot passes 0)
+      // 8z104: a turned label is laid out on the turned shape (and printed as one picture, see toZPL)
+      var turned = (opt.turned != null) ? !!opt.turned : (opt.widthIn ? false : isTurned(sp.id, opt.orient)), rollShift = 0;
+      if (turned) { var tsw = wIn; wIn = hIn; hIn = tsw; PW = Math.round(wIn * dpi); LL = Math.round(hIn * dpi) - shift; rollShift = shift; shift = 0; }
       var fullW = PW - shift - 2 * m;
       var tier = (hIn <= 1.1 && wIn <= 2.5) ? 1 : (hIn >= 1.75 ? 3 : 2);
       var sku = z(part.sku || part.id || ''), name = z(part.name || '');
@@ -649,52 +686,142 @@
         }
         els.push(skuEl(skuFont, skuY));
       } else {
-        var sFont = Math.round(Math.min(0.2, hIn * 0.1) * dpi), sY = LL - m - sFont, ruleY = sY - 8;
-        var small = Math.round(0.085 * dpi), lh = Math.round(small * 1.2), uf = Math.round(0.1 * dpi);
-        var unitLines = unit ? 1 + (unit.acquired_at ? 1 : 0) : 0;
-        var stack = LL >= PW * 0.95;   // 8z102: square or tall label — details go under the QR, full width
-        var qrMax3 = Math.min(Math.round(0.45 * LL), Math.round(0.45 * PW), ruleY - 4 - m - (unit ? unitLines * (uf + 4) + 4 : 0));
-        var qr3 = qrSizeFor(code, qrMax3), colW3 = (unit && !stack) ? Math.max(qr3, Math.round(1.0 * dpi)) : qr3, snW = stack ? fullW : colW3;
-        els.push({ t: 'qr', x: m, y: m, size: qr3, data: code, mag: unit ? 3 : 4 });
-        if (unit) {
-          var uy = m + qr3 + 4;
-          els.push(textEl(m, uy, snW, uf, 1, unit.serial ? 'SN: ' + code : code, 'L', { raw: 1 }));
-          if (unit.acquired_at) els.push(textEl(m, uy + uf + 4, snW, small, 1, 'Received: ' + fmtDate(unit.acquired_at), 'L', { raw: 1 }));
+        /* tier 3 — big labels. 8z103 (owner: "on the larger labels there's a lot of white space … if there is room I would
+           want my logo across the top"): an optional logo band on top, and the type is scaled up (k) as far as it goes
+           without dropping a line or cutting the name shorter. */
+        var logoImg = (opt.logo !== false && prefs.labels.logo !== false) ? logoReady() : null, band = 0, top = m;
+        if (logoImg && logoImg.width && logoImg.height) {
+          var bh = Math.round(Math.min(0.2 * LL, 1.0 * dpi)), bw = Math.min(fullW, Math.round(bh * logoImg.width / logoImg.height)); bh = Math.max(8, Math.round(bw * logoImg.height / logoImg.width));
+          els.push({ t: 'logo', x: m + Math.round((fullW - bw) / 2), y: m, w: bw, h: bh }); band = bh + Math.round(0.04 * dpi); top = m + band;
         }
-        var tx3 = m + colW3 + Math.round(0.05 * dpi), tw3 = Math.max(60, PW - shift - tx3 - m);
-        var nFont = Math.round(Math.min(0.13, hIn * 0.065) * dpi), pFont = Math.round(Math.min(0.24, hIn * 0.12) * dpi);
-        var nm3 = textEl(tx3, m, tw3, nFont, 3, name, 'L'); els.push(nm3);
-        var y = m + Math.round(nFont * 1.15 * (nm3.rows.length || 1)) + 4;
-        if (price) { els.push(textEl(tx3, y, tw3, pFont, 1, price, 'L', { raw: 1 })); y += pFont + 8; }
+        var stack = LL >= PW * 0.95;   // 8z102: square or tall label — details go under the QR, full width
         var cat = String(part.category || '').split('/').pop().trim(), gr = gradeName(part.grade);
         var typeTxt = [cat, gr].filter(Boolean).join(' - ');
-        var cands = [];   // in display order; "drop" = order they are given up when the label is full (1 first)
-        if (part.fitment) cands.push({ key: 'fits', text: 'Fits: ' + z(part.fitment), n: 2, drop: 4 });
-        if (part.fccId) cands.push({ key: 'fcc', text: 'FCC ID: ' + z(part.fccId), n: 1, drop: 3 });
-        if (part.chip) cands.push({ key: 'chip', text: 'Chip: ' + z(part.chip), n: 1, drop: 2 });
-        if (typeTxt) cands.push({ key: 'type', text: 'Type: ' + typeTxt, n: 1, drop: 1 });
-        var limit = ruleY - 4, dx = stack ? m : tx3, dw = stack ? fullW : tw3;
-        if (stack) y = Math.max(y, m + qr3 + (unit ? unitLines * (uf + 4) + 4 : 0) + 8);
-        function rowsOf(c) { return wrapRows(c.text, dw, small, c.n).length; }
-        function total() { return cands.reduce(function (s, c) { return s + rowsOf(c) * lh; }, 0); }
-        while (cands.length && y + total() > limit) {
-          var low = null; cands.forEach(function (c) { if (!low || c.drop < low.drop) low = c; });
-          if (low.key === 'fits' && low.n === 2) { low.n = 1; low.drop = 5; } else cands.splice(cands.indexOf(low), 1);
+        var qrMemo = {}, qrFor = function (mx) { mx = Math.max(20, Math.round(mx)); return qrMemo[mx] || (qrMemo[mx] = qrSizeFor(code, mx)); };
+        var nLen = function (e) { return e.rows.join(' ').replace(/\.\.\.$/, '').length; };
+        var build3 = function (k, g) {
+          g = g || 0;   // g = extra dots between the lines (the leftover white space, shared out)
+          var out = [], gaps = 0, sFont = Math.round(Math.min(0.2, hIn * 0.1) * dpi * Math.min(k, 2)), sY = LL - m - sFont, ruleY = sY - 8, limit = ruleY - 4;
+          var small = Math.round(0.085 * dpi * k), lh = Math.round(small * 1.2), uf = Math.round(0.1 * dpi * k);
+          var unitLines = unit ? 1 + (unit.acquired_at ? 1 : 0) : 0, unitH = unit ? unitLines * (uf + 4) + 4 : 0;
+          var nFont1 = Math.round(Math.min(0.13, hIn * 0.065) * dpi), nFont = Math.round(nFont1 * k), pFont = Math.round(Math.min(0.24, hIn * 0.12) * dpi * k);
+          // a long name holds its own size back, not the whole label's
+          var fitName = function (x0, w0) { var e = textEl(x0, top, w0, nFont, 3, name, 'L');
+            if (k > 1) { var need = nLen(textEl(x0, top, w0, nFont1, 3, name, 'L')); while (nFont > nFont1 && nLen(e) < need) { nFont = Math.max(nFont1, nFont - 2); e = textEl(x0, top, w0, nFont, 3, name, 'L'); } }
+            return e; };
+          var unitEls = function (uy, snW) { if (!unit) return;
+            var snT = unit.serial ? 'SN: ' + code : code, rcT = unit.acquired_at ? 'Received: ' + fmtDate(unit.acquired_at) : '', fitW = function (t, f) { return Math.max(12, Math.min(f, Math.floor(snW / (t.length * 0.56)))); };
+            out.push(textEl(m, uy, snW, fitW(snT, uf), 1, snT, 'L', { raw: 1 }));
+            if (rcT) out.push(textEl(m, uy + uf + 4, snW, fitW(rcT, small), 1, rcT, 'L', { raw: 1 })); };
+          var y, nm3, qr3, qrBottom, priceW, dx, dw;
+          if (stack) {
+            // 8z104 tall label: name across the top, then the QR with the price beside it, then the details full width
+            nm3 = fitName(m, fullW); out.push(nm3);
+            var qrY = top + Math.round(nFont * 1.15 * (nm3.rows.length || 1)) + 6 + g; gaps++;
+            qr3 = qrFor(Math.min(Math.round(0.3 * (LL - band) * Math.min(k, 1.25)), Math.round(0.45 * PW), Math.round(1.4 * dpi), limit - qrY - unitH));
+            out.push({ t: 'qr', x: m, y: qrY, size: qr3, data: code, mag: unit ? 3 : 4 });
+            var px3 = m + qr3 + Math.round(0.07 * dpi); priceW = Math.max(60, PW - shift - px3 - m);
+            if (price) { pFont = Math.min(pFont, fitFont(price, priceW, pFont), qr3); out.push(textEl(px3, qrY + Math.round((qr3 - pFont) / 2), priceW, pFont, 1, price, 'L', { raw: 1 })); }
+            unitEls(qrY + qr3 + 4, fullW);
+            qrBottom = qrY + qr3 + unitH; y = qrBottom + 8 + g; gaps++;
+            dx = m; dw = fullW;
+          } else {
+            qr3 = qrFor(Math.min(Math.round(0.45 * (LL - band) * Math.min(k, 1.25)), Math.round(0.45 * PW), Math.round(1.4 * dpi), limit - top - unitH));
+            var colW3 = unit ? Math.max(qr3, Math.round(1.0 * dpi)) : qr3;
+            out.push({ t: 'qr', x: m, y: top, size: qr3, data: code, mag: unit ? 3 : 4 });
+            unitEls(top + qr3 + 4, colW3);
+            qrBottom = top + qr3 + unitH;
+            var tx3 = m + colW3 + Math.round(0.05 * dpi); priceW = Math.max(60, PW - shift - tx3 - m);
+            nm3 = fitName(tx3, priceW); out.push(nm3);
+            y = top + Math.round(nFont * 1.15 * (nm3.rows.length || 1)) + 4 + g; gaps++;
+            if (price) { pFont = Math.min(pFont, fitFont(price, priceW, pFont)); out.push(textEl(tx3, y, priceW, pFont, 1, price, 'L', { raw: 1 })); y += pFont + 8 + g; gaps++; }
+            dx = tx3; dw = priceW;
+          }
+          var cands = [], dropped = 0;   // in display order; "drop" = order they are given up when the label is full (1 first)
+          if (part.fitment) cands.push({ key: 'fits', text: 'Fits: ' + z(part.fitment), n: 2, drop: 4 });
+          else cands.push({ key: 'fits', text: 'Fits:', n: 1, drop: 4, blank: 1 });   // 8z104: not filled in → "Fits:" and a blank line to write on
+          if (part.fccId) cands.push({ key: 'fcc', text: 'FCC ID: ' + z(part.fccId), n: 1, drop: 3 });
+          if (part.chip) cands.push({ key: 'chip', text: 'Chip: ' + z(part.chip), n: 1, drop: 2 });
+          if (typeTxt) cands.push({ key: 'type', text: 'Type: ' + typeTxt, n: 1, drop: 1 });
+          var rowsOf = function (c) { return wrapRows(c.text, dw, small, c.n).length + (c.blank ? 1 : 0); };
+          var total = function () { return cands.reduce(function (s, c) { return s + rowsOf(c) * lh; }, 0) + Math.max(0, cands.length - 1) * g; };
+          while (cands.length && y + total() > limit) {
+            var low = null; cands.forEach(function (c) { if (!low || c.drop < low.drop) low = c; });
+            dropped++;
+            if (low.key === 'fits' && low.n === 2) { low.n = 1; low.drop = 5; } else cands.splice(cands.indexOf(low), 1);
+          }
+          var cut = 0;
+          cands.forEach(function (c, ci) { if (ci) { y += g; gaps++; }
+            var e = textEl(dx, y, dw, small, c.n, c.text, 'L'); out.push(e);
+            if (c.blank) { var ind = Math.round(small * 2.7); out.push({ t: 'line', x: dx + ind, y: y + small - 1, w: Math.max(20, dw - ind) }); out.push({ t: 'line', x: dx, y: y + lh + Math.round(small * 0.75), w: dw }); y += lh; }
+            y += e.rows.length * lh; if (/\.\.\.$/.test(e.text)) cut++; });
+          out.push({ t: 'line', x: m, y: ruleY, w: fullW });
+          out.push(skuEl(sFont, sY));
+          return { els: out, ok: !dropped && y <= limit && qrBottom <= limit && (!price || price.length * pFont * 0.55 <= priceW),
+            nameChars: nLen(nm3), cut: cut, yEnd: y, limit: limit, gaps: gaps, lh: lh };
+        };
+        var base3 = build3(1), best3 = base3, bestK = 1;
+        if (opt.fill !== false) {
+          for (var k3 = 4.0; k3 > 1.04; k3 -= 0.1) { /* 8z104: the bigger the label, the bigger the type */ var tr = build3(k3); if (tr.ok && tr.nameChars >= base3.nameChars && tr.cut <= base3.cut) { best3 = tr; bestK = k3; break; } }
+          // whatever room is still left over is shared out between the lines, so the label is not top-heavy
+          var spare = best3.limit - best3.yEnd, gEach = best3.gaps ? Math.min(Math.floor(spare / best3.gaps), Math.round(best3.lh * 0.7)) : 0;
+          if (best3.ok && gEach >= 2) { var sp3 = build3(bestK, gEach); if (sp3.ok && sp3.cut <= best3.cut && sp3.nameChars >= best3.nameChars) best3 = sp3; }
         }
-        cands.forEach(function (c) { var e = textEl(dx, y, dw, small, c.n, c.text, 'L'); els.push(e); y += e.rows.length * lh; });
-        els.push({ t: 'line', x: m, y: ruleY, w: fullW });
-        els.push(skuEl(sFont, sY));
+        els = els.concat(best3.els);
       }
-      return { wIn: wIn, hIn: hIn, dpi: dpi, PW: PW, LL: LL, shift: shift, tier: tier, els: els };
+      return { wIn: wIn, hIn: hIn, dpi: dpi, PW: PW, LL: LL, shift: shift, tier: tier, els: els, turned: turned, rollShift: rollShift };
     }
 
+    function canvasGFA(c, x0, y0) {
+      var w = c.width, h = c.height, d = c.getContext('2d').getImageData(0, 0, w, h).data, rowBytes = Math.ceil(w / 8), hex = '';
+      for (var py = 0; py < h; py++) for (var bx = 0; bx < rowBytes; bx++) { var v = 0;
+        for (var bit = 0; bit < 8; bit++) { var px = bx * 8 + bit; if (px < w) { var i = (py * w + px) * 4; if (d[i] + d[i + 1] + d[i + 2] < 384) v |= (0x80 >> bit); } }
+        hex += (v < 16 ? '0' : '') + v.toString(16).toUpperCase(); }
+      return '^FO' + x0 + ',' + y0 + '^GFA,' + (rowBytes * h) + ',' + (rowBytes * h) + ',' + rowBytes + ',' + hex + '^FS';
+    }
+    // the label as a picture, in printer dots (scale 2 = a sharper on-screen sample)
+    function toCanvas(L, scale) {
+      scale = scale || 1;
+      var c = document.createElement('canvas'); c.width = Math.round(L.PW * scale); c.height = Math.round(L.LL * scale);
+      var x = c.getContext('2d'); x.scale(scale, scale);
+      x.fillStyle = '#fff'; x.fillRect(0, 0, L.PW, L.LL); x.fillStyle = '#000'; x.textBaseline = 'alphabetic';
+      var sh = L.shift || 0;
+      (L.els || []).forEach(function (e) {
+        if (e.t === 'qr') {
+          var done = false;
+          if (typeof window.qrcode === 'function') {
+            try { var q = window.qrcode(0, 'M'); q.addData(String(e.data)); q.make();
+              var n = q.getModuleCount(), mag = Math.max(1, Math.floor(e.size / (n + 2))), off = Math.floor((e.size - mag * n) / 2);
+              for (var yy = 0; yy < n; yy++) for (var xx = 0; xx < n; xx++) if (q.isDark(yy, xx)) x.fillRect(sh + e.x + off + xx * mag, e.y + off + yy * mag, mag, mag);
+              done = true; } catch (er) {}
+          }
+          if (!done) x.strokeRect(sh + e.x + 1, e.y + 1, e.size - 2, e.size - 2);
+        } else if (e.t === 'logo') { var li = logoReady(); if (li) x.drawImage(li, sh + e.x, e.y, e.w, e.h);
+        } else if (e.t === 'line') { x.fillRect(sh + e.x, e.y, e.w, 3);
+        } else if (e.t === 'text') {
+          x.font = (e.bold ? '700 ' : '600 ') + Math.round(e.font * 0.95) + 'px ' + SANS;
+          (e.rows || [e.text || '']).forEach(function (row, i) { if (!row) return;
+            var w = x.measureText(row).width, sx = w > e.w ? e.w / w : 1, ax = e.align === 'C' ? e.x + (e.w - w * sx) / 2 : (e.align === 'R' ? e.x + e.w - w * sx : e.x);
+            x.save(); x.translate(sh + ax, Math.round(e.y + e.font * 0.82 + i * e.font)); x.scale(sx, 1); x.fillText(row, 0, 0); x.restore(); });
+        }
+      });
+      return c;
+    }
+    function turnedZPL(L, n) {   // 8z104: a turned label goes to the Zebra as one picture, a quarter turn clockwise
+      var c = toCanvas(L, 1), r = document.createElement('canvas'); r.width = L.LL; r.height = L.PW; var x = r.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, r.width, r.height); x.translate(L.LL, 0); x.rotate(Math.PI / 2); x.drawImage(c, 0, 0);
+      var out = ['^XA', '^CI28', '^PW' + (L.LL + (L.rollShift || 0)), '^LL' + L.PW, '^MD' + (prefs.labels.darkness != null ? prefs.labels.darkness : 20), '^PR' + (prefs.labels.speed || 3), canvasGFA(r, 0, 0)];
+      if (n > 1) out.push('^PQ' + n); out.push('^XZ'); return out.join('\n');
+    }
     function toZPL(L, copies) {
       var n = Math.max(1, Math.min(200, parseInt(copies, 10) || 1));
+      if (L.turned) return turnedZPL(L, n);
       var out = ['^XA', '^CI28', '^PW' + L.PW, '^LL' + L.LL, '^MD' + (prefs.labels.darkness != null ? prefs.labels.darkness : 20), '^PR' + (prefs.labels.speed || 3)];
       L.els.forEach(function (e) {
         if (e.t === 'qr') { var g = qrGFA(e.data, e.x, e.y, e.size); out.push(g ? g.zpl : ('^FO' + e.x + ',' + e.y + '^BQN,2,' + (e.mag || 4) + '^FDMA,' + e.data + '^FS')); }
         else if (e.t === 'text') { if (e.text) out.push('^FO' + e.x + ',' + e.y + '^A0N,' + e.font + ',' + e.font + '^FB' + e.w + ',' + e.lines + ',0,' + (e.align || 'L') + '^FD' + e.text + '^FS'); }
         else if (e.t === 'line') out.push('^FO' + e.x + ',' + e.y + '^GB' + e.w + ',2,2^FS');
+        else if (e.t === 'logo') { var lg = logoGFA(e); if (lg) out.push(lg); }   // 8z103
       });
       if (n > 1) out.push('^PQ' + n);
       out.push('^XZ');
@@ -719,6 +846,8 @@
             } catch (er) {}
           }
           if (!done) s += '<rect x="' + e.x + '" y="' + e.y + '" width="' + e.size + '" height="' + e.size + '" fill="#c9ced6"/>';
+        } else if (e.t === 'logo') {
+          var li = logoReady(); if (li) s += '<image href="' + li.src + '" x="' + e.x + '" y="' + e.y + '" width="' + e.w + '" height="' + e.h + '" preserveAspectRatio="none"/>';
         } else if (e.t === 'line') {
           s += '<rect x="' + e.x + '" y="' + e.y + '" width="' + e.w + '" height="3"/>';
         } else if (e.t === 'text') {
@@ -786,16 +915,17 @@
 
     function printPart(part, opt) {
       if (!prefs.labels.enabled) return Promise.reject(new Error('Label printing is disabled in Hardware settings.'));
-      return sendZPL(buildZPL(part, opt));
+      return ensureLogo().then(function () { return sendZPL(buildZPL(part, opt)); });   // 8z103
     }
 
     function printUnit(unit, part, opt) {
       if (!prefs.labels.enabled) return Promise.reject(new Error('Label printing is disabled in Hardware settings.'));
       if (!unit || !unit.id) return Promise.reject(new Error('No unit id to print.'));
-      return sendZPL(buildUnitZPL(unit, part, opt));
+      return ensureLogo().then(function () { return sendZPL(buildUnitZPL(unit, part, opt)); });
     }
     // One label per unit, sent in order on one device connection; resolves with the count printed.
-    function printUnits(units, part, opt) {
+    function printUnits(units, part, opt) { return ensureLogo().then(function () { return printUnits0(units, part, opt); }); }   // 8z103
+    function printUnits0(units, part, opt) {
       if (!prefs.labels.enabled) return Promise.reject(new Error('Label printing is disabled in Hardware settings.'));
       units = (units || []).filter(function (u) { return u && u.id; });
       if (!units.length) return Promise.reject(new Error('No units to print.'));
@@ -831,11 +961,13 @@
       var CH = 'min-height:44px;min-width:44px;padding:8px 14px;border-radius:22px;border:2px solid var(--edge,#2a2f3a);background:transparent;color:var(--ink,#f4f5f7);font:700 15px -apple-system,Segoe UI,Roboto,sans-serif;cursor:pointer';
       var mo = modal('Print labels', '<div style="font-size:14px;margin:-4px 0 6px;font-weight:600">' + esc(part.name || 'Part') + '</div>'
         + '<div id="plPrnWrap" style="display:none"><div style="font-size:13px;color:var(--dim,#9aa3af);margin:10px 0 4px">Printer</div><div id="plPrn" style="display:flex;flex-wrap:wrap;gap:8px"></div></div>'
-        + '<div style="font-size:13px;color:var(--dim,#9aa3af);margin:10px 0 4px">How many?</div>'
-        + '<div id="plChips" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"></div>'
-        + '<div style="margin-top:8px;display:flex;gap:8px;align-items:center;font-size:13px;color:var(--dim,#9aa3af)"><label for="plNum">Or type a number</label>'
-        + '<input id="plNum" type="number" inputmode="numeric" min="1" max="200" value="1" style="width:90px;min-height:44px;box-sizing:border-box;background:var(--bg,#11141a);border:1px solid var(--edge,#2a2f3a);border-radius:9px;color:var(--ink,#f4f5f7);padding:6px 10px;font-size:16px"></div>'
+        + '<div style="font-size:13px;color:var(--dim,#9aa3af);margin:10px 0 4px"><label for="plNum">How many labels?</label></div>'
+        + '<div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap">'
+        + '<input id="plNum" type="number" inputmode="numeric" min="1" max="200" value="1" style="width:110px;min-height:48px;box-sizing:border-box;background:var(--bg,#11141a);border:1px solid var(--edge,#2a2f3a);border-radius:9px;color:var(--ink,#f4f5f7);padding:6px 10px;font-size:20px;font-weight:800;text-align:center">'
+        + '<div id="plChips" style="display:flex;flex:1;min-width:170px"></div></div>'   // 8z103: only "Print all" lives here now
+        + '<label id="plLogoWrap" style="display:none;align-items:center;gap:10px;min-height:44px;margin-top:10px;font-size:14px;cursor:pointer"><input type="checkbox" id="plLogo" style="width:22px;height:22px"> Shop logo across the top</label>'
         + '<div id="plSizeWrap"><div style="font-size:13px;color:var(--dim,#9aa3af);margin:14px 0 4px">Label size</div><div id="plSizes" style="display:flex;flex-wrap:wrap;gap:8px"></div></div>'
+        + '<div id="plOrWrap" style="display:none"><div style="font-size:13px;color:var(--dim,#9aa3af);margin:14px 0 4px">Layout</div><div id="plOr" style="display:flex;flex-wrap:wrap;gap:8px"></div></div>'
         + '<div id="plModeWrap" style="display:none;margin-top:14px"></div>'
         + '<div id="plNote" style="font-size:12px;color:var(--dim,#9aa3af);margin-top:8px;min-height:16px"></div>'
         + '<div style="font-size:13px;color:var(--dim,#9aa3af);margin:12px 0 4px">What it will look like</div>'
@@ -850,8 +982,7 @@
       function willPrint() { return (st.mode === 'own' && st.units.length) ? ownList().length : copies(); }
       function render() {
         var h = '';
-        [1, 2, 3, 5, 10].forEach(function (n) { h += '<button type="button" data-n="' + n + '" style="' + chip(!st.all && st.count === n) + '" aria-pressed="' + (!st.all && st.count === n) + '">' + n + '</button>'; });
-        if (inStock && inStock > 0) h += '<button type="button" data-all="1" style="' + chip(st.all) + '" aria-pressed="' + st.all + '">All in stock (' + inStock + ')</button>';
+        if (inStock && inStock > 0) h += '<button type="button" data-all="1" style="' + chip(st.all) + ';flex:1" aria-pressed="' + st.all + '">Print all (' + inStock + ' in stock)</button>';
         $('plChips').innerHTML = h;
         $('plNum').value = st.all ? (inStock || 1) : st.count;
         $('plPrnWrap').style.display = (nbOn && zbOn) ? '' : 'none';
@@ -875,6 +1006,12 @@
         $('plNote').textContent = note;
         var unit = (st.mode === 'own' && st.units.length) ? st.units[0] : null;
         var sp = sizeSpec(st.size);
+        // 8z103: the logo tick shows when a logo is uploaded and this label is big enough to carry it
+        var canLogo = false; try { canLogo = !!logoReady() && (nb() ? NB.layout(part, unit, prefs.niimbot.size, { logo: false }).tier === 3 : layoutFor(part, unit, st.size, { logo: false }).tier === 3); } catch (er) {}
+        $('plLogoWrap').style.display = canLogo ? 'flex' : 'none'; $('plLogo').checked = prefs.labels.logo !== false;
+        var showOr = !nb() && canTurn(st.size), oNow = orientOf(st.size);   // 8z104
+        $('plOrWrap').style.display = showOr ? '' : 'none';
+        if (showOr) $('plOr').innerHTML = '<button type="button" data-or="h" style="' + chip(oNow === 'h') + '" aria-pressed="' + (oNow === 'h') + '">Horizontal</button><button type="button" data-or="v" style="' + chip(oNow === 'v') + '" aria-pressed="' + (oNow === 'v') + '">Vertical</button>';
         var n = willPrint();
         if (nb()) {   // 8z102: the Niimbot prints the roll size chosen in Settings
           var nsz = NB.size(prefs.niimbot.size), stt = NB.status(), can = NB.supported();
@@ -883,8 +1020,9 @@
           $('plNote').textContent = (note ? note + ' ' : '') + 'Niimbot label: ' + nsz.label + ' (change it in Settings → Printers & scanner).' + (can ? (stt.connected ? ' Connected to ' + stt.name + '.' : '') : ' ' + NB.whyNot());
           $('plGo').textContent = !can ? '🖼 Save the label as a picture' : (stt.connected ? '🖨 Print ' + n + ' label' + (n === 1 ? '' : 's') : '🔗 Connect the printer and print ' + n);
         } else {
-        $('plSample').style.width = Math.min(sp.wIn * 90, 460) + 'px'; $('plSample').style.maxWidth = '100%';
-        $('plSample').innerHTML = toSVG(layoutFor(part, unit, st.size));
+        var LS = layoutFor(part, unit, st.size);
+        $('plSample').style.width = Math.min(LS.wIn * 90, 460) + 'px'; $('plSample').style.maxWidth = '100%';
+        $('plSample').innerHTML = toSVG(LS);
         $('plGo').textContent = '🖨 Print ' + n + ' label' + (n === 1 ? '' : 's');
         }
         $('plGo').disabled = st.busy; $('plGo').style.opacity = st.busy ? '.6' : '1';
@@ -894,10 +1032,12 @@
         if (b.hasAttribute('data-n')) { st.count = parseInt(b.getAttribute('data-n'), 10); st.all = false; if (!st.touched) st.mode = 'same'; render(); }
         else if (b.hasAttribute('data-all')) { st.all = true; if (!st.touched) st.mode = st.units.length ? 'own' : 'same'; render(); }
         else if (b.hasAttribute('data-sz')) { st.size = b.getAttribute('data-sz'); render(); }
+        else if (b.hasAttribute('data-or')) { prefs.labels.orient = prefs.labels.orient || {}; prefs.labels.orient[st.size] = b.getAttribute('data-or'); persist(); render(); }
         else if (b.hasAttribute('data-prn')) { st.printer = b.getAttribute('data-prn'); try { localStorage.setItem('tks_lbl_printer', st.printer); } catch (er) {} $('plErr').textContent = ''; render(); }
       });
       mo.card.addEventListener('change', function (e) {
         if (e.target.name === 'plMode') { st.mode = e.target.value; st.touched = true; render(); }
+        if (e.target.id === 'plLogo') { prefs.labels.logo = e.target.checked; persist(); render(); }
       });
       $('plNum').addEventListener('input', function () {
         var v = parseInt(this.value, 10); if (!(v >= 1)) return; st.count = Math.min(200, v); st.all = false; if (!st.touched) st.mode = 'same';
@@ -932,6 +1072,7 @@
           .catch(function (err) { st.busy = false; render(); $('plErr').textContent = (err && err.message) || 'The label printer did not answer. Check that it is on and has labels.'; });
       };
       render();
+      ensureLogo().then(function () { if (document.body.contains(mo.card)) render(); });   // 8z103
       if (typeof o.fetchUnits === 'function') {
         Promise.resolve().then(function () { return o.fetchUnits(); }).then(function (u) {
           u = (Array.isArray(u) ? u : []).filter(function (x) { return x && x.id; });
@@ -943,7 +1084,7 @@
     }
 
     return { buildZPL: buildZPL, printPart: printPart, buildUnitZPL: buildUnitZPL, printUnit: printUnit, printUnits: printUnits, listDevices: listDevices, sendZPL: sendZPL, sdkReady: sdkReady,
-      SIZES: LABEL_SIZES, sizeSpec: sizeSpec, layoutFor: layoutFor, toSVG: toSVG, toZPL: toZPL, openPrintDialog: openPrintDialog };
+      SIZES: LABEL_SIZES, sizeSpec: sizeSpec, layoutFor: layoutFor, toSVG: toSVG, toZPL: toZPL, openPrintDialog: openPrintDialog, ensureLogo: ensureLogo, logoImage: logoReady, toCanvas: toCanvas, canTurn: canTurn, orientOf: orientOf };
   })();
 
   /* ========================================================================
@@ -1011,6 +1152,8 @@
         + '<div style="display:flex;flex-wrap:wrap;gap:0 18px">'
         + '<label style="' + row + '"><input type="checkbox" data-szon="' + sz.id + '" style="' + chk + '"' + (lb.sizesOn.indexOf(sz.id) >= 0 ? ' checked' : '') + '> We have this size</label>'
         + '<label style="' + row + '"><input type="radio" name="hwLbSize" value="' + sz.id + '" style="' + chk + '"' + (lb.size === sz.id ? ' checked' : '') + '> Use by default</label></div>'
+        + (canTurn(sz.id) ? '<div style="display:flex;flex-wrap:wrap;gap:0 18px"><label style="' + row + '"><input type="radio" name="hwLbOr_' + sz.id + '" value="h" style="' + chk + '"' + (orientOf(sz.id) === 'h' ? ' checked' : '') + '> Horizontal</label>'
+          + '<label style="' + row + '"><input type="radio" name="hwLbOr_' + sz.id + '" value="v" style="' + chk + '"' + (orientOf(sz.id) === 'v' ? ' checked' : '') + '> Vertical</label></div>' : '')
         + (custom ? '<div style="display:flex;gap:8px"><div style="flex:1">' + field('Width in', '<input id="hwLbW" type="number" step="0.05" min="0.75" max="8" value="' + (parseFloat(lb.customW) || 2.5) + '" style="' + inputCss() + ';min-height:44px">') + '</div>'
           + '<div style="flex:1">' + field('Height in', '<input id="hwLbH" type="number" step="0.05" min="0.5" max="8" value="' + (parseFloat(lb.customH) || 1.5) + '" style="' + inputCss() + ';min-height:44px">') + '</div></div>' : '')
         + '<div data-szsample="' + sz.id + '" style="margin-top:8px"></div></div>';
@@ -1058,6 +1201,9 @@
       + '<div style="border:1px solid var(--edge,#2a2f3a);border-radius:12px;padding:12px;margin-bottom:8px">'
       + '<b>3 · Zebra ZD421 labels</b> <span style="font-size:11px;color:' + (zebraOk ? '#7fd49b' : '#f2b43a') + '">' + (zebraOk ? '● Browser Print loaded' : '● Browser Print not loaded') + '</span>'
       + '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px;min-height:44px"><input type="checkbox" id="hwLbEn" style="width:22px;height:22px"' + (lb.enabled ? ' checked' : '') + '> Enable label printing</label>'
+      + (function () { var has = false; try { has = !!identity().logo; } catch (e) {}
+          return '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px;min-height:44px' + (has ? '' : ';opacity:.6') + '"><input type="checkbox" id="hwLbLogo" style="width:22px;height:22px"' + (has && prefs.labels.logo !== false ? ' checked' : '') + (has ? '' : ' disabled') + '> Shop logo across the top of large labels</label>'
+            + (has ? '' : '<div style="font-size:12px;color:var(--dim,#9aa3af);margin:-4px 0 4px 30px">Upload a logo in Settings → Business identity to use this.</div>'); })()
       + '<div style="font-size:16px;font-weight:800;margin-top:10px">What size labels do you use?</div>'
       + '<div style="font-size:12px;color:var(--dim,#9aa3af);margin-top:2px">Tick every size you have rolls for. Bigger labels show more about the key. The pictures below are drawn to scale.</div>'
       + labelSizeCards(lb)
@@ -1086,6 +1232,7 @@
           + '<div style="flex:2;min-width:160px">' + field('Label roll in the printer', '<select id="hwNbSize" style="' + inputCss() + ';min-height:44px">' + NB.SIZES.map(function (z) { return '<option value="' + z.id + '"' + (nbp.size === z.id ? ' selected' : '') + '>' + esc(z.label + (z.hint ? ' — ' + z.hint : '')) + '</option>'; }).join('') + '</select>') + '</div>'
           + '<div style="flex:1;min-width:100px">' + field('Darkness (1–5)', '<input id="hwNbDens" type="number" min="1" max="5" value="' + (nbp.density || 3) + '" style="' + inputCss() + ';min-height:44px">') + '</div>'
           + '</div>'
+          + '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px;min-height:44px"><input type="checkbox" id="hwNbTurn" style="width:22px;height:22px"' + (nbp.turned ? ' checked' : '') + '> Horizontal layout on the tall 50 × 80 mm roll</label>'
           + '<div style="font-size:13px;color:var(--dim,#9aa3af);margin:10px 0 4px">What it will look like</div><div id="hwNbSample"></div>'
           + (why ? '<div style="font-size:12.5px;color:#f2b43a;margin-top:8px;line-height:1.45">' + esc(why) + '</div>' : '')
           + '<div style="margin-top:8px"><button type="button" id="hwNbTest" style="min-height:46px;padding:10px 16px;border-radius:10px;border:none;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font:800 14px -apple-system,Segoe UI,Roboto,sans-serif;cursor:pointer">' + (why ? 'Save a test label as a picture' : 'Connect and print a test label') + '</button></div>'
@@ -1114,6 +1261,9 @@
       prefs.thermal.logo = $('hwThLogo').checked; prefs.thermal.printLogo = prefs.thermal.logo;
       prefs.thermal.autoPrint = $('hwThAuto').checked;
       prefs.labels.enabled = $('hwLbEn').checked;
+      if ($('hwLbLogo') && !$('hwLbLogo').disabled) prefs.labels.logo = $('hwLbLogo').checked;   // 8z103
+      prefs.labels.orient = prefs.labels.orient || {}; mo.card.querySelectorAll('input[name^="hwLbOr_"]:checked').forEach(function (r) { prefs.labels.orient[r.name.slice(7)] = r.value; });   // 8z104
+      if ($('hwNbTurn')) { prefs.niimbot = prefs.niimbot || {}; prefs.niimbot.turned = $('hwNbTurn').checked; }
       prefs.labels.deviceUid = $('hwLbDev').value;
       prefs.labels.dpi = parseInt($('hwLbDpi').value, 10) || 203;
       prefs.labels.customW = Math.max(0.75, Math.min(8, parseFloat($('hwLbW').value) || 2.5));
@@ -1146,10 +1296,11 @@
     function samples() {
       mo.card.querySelectorAll('[data-szsample]').forEach(function (d) {
         var sp = labels.sizeSpec(d.getAttribute('data-szsample'));
-        d.innerHTML = '<div style="width:' + Math.round(sp.wIn * 90) + 'px;max-width:100%">' + labels.toSVG(labels.layoutFor(sampleKey(), null, sp.id)) + '</div>';
+        var LS = labels.layoutFor(sampleKey(), null, sp.id); d.innerHTML = '<div style="width:' + Math.round(LS.wIn * 90) + 'px;max-width:100%">' + labels.toSVG(LS) + '</div>';
       });
     }
     samples();
+    labels.ensureLogo().then(function (im) { if (im && document.body.contains(mo.card)) { samples(); try { nbSample(); } catch (e) {} } });   // 8z103: redraw the samples once the logo is ready
 
     // 8z26: helper status + drawer
     function chk() { var st = $('hwHelpSt'); if (!st) return; st.textContent = '● checking…'; st.style.color = '#9aa3af';

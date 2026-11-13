@@ -108,7 +108,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     r = await pg.evaluate(() => jobToInvoiceDraft(TKS.Bookings.get('bk1')).then(d => ({ items: d.items.map(i => i.name + ' | ' + i.price + ' | cost ' + (i.unitCost == null ? '-' : i.unitCost) + ' | part ' + (i.partId || '-')) })));
     check('"Invoice this job" hands over the key with its cost ($45.00) from stock', r.items.length === 3 && /TEST FORD F-150 2015-2017 5-Button \| 225 \| cost 45 \| part key1/.test(r.items[2]), r);
     r = await pg.evaluate(() => localStorage.getItem('tks_bottombar_view'));
-    check('main app saved this person\'s bottom-bar tabs for the Receipts page', !!r && JSON.parse(r).map(o => o.go).join() === 'schedule,quote,receipts,inventory', r);
+    check('main app saved this person\'s bottom-bar tabs for the Receipts page', !!r && JSON.parse(r).map(o => o.go).join() === 'schedule,estimates,receipts,inventory', r);
     await pg.goto('http://127.0.0.1:8088/bittings.html', { waitUntil: 'domcontentloaded' }); await pg.waitForSelector('.qi-box', { timeout: 8000 }).catch(() => {}); await sleep(900);
     r = await pg.evaluate(() => Array.from(document.querySelectorAll('.qi-item')).filter(x => !x.dataset.disc).map(x => (x.querySelector('.qiDesc') || {}).value + ' | sale ' + (x.querySelector('.qiAmt') || {}).value + ' | cost ' + (x.querySelector('.qiCost') || {}).value + ' | part ' + (x.dataset.part || '-') + ' | tax ' + (x.querySelector('.qiTax') || {}).checked));
     check('the invoice opens with the key line showing Cost $45.00 (was 0.00), taxed, tied to the stock item', r.length === 3 && /TEST FORD F-150 2015-2017 5-Button \| sale 225 \| cost 45(\.00)? \| part key1 \| tax true/.test(r[2]), r);
@@ -132,17 +132,17 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
 
     // ================= 6. Receipts page bottom bar = the main app's =================
     r = await pg.evaluate(() => Array.from(document.querySelectorAll('#appnav a')).map(a => a.innerText.replace(/\s+/g, ' ').trim() + ' → ' + a.getAttribute('href') + (a.classList.contains('active') ? ' *' : '')));
-    check('Receipts page bottom bar: the same four tabs as the main app, then More (Schedule no longer there twice)', r.length === 5 && /Schedule → index\.html\?go=schedule/.test(r[0]) && /Quote → bittings\.html\?quote=1/.test(r[1]) && /Receipts → bittings\.html\?receipts=1 \*/.test(r[2]) && /Stock → index\.html\?go=inventory/.test(r[3]) && /More → index\.html\?menu=1/.test(r[4]) && r.filter(x => /Sched/.test(x)).length === 1, r);
+    check('Receipts page bottom bar: the same four tabs as the main app, then More (Schedule no longer there twice)', r.length === 5 && /Schedule → index\.html\?go=schedule/.test(r[0]) && /Quotes → bittings\.html\?estimates=1/.test(r[1]) && /Receipts → bittings\.html\?receipts=1 \*/.test(r[2]) && /Stock → index\.html\?go=inventory/.test(r[3]) && /More → index\.html\?menu=1/.test(r[4]) && r.filter(x => /Sched/.test(x)).length === 1, r);
     await pg.evaluate(() => { document.querySelectorAll('.qi-ov').forEach(x => x.remove()); }); await sleep(200);
     await pg.screenshot({ path: path.join(OUT, 'receipts-bottom-bar.png') });
     // this person changed their bar in the main app → the Receipts page follows
     await pg.evaluate(() => { localStorage.setItem('tks_bottombar:samer@turbokeysmith.com', JSON.stringify(['schedule', 'quote', 'reports', 'dashboard'])); sessionStorage.removeItem('tks_job_draft'); });
     await pg.goto('http://127.0.0.1:8088/index.html?menu=1', { waitUntil: 'domcontentloaded' }); await pg.waitForFunction(() => window.TKS && TKS.adapter && TKS.adapter() === 'cloud', { timeout: 15000 }); await sleep(3500);
     r = await pg.evaluate(() => ({ menuOpen: document.querySelector('.bt-sidebar').classList.contains('is-open'), url: location.search, bar: Array.from(document.querySelectorAll('.bt-bottomnav__item')).map(x => x.innerText.replace(/[^A-Za-z ]/g, '').trim()) }));
-    check('"More" from the Receipts page opens the main app with its full menu out', r.menuOpen && r.url === '' && r.bar.join() === 'Schedule,Quote,Reports,Dashboard,More', r);
+    check('"More" from the Receipts page opens the main app with its full menu out', r.menuOpen && r.url === '' && r.bar.join() === 'Schedule,Quotes,Reports,Dashboard,More', r);
     await pg.goto('http://127.0.0.1:8088/bittings.html?receipts=1', { waitUntil: 'domcontentloaded' }); await sleep(1500);
     r = await pg.evaluate(() => Array.from(document.querySelectorAll('#appnav a')).map(a => a.innerText.replace(/[^A-Za-z ]/g, '').trim()));
-    check('a bar customised in the main app (Schedule, Quote, Reports, Dashboard) shows the same on the Receipts page', r.join() === 'Schedule,Quote,Reports,Dashboard,More', r);
+    check('a bar customised in the main app (Schedule, Quotes, Reports, Dashboard) shows the same on the Receipts page', r.join() === 'Schedule,Quotes,Reports,Dashboard,More', r);
     check('no page errors', errs.length === 0, errs.slice(0, 5));
     await pg.close();
   } finally { await b.close(); srv.close(); }

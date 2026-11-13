@@ -62,13 +62,17 @@
   function layout(part, unit, sizeId, extra) {
     var sz = size(sizeId || prefs().size), m = model(prefs().model);
     var wDots = Math.min(Math.round(sz.w * DPMM), m.head), hDots = Math.round(sz.h * DPMM);
-    var opt = { dpi: 203, widthIn: wDots / 203, heightIn: hDots / 203, shiftX: 0 };
-    if (extra) Object.keys(extra).forEach(function (k) { opt[k] = extra[k]; });
+    // 8z104: the tall roll (50 × 80) can be laid out horizontally — drawn on the turned shape, turned back for the printer
+    var turn = !!((extra && extra.nbTurned != null) ? extra.nbTurned : prefs().turned) && sz.h >= 60 && sz.h > sz.w;
+    var rw = turn ? hDots : wDots, rh = turn ? wDots : hDots;
+    var opt = { dpi: 203, widthIn: rw / 203, heightIn: rh / 203, shiftX: 0, turned: false };
+    if (extra) Object.keys(extra).forEach(function (k) { if (k !== 'nbTurned') opt[k] = extra[k]; });
     var L = TKS_HW.labels.layoutFor(part, unit || null, 'custom', opt);
-    L.PW = wDots; L.LL = hDots; L.mm = { w: sz.w, h: sz.h };
+    L.PW = rw; L.LL = rh; L.mm = turn ? { w: sz.h, h: sz.w } : { w: sz.w, h: sz.h }; L.nbTurned = turn;
     return L;
   }
   function draw(L, scale) {
+    try { if (TKS_HW.labels.toCanvas) return TKS_HW.labels.toCanvas(L, scale); } catch (e) {}   // 8z104: one renderer, in hardware.js
     scale = scale || 1;
     var c = document.createElement('canvas'); c.width = Math.round(L.PW * scale); c.height = Math.round(L.LL * scale);
     var x = c.getContext('2d'); x.scale(scale, scale);
@@ -84,6 +88,9 @@
             done = true; } catch (er) {}
         }
         if (!done) { x.strokeRect(sh + e.x + 1, e.y + 1, e.size - 2, e.size - 2); }
+      } else if (e.t === 'logo') {   // 8z103: the shop logo across the top of big labels
+        var li = null; try { li = TKS_HW.labels.logoImage && TKS_HW.labels.logoImage(); } catch (er) {}
+        if (li) x.drawImage(li, sh + e.x, e.y, e.w, e.h);
       } else if (e.t === 'line') {
         x.fillRect(sh + e.x, e.y, e.w, 3);
       } else if (e.t === 'text') {
@@ -99,7 +106,8 @@
     });
     return c;
   }
-  function canvasFor(part, unit, sizeId) { return draw(layout(part, unit, sizeId), 1); }
+  function canvasFor(part, unit, sizeId) { var L = layout(part, unit, sizeId), c = draw(L, 1); if (!L.nbTurned) return c;
+    var r = document.createElement('canvas'); r.width = L.LL; r.height = L.PW; var x = r.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, r.width, r.height); x.translate(L.LL, 0); x.rotate(Math.PI / 2); x.drawImage(c, 0, 0); return r; }
   // an on-screen sample (sharper than the printer picture)
   function sampleCanvas(part, unit, sizeId) { var L = layout(part, unit, sizeId), c = draw(L, 2); c.style.cssText = 'display:block;width:100%;max-width:' + Math.round(L.mm.w * 4.2) + 'px;height:auto;border:1px solid #8a93a0;border-radius:8px;background:#fff'; c.setAttribute('role', 'img'); c.setAttribute('aria-label', 'Label sample ' + L.mm.w + ' by ' + L.mm.h + ' mm'); return c; }
 
@@ -159,11 +167,12 @@
       throw new Error('The printer reported a problem: ' + msg);
     });
   }
-  function printPart(part, copies, sizeId) { return printJobs([{ canvas: canvasFor(part, null, sizeId), copies: copies }]); }
-  function printUnits(units, part, sizeId) { return printJobs((units || []).map(function (u) { return { canvas: canvasFor(part, u, sizeId), copies: 1 }; })); }
+  function logoFirst() { try { return Promise.resolve(TKS_HW.labels.ensureLogo()).catch(function () {}); } catch (e) { return Promise.resolve(); } }
+  function printPart(part, copies, sizeId) { return logoFirst().then(function () { return printJobs([{ canvas: canvasFor(part, null, sizeId), copies: copies }]); }); }
+  function printUnits(units, part, sizeId) { return logoFirst().then(function () { return printJobs((units || []).map(function (u) { return { canvas: canvasFor(part, u, sizeId), copies: 1 }; })); }); }
 
   // ---- no Bluetooth (iPhone): the label as a picture ------------------------------------------------------------
-  function pngBlob(part, unit, sizeId) { var c = canvasFor(part, unit, sizeId); return new Promise(function (res) { c.toBlob(function (b) { res(b); }, 'image/png'); }); }
+  function pngBlob(part, unit, sizeId) { return logoFirst().then(function () { var c = canvasFor(part, unit, sizeId); return new Promise(function (res) { c.toBlob(function (b) { res(b); }, 'image/png'); }); }); }
   function savePicture(part, unit, sizeId) {
     var nameSafe = String((part && (part.sku || part.name)) || 'label').replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 40) || 'label';
     return pngBlob(part, unit, sizeId).then(function (blob) {

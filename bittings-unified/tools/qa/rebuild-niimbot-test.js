@@ -45,6 +45,28 @@ const PART = { id: 'k1', name: 'TEST Ford F-150 2015-2020 5-Button Smart Key', s
     check('the printing library loads on demand, has the B1 print routine, and turns the picture into 240 rows of 384 dots', r.tasks && r.cols === 384 && r.rows === 240, { cols: r.cols, rows: r.rows, rowsData: r.rowsData });
     check('bigger rolls carry more: 40 × 20 = basics, 50 × 30 adds "Fits", 50 × 80 adds FCC ID, chip and type', r.tiers.join() === '1,2,3' && /Fits:/.test(r.texts) && /FCC ID:/.test(r.bigTexts) && /Chip:/.test(r.bigTexts), { tiers: r.tiers, big: r.bigTexts });
 
+    // ---- 8z103: big labels use the room, and carry the shop logo when one is uploaded ----
+    r = await pg.evaluate(async (PART) => { const HW = TKS_HW.labels, f = e => e.t === 'text';
+      const plain = HW.layoutFor(PART, null, 'large', { fill: false }), filled = HW.layoutFor(PART, null, 'large');
+      const nameFont = L => L.els.filter(f)[0].font, lastTextBottom = L => Math.max.apply(null, L.els.filter(f).slice(0, -1).map(e => e.y + e.font * (e.rows ? e.rows.length : 1)));
+      // upload a logo (a made-up black bar with white text) and let the label code load it
+      const c = document.createElement('canvas'); c.width = 600; c.height = 150; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 600, 150); x.fillStyle = '#c00'; x.fillRect(20, 30, 560, 90); x.fillStyle = '#fff'; x.font = '700 60px sans-serif'; x.fillText('TEST LOGO', 120, 98);
+      const real = TKS.Config.identity; TKS.Config.identity = () => Object.assign({}, real.call(TKS.Config), { logo: c.toDataURL('image/png') });
+      const im = await HW.ensureLogo(); const withLogo = HW.layoutFor(PART, null, 'large'), lg = withLogo.els.find(e => e.t === 'logo');
+      const zpl = HW.toZPL(withLogo, 1), svg = HW.toSVG(withLogo), small = HW.layoutFor(PART, null, 'small'), off = HW.layoutFor(PART, null, 'large', { logo: false });
+      const nb = TKS_NIIM.layout(PART, null, '50x80'), nbc = TKS_NIIM.canvasFor(PART, null, '50x80'), px = nbc.getContext('2d').getImageData(0, 0, nbc.width, Math.round(nb.els.find(e => e.t === 'logo').h + 14)).data; let dark = 0; for (let i = 0; i < px.length; i += 4) if (px[i] < 128) dark++;
+      const over = L => L.els.filter(e => (e.t === 'text' && (e.x + e.w > L.PW + 1 || e.y + e.font * (e.rows ? e.rows.length : 1) > L.LL + 1)) || (e.t === 'logo' && (e.x + e.w > L.PW || e.y + e.h > L.LL)) || (e.t === 'qr' && e.y + e.size > L.LL)).length;
+      return { plainFont: nameFont(plain), filledFont: nameFont(filled), plainBottom: Math.round(lastTextBottom(plain)), filledBottom: Math.round(lastTextBottom(filled)), LL: plain.LL, sameLines: plain.els.filter(f).length === filled.els.filter(f).length,
+        loaded: !!im, logo: lg ? { w: lg.w, h: lg.h, y: lg.y } : null, qrBelow: lg ? withLogo.els.find(e => e.t === 'qr').y >= lg.y + lg.h : false, gfa: (zpl.match(/\^GFA/g) || []).length, svgImg: /<image /.test(svg), smallLogo: small.els.some(e => e.t === 'logo'), offLogo: off.els.some(e => e.t === 'logo'),
+        nbLogo: nb.els.some(e => e.t === 'logo'), nbDark: dark, over: over(withLogo) + over(filled) + over(nb) }; }, PART);
+    check('large labels use the room: the type is bigger and the text reaches further down, with the same lines on it', r.filledFont > r.plainFont && r.filledBottom > r.plainBottom + 20 && r.sameLines, { plainFont: r.plainFont, filledFont: r.filledFont, plainBottom: r.plainBottom, filledBottom: r.filledBottom, LL: r.LL });
+    check('with a logo uploaded, a large label carries it across the top (the QR code and text start below it) — on the Zebra code, the sample and the Niimbot picture', r.loaded && !!r.logo && r.logo.y < 20 && r.qrBelow && r.gfa >= 2 && r.svgImg && r.nbLogo && r.nbDark > 300, r);
+    check('small labels never get the logo, the logo can be switched off, and nothing runs off any label', !r.smallLogo && !r.offLogo && r.over === 0, r);
+    await pg.evaluate(async (PART) => { const d = document.createElement('div'); d.id = 'lgShow'; d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#667;padding:14px;overflow:auto;display:flex;flex-direction:column;gap:14px;align-items:center';
+      for (const sz of ['large', 'xl']) { const w = document.createElement('div'); w.style.width = sz === 'large' ? '330px' : '360px'; w.innerHTML = TKS_HW.labels.toSVG(TKS_HW.labels.layoutFor(PART, null, sz)); d.appendChild(w); }
+      const c = TKS_NIIM.sampleCanvas(PART, null, '50x80'); c.style.maxWidth = '210px'; d.appendChild(c); document.body.appendChild(d); }, PART); await sleep(500);
+    await pg.screenshot({ path: path.join(OUT, 'labels-logo-fill-phone.png') }); await pg.evaluate(() => document.getElementById('lgShow').remove());
+
     // ================= 2. the print box with both printers =================
     await pg.evaluate((PART) => { window.__nb = []; const NB = TKS_NIIM; let conn = false;
       NB.connect = () => { window.__nb.push('connect'); conn = true; return Promise.resolve({ connected: true, name: 'B1-TEST' }); };
@@ -65,7 +87,7 @@ const PART = { id: 'k1', name: 'TEST Ford F-150 2015-2020 5-Button Smart Key', s
     await pg.evaluate(() => { document.querySelector('#plChips [data-all]').click(); }); await sleep(200);
     await pg.evaluate(() => document.getElementById('plGo').click()); await sleep(700);
     r = await pg.evaluate(() => ({ calls: window.__nb, open: !!document.getElementById('plGo'), last: localStorage.getItem('tks_lbl_printer') }));
-    check('"All in stock (7)" on the Niimbot: connects on that tap, prints 7 on the 50 × 30 roll, and closes', JSON.stringify(r.calls) === JSON.stringify(['connect', 'part x7 50x30 T-FORD-R8134']) && !r.open && r.last === 'niimbot', r);
+    check('"Print all (7 in stock)" on the Niimbot: connects on that tap, prints 7 on the 50 × 30 roll, and closes', JSON.stringify(r.calls) === JSON.stringify(['connect', 'part x7 50x30 T-FORD-R8134']) && !r.open && r.last === 'niimbot', r);
     await pg.evaluate((PART) => { window.__nb.length = 0; TKS_HW.labels.openPrintDialog(PART, { inStock: 7, fetchUnits: async () => [{ id: 'u1', serial: 'AAA1111' }, { id: 'u2', serial: 'BBB2222' }, { id: 'u3', serial: 'CCC3333' }] }); }, PART); await sleep(500);
     r = await dlg(); const remembered = r.prn[1] === 'Bluetooth (Niimbot)*', already = /^🖨 Print/.test(r.go);
     await pg.evaluate(() => { document.querySelector('#plChips [data-all]').click(); }); await sleep(200); await pg.evaluate(() => document.getElementById('plGo').click()); await sleep(600);

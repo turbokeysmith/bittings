@@ -408,7 +408,31 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
-### 2026-11-13, afternoon (label sizes + print box · Niimbot Bluetooth) — LIVE, not committed yet
+### 2026-11-13, evening (big labels: fill, logo, "Fits:", Vertical / Horizontal · one "Quotes & estimates" screen) — LIVE (85abf43de1d6), NOT committed
+- **Print box (8z103):** the 1/2/3/5/10 chips are gone — a number box (`#plNum`) and one "Print all (N in stock)" button.
+- **Big labels (tier 3, 8z103 + 8z104)** in `app/hardware.js` `layoutFor` → `build3(k, g)`:
+  type is scaled up as far as it goes (k up to 4) without dropping a line; a long key name shrinks on its own; leftover
+  white space is shared out between the lines (g). "Fits:" is ALWAYS on a big label — the vehicle when filled in,
+  otherwise "Fits:" + two rules to write on. Optional shop logo band across the top (`prefs.labels.logo`, Settings tick
+  `hwLbLogo`, print-box tick `plLogo`; only when a logo is uploaded).
+- **New sizes:** `tall` 2 × 3 in and `ship` 4 × 6 in (the owner's new big rolls — exact roll size still to be confirmed
+  from the box).
+- **Vertical / Horizontal** on sizes whose both sides are ≥ 1.75 in (`canTurn`, `orientOf`, pref
+  `prefs.labels.orient[sizeId]` = 'h' | 'v', default = the way the roll feeds). Settings size cards and the print box
+  both show the choice. A turned label is laid out on the turned shape and sent to the Zebra as ONE picture
+  (`toCanvas` → quarter turn → `^GFA`, `turnedZPL`); unturned labels are ordinary ZPL as before. Tall (taller-than-wide)
+  layouts put the name across the top, QR + price side by side, details full width.
+- **Niimbot:** drawing now goes through `TKS_HW.labels.toCanvas` (one renderer); Settings tick `hwNbTurn`
+  ("Horizontal layout on the tall 50 × 80 mm roll").
+- **NOT yet seen on paper:** none of the big sizes, the turned picture, or the logo band has been printed on the real
+  ZD420 or the B1. First real print should check: direction of the turn, darkness of the picture, logo sharpness.
+- **Menu cleanup step 2:** one menu item "Quotes & estimates" (`data-go="estimates"`) opens the estimates list with a
+  "＋ New quote" button (`newQuoteFromList()` in bittings.html); the old `quote` nav entry is a hidden legacy button.
+  Known leftover: on that screen the phone bottom bar lights "Receipts" instead of "Quotes".
+- Tests: `rebuild-labels-test.js` (8092), `rebuild-niimbot-test.js` (8093), `rebuild-menu-test.js` (8091), app, quote
+  (its taxed line now uses Materials, per 8z96), exempt-estimates, profit, multiveh, cash, deposit-print, contrast sweep — all pass.
+
+### 2026-11-13, afternoon (label sizes + print box · Niimbot Bluetooth) — LIVE, committed 40daa12
 - **8z101 Label sizes and the print box** (owner: "print one, two, three… or all the quantity"; "what size label do you
   use, with a sample of each; more information as the size gets bigger"). `app/hardware.js`: `LABEL_SIZES` (small 2×1,
   medium 2¼×1¼, wide 3×1, large 3×2, xl 4×2, xxl 4×3, custom), prefs `labels.size / sizesOn / customW / customH`; ONE

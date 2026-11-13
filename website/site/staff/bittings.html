@@ -504,7 +504,7 @@
 <!-- Persistent app navigation — main + quick menu, always one tap away (bottom bar on phones). -->
 <nav id="appnav"><!-- 8z74: the SAME bottom bar as the main app (this person's own picks), then More -->
   <a href="index.html?go=schedule"><span class="ic">📅</span>Schedule</a>
-  <a href="bittings.html?quote=1"><span class="ic">💬</span>Quote</a>
+  <a href="bittings.html?estimates=1"><span class="ic">💬</span>Quotes</a>
   <a href="bittings.html?receipts=1" class="active"><span class="ic">🧾</span>Receipts</a>
   <a href="index.html?go=inventory"><span class="ic">📦</span>Stock</a>
   <a href="index.html?menu=1"><span class="ic">⋯</span>More</a>
@@ -517,10 +517,10 @@ try{ (function(){
   var v=null; try{ v=JSON.parse(localStorage.getItem('tks_bottombar_view')||'null'); }catch(e){}
   if(!Array.isArray(v) || !v.length) return;
   var nav=document.getElementById('appnav'); if(!nav) return;
-  var isQuote=/[?&]quote=1/.test(location.search), html='';
+  var isQuote=/[?&](quote|estimates)=1/.test(location.search), html='';
   v.slice(0,4).forEach(function(o){ if(!o || !o.go) return;
-    var href = o.go==='quote' ? 'bittings.html?quote=1' : o.go==='receipts' ? 'bittings.html?receipts=1' : ('index.html?go='+encodeURIComponent(o.go));
-    var on = (o.go==='quote' && isQuote) || (o.go==='receipts' && !isQuote);
+    var href = (o.go==='quote'||o.go==='estimates') ? 'bittings.html?estimates=1' : o.go==='receipts' ? 'bittings.html?receipts=1' : ('index.html?go='+encodeURIComponent(o.go));
+    var on = ((o.go==='quote'||o.go==='estimates') && isQuote) || (o.go==='receipts' && !isQuote);
     var a=document.createElement('a'); a.href=href; if(on) a.className='active';
     var ic=document.createElement('span'); ic.className='ic'; ic.textContent=o.ic||'•'; a.appendChild(ic); a.appendChild(document.createTextNode(o.label||o.go));
     html+=a.outerHTML; });
@@ -552,6 +552,7 @@ try{ if(window.self!==window.top){
     <button onclick="closeHist()">Done</button>
   </div>
   <div class="pp-body">
+    <div id="histNewQuote" style="display:none;margin:0 0 12px"><button type="button" id="histNewQuoteBtn" onclick="newQuoteFromList()" style="width:100%;min-height:48px;border:0;border-radius:12px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-size:17px;font-weight:800;cursor:pointer">＋ New quote</button><div style="margin-top:6px;font-size:13px;opacity:.75;text-align:center">Quote a caller, then schedule it or bill it from here.</div></div>
     <div class="hist-filter">
       <button data-f="all" class="active" onclick="setHistFilter('all')">All</button>
       <button data-f="receipt" onclick="setHistFilter('receipt')">Receipts</button>
@@ -1979,8 +1980,14 @@ function setHistFilter(f){
   document.querySelectorAll(".hist-filter button").forEach(b=>{
     b.classList.toggle("active", b.dataset.f===f);
   });
-  try{ document.querySelector("#histPanel .pp-head b").textContent=(f==="estimate")?"Estimates":"History"; }catch(e){}   // 8z78
+  try{ document.querySelector("#histPanel .pp-head b").textContent=(f==="estimate")?"Quotes & estimates":"History"; document.getElementById("histNewQuote").style.display=(f==="estimate")?"":"none"; }catch(e){}   // 8z78
   renderHistList();
+}
+/* New quote from the Quotes & estimates list: same builder as "💬 New quote"; Cancel lands back on the list. */
+function newQuoteFromList(){
+  if(window.RO_RECEIPTS) return;
+  closeHist(); chat.innerHTML="";
+  openQuickInvoice(function(){ showHome(); setHistFilter("estimate"); openHist(); }, null, { docType:"estimate", quote:true });
 }
 function openHist(){ renderHistList(); document.getElementById("histPanel").classList.add("open"); }
 function closeHist(){ document.getElementById("histPanel").classList.remove("open"); }
@@ -1998,7 +2005,7 @@ function renderHistList(){
   const _booked={}; try{ (TKS.Bookings.all()||[]).forEach(b=>{ if(b && b.fromEstimate && !b.deletedAt && !/cancel/i.test(String(b.status||""))) _booked[b.fromEstimate]=b; }); }catch(e){}
   list.innerHTML="";
   if(hist.length===0){
-    list.innerHTML='<div class="pp-empty">'+(_hq?"Nothing matches that search.":(histFilter==="estimate"?"No estimates yet. Make one from Quick quote.":"No documents yet."))+'</div>';
+    list.innerHTML='<div class="pp-empty">'+(_hq?"Nothing matches that search.":(histFilter==="estimate"?"No quotes yet. Tap ＋ New quote above.":"No documents yet."))+'</div>';
     return;
   }
   hist.forEach((r,idx)=>{

@@ -43,7 +43,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
       check(role + ': the Year list has years to pick from', r.years > 20, r.years);
       check(role + ': quote opens as an estimate, name optional, no payment section', /Quick quote/.test(r.title || '') && r.type === 'estimate' && /optional/.test(r.nameLabel || '') && r.payHidden, r);
       await pg.type('.qi-item .qiDesc', 'TEST Car key');
-      await pg.evaluate(() => { const row = document.querySelector('.qi-item'); const a = row.querySelector('.qiAmt'); a.value = '120'; a.dispatchEvent(new Event('input', { bubbles: true })); const t = row.querySelector('.qiTax'); if (!t.checked) t.click(); });
+      await pg.evaluate(() => { const row = document.querySelector('.qi-item'); const a = row.querySelector('.qiAmt'); a.value = '120'; a.dispatchEvent(new Event('input', { bubbles: true })); const c = row.querySelector('.qiCat'); c.value = 'Materials'; c.dispatchEvent(new Event('change', { bubbles: true }));   /* 8z96: only a part can be taxed */ const t = row.querySelector('.qiTax'); if (!t.checked) t.click(); });
       await sleep(250);
       r = await pg.evaluate(() => Array.from(document.querySelectorAll('#qiTot div')).map(d => d.innerText.replace(/\n/g, ' = ')));
       check(role + ': running total shows', r[0] === 'Total before tax = $120.00', r);

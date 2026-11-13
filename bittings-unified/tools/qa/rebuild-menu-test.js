@@ -23,6 +23,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); let failed = 0; const c
     let r = await menuState(); check('phone portrait: the menu scrolls and Settings can be reached above the bottom bar', r.scrolls && r.settingsShown && r.settingsReachable, r);
     check('phone: the menu is grouped — Daily work, Keys & stock, Team & pay, Owner', r.heads.join('|') === 'DAILY WORK|KEYS & STOCK|TEAM & PAY|OWNER' || r.heads.join('|').toLowerCase() === 'daily work|keys & stock|team & pay|owner', r.heads);
     await pg.screenshot({ path: path.join(S, 'menu-phone-bottom.png') }); await pg.evaluate(() => { document.querySelector('.bt-sidebar').scrollTop = 0; }); await sleep(200); await pg.screenshot({ path: path.join(S, 'menu-phone-top.png') });
+    // one Quotes & estimates item (no Quick quote), phone bar default + migrated 'quote'
+    r = await pg.evaluate(() => { const vis = Array.from(document.querySelectorAll('.bt-sidebar .bt-nav__item[data-go]')).filter(x => x.offsetParent); return { labels: vis.map(x => x.innerText.replace(/\s+/g, ' ').trim()), gos: vis.map(x => x.dataset.go), bar: Array.from(document.querySelectorAll('.bt-bottomnav__item')).map(x => x.innerText.replace(/[^A-Za-z ]/g, '').trim()) }; });
+    check('menu: one "Quotes & estimates" item and no "Quick quote"', r.labels.filter(x => /Quotes & estimates/.test(x)).length === 1 && !r.labels.some(x => /Quick quote/.test(x)) && r.gos.indexOf('quote') < 0, r);
+    check('phone bar default: Schedule, Quotes, Receipts, Stock', r.bar.slice(0, 2).join() === 'Schedule,Quotes', r.bar);
+    await pg.screenshot({ path: path.join(S, 'quotes-menu-phone.png') });
+    await pg.evaluate(() => { localStorage.setItem('tks_bottombar:t@example.com', JSON.stringify(['schedule', 'quote', 'receipts'])); localStorage.setItem('tks_bottombar:_', JSON.stringify(['schedule', 'quote', 'receipts'])); TKS_BOTTOMBAR.render(true); }); await sleep(300);
+    r = await pg.evaluate(() => { const bs = Array.from(document.querySelectorAll('.bt-bottomnav__item')); const q = bs.find(x => /Quotes/.test(x.innerText)); return { bar: bs.map(x => x.innerText.replace(/[^A-Za-z ]/g, '').trim()), go: q && q.dataset.go }; });
+    check('a saved bar containing "quote" renders one "Quotes" button that points at Quotes & estimates', r.bar.slice(0, 3).join() === 'Schedule,Quotes,Receipts' && r.go === 'estimates', r);
     // Salary / Commission
     await pg.evaluate(() => { document.querySelector('.bt-sidebar [data-go="commission"]').click(); }); await sleep(1500);
     r = await pg.evaluate(() => { const v = document.getElementById('view-commission'); return { active: v.classList.contains('active'), tabs: v.querySelectorAll('[data-reptab]').length, h1: (v.querySelector('h1') || {}).innerText, repTabs: Array.from(document.querySelectorAll('#view-reports [data-reptab]')).map(x => x.innerText.trim()) }; });

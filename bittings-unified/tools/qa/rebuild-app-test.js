@@ -34,10 +34,10 @@ const active = pg => pg.evaluate(() => (document.querySelector('.view.active') |
         side: await pg.evaluate(() => Array.from(document.querySelectorAll('.bt-sidebar .bt-nav__item[data-go]')).filter(x => x.style.display !== 'none' && !x.classList.contains('tks-cap-hidden')).map(x => x.dataset.go)),
         sched: await pg.evaluate(() => ((document.getElementById('schBody') || {}).innerText || '').slice(0, 60)) };
       check(tag + ': opens on the home screen', r.active === home, r);
-      check(tag + ': no Start a job anywhere; Quick quote in the menu', r.side.indexOf('startjob') < 0 && r.side.indexOf('quote') >= 0 && !r.bar.some(x => /Start job/.test(x)), { side: r.side, bar: r.bar });
+      check(tag + ': no Start a job anywhere; Quotes & estimates in the menu', r.side.indexOf('startjob') < 0 && r.side.indexOf('estimates') >= 0 && !r.bar.some(x => /Start job/.test(x)), { side: r.side, bar: r.bar });
       if (cfg.phone) { await pg.screenshot({ path: path.join(OUT, 'home-' + cfg.role + '.png') });
         check(tag + ': scheduler has drawn', !/^Loading/.test(r.sched || 'Loading') && r.sched.length > 5, r.sched);
-        check(tag + ': bottom bar = Schedule, Quote, Receipts, Stock, More', JSON.stringify(r.bar) === JSON.stringify(['📅 Schedule', '💬 Quote', '🧾 Receipts', '📦 Stock', '⋯ More']), r.bar); }
+        check(tag + ': bottom bar = Schedule, Quotes, Receipts, Stock, More', JSON.stringify(r.bar) === JSON.stringify(['📅 Schedule', '💬 Quotes', '🧾 Receipts', '📦 Stock', '⋯ More']), r.bar); }
       // walk every menu item that is shown
       const walk = [];
       for (const go of r.side.filter(g => g !== 'quote' && g !== 'estimates' && g !== 'reconcile' && g !== 'returns')) {

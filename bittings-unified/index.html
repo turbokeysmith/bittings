@@ -1318,8 +1318,7 @@ window.tksDemoOn = function(){
       <!-- menu groups (cleanup step 1, 2026-11-13): headings hide themselves when none of their items show (syncNavHeads) -->
       <div class="bt-navhead bt-navgrp">Daily work</div>
       <button class="bt-nav__item" data-go="schedule"><span class="bt-nav__ic">📅</span>Scheduler</button>
-      <button class="bt-nav__item" data-go="quote"><span class="bt-nav__ic">💬</span>Quick quote</button>
-      <button class="bt-nav__item" data-go="estimates"><span class="bt-nav__ic">📋</span>Estimates</button><!-- 8z78: every estimate — edit it or put it on the schedule --><!-- 8z65: opens the document builder as an Estimate -->
+      <button class="bt-nav__item" data-go="estimates"><span class="bt-nav__ic">💬</span>Quotes &amp; estimates</button><!-- 8z78: every estimate — edit it or put it on the schedule --><!-- 8z65: opens the document builder as an Estimate -->
       <button class="bt-nav__item pos-desktop-only" data-go="payments"><span class="bt-nav__ic">💳</span>Register</button>
       <button class="bt-nav__item" data-go="receipts"><span class="bt-nav__ic">🧾</span>Receipts</button>
       <button class="bt-nav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
@@ -1338,6 +1337,7 @@ window.tksDemoOn = function(){
       <button class="bt-nav__item owner-only" data-go="reports" style="display:none"><span class="bt-nav__ic">📈</span>Reports</button>
       <button class="bt-nav__item owner-only" data-go="history" style="display:none"><span class="bt-nav__ic">🧮</span>Closeout</button>
       <button class="bt-nav__item" data-go="activity" id="navActivity" style="display:none"><span class="bt-nav__ic">📜</span>Activity</button>
+      <button class="bt-nav__item" data-go="quote" style="display:none" hidden><span class="bt-nav__ic">💬</span>Quick quote</button><!-- legacy: old ?go=quote links; the visible item is "Quotes &amp; estimates" -->
       <button class="bt-nav__item" data-go="reconcile" style="display:none"><span class="bt-nav__ic">🔢</span>Reconcile</button><!-- moved under the Inventory screen (Stock | Reconcile sub-tabs) -->
       <button class="bt-nav__item" data-go="returns" style="display:none"><span class="bt-nav__ic">↩</span>Returns</button><!-- folded into Reports → Returns tab -->
       <div class="bt-navhead" data-cap="keycodes">Vendor tools</div>
@@ -9865,8 +9865,8 @@ try{ if('serviceWorker' in navigator && location.protocol==='https:') navigator.
    Only screens this person can open are offered. A bottom button just clicks the matching side-menu item, so every screen
    opens exactly as it does from the menu (role / plan gates included). Edit: More → "Edit bottom bar", or press and hold the bar. */
 (function(){
-  var DEF=['schedule','quote','receipts','inventory'], MAX=4;   // 8z66: Scheduler first, then Quick quote (Customers is under More)
-  var SHORT={quote:'Quote',inventory:'Stock',schedule:'Schedule',programmers:'Programs',history:'Closeout',lishi:'Lishi',timesheets:'Hours',commission:'Pay'};
+  var DEF=['schedule','estimates','receipts','inventory'], MAX=4;   // Scheduler first, then Quotes & estimates (Customers is under More)
+  var SHORT={estimates:'Quotes',inventory:'Stock',schedule:'Schedule',programmers:'Programs',history:'Closeout',lishi:'Lishi',timesheets:'Hours',commission:'Pay'};
   function who(){ try{ return (TKS.auth&&TKS.auth.email&&TKS.auth.email())||''; }catch(e){ return ''; } }
   function key(){ return 'tks_bottombar:'+(who()||'_'); }
   function saved(){ try{ var v=JSON.parse(localStorage.getItem(key())||'null'); return Array.isArray(v)?v:null; }catch(e){ return null; } }
@@ -9875,7 +9875,7 @@ try{ if('serviceWorker' in navigator && location.protocol==='https:') navigator.
   function options(){ var out=[], seen={}; document.querySelectorAll('.bt-nav__item[data-go]').forEach(function(el){ var g=el.dataset.go; if(seen[g]||!usable(g)) return; seen[g]=1;
       var ic=el.querySelector('.bt-nav__ic'); out.push({go:g, ic:ic?ic.textContent:'•', label:el.textContent.replace(ic?ic.textContent:'','').trim()}); }); return out; }
   function current(){ var opts=options(), ok={}; opts.forEach(function(o){ ok[o.go]=o; });
-    var sv=saved(), list=(sv||DEF).filter(function(g){ return ok[g]; });
+    var sv=saved(), list=(sv||DEF).map(function(g){ return g==='quote'?'estimates':g; }).filter(function(g,i,a){ return ok[g] && a.indexOf(g)===i; });   // old saved 'quote' = 'estimates'
     return list.slice(0,MAX).map(function(g){ return ok[g]; }); }
   var lastSig='';
   function render(force){
