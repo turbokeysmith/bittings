@@ -3203,7 +3203,7 @@ function renderInventory(){
       ((TKS.auth && TKS.auth.isSignedIn())
         ? '<button class="moveloc" data-stock="'+esc(p.id)+'" title="Stock by location (shop / vans)">📍</button>'
         : (showLoc?'<button class="moveloc" data-cap="inventoryWrite" title="Move to '+(loc==='van'?'shop':'van')+'">→ '+(loc==='van'?'Shop':'Van')+'</button>':''))+
-      ((window.TKS_HW && TKS_HW.prefs().labels.enabled)?'<button class="moveloc" data-label="'+esc(p.id)+'" title="Print barcode label (Zebra ZD421)">🏷️</button>':'')+
+      ((window.TKS_HW && (TKS_HW.prefs().labels.enabled || (TKS_HW.prefs().niimbot && TKS_HW.prefs().niimbot.enabled)))?'<button class="moveloc" data-label="'+esc(p.id)+'" title="Print labels">🏷️</button>':'')+   /* 8z102: counter printer or Bluetooth Niimbot */
       ((TKS.auth && TKS.auth.isSignedIn())?'<button class="moveloc" data-cap="invReceive" data-recv="'+esc(p.id)+'" title="Receive units (serial-tracked: supplier, batch, per-unit cost)">📦</button><button class="moveloc" data-warr="'+esc(p.id)+'" title="Warranty replacement (links to the original sale)">🛡️</button><button class="moveloc" data-fail="'+esc(p.id)+'" title="Mark a unit failed → supplier return">⚠️</button>':'')+
       (p.cost?'<span class="tag">'+money(p.cost)+'</span>':'');
     /* 8z69: signed in, the cloud keeps stock per location and works the total out from those — a ± here changed only the
@@ -3221,7 +3221,11 @@ function renderInventory(){
     }
     const lbl=row.querySelector('[data-label]');
     if(lbl) lbl.onclick=(e)=>{ e.stopPropagation(); const part=TKS.Inventory.get(p.id)||p;
-      TKS_HW.labels.printPart(part).then(()=>{}).catch(err=>uiAlert(err.message||String(err))); };
+      const qty=parseInt(p.qty,10)||0;
+      TKS_HW.labels.openPrintDialog(part,{ inStock:qty, fetchUnits:async()=>{
+        try{ if(!(TKS.auth && TKS.auth.isSignedIn()) || !part.serialized) return []; const sb=TKS._sb&&TKS._sb(); if(!sb) return [];
+          const r=await sb.from('inventory_units').select('id,serial,status,location,acquired_at').eq('item_id',part.id).eq('status','in_stock').order('acquired_at',{ascending:false}).limit(200);
+          return r.data||[]; }catch(_){ return []; } } }); };
     const wb=row.querySelector('[data-warr]'); if(wb) wb.onclick=(e)=>{ e.stopPropagation(); window.invWarranty && window.invWarranty(p.id, p.name||''); };
     const fb=row.querySelector('[data-fail]'); if(fb) fb.onclick=(e)=>{ e.stopPropagation(); window.invFailed && window.invFailed(p.id, p.name||''); };
     const rv=row.querySelector('[data-recv]'); if(rv) rv.onclick=(e)=>{ e.stopPropagation(); window.invReceiveUnits && window.invReceiveUnits(p.id, p.name||''); };
@@ -9785,6 +9789,7 @@ gid('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') gid('vinBtn').c
      receipts (WebPRNT), Zebra ZD421 labels (ZPL/Browser Print). Optional vendor
      SDKs load below; the module degrades gracefully and previews work without them. -->
 <script src="app/hardware.js"></script>
+<script src="app/niimbot.js"></script><!-- 8z102: Bluetooth label printing (NIIMBOT); its library loads only when someone prints -->
 <script src="app/vendor/jsqr-1.4.0.js"></script>
 <script src="app/vendor/qrcode-generator-1.4.4.js"></script><!-- 8z28: QR codes for labels (MIT) --><!-- 8r: QR decoder for browsers without BarcodeDetector (iPhone Safari) -->
 <script src="app/camera-scan.js"></script><!-- 8r: phone-camera scanning of unit labels (TKS_CAM) -->

@@ -500,7 +500,7 @@
       done.onclick = m.close;
       btn.onclick = function () {
         btn.disabled = true; msg.textContent = 'Printing ' + units.length + ' label(s)…';
-        TKS_HW.labels.printUnits(units, partForLabel).then(function (n){ msg.textContent = '✓ ' + n + ' label(s) sent to the printer.'; setTimeout(m.close, 1100); })
+        TKS_HW.labels.printUnits(units, partForLabel, {}).then(function (n){ msg.textContent = '✓ ' + n + ' label(s) sent to the printer.'; setTimeout(m.close, 1100); })
           .catch(function (err){ msg.textContent = (err && err.message) || String(err); btn.disabled = false; });
       };
     };

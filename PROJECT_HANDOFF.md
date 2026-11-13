@@ -408,6 +408,29 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-11-13, afternoon (label sizes + print box · Niimbot Bluetooth) — LIVE, not committed yet
+- **8z101 Label sizes and the print box** (owner: "print one, two, three… or all the quantity"; "what size label do you
+  use, with a sample of each; more information as the size gets bigger"). `app/hardware.js`: `LABEL_SIZES` (small 2×1,
+  medium 2¼×1¼, wide 3×1, large 3×2, xl 4×2, xxl 4×3, custom), prefs `labels.size / sizesOn / customW / customH`; ONE
+  layout engine `layoutFor(part, unit, sizeId, opt)` → `toZPL()` for the Zebra and `toSVG()` for the on-screen sample
+  (tier 1 = today's 2×1 label, tier 2 adds a "Fits:" line, tier 3 adds FCC ID / chip / type, serial + received date on unit
+  labels). Settings → Printers & scanner shows a sample card per size ("We have this size" / "Use by default").
+  `TKS_HW.labels.openPrintDialog(part, { inStock, fetchUnits })` — the 🏷 button on each inventory row now opens it:
+  1 / 2 / 3 / 5 / 10 / "All in stock (N)" / any number, size chips (only the ticked sizes), live sample, and for serialised
+  keys "each key's own label" vs "same label × N" (`^PQn`). Test `tools/qa/rebuild-labels-test.js`.
+  The bigger Zebra rolls are not installed yet — owner to confirm their exact size; nothing printed on paper yet.
+- **8z102 Niimbot over Bluetooth** (owner: "not everyone has a shop printer… we have a B1"). `app/niimbot.js`
+  (`TKS_NIIM`): draws the SAME layout on a canvas at 203 dpi (B1 head = 384 dots; rolls 50×30 default, 50×50, 50×80, 40×30,
+  40×20, 30×20 mm) and prints through **NiimBlueLib 0.49.1** (MIT, vendored at `app/vendor/niimbluelib-0.49.1.min.js` +
+  licence, loaded only when printing; owner approved including it). Web Bluetooth only: Chrome on Android / Windows.
+  iPhone: the print box offers "Save the label as a picture" (share sheet / download) — or Bluefy browser (untested).
+  prefs `niimbot { enabled, model, size, density }`; Settings block "4 · Bluetooth label printer (Niimbot)" with sample +
+  "Connect and print a test label"; the print box shows a Printer choice when both printers are on. Research:
+  `docs/research/niimbot-bluetooth-2026-11-13.md`. Test `tools/qa/rebuild-niimbot-test.js` (Bluetooth stood in).
+  **NOT yet tried on the real B1** — first real test = owner's Android + B1 (genuine rolls; print direction, darkness and
+  alignment on rolls narrower than 50 mm are unverified). Only B1 / B21 (48 mm head) are listed; D11 / D110 need a
+  narrow layout.
+
 ### 2026-11-13, later (Key systems first build · menu groups · menu scroll fix · "coming soon" on the site) — LIVE
 - **8z100 Key systems** (owners / managers; menu → Keys & stock → 🔑 Key systems). Server: `supabase/phase8/8z100_key_systems.sql`
   (APPLIED) — tables `key_systems` (one jsonb document per system) + `key_system_events`; NO direct table access for anyone;
