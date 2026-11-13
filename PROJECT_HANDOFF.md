@@ -423,8 +423,13 @@ All in `app/hardware.js` (label engine), big labels only (tier 3 = 2 × 3 and up
   "Type + SKU + Serial"; there is no separate "Serial number" box on a big label any more (small labels keep it under
   the QR code). One-time reset (`prefs.labels.footGroup`) drops older hand-placed `sku` / `unit` positions on big labels
   so the group starts in its standard place. Details pinned onto the group are lifted to end just above it.
-- Tests: `tools/qa/rebuild-labels-test.js` (group moves as one, border, order), `rebuild-niimbot-test.js`.
-- Still owed on real equipment: one 2 × 3 print at the counter to confirm the border and the group on paper.
+- **8z134** (LIVE afe174cbf460) — owner's real vertical 2 × 3 print showed ~0.3 in of white under the serial line. A
+  turned (Vertical) label used to hold back the "Left margin (dots)" strip (`shiftX`, 40 dots) at its foot as
+  unprintable; on the 3 in roll that strip IS on the label. Now a turned label uses its whole height (`rollShift` is
+  always 0) and `turnedZPL` sends `^LH0,0` so the picture starts at the printer's first dot. Unturned labels still use
+  `shiftX` as before. If another roll/printer ever cuts the foot of a vertical label, this is the place to look.
+- Tests: `tools/qa/rebuild-labels-test.js` (group moves as one, border, order, turned = whole height), `rebuild-niimbot-test.js`.
+- Still owed on real equipment: one vertical 2 × 3 print at the counter to confirm the foot margin after 8z134.
 
 ### 2026-11-13, end of day (8z119 – 8z130) — LIVE (78af88d76e43); committed through 9fa9e5a, the rest NOT committed
 Committed in 9fa9e5a: exact-serial scanning (Register keeps `unitIds` — SQL 8z119), van hand-over (SQL 8z120:

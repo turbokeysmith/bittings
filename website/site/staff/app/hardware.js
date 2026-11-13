@@ -766,7 +766,10 @@
       var shift = (opt.shiftX != null) ? Math.max(0, parseInt(opt.shiftX, 10) || 0) : Math.max(0, parseInt(prefs.labels.shiftX, 10) || 0);   // 8z102: opt.shiftX (the Niimbot passes 0)
       // 8z104: a turned label is laid out on the turned shape (and printed as one picture, see toZPL)
       var turned = (opt.turned != null) ? !!opt.turned : (opt.widthIn ? false : isTurned(sp.id, opt.orient)), rollShift = 0;
-      if (turned) { var tsw = wIn; wIn = hIn; hIn = tsw; PW = Math.round(wIn * dpi); LL = Math.round(hIn * dpi) - shift; rollShift = shift; shift = 0; }
+      /* 8z134 (owner's real 2 x 3 print: "still large gap at the bottom"): a turned label uses its WHOLE height. The strip of
+         "left margin" dots that used to be held back at the foot is printable on the roll — the picture now starts at the
+         printer's first dot (turnedZPL sends ^LH0,0), so nothing is reserved and rollShift stays 0. */
+      if (turned) { var tsw = wIn; wIn = hIn; hIn = tsw; PW = Math.round(wIn * dpi); LL = Math.round(hIn * dpi); shift = 0; }
       var tier = (hIn <= 1.1 && wIn <= 2.5) ? 1 : (hIn >= 1.75 ? 3 : 2);
       if (tier === 3) m = Math.round(0.10 * dpi);   // 8z132c: a small white border on big labels (nothing sits against the edge)
       var fullW = PW - shift - 2 * m;
@@ -962,7 +965,7 @@
     function turnedZPL(L, n) {   // 8z104: a turned label goes to the Zebra as one picture, a quarter turn clockwise
       var c = toCanvas(L, 1), r = document.createElement('canvas'); r.width = L.LL; r.height = L.PW; var x = r.getContext('2d');
       x.fillStyle = '#fff'; x.fillRect(0, 0, r.width, r.height); x.translate(L.LL, 0); x.rotate(Math.PI / 2); x.drawImage(c, 0, 0);
-      var out = ['^XA', '^CI28', '^PW' + (L.LL + (L.rollShift || 0)), '^LL' + L.PW, '^MD' + (prefs.labels.darkness != null ? prefs.labels.darkness : 20), '^PR' + (prefs.labels.speed || 3), canvasGFA(r, 0, 0)];
+      var out = ['^XA', '^LH0,0', '^CI28', '^PW' + (L.LL + (L.rollShift || 0)), '^LL' + L.PW, '^MD' + (prefs.labels.darkness != null ? prefs.labels.darkness : 20), '^PR' + (prefs.labels.speed || 3), canvasGFA(r, 0, 0)];
       if (n > 1) out.push('^PQ' + n); out.push('^XZ'); return out.join('\n');
     }
     function toZPL(L, copies) {
