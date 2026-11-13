@@ -1775,7 +1775,7 @@ window.tksDemoOn = function(){
       <button class="add" id="invImport" data-cap="inventoryWrite" title="Import from a spreadsheet (.xlsx/.csv)" style="background:#e7e9ee;color:#14171b">📥 Import</button>
       <button class="add" id="invExport" data-cap="inventoryWrite" title="Export inventory to a .csv file" style="background:#e7e9ee;color:#14171b">📤 Export</button>
       <button class="add" id="invAdd" data-cap="invAddNew" title="Add a part or key that is not in the list yet">+ Add</button>
-      <button class="add" id="invHardware" title="Hardware: barcode scanner, receipt printer, label printer" style="background:#e7e9ee;color:#14171b">🖨️ Hardware</button>
+
       <button class="add" id="invReorder" data-cap="inventoryWrite" title="Everything at or below its low-stock point, grouped by supplier — copy, email or CSV" style="background:#e7e9ee;color:#14171b">📋 Reorder</button>
       <button class="add" id="invScanKey" title="Look a key up by its unit label (or type a unit id / SKU) — see where it came from, where it is, and its sale or warranty history" style="background:#e7e9ee;color:#14171b">🔎 Scan a key</button>
     </div>
@@ -6848,6 +6848,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     {key:'services',     title:'Services',             ic:'🛠'},
     {key:'hours',        title:'Hours & footer',       ic:'🕒'},
     {key:'timeclock',    title:'Time clock & lock',    ic:'⏱'},
+    {key:'hardware',     title:'Printers & scanner',   ic:'🖨'},   // 8z99: moved here from the Inventory toolbar
     {key:'inventory',    title:'Inventory (optional)', ic:'📦'},
     {key:'review',       title:'Review & finish',      ic:'✅'}
   ];
@@ -7192,6 +7193,12 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
           p.then(function(r){ cb.disabled=false; try{ if(window.__tcShowRule) window.__tcShowRule(); clkLoadRule(true); }catch(e){} if(r && r.ok){ msg.textContent = want ? '✓ This is now a shop computer — technicians can clock in here.' : 'Un-registered.'; } else { cb.checked=!want; try{ localStorage.setItem('tks_tc_device', (!want)?'1':'0'); }catch(e){} msg.textContent='Could not '+(want?'register':'un-register')+': '+((r&&r.error)||'unknown error'); } renderDevices(); });
         };
       })();
+    }
+    else if(key==='hardware'){   // 8z99
+      p.innerHTML='<h2>Printers &amp; scanner</h2><div class="sub">The receipt printer, cash drawer, label printer and barcode scanner for <b>this computer or tablet</b>. Each device keeps its own settings, so set this up on the counter PC and on any tablet that prints.</div>'+
+        '<button type="button" class="btn save" id="hwOpen" style="flex:none;width:100%;min-height:48px">🖨 Open printer &amp; scanner settings</button>'+
+        '<div class="hint">Test receipts, the logo on receipts, the cash drawer and label sizes are all in there.</div>';
+      const hb=gid('hwOpen'); if(hb) hb.onclick=()=>{ if(window.TKS_HW && TKS_HW.openSettings) TKS_HW.openSettings(); else appAlertLite('Printer settings not loaded','Tap Update app and try again.'); };
     }
     else if(key==='inventory'){
       p.innerHTML='<h2>Inventory (optional)</h2><div class="sub">Already have a parts list in a spreadsheet? Import it now — upload an .xlsx or .csv, match your columns to the app\'s fields, preview, and import. Duplicates are skipped.</div>'+

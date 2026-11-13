@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Key system — mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<!--
+  MOCK of the residential / commercial "key system" screen (2026-11-13). Not part of the app. Sample building, sample numbers.
+  Owner's rules: a key can be tied to WHO has it (a person or a role) and/or WHAT it opens (doors / areas) — either, both or
+  neither; the calculator lives on screen; Print is optional. Specs: Schlage Classic depths 0–9 / MACS 7, Best-style A2 SFIC
+  rule "build-up = control + 10 − plug total, stack = 23" (see docs/research/master-keying-research-2026-11-13.md).
+  The Schlage conventional top-pin rule is a DRAFT (not confirmed) — flagged on screen.
+-->
+<style>
+  :root{--bg:#14171c;--card:#1d2128;--card2:#232832;--edge:rgba(255,255,255,.1);--ink:#f2f3f5;--dim:#a6adb8;--red:#c42a36;--redt:#ff6b73;--ok:#2fb26b;--warn:#f2b43a}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Archivo,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .top{position:sticky;top:0;z-index:5;background:rgba(20,23,28,.96);border-bottom:1px solid var(--edge);padding:10px 14px 0}
+  .top h1{margin:0;font-size:19px;font-weight:900} .top .sub{color:var(--dim);font-size:13px}
+  .mock{display:inline-block;margin-left:6px;font:700 10px/1 'JetBrains Mono',monospace;letter-spacing:.08em;background:var(--warn);color:#1a1a1a;border-radius:6px;padding:4px 6px;vertical-align:middle}
+  .tabs{display:flex;gap:4px;margin-top:10px;overflow-x:auto}
+  .tabs button{flex:1 0 auto;min-height:44px;background:none;border:0;border-bottom:3px solid transparent;color:var(--dim);font:700 14px Archivo;padding:8px 10px;cursor:pointer}
+  .tabs button.on{color:var(--ink);border-bottom-color:var(--red)}
+  main{max-width:980px;margin:0 auto;padding:14px}
+  .card{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:14px;margin-bottom:12px}
+  .card h2{margin:0 0 4px;font-size:17px;font-weight:800} .hint{color:var(--dim);font-size:13px}
+  label{display:block;font-size:12px;font-weight:700;color:var(--dim);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+  select,input{width:100%;min-height:46px;background:var(--card2);color:var(--ink);border:1px solid var(--edge);border-radius:10px;padding:10px 12px;font:16px Archivo}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media(max-width:560px){.grid2{grid-template-columns:1fr}}
+  .cuts{display:flex;gap:6px;flex-wrap:wrap} .cuts input{width:46px;min-height:52px;text-align:center;font:700 22px 'JetBrains Mono',monospace;padding:4px}
+  .mono{font-family:'JetBrains Mono',monospace;letter-spacing:.06em}
+  .pill{display:inline-block;font:700 12px/1 'JetBrains Mono',monospace;border-radius:999px;padding:5px 9px;background:var(--card2);border:1px solid var(--edge)}
+  .pill.red{background:rgba(196,42,54,.18);border-color:rgba(255,107,115,.4);color:var(--redt)} .pill.ok{background:rgba(47,178,107,.15);border-color:rgba(47,178,107,.4);color:#5fd897}
+  .pill.warn{background:rgba(242,180,58,.15);border-color:rgba(242,180,58,.45);color:var(--warn)}
+  .msg{border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14px} .msg.ok{background:rgba(47,178,107,.12);color:#7be3aa} .msg.bad{background:rgba(196,42,54,.15);color:#ff9aa0} .msg.warn{background:rgba(242,180,58,.12);color:#f6cd77}
+  .row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:11px 0;border-top:1px solid var(--edge)} .row:first-of-type{border-top:0}
+  .row .l{min-width:0} .row .t{font-weight:800} .row .s{color:var(--dim);font-size:13px}
+  .who{color:#9ec5ff} .what{color:#ffd48a}
+  button.btn{min-height:44px;border-radius:10px;border:1px solid var(--edge);background:var(--card2);color:var(--ink);font:700 14px Archivo;padding:8px 14px;cursor:pointer}
+  button.btn.red{background:linear-gradient(180deg,#c42a36,#8f1c26);border-color:transparent;color:#fff}
+  .tree{margin:6px 0 0;padding:0;list-style:none} .tree li{margin:4px 0} .tree ul{list-style:none;margin:4px 0 4px 16px;padding-left:12px;border-left:2px solid var(--edge)}
+  table{width:100%;border-collapse:collapse;font-size:14px} th,td{padding:9px 6px;text-align:center;border-bottom:1px solid var(--edge)} th{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+  td.k{text-align:left;color:var(--dim)} td b{font-family:'JetBrains Mono',monospace;font-size:17px}
+  .scroll{overflow-x:auto}
+  .chip-sel{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px} .chip-sel button{min-height:40px;border-radius:999px;border:1px solid var(--edge);background:var(--card2);color:var(--ink);font:700 13px Archivo;padding:6px 12px;cursor:pointer}
+  .chip-sel button.on{background:var(--red);border-color:transparent}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin-top:6px}
+  .section{display:none} .section.on{display:block}
+  @media print{
+    body{background:#fff;color:#000;font-size:12px} .top,.bar,.noprint,.tabs,.chip-sel{display:none!important}
+    .section{display:none!important} body[data-print] .section[data-sec].printme{display:block!important}
+    .card{background:#fff;border:1px solid #999;break-inside:avoid} .hint,.row .s,th,td.k{color:#333} .pill{border:1px solid #666;background:#fff;color:#000}
+    .who,.what{color:#000} td b{font-size:14px} main{padding:0} .msg{border:1px solid #999;background:#fff;color:#000}
+    .printhead{display:block!important}
+  }
+  .printhead{display:none;font-size:12px;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>Maple Street Offices <span class="mock">MOCK</span></h1>
+  <div class="sub">Key system · Building A · sample shop "Ironwood Lock &amp; Key" · sample numbers — not for pinning real locks</div>
+  <div class="tabs" role="tablist">
+    <button data-tab="system" class="on">System</button><button data-tab="keys">Keys</button><button data-tab="doors">Doors</button><button data-tab="chart">Pin chart</button><button data-tab="lost">Lost key</button>
+  </div>
+</div>
+<main>
+  <div class="printhead" id="printhead"></div>
+
+  <!-- ================= SYSTEM ================= -->
+  <section class="section on" data-sec="system">
+    <div class="card">
+      <h2>Lock and method</h2>
+      <div class="grid2">
+        <div><label>Lock / core</label><select id="brand"><option value="sc">Schlage Classic · 6-pin · SC1</option><option value="a2">Best-style SFIC (A2) · 7-pin · IC core</option></select></div>
+        <div><label>Method</label><select id="method"><option value="tpp2">Total position progression · 2-step</option><option value="tpp1" disabled>Total position · 1-step (later)</option><option value="rc" disabled>Rotating constant (later)</option></select></div>
+      </div>
+      <div class="hint" id="specLine" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h2>Top master key (GM)</h2>
+      <div class="hint">The cuts of the key that opens everything. Every other key is worked out from it.</div>
+      <label>Cuts, bow to tip</label><div class="cuts" id="tmk"></div>
+      <div id="ctlWrap" style="display:none"><label>Control key (IC core removal)</label><div class="cuts" id="ctl"></div></div>
+      <div id="sysMsg"></div>
+    </div>
+    <div class="card">
+      <h2>Levels</h2>
+      <div class="hint">Positions 1–2 make the master keys (AA, AB…); the rest make each person's or door's key (AA1, AA2…).</div>
+      <ul class="tree" id="tree"></ul>
+      <div class="hint" id="capLine" style="margin-top:8px"></div>
+    </div>
+    <div class="bar"><button class="btn" data-print="system">🖨 Print system sheet</button></div>
+  </section>
+
+  <!-- ================= KEYS ================= -->
+  <section class="section" data-sec="keys">
+    <div class="card">
+      <h2>Keys</h2>
+      <div class="legend"><span class="who">● Who has it</span><span class="what">● What it opens</span><span class="hint">Fill in either, both, or neither.</span></div>
+      <div id="keyList" style="margin-top:6px"></div>
+    </div>
+    <div class="bar"><button class="btn" data-print="keys">🖨 Print key list (for cutting)</button></div>
+  </section>
+
+  <!-- ================= DOORS ================= -->
+  <section class="section" data-sec="doors">
+    <div class="card">
+      <h2>Doors &amp; areas</h2>
+      <div class="hint">The physical side: each door or area, its lock, and which key it is set to. Tap one for its pin chart.</div>
+      <div id="doorList" style="margin-top:6px"></div>
+    </div>
+    <div class="bar"><button class="btn" data-print="doors">🖨 Print door list</button></div>
+  </section>
+
+  <!-- ================= PIN CHART ================= -->
+  <section class="section" data-sec="chart">
+    <div class="card">
+      <h2 id="chartTitle">Pin chart</h2>
+      <div class="chip-sel noprint" id="doorPick"></div>
+      <div class="hint" id="chartSub" style="margin-top:8px"></div>
+      <div class="scroll" style="margin-top:8px"><table id="chartTbl"></table></div>
+      <div id="chartChecks"></div>
+    </div>
+    <div class="bar"><button class="btn red" data-print="chart">🖨 Print this pin chart</button><button class="btn" data-print="chartall">🖨 Print all doors</button></div>
+  </section>
+
+  <!-- ================= LOST KEY ================= -->
+  <section class="section" data-sec="lost">
+    <div class="card">
+      <h2>A key was lost</h2>
+      <div class="hint">Pick the key. Bittings lists the doors to rekey and the keys to cut — nothing else changes.</div>
+      <div class="chip-sel" id="lostPick"></div>
+      <div id="lostOut" style="margin-top:10px"></div>
+    </div>
+    <div class="bar"><button class="btn" data-print="lost">🖨 Print rekey list</button><button class="btn red noprint" onclick="alert('In the real app: starts a rekey quote for these doors, with the pins and new keys on it.')">Start rekey quote</button></div>
+  </section>
+
+  <!-- print-all-doors target -->
+  <section class="section" data-sec="chartall" id="chartAll"></section>
+</main>
+
+<script>
+/* ---------- specs (sourced; see the research file) ---------- */
+const SPEC = {
+  sc: { name:'Schlage Classic SC1', pins:6, depths:[0,9], inc:'.015"', macs:7, ic:false, note:'Depths 0–9 at .015", MACS 7 (Schlage). Top-pin rule below is a DRAFT until confirmed.' },
+  a2: { name:'Best-style SFIC, A2', pins:7, depths:[0,9], inc:'.0125"', macs:null, ic:true, note:'Depths 0–9 at .0125". IC core: build-up = control cut + 10 − plug total; every stack totals 23 (Schlage SFIC manual).' }
+};
+/* ---------- the sample building: WHO and WHAT are separate and both optional ---------- */
+const HOLDERS = { AA1:'Dana Whitfield', AA3:'Marcus Lee', AA4:'Suite 102 tenant', AB1:'Janitor', AB2:'Maintenance', AB3:'Property manager', GM:'Property manager', AA:'Leasing office' };
+const DOORS = [
+  { id:'d1', name:'Suite 100 · front door', key:'AA1' }, { id:'d2', name:'Suite 100 · storage', key:'AA2' },
+  { id:'d3', name:'Suite 101 · front door', key:'AA3' }, { id:'d4', name:'Suite 102 · front door', key:'AA4' },
+  { id:'d5', name:'Janitor closet', key:'AB1' }, { id:'d6', name:'Mechanical room', key:'AB2' }, { id:'d7', name:'Electrical room', key:'AB2' },
+  { id:'d8', name:'Manager office', key:'AB3' } ];
+const COPIES = { AA1:2, AA3:1, AB2:2, GM:1, AA:1 };
+let brand='sc', TMK={ sc:[4,6,2,7,3,5], a2:[5,3,7,1,4,6,2] }, CTL=[8,0,9,4,2,7,1], selDoor='d3', lostKey='AA3';
+
+const $=s=>document.querySelector(s), esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* ---------- the math ---------- */
+function prog(t){ const out=[]; for(let k=1;k<=4;k++){ const v=t+2*k; out.push(((v%10)+10)%10); } return out.filter(v=>v!==t && (v%2)===(t%2)); }  // 2-step: same odd/even as the top master
+function macsOK(b){ const m=SPEC[brand].macs; if(m==null) return true; for(let i=1;i<b.length;i++) if(Math.abs(b[i]-b[i-1])>m) return false; return true; }
+function build(){
+  const t=TMK[brand], n=t.length, MC=2, P=t.map(prog), keys={ GM:{ sym:'GM', bit:t.slice(), level:0 } }, masters=[];
+  const L='ABCDEFGHJK';
+  for(let a=0;a<P[0].length && masters.length<3;a++) for(let b=0;b<P[1].length && masters.length<3;b++){ const bit=t.slice(); bit[0]=P[0][a]; bit[1]=P[1][b];
+    if(!macsOK(bit)) continue; const sym='A'+L[masters.length]; keys[sym]={ sym, bit, level:1, parent:'GM' }; masters.push(sym); }
+  let skipped=0;
+  masters.forEach((m,mi)=>{ const want=mi===0?4:3; let made=0;
+    const idx=Array(n-MC).fill(0), lens=P.slice(MC).map(p=>p.length);
+    for(let guard=0; guard<500 && made<want; guard++){ const bit=keys[m].bit.slice(); for(let j=0;j<n-MC;j++) bit[MC+j]=P[MC+j][idx[j]];
+      if(macsOK(bit)){ made++; const sym=m+made; keys[sym]={ sym, bit, level:2, parent:m }; } else skipped++;
+      for(let j=n-MC-1;j>=0;j--){ idx[j]++; if(idx[j]<lens[j]) break; idx[j]=0; } } });
+  const cap = P.slice(0,MC).reduce((a,p)=>a*p.length,1)+' master keys × '+P.slice(MC).reduce((a,p)=>a*p.length,1)+' keys under each (before MACS / cross-key checks)';
+  return { keys, masters, cap, skipped };
+}
+function chainOf(keys,sym){ const c=[]; let k=keys[sym]; while(k){ c.unshift(k.sym); k=keys[k.parent]; } return c; }  // GM → AA → AA1
+function pinsFor(keys,sym){
+  const ops=chainOf(keys,sym).map(s=>keys[s].bit), n=ops[0].length, rows=[];
+  for(let i=0;i<n;i++){ const cuts=ops.map(b=>b[i]), vals=[...new Set(cuts)].sort((a,b)=>a-b), bottom=vals[0], masters=vals.slice(1).map((v,j)=>v-vals[j]), plug=vals[vals.length-1];
+    const r={ pos:i+1, cuts, bottom, masters, plug, shear:vals };
+    if(SPEC[brand].ic){ r.control=CTL[i]; r.build=CTL[i]+10-plug; r.top=23-(bottom+masters.reduce((a,b)=>a+b,0)+r.build); }
+    else { r.top = plug<=3?1:plug<=6?2:3; r.draft=true; }   // DRAFT conventional rule — must be confirmed
+    rows.push(r); }
+  return rows;
+}
+function opensKey(rows,bit){ return rows.every((r,i)=>r.shear.indexOf(bit[i])>=0); }
+/* ---------- render ---------- */
+function render(){
+  const S=SPEC[brand], sys=build(), keys=sys.keys;
+  $('#specLine').textContent=S.note;
+  ['#tmk','#ctl'].forEach(id=>{ const box=$(id), arr=id==='#tmk'?TMK[brand]:CTL; box.innerHTML=arr.slice(0,S.pins).map((v,i)=>'<input inputmode="numeric" maxlength="1" value="'+v+'" data-i="'+i+'" aria-label="Position '+(i+1)+'">').join('');
+    box.querySelectorAll('input').forEach(inp=>inp.oninput=()=>{ const v=parseInt(inp.value,10); if(isNaN(v)||v<0||v>9) return; arr[+inp.dataset.i]=v; render(); }); });
+  $('#ctlWrap').style.display=S.ic?'':'none';
+  const t=TMK[brand]; const bad=[]; if(!macsOK(t)) bad.push('The top master breaks MACS '+S.macs+' (two cuts next to each other are too far apart).');
+  if(S.ic && CTL.slice(0,S.pins).join('')===t.join('')) bad.push('The control key cannot be the same as the top master.');
+  $('#sysMsg').innerHTML = bad.length ? '<div class="msg bad">'+bad.map(esc).join('<br>')+'</div>' : '<div class="msg ok">✓ Top master is valid for '+esc(S.name)+'.'+(sys.skipped?' '+sys.skipped+' possible keys were skipped because they break MACS.':'')+'</div>';
+  // tree
+  const kids=p=>Object.values(keys).filter(k=>k.parent===p);
+  const line=k=>'<span class="pill red">'+k.sym+'</span> <span class="mono">'+k.bit.join(' ')+'</span>'+(HOLDERS[k.sym]?' <span class="who">· '+esc(HOLDERS[k.sym])+'</span>':'');
+  $('#tree').innerHTML='<li>'+line(keys.GM)+' <span class="hint">top master — opens everything</span><ul>'+kids('GM').map(m=>'<li>'+line(m)+' <span class="hint">master</span><ul>'+kids(m.sym).map(c=>'<li>'+line(c)+'</li>').join('')+'</ul></li>').join('')+'</ul></li>';
+  $('#capLine').textContent='Room to grow: '+sys.cap+'.';
+  // keys: WHO / WHAT
+  const doorsFor=sym=>DOORS.filter(d=>chainOf(keys,d.key).indexOf(sym)>=0).map(d=>d.name);
+  $('#keyList').innerHTML=Object.values(keys).map(k=>{ const own=DOORS.filter(d=>d.key===k.sym).map(d=>d.name), all=doorsFor(k.sym);
+    const what = k.level<2 ? (k.level===0?'Every door':'All '+all.length+' doors under '+k.sym) : (own.join(', ')||'');
+    return '<div class="row"><div class="l"><div class="t"><span class="pill red">'+k.sym+'</span> <span class="mono">'+k.bit.join(' ')+'</span></div>'+
+      '<div class="s"><span class="who">'+(HOLDERS[k.sym]?'● '+esc(HOLDERS[k.sym]):'● —')+'</span> &nbsp; <span class="what">'+(what?'● '+esc(what):'● —')+'</span></div></div>'+
+      '<span class="pill">'+(COPIES[k.sym]||0)+' cut</span></div>'; }).join('');
+  // doors
+  $('#doorList').innerHTML=DOORS.map(d=>'<div class="row" style="cursor:pointer" data-door="'+d.id+'"><div class="l"><div class="t what">'+esc(d.name)+'</div><div class="s">'+esc(S.name)+' · set to <b>'+d.key+'</b> · opened by '+chainOf(keys,d.key).join(', ')+'</div></div><span class="pill">Pin chart ›</span></div>').join('');
+  document.querySelectorAll('[data-door]').forEach(r=>r.onclick=()=>{ selDoor=r.dataset.door; tab('chart'); });
+  renderChart(keys); renderLost(keys);
+}
+function chartHTML(keys,d){
+  const S=SPEC[brand], rows=pinsFor(keys,d.key), chain=chainOf(keys,d.key);
+  let h='<tr><th>Position</th>'+rows.map(r=>'<th>'+r.pos+'</th>').join('')+'</tr>';
+  chain.forEach(s=>{ h+='<tr><td class="k">'+s+' cut</td>'+keys[s].bit.map(v=>'<td class="mono">'+v+'</td>').join('')+'</tr>'; });
+  if(S.ic) h+='<tr><td class="k">Control cut</td>'+rows.map(r=>'<td class="mono">'+r.control+'</td>').join('')+'</tr>';
+  h+='<tr><td class="k"><b style="font-family:Archivo;font-size:14px">Bottom pin</b></td>'+rows.map(r=>'<td><b>'+r.bottom+'</b></td>').join('')+'</tr>';
+  h+='<tr><td class="k"><b style="font-family:Archivo;font-size:14px">Master pin</b></td>'+rows.map(r=>'<td><b>'+(r.masters.length?r.masters.join('+'):'–')+'</b></td>').join('')+'</tr>';
+  if(S.ic) h+='<tr><td class="k"><b style="font-family:Archivo;font-size:14px">Build-up</b></td>'+rows.map(r=>'<td><b>'+r.build+'</b></td>').join('')+'</tr>';
+  h+='<tr><td class="k"><b style="font-family:Archivo;font-size:14px">Top pin</b>'+(S.ic?'':' <span class="pill warn">draft</span>')+'</td>'+rows.map(r=>'<td><b>'+r.top+'</b></td>').join('')+'</tr>';
+  // checks
+  const all=Object.values(keys), opens=all.filter(k=>opensKey(rows,k.bit)).map(k=>k.sym), extra=opens.filter(s=>chain.indexOf(s)<0);
+  const kitBad = S.ic ? rows.filter(r=>r.build<2||r.top<2).map(r=>r.pos) : [];
+  let c='';
+  c+= extra.length ? '<div class="msg bad">✗ Also opened by '+extra.join(', ')+' — that key should not open this door. Pick a different key for it.</div>'
+                   : '<div class="msg ok">✓ Opened only by '+chain.join(', ')+'. No other key in this system opens this door.</div>';
+  if(kitBad.length) c+='<div class="msg warn">⚠ Position '+kitBad.join(', ')+': the pin size works out under 2 — not in a standard kit. Change the control key or top master.</div>';
+  if(!S.ic) c+='<div class="msg warn">Top pins use a draft rule until the Schlage chart is confirmed. Bottom and master pins are standard.</div>';
+  return { table:h, checks:c, sub:'Set to <b>'+d.key+'</b>'+(HOLDERS[d.key]?' · <span class="who">'+esc(HOLDERS[d.key])+'</span>':'')+' · opened by '+chain.join(' → ')+' · '+esc(S.name) };
+}
+function renderChart(keys){
+  const d=DOORS.find(x=>x.id===selDoor)||DOORS[0], c=chartHTML(keys,d);
+  $('#doorPick').innerHTML=DOORS.map(x=>'<button data-pick="'+x.id+'" class="'+(x.id===d.id?'on':'')+'">'+esc(x.name)+'</button>').join('');
+  document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{ selDoor=b.dataset.pick; renderChart(keys); });
+  $('#chartTitle').innerHTML='Pin chart · <span class="what">'+esc(d.name)+'</span>'; $('#chartSub').innerHTML=c.sub; $('#chartTbl').innerHTML=c.table; $('#chartChecks').innerHTML=c.checks;
+  $('#chartAll').innerHTML=DOORS.map(x=>{ const y=chartHTML(keys,x); return '<div class="card"><h2>'+esc(x.name)+'</h2><div class="hint">'+y.sub+'</div><table>'+y.table+'</table></div>'; }).join('');
+}
+function renderLost(keys){
+  $('#lostPick').innerHTML=Object.keys(keys).map(s=>'<button data-lost="'+s+'" class="'+(s===lostKey?'on':'')+'">'+s+(HOLDERS[s]?' · '+esc(HOLDERS[s]):'')+'</button>').join('');
+  document.querySelectorAll('[data-lost]').forEach(b=>b.onclick=()=>{ lostKey=b.dataset.lost; renderLost(keys); });
+  const k=keys[lostKey], doors=DOORS.filter(d=>chainOf(keys,d.key).indexOf(lostKey)>=0);
+  const recut=Object.values(keys).filter(x=>x.sym===lostKey || chainOf(keys,x.sym).indexOf(lostKey)>=0 && x.sym!==lostKey).map(x=>x.sym);
+  const lvl = k.level===0?'the top master':k.level===1?'a master key':'a single key';
+  $('#lostOut').innerHTML='<div class="msg '+(k.level===2?'warn':'bad')+'"><b>'+lostKey+'</b> is '+lvl+'. Rekey <b>'+doors.length+' door'+(doors.length===1?'':'s')+'</b>.</div>'+
+    '<div class="row"><div class="l"><div class="t what">Doors to rekey</div><div class="s">'+(doors.map(d=>esc(d.name)).join('<br>')||'—')+'</div></div></div>'+
+    '<div class="row"><div class="l"><div class="t">New keys to cut</div><div class="s">'+recut.map(s=>s+(HOLDERS[s]?' (<span class="who">'+esc(HOLDERS[s])+'</span>)':'')+' — '+(COPIES[s]||1)+' cop'+((COPIES[s]||1)>1?'ies':'y')).join('<br>')+'</div></div></div>'+
+    '<div class="row"><div class="l"><div class="t">Not affected</div><div class="s">'+(k.level===2?'All other keys, including '+chainOf(keys,lostKey).filter(s=>s!==lostKey).join(' and ')+', keep working.':'Keys outside '+lostKey+' keep working.')+'</div></div></div>';
+}
+function tab(name){ document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name)); document.querySelectorAll('.section').forEach(s=>s.classList.toggle('on',s.dataset.sec===name)); window.scrollTo(0,0); }
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+$('#brand').onchange=e=>{ brand=e.target.value; render(); };
+document.querySelectorAll('[data-print]').forEach(b=>b.onclick=()=>{ const sec=b.dataset.print; document.querySelectorAll('.section').forEach(s=>s.classList.toggle('printme',s.dataset.sec===sec));
+  $('#printhead').textContent='Maple Street Offices · Building A · '+SPEC[brand].name+' · printed '+new Date().toLocaleString()+' · CONFIDENTIAL — key system records';
+  document.body.setAttribute('data-print',sec); window.print(); setTimeout(()=>document.body.removeAttribute('data-print'),500); });
+render();
+</script>
+</body>
+</html>
