@@ -84,6 +84,13 @@
   .where{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
   .where div{border-left:3px solid var(--red);padding:2px 0 2px 14px} .where b{display:block;font-size:19px} .where span{color:var(--dim);font-size:16px}
   @media (max-width:700px){ .where{grid-template-columns:1fr} .laptop .scr{border-width:5px;border-radius:8px 8px 0 0} .laptop .base{height:8px} .tablet{border-width:5px;border-radius:10px} .dphone{border-width:3px;border-radius:9px} }
+  /* coming soon: master key systems */
+  .cs{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;align-items:center}
+  .cs-badge{display:inline-block;font:600 12px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;background:#f2b43a;color:#1a1a1a;border-radius:999px;padding:7px 12px;margin-bottom:14px}
+  .cs-list{list-style:none;margin:0;padding:0;display:grid;gap:12px} .cs-list li{padding-left:26px;position:relative;color:var(--dim)} .cs-list li b{color:var(--ink)}
+  .cs-list li::before{content:"";position:absolute;left:0;top:.5em;width:10px;height:10px;border-radius:3px;background:var(--red)}
+  .cs-phones .phone{aspect-ratio:auto} .cs-phones .phone img{height:auto;aspect-ratio:390/720;border-radius:14px} .cs-phones .phone{border-radius:24px}
+  @media (max-width:900px){ .cs{grid-template-columns:1fr} }
   /* videos: a job start to finish */
   .vids{display:grid;grid-template-columns:1fr 1fr;gap:22px}
   .vid{margin:0;background:var(--card);border:1px solid var(--edge);border-radius:18px;overflow:hidden}
@@ -218,7 +225,30 @@
     <div class="card"><h3>Your requests shape it</h3><p>Tell us what your shop needs and it goes on the list.</p></div>
     <div class="card"><h3>Nothing to install</h3><p>Every phone, tablet and PC gets the update the next time it opens.</p></div>
   </div>
-  <p class="soon">Coming next: online booking for your customers, more supplier price lists, and more.</p>
+  <p class="soon">Coming next: master key systems and pin charts (below), online booking for your customers, more supplier price lists, and more.</p>
+</div></section>
+
+<!-- Coming soon: master key systems (owner, 2026-11-13). Pictures are from the approved mock (sample building, sample
+     numbers) — site/assets/soon-*.webp. Change "Coming soon" here when the feature is checked and released. -->
+<section id="master-keys"><div class="wrap cs">
+  <div class="cs-text">
+    <span class="cs-badge">Coming soon</span>
+    <h2>Master key systems and pin charts<span class="dot">.</span></h2>
+    <p class="sub">For residential and commercial locksmiths. Design the system, pin the locks, and keep the whole building on file under the customer.</p>
+    <ul class="cs-list">
+      <li><b>Build the system from the top master.</b> Bittings works out the master keys and every key under them.</li>
+      <li><b>A pin chart for every door.</b> Bottom, master and top pins — and build-up pins for interchangeable cores — on your phone at the door. Print it only if you want paper.</li>
+      <li><b>It checks its own work.</b> Each chart shows which keys open that door, and flags any key that should not.</li>
+      <li><b>Who has it, and what it opens.</b> Tie a key to a person, a role like "Janitor", an office or a door — either, or both.</li>
+      <li><b>Lost key?</b> Pick the key and see exactly which doors to rekey and which keys to cut.</li>
+    </ul>
+    <p class="fine" style="margin-top:14px">Starting with Schlage and Best-style interchangeable cores. More lock brands will follow.</p>
+    <div class="cta" style="margin-top:18px"><a class="btn red" href="#contact" data-note="Tell me when master key systems and pin charts are ready.">Tell me when it is ready</a></div>
+  </div>
+  <div class="phones cs-phones" aria-label="Preview of the master key screens, shown with sample data">
+    <div class="phone"><img src="assets/soon-pin-chart.webp" alt="Preview: a pin chart for one door of an interchangeable-core system, with a check that only the right keys open it" width="390" height="720" loading="lazy"></div>
+    <div class="phone low"><img src="assets/soon-keys.webp" alt="Preview: the keys of a master key system, each showing who has it and what it opens" width="390" height="720" loading="lazy"></div>
+  </div>
 </div></section>
 
 <section id="plans"><div class="wrap">
@@ -290,6 +320,7 @@
   setTheme(saved==='light' ? 'light' : 'dark');
   tb.onclick=function(){ setTheme(root.getAttribute('data-theme')==='dark' ? 'light' : 'dark'); };
   document.getElementById('yr').textContent=new Date().getFullYear();
+  document.querySelectorAll('[data-note]').forEach(function(a){ a.addEventListener('click', function(){ var n=document.getElementById('rNote'); if(n && !n.value.trim()) n.value=a.getAttribute('data-note'); }); });
   document.querySelectorAll('[data-plan]').forEach(function(a){ a.addEventListener('click', function(){ document.getElementById('rPlan').value=a.getAttribute('data-plan'); }); });
 
   // Request access → the owner's Leads list in the app (public function; nothing else is read or written)

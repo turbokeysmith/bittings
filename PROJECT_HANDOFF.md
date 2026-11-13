@@ -408,6 +408,29 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-11-13, later (Key systems first build · menu groups · menu scroll fix · "coming soon" on the site) — LIVE
+- **8z100 Key systems** (owners / managers; menu → Keys & stock → 🔑 Key systems). Server: `supabase/phase8/8z100_key_systems.sql`
+  (APPLIED) — tables `key_systems` (one jsonb document per system) + `key_system_events`; NO direct table access for anyone;
+  functions `key_system_list / get / save / event / history / delete` (manager-only, every open is logged as "view").
+  Client: `app/keycalc.js` (pure math, `TKS_KEYCALC`: SPECS sc / a2 / s6300 all `verified:false`, validateKey, pinLock, opens,
+  checkSystemLock, progressions, designTPP, pinForKey; test `tools/qa/keycalc-test.js`, 60 checks incl. the Schlage SFIC
+  and Sargent 6300 manual examples) and `app/keysystems.js` (`TKS_KS.open(root)`: list, new system, editor tabs System /
+  Keys / Doors / Pin chart / Lost key / History, "Pin a lock" quick tool, on-screen first, print optional; nothing is kept
+  in browser storage; test `tools/qa/rebuild-keysystems-test.js`, 88 checks). Every chart says **Not yet verified** until a
+  spec is checked against a real lock (owner's friend) — flip `verified` in SPECS per spec then. Schlage Classic top pins
+  are NOT calculated (rule not confirmed). Not built yet: trade split / add-on billing, technician view of one job's chart,
+  rotating-constant method, more brands (see `docs/keyway-spec-request.md`), "Start rekey quote" only opens a blank quote.
+- **Menu cleanup step 1:** sidebar grouped under headings Daily work · Keys & stock · Team & pay · Owner (`.bt-navgrp`,
+  `syncNavHeads()` hides a heading with no visible items); Timesheets moved from the footer into Team & pay.
+  Salary / Commission no longer carries the Reports tab bar, and Reports' tab bars no longer have a Salary tab.
+  Remaining steps (owner said go ahead; do one at a time): one Quotes & estimates screen; one Receipts & invoices list;
+  Lookup (Lishi + Programmers + Keycodes) as tabs; Team & pay tabs; Dashboard into Reports; pay rules into Settings.
+- **Menu scroll fix** (owner's phone screenshots): the whole side menu is now one scroller (it was only the middle list), with
+  bottom padding that clears the phone's bottom bar — Settings was unreachable in portrait, and in landscape only the footer
+  showed. Check script kept at `tools/qa/rebuild-menu-test.js` (port 8091).
+- **getbittings.com:** new section `#master-keys` "Coming soon — Master key systems and pin charts" with two teaser pictures
+  (`site/assets/soon-*.webp`, from the mock) and a "Tell me when it is ready" button that pre-fills the request note.
+
 ### 2026-11-13 (Hardware → Settings; residential / commercial research) — LIVE, committed 9c8ab25
 - **8z99:** printers / scanner / cash drawer / labels panel is now **Settings → Printers & scanner** (step `hardware` in the
   setup STEPS list); the 🖨️ Hardware button left the Inventory toolbar.

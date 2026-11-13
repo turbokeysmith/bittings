@@ -1075,8 +1075,16 @@ sessionStorage.setItem('tks_connect_return','1');history.replaceState(null,'',lo
   .mv-grid select{width:100%;min-width:0;}
   @media (max-width:480px){ .mv-grid{grid-template-columns:1fr;} .mv-grid .mv-arrow{display:none;} }
   .moveloc:active{transform:scale(.96);}
+  .bt-navgrp{font-size:10px!important;padding:14px 14px 4px!important;}
+  .bt-navgrp:first-child{padding-top:4px!important;}
   .bt-navhead{font-size:8px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--text-tertiary);padding:16px 14px 6px;}
   /* Sidebar footer: Settings + who's signed in + cloud status, sitting above the theme toggle. */
+  /* menu scroll fix: one scroller for the whole menu (it used to be the middle list only, so on a phone — or any short
+     screen — the footer with Settings was pushed out of reach) */
+  .bt-sidebar{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+  .bt-sidebar > *{flex-shrink:0;}
+  .bt-sidebar .bt-nav{flex:0 0 auto;overflow:visible;}
+  .bt-sidebar .bt-sidefoot{margin-top:auto;padding-bottom:10px;}
   .bt-sidefoot{padding:6px 12px 2px;margin-top:4px;border-top:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:1px;}
   .bt-sidestat{font-size:11px;font-weight:700;color:var(--text-tertiary);padding:5px 14px 0;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .bt-sidestat b{color:var(--text-secondary);font-weight:800;}
@@ -1085,7 +1093,7 @@ sessionStorage.setItem('tks_connect_return','1');history.replaceState(null,'',lo
   .ms-chip{-webkit-appearance:none;appearance:none;cursor:pointer;border:1px solid var(--border-subtle);background:var(--surface-card);color:var(--text-primary);border-radius:999px;padding:8px 14px;font-family:var(--font-sans);font-weight:700;font-size:13px;min-height:40px;}
   .ms-chip.on{background:var(--tint-red);border-color:var(--brand-red);color:var(--brand-red);}
   @media(max-width:720px){
-    .bt-sidebar.is-open{display:flex;position:fixed;left:0;top:0;bottom:0;width:84%;max-width:300px;z-index:90;box-shadow:var(--shadow-pop);overflow-y:auto;}
+    .bt-sidebar.is-open{display:flex;position:fixed;left:0;top:0;bottom:0;height:auto;width:84%;max-width:300px;z-index:90;box-shadow:var(--shadow-pop);overflow-y:auto;padding-bottom:calc(92px + env(safe-area-inset-bottom, 0px));}   /* the padding clears the bottom bar */
     .bt-scrim.is-open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:89;}
     #sjResult .sj-grid{grid-template-columns:1fr!important;}
   }
@@ -1307,29 +1315,35 @@ window.tksDemoOn = function(){
       <div class="bt-workspace__name" id="btWorkspaceName">Your shop</div>
     </div>
     <nav class="bt-nav">
-      <button class="bt-nav__item pos-desktop-only" data-go="payments"><span class="bt-nav__ic">💳</span>Register</button>
-      <button class="bt-nav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
-      <button class="bt-nav__item" data-go="receipts"><span class="bt-nav__ic">🧾</span>Receipts</button>
+      <!-- menu groups (cleanup step 1, 2026-11-13): headings hide themselves when none of their items show (syncNavHeads) -->
+      <div class="bt-navhead bt-navgrp">Daily work</div>
+      <button class="bt-nav__item" data-go="schedule"><span class="bt-nav__ic">📅</span>Scheduler</button>
       <button class="bt-nav__item" data-go="quote"><span class="bt-nav__ic">💬</span>Quick quote</button>
       <button class="bt-nav__item" data-go="estimates"><span class="bt-nav__ic">📋</span>Estimates</button><!-- 8z78: every estimate — edit it or put it on the schedule --><!-- 8z65: opens the document builder as an Estimate -->
+      <button class="bt-nav__item pos-desktop-only" data-go="payments"><span class="bt-nav__ic">💳</span>Register</button>
+      <button class="bt-nav__item" data-go="receipts"><span class="bt-nav__ic">🧾</span>Receipts</button>
+      <button class="bt-nav__item" data-go="customers"><span class="bt-nav__ic">👤</span>Customers</button>
       <button class="bt-nav__item" data-go="leads" id="navLeads"><span class="bt-nav__ic">📥</span>Leads</button><!-- 8z71: enquiries from the website contact form -->
-      <button class="bt-nav__item" data-go="schedule"><span class="bt-nav__ic">📅</span>Scheduler</button>
-      <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Salary / Commission</button>
+      <div class="bt-navhead bt-navgrp">Keys &amp; stock</div>
       <button class="bt-nav__item" data-go="inventory"><span class="bt-nav__ic">📦</span>Inventory</button>
-      <button class="bt-nav__item" data-go="reconcile" style="display:none"><span class="bt-nav__ic">🔢</span>Reconcile</button><!-- moved under the Inventory screen (Stock | Reconcile sub-tabs) -->
-      <button class="bt-nav__item" data-go="returns" style="display:none"><span class="bt-nav__ic">↩</span>Returns</button><!-- folded into Reports → Returns tab -->
-      <button class="bt-nav__item owner-soft" data-go="fleet" style="display:none"><span class="bt-nav__ic">🚐</span>Fleet</button>
       <button class="bt-nav__item" data-go="lishi"><span class="bt-nav__ic">📇</span>Lishi &amp; Keys</button>
       <button class="bt-nav__item" data-go="programmers"><span class="bt-nav__ic">🛠</span>Programmers</button>
+      <button class="bt-nav__item owner-soft" data-go="keysystems" style="display:none"><span class="bt-nav__ic">🔑</span>Key systems</button><!-- 8z100: master key systems + pinning (owners / managers) -->
+      <div class="bt-navhead bt-navgrp">Team &amp; pay</div>
+      <button class="bt-nav__item" data-go="timesheets" id="navTimesheets" style="display:none"><span class="bt-nav__ic">⏱</span>Timesheets</button>
+      <button class="bt-nav__item" data-go="commission"><span class="bt-nav__ic">💰</span>Salary / Commission</button>
+      <button class="bt-nav__item owner-soft" data-go="fleet" style="display:none"><span class="bt-nav__ic">🚐</span>Fleet</button>
+      <div class="bt-navhead bt-navgrp">Owner</div>
       <button class="bt-nav__item owner-only" data-go="dashboard" style="display:none"><span class="bt-nav__ic">📊</span>Dashboard</button>
-      <button class="bt-nav__item owner-only" data-go="history" style="display:none"><span class="bt-nav__ic">🧮</span>Closeout</button>
       <button class="bt-nav__item owner-only" data-go="reports" style="display:none"><span class="bt-nav__ic">📈</span>Reports</button>
+      <button class="bt-nav__item owner-only" data-go="history" style="display:none"><span class="bt-nav__ic">🧮</span>Closeout</button>
       <button class="bt-nav__item" data-go="activity" id="navActivity" style="display:none"><span class="bt-nav__ic">📜</span>Activity</button>
+      <button class="bt-nav__item" data-go="reconcile" style="display:none"><span class="bt-nav__ic">🔢</span>Reconcile</button><!-- moved under the Inventory screen (Stock | Reconcile sub-tabs) -->
+      <button class="bt-nav__item" data-go="returns" style="display:none"><span class="bt-nav__ic">↩</span>Returns</button><!-- folded into Reports → Returns tab -->
       <div class="bt-navhead" data-cap="keycodes">Vendor tools</div>
       <div id="quickTiles"></div>
     </nav>
     <div class="bt-sidefoot">
-      <button class="bt-nav__item" data-go="timesheets" id="navTimesheets" style="display:none"><span class="bt-nav__ic">⏱</span>Timesheets</button>
       <button class="bt-nav__item pos-mobile-only" id="navEditBar" type="button"><span class="bt-nav__ic">✏️</span>Edit bottom bar</button>
       <button class="bt-nav__item" id="navUpdateApp" type="button"><span class="bt-nav__ic">🔄</span>Update app</button>
       <button class="bt-nav__item" id="sideMyPin" type="button" style="display:none"><span class="bt-nav__ic">🔢</span>My PIN</button>
@@ -1380,6 +1394,7 @@ window.tksDemoOn = function(){
   </div>
 
   <!-- 8z71: website leads — book, quote or dismiss -->
+  <div class="view" id="view-keysystems"><div id="ksRoot"></div></div><!-- 8z100: app/keysystems.js draws here -->
   <div class="view" id="view-leads">
     <div class="bt-pagehead" style="flex-wrap:wrap"><div><div class="eyebrow">From your website</div><h1>Leads</h1></div>
       <div class="bt-pagehead__actions"><button type="button" class="bt-btn bt-btn--secondary" id="leadsReload" style="min-height:44px">↻ Refresh</button></div></div>
@@ -1696,7 +1711,7 @@ window.tksDemoOn = function(){
   </div>
 
   <div class="view" id="view-reports">
-    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports" class="on">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button><button type="button" data-reptab="commission">💰 Salary / Commission</button></div>
+    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports" class="on">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button></div>
     <div class="rep-controls">
       <select id="repPeriod" class="rep-select" aria-label="Time period">
         <option value="today">Today</option>
@@ -1734,7 +1749,7 @@ window.tksDemoOn = function(){
   </div>
 
   <div class="view" id="view-commission">
-    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button><button type="button" data-reptab="commission" class="on">💰 Salary / Commission</button></div>
+    <div class="bt-pagehead"><div><div class="eyebrow">Team &amp; pay</div><h1>Salary / Commission</h1></div></div><!-- menu cleanup: the Reports tabs (Sales / Inventory / Returns) no longer sit on this screen -->
     <div id="payrollBox"></div>
     <div id="contractBox"></div>
     <div class="rep-controls">
@@ -1830,14 +1845,14 @@ window.tksDemoOn = function(){
   </div>
 
   <div class="view" id="view-returns">
-    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns" class="on">↩ Returns</button><button type="button" data-reptab="commission">💰 Salary / Commission</button></div>
+    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport">📦 Inventory</button><button type="button" data-reptab="returns" class="on">↩ Returns</button></div>
     <div class="bar"><div class="seg" id="retSeg"></div></div>
     <div class="note" id="retStatus"></div>
     <div class="clist" id="retList"></div>
   </div>
 
   <div class="view" id="view-invreport">
-    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport" class="on">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button><button type="button" data-reptab="commission">💰 Salary / Commission</button></div>
+    <div class="seg reptabs" data-cap="viewAudit"><button type="button" data-reptab="reports">📈 Sales</button><button type="button" data-reptab="invreport" class="on">📦 Inventory</button><button type="button" data-reptab="returns">↩ Returns</button></div>
     <div class="invsummary" id="invRepCards"></div>
     <div class="clist" id="invRepList"></div>
     <p class="note">Live stock value from your current inventory (all locations). Cost totals fill in once each part's cost is entered.</p>
@@ -1976,6 +1991,7 @@ window.tksDemoOn = function(){
 <!-- Vehicle fitment parser: a key's free-text "Fits" list → year/make/model matching (Inventory finder, Register, Start-a-job) -->
 <script src="app/fitment.js"></script>
 <script src="app/taxexempt.js"></script>
+<script src="app/keycalc.js"></script><script src="app/keysystems.js"></script><!-- 8z100: master key calculator + key systems -->
 <script src="app/receipt-docs.js"></script><!-- 8z90: D1 photos filed against a receipt + the required colour / miles / tag --><!-- 8z78: tax-exempt sales (certificate on file + the box at the sale) -->
 <script src="app/part-photo.js"></script><!-- 8z18: part photos (Supabase Storage) -->
 <!-- Shared NASTF D1 filing-countdown badge (register · Start-a-Job · Receipts NASTF tab) -->
@@ -2011,7 +2027,7 @@ function goHomeView(){
   // the plan or the role may keep that screen closed — never leave a blank page
   if(!document.querySelector('.view.active')){ try{ renderCustomers(); }catch(e){} show('customers'); }
 }
-const views = ['leads','customers','form','payments','commission','history','reports','invreport','dashboard','inventory','part','fleet','settings','programmers','schedule','lishi','receipts','reconcile','receive','returns','activity','timesheets'];
+const views = ['keysystems','leads','customers','form','payments','commission','history','reports','invreport','dashboard','inventory','part','fleet','settings','programmers','schedule','lishi','receipts','reconcile','receive','returns','activity','timesheets'];
 function show(name){
   views.forEach(v=> document.getElementById('view-'+v).classList.toggle('active', v===name));
   const back = document.getElementById('backBtn');
@@ -2143,6 +2159,8 @@ function openMoveReqModal(){
 
 document.querySelectorAll('[data-go]').forEach(b=>{
   b.onclick = ()=>{ const t=b.dataset.go;
+    /* 8z100: leaving Key systems with unsaved changes asks first */
+    try{ if(!b._ksOk && t!=='keysystems' && window.TKS_KS && TKS_KS.hasUnsaved && TKS_KS.hasUnsaved() && document.getElementById('view-keysystems').classList.contains('active')){ TKS_KS.confirmLeave().then(yes=>{ if(yes){ b._ksOk=true; try{ b.onclick(); }finally{ b._ksOk=false; } } }); return; } }catch(e){}
     if(t==='history'){ openHistory(); return; }
     if(t==='reports'){ openReports(); return; }
     if(t==='dashboard'){ openDashboard(); return; }
@@ -2150,6 +2168,7 @@ document.querySelectorAll('[data-go]').forEach(b=>{
     if(t==='quote'){ location.href='bittings.html?quote=1'; return; }   // 8z65: Quick quote
     if(t==='estimates'){ location.href='bittings.html?estimates=1'; return; }   // 8z78: the estimates list
     if(t==='leads'){ renderLeads(); }   // 8z71
+    if(t==='keysystems'){ const kr=document.getElementById('ksRoot'); if(window.TKS_KS && kr) TKS_KS.open(kr); else if(kr) kr.innerHTML='<div class="empty">Key systems did not load — tap Update app.</div>'; }   // 8z100
     if(t==='receipts'){ const nd=document.getElementById('rcNewDoc'), nq=document.getElementById('rcNewQuote');   // 8z66: start a document from the Receipts list
       if(nd && !nd.onclick) nd.onclick=()=>{ location.href='bittings.html'; }; if(nq && !nq.onclick) nq.onclick=()=>{ location.href='bittings.html?quote=1'; }; }
     if(t==='customers'){ renderCustomers(); } if(t==='inventory'){ renderInventory(); window.renderInvDash && window.renderInvDash(); } if(t==='payments'){ renderPayments(); try{ window.posCheckPendingCharges && posCheckPendingCharges(); }catch(e){} } if(t==='commission'){ renderCommission(); }
@@ -6350,6 +6369,11 @@ function esc2(s){ return (s||'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;',
 // Signed in → gated by the real staff role; signed out → preserve old behavior.
 function ownerHard(){ try{ const a=TKS.auth; return a.isSignedIn() ? !!a.can('viewAudit') : !!a.isOwner(); }catch(_){} return false; }
 function ownerSoft(){ try{ const a=TKS.auth; if(a && a.isSignedIn()) return !!a.can('setup'); }catch(_){} return true; }
+/* menu cleanup step 1: a group heading shows only when at least one item under it shows for this person */
+function syncNavHeads(){ try{ document.querySelectorAll('.bt-nav .bt-navgrp').forEach(h=>{ let n=h.nextElementSibling, any=false;
+    while(n && !n.classList.contains('bt-navhead')){ if(n.matches('.bt-nav__item') && getComputedStyle(n).display!=='none' && !n.classList.contains('tks-cap-hidden')) any=true; n=n.nextElementSibling; }
+    h.style.display = any ? '' : 'none'; }); }catch(e){} }
+window.syncNavHeads=syncNavHeads;
 function syncOwnerTiles(){
   const hard=ownerHard(), soft=ownerSoft();
   document.querySelectorAll('.owner-only').forEach(el=>{ el.style.display = hard ? '' : 'none'; });
@@ -6367,6 +6391,7 @@ function syncOwnerTiles(){
   const lk=document.getElementById('sideLockNow'); if(lk) lk.style.display = (window.TKS_CLOCK && TKS_CLOCK.isActive && TKS_CLOCK.isActive()) ? '' : 'none';
   // 8z77: every signed-in person can set their own PIN (it used to live only in Settings, which a technician cannot open)
   const mp=document.getElementById('sideMyPin'); if(mp) mp.style.display = (window.TKS&&TKS.auth&&TKS.auth.isSignedIn() && !(TKS.isDemo&&TKS.isDemo())) ? '' : 'none';
+  syncNavHeads(); setTimeout(syncNavHeads, 400);   // menu groups
 }
 /* ===== 8z62 (owner, 2026-11-11): Clock in / Clock out button in the top bar, on any device =====
    Until now the clock only ran on a registered shop workstation (auto clock-in at login, clock-out from the lock screen,
