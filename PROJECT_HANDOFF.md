@@ -408,7 +408,15 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
-### 2026-11-13, early (receipt name, deposit slip print, website videos) — LIVE, not committed yet
+### 2026-11-13 (Hardware → Settings; residential / commercial research) — LIVE, committed 9c8ab25
+- **8z99:** printers / scanner / cash drawer / labels panel is now **Settings → Printers & scanner** (step `hardware` in the
+  setup STEPS list); the 🖨️ Hardware button left the Inventory toolbar.
+- Residential / commercial trade + master-key calculator: **research and plan only** — `docs/RESCOM_PLAN.md`,
+  `docs/research/master-keying-research-2026-11-13.md`, `docs/keyway-spec-request.md`, on-screen mock
+  `bittings-unified/mock/master-key-calculator.html` (temporarily at bittings.app/mock/master-key; the next publish removes it).
+  Owner is collecting manufacturer specs; nothing is built.
+
+### 2026-11-13, early (receipt name, deposit slip print, website videos) — LIVE, committed 4997297
 - **8z97 receipt:** when the logo prints, the shop name line under it is left out (`tokens()` / `helperLines(r, logoPrinted)`
   in `app/hardware.js`; the name is still printed when there is no logo). Owner request with a photo of the paper.
 - **8z98 Closeout → "🖨 Print deposit slip"** (`printDepositSlip` in index.html; `TKS_HW.thermal.printLines(lines)` new in
