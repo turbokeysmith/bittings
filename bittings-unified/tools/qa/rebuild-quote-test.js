@@ -42,6 +42,14 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
       // 8z73: the Year list was once emptied by a note placed on the same line as the loop that fills it
       check(role + ': the Year list has years to pick from', r.years > 20, r.years);
       check(role + ': quote opens as an estimate, name optional, no payment section', /Quick quote/.test(r.title || '') && r.type === 'estimate' && /optional/.test(r.nameLabel || '') && r.payHidden, r);
+      // 8z121: a scanned key (the stock record: sellPriceCents, no ready-made "price") fills the price as well as the cost
+      { await pg.evaluate(() => document.getElementById('qiAdd').click()); await sleep(200);
+        await pg.evaluate(() => { const rows = document.querySelectorAll('.qi-item'), row = rows[rows.length - 1]; row._applyPart({ id: 'tst_scan', name: 'TEST scanned key', sku: 'TST-SCAN', cost: 20, sellPriceCents: 6500, qty: 3 }); }); await sleep(350);
+        const sc = await pg.evaluate(() => { const rows = document.querySelectorAll('.qi-item'), row = rows[rows.length - 1];
+          const out = { n: rows.length, desc: row.querySelector('.qiDesc').value, amt: row.querySelector('.qiAmt').value, tot: Array.from(document.querySelectorAll('#qiTot div')).map(d => d.innerText.replace(/\n/g, ' = ')).join(' | ') };
+          row._applyPart({ id: 'tst_scan2', name: 'TEST other key', sellPriceCents: 9900 });   // a price already on the line is never overwritten
+          out.kept = row.querySelector('.qiAmt').value; row.querySelector('.qiDel').click(); out.after = document.querySelectorAll('.qi-item').length; return out; }); await sleep(250);
+        check(role + ': a key scanned into a line brings its shelf price ($65.00) and the total follows; a price already typed is kept', sc.n === 2 && sc.desc === 'TEST scanned key' && sc.amt === '65.00' && /\$65\.00/.test(sc.tot) && sc.kept === '65.00' && sc.after === 1, sc); }
       await pg.type('.qi-item .qiDesc', 'TEST Car key');
       await pg.evaluate(() => { const row = document.querySelector('.qi-item'); const a = row.querySelector('.qiAmt'); a.value = '120'; a.dispatchEvent(new Event('input', { bubbles: true })); const c = row.querySelector('.qiCat'); c.value = 'Materials'; c.dispatchEvent(new Event('change', { bubbles: true }));   /* 8z96: only a part can be taxed */ const t = row.querySelector('.qiTax'); if (!t.checked) t.click(); });
       await sleep(250);
@@ -50,7 +58,18 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
       await pg.evaluate(() => document.querySelector('#qiTot').scrollIntoView({ block: 'center' })); await sleep(150);
       if (role === 'owner') await pg.screenshot({ path: path.join(OUT, 'quote-1-builder.png') });
       const custBefore = await pg.evaluate(() => TKS.list('customers').length);
-      await pg.evaluate(() => document.querySelector('#qiGo').click()); await sleep(700);
+      // 8z122: "Save & send" / "Save & PDF" sit beside Create on an estimate; Save & PDF saves it and then makes the PDF
+      { const pre = await pg.evaluate(() => { const row = document.getElementById('qiSendRow'), bs = Array.from(row.querySelectorAll('button')); window.__pdfCalls = []; window.__shareCalls = [];
+          window.makePDF = function (r, lang, forCustomer) { window.__pdfCalls.push({ number: r && r.number, docType: r && r.docType, lang, forCustomer }); return null; };
+          window.shareDocument = function (r, lang, forCustomer) { window.__shareCalls.push({ number: r && r.number, forCustomer }); };
+          return { shown: getComputedStyle(row).display !== 'none', labels: bs.map(b => b.innerText.trim()), small: bs.filter(b => b.getBoundingClientRect().height < 43).length, before: TKS.list('receipts').length }; });
+        await pg.evaluate(() => document.querySelector('#qiGoPdf').click()); await sleep(900);
+        const post = await pg.evaluate(() => ({ after: TKS.list('receipts').length, pdf: window.__pdfCalls, share: window.__shareCalls, finished: Array.from(document.querySelectorAll('.res-actions button')).map(b => b.innerText.trim()) }));
+        check(role + ': the estimate screen has "Save & send" and "Save & PDF" (finger-sized); Save & PDF saves the estimate, then makes the customer PDF of it', pre.shown && /Save & send/.test(pre.labels[0] || '') && /Save & PDF/.test(pre.labels[1] || '') && pre.small === 0 && post.after === pre.before + 1 && post.pdf.length === 1 && /^EST-/.test(post.pdf[0].number || '') && post.pdf[0].forCustomer === true && post.share.length === 0, { pre, post });
+        { const t = await pg.evaluate(() => { const T = TKS.Config.estimateTerms(), est = TKS.list('receipts').filter(x => x.docType === 'estimate').pop(), inv = { docType: 'invoice', notes: 'x' };
+            return { days: T.days, disc: T.disclaimer, msg: T.message, card: document.getElementById('chat').innerText, subj: estSubject(Object.assign({}, est, { vehYear: '2018', vehMake: 'Nissan', vehModel: 'Maxima' })), notes: estNotes(est), invNotes: estNotes(inv), paper: paperCopy(est).notes }; });
+          check(role + ': an estimate carries "good for 7 days" at its foot (card, paper copy) — an invoice does not; the message and the subject (vehicle + service) are ready for sending', t.days === 7 && /good for 7 days/.test(t.disc) && /good for 7 days/.test(t.card) && /good for 7 days/.test(t.paper) && t.invNotes === 'x' && /Thank you for requesting this estimate/.test(t.msg) && /^Estimate — 2018 Nissan Maxima — \S/.test(t.subj), { days: t.days, subj: t.subj, msg: t.msg.slice(0, 60), inCard: /good for 7 days/.test(t.card), disc: t.disc.slice(0, 50), paper: String(t.paper).slice(-60), invNotes: t.invNotes, subjOk: /^Estimate — 2018 Nissan Maxima — \S/.test(t.subj) }); }
+        check(role + ': the finished estimate also offers Send and PDF', post.finished.some(t => /Send$/.test(t)) && post.finished.some(t => /PDF$/.test(t)), post.finished); }
       r = await pg.evaluate(() => { const h = TKS.list('receipts'); const d = h.find(x => x.customer === 'Phone quote');
         return { err: (document.querySelector('#qiErr') || {}).innerText || '', saved: !!d, docType: d && d.docType, number: d && d.number, total: d && d.totals && d.totals.total, noCustomer: d && d.noCustomer,
           cust: TKS.list('customers').length, buttons: Array.from(document.querySelectorAll('.res-actions button')).map(x => x.innerText) }; });

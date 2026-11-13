@@ -1793,8 +1793,9 @@ window.tksDemoOn = function(){
       <button class="add" id="invExport" data-cap="inventoryWrite" title="Export inventory to a .csv file" style="background:#e7e9ee;color:#14171b">📤 Export</button>
       <button class="add" id="invAdd" data-cap="invAddNew" title="Add a part or key that is not in the list yet">+ Add</button>
 
-      <button class="add" id="invReorder" data-cap="inventoryWrite" title="Everything at or below its low-stock point, grouped by supplier — copy, email or CSV" style="background:#e7e9ee;color:#14171b">📋 Reorder</button>
+      <button class="add" id="invReorder" data-cap="inventoryWrite" title="Everything at or below its low-stock point, grouped by supplier — copy, email or CSV" style="background:#e7e9ee;color:#14171b">📋 Reorder</button><button class="add" id="invDupes" data-cap="inventoryWrite" title="Find items that are probably the same part entered twice — merge them or say they are different" style="background:#e7e9ee;color:#14171b">🧹 Find duplicates</button><!-- 8z116 -->
       <button class="add" id="invScanKey" title="Look a key up by its unit label (or type a unit id / SKU) — see where it came from, where it is, and its sale or warranty history" style="background:#e7e9ee;color:#14171b">🔎 Scan a key</button>
+      <button class="add" id="invMoveKeys" title="Pick a place (the shop or a van), then scan keys to move them there — each key's serial number follows it" style="background:#e7e9ee;color:#14171b">🚐 Move keys by scanning</button>
     </div>
     <!-- 8i: the finder. One labelled box per thing staff look a key up by — kept as SEPARATE boxes on
          purpose (owner: merge them in a later update). Category = Aftermarket / OEM New / OEM Refurbished /
@@ -2549,7 +2550,7 @@ function jobToInvoiceDraft(b){
   let catKey=b.serviceCategory||b.jobType||'automotive'; try{ if(TKS.ServiceCats && !TKS.ServiceCats.byKey(catKey)) catKey=TKS.ServiceCats.codeToKey(catKey)||catKey; }catch(e){}
   const draft={ jobId:b.id, category:catKey, vehicle:veh, vin:(b.vehicle&&b.vehicle.vin)||'',
     customer:(b.customer&&b.customer.name)||'', customerInfo:{ id:b.customerId||'', name:(b.customer&&b.customer.name)||'', phone:(b.customer&&b.customer.phone)||'', email:(b.customer&&b.customer.email)||'' },
-    technician:b.technician||'', address:b.address||'', internalNotes:b.internalNotes||'', items:items, fromDispatch:true, ts:Date.now(),
+    technician:b.technician||'', address:b.address||'', addr:(b.addr&&typeof b.addr==='object')?b.addr:null, vehIgnition:(b.vehicle&&b.vehicle.ignition)||'', internalNotes:b.internalNotes||'', items:items, fromDispatch:true, ts:Date.now(),
     serviceWhere:b.serviceWhere||'', taxExempt:b.taxExempt||null, fromEstimate:b.fromEstimate||'', moreVehicles:Array.isArray(b.moreVehicles)?b.moreVehicles:[] };   // 8z78 / 8z81 / 8z84
   const parts=(window.TKS&&TKS.Jobs&&TKS.Jobs.parts&&TKS.auth&&TKS.auth.isSignedIn()&&!(TKS.isDemo&&TKS.isDemo()))?TKS.Jobs.parts(b.id):Promise.resolve({data:[]});
   let partsTaxed=true; try{ partsTaxed=!!TKS.Config.taxableDefault('Materials'); }catch(e){}
@@ -2739,6 +2740,7 @@ function renderCustInvoices(c){
   box.innerHTML='<div class="hist-h">Invoices &amp; receipts ('+mine.length+')</div>'+owedBanner+paidBlock+
     '<div class="hist-empty" style="margin:-2px 0 6px">Tap an invoice to see what was sold'+(nUnpaid?' or mark it paid':'')+'.</div>'+rows;
   box.querySelectorAll('.inv-row').forEach(function(el){ el.onclick=function(){ try{ openInvoiceModal(mine[+el.dataset.i], c); }catch(e){ uiAlert({ title:'Couldn’t open invoice', message:((e&&e.message)||String(e)) }); } }; });
+  try{ if(window.TKS_UNITS) TKS_UNITS.renderCustKeys(box, c, function(id,num){ const rr=(TKS.list('receipts')||[]).find(function(x){ return x.id===id || (num && x.number===num); }); if(rr) openInvoiceModal(rr, c); else uiAlert({ title:'Receipt not found', message:'That receipt is not in the list on this device yet.' }); }, mine.map(function(x){ return x.id; })); }catch(e){}   // 8z115
 }
 // Invoice detail — "what was sold" — opened from a customer's invoice list. `cust` lets
 // us refresh the list after marking paid.
@@ -2942,6 +2944,41 @@ const INV_SUB_ORDER = {
 };
 function catParts(p){ const s=String(p&&p.category||''); const i=s.indexOf('/'); if(i<0) return {top:s.trim()||'Other', sub:''}; return {top:s.slice(0,i).trim()||'Other', sub:s.slice(i+1).trim()}; }  // split on FIRST '/' only — sub names may contain '/' (e.g. "Remote / Fob")
 function catTopLabel(t){ return INV_TOP_LABEL[t] || t; }
+/* 8z112 (owner, 2026-11-13: "I want all my stuff serialized … a settings in inventory that says serialize everything"):
+   Settings → Inventory → Serial numbers. The server does the work (serialize_all_on: every piece on hand gets its own
+   unit record and serial; counts are checked not to change) and then serial-numbers new items as they are added. */
+function serSettingsPaint(){
+  const box=document.getElementById('serBlock'); if(!box) return;
+  const msg=box.querySelector('#serMsg'), act=box.querySelector('#serAct');
+  let sb=null; try{ sb=TKS._sb&&TKS._sb(); }catch(e){}
+  if(!sb || (TKS.isDemo&&TKS.isDemo()) || !(TKS.auth&&TKS.auth.isSignedIn())){ msg.textContent='Sign in to use serial numbers.'; act.innerHTML=''; return; }
+  sb.rpc('serialize_all_status').then(function(r){ if(!document.body.contains(box)) return;
+    const d=(r && !r.error && r.data) || null; if(!d){ msg.textContent='Could not read this setting — check the connection and open this screen again.'; act.innerHTML=''; return; }
+    const left=Number(d.items_left)||0, pieces=Number(d.pieces_left)||0;
+    if(d.on && !left){
+      msg.innerHTML='<b>On.</b> Every piece in stock has its own serial number, and anything you add gets one automatically. Labels print each key’s own serial number.';
+      act.innerHTML='<button type="button" class="btn" id="serOff" style="min-height:44px;flex:none">Stop giving new items serial numbers</button>';
+    } else {
+      msg.innerHTML='Give every piece in stock its own serial number, so a label, a sale or a warranty return can be traced to the exact key. '+(left?('<b>'+left+' item'+(left===1?'':'s')+' ('+pieces+' piece'+(pieces===1?'':'s')+')</b> '+(left===1?'does':'do')+' not have serial numbers yet. '):'')+'Your stock counts do not change and selling works the same — the oldest piece is taken first. New items get serial numbers automatically from then on.';
+      act.innerHTML='<button type="button" class="btn save" id="serOn" style="min-height:44px;flex:none">Give everything a serial number</button>';
+    }
+    const on=box.querySelector('#serOn'), off=box.querySelector('#serOff');
+    if(on) on.onclick=function(){
+      uiConfirm({ title:'Give everything a serial number?', message:(left?(left+' items ('+pieces+' pieces) will each get their own serial number. '):'')+'Stock counts stay exactly as they are. Items that have been given serial numbers keep them — this is not undone by switching it off later.', okText:'Yes, do it', cancelText:'Not now' }).then(function(y){ if(!y) return;
+        on.disabled=true; msg.textContent='Working… this takes a few seconds. Keep this screen open.';
+        sb.rpc('serialize_all_on').then(function(x){
+          if(!x || x.error || !(x.data && x.data.ok)){ on.disabled=false; msg.textContent='Not done — nothing was changed. '+((x && x.error && x.error.message) || 'No answer from the server.'); return; }
+          try{ if(TKS.refresh) TKS.refresh(true); }catch(e){}
+          uiAlert({ title:'✓ Done', message:x.data.items+' items — '+x.data.units_created+' pieces — now have their own serial numbers. Stock counts did not change.' });
+          serSettingsPaint();
+        }, function(){ on.disabled=false; msg.textContent='Not done — no connection. Nothing was changed.'; });
+      }); };
+    if(off) off.onclick=function(){ off.disabled=true; sb.rpc('serialize_all_off').then(function(){ serSettingsPaint(); }, function(){ off.disabled=false; }); };
+  }, function(){ msg.textContent='Could not read this setting — check the connection and open this screen again.'; });
+}
+/* 8z110 / 8z113: which stock the list shows — 'all' (out of stock at the bottom of each group), 'in' (only what is on the shelf) or 'out' (only what needs ordering). Remembered on this device. */
+function invStockView(){ try{ const v=localStorage.getItem('tks_inv_stock_view'); return (v==='low'||v==='out') ? 'low' : 'all'; }catch(e){ return 'all'; } }   // 8z118: 'low' = only what is low or out (what to order)
+function invHideOut(){ return false; }
 function invGroupSort(a,b){
   const ca=catParts(a), cb=catParts(b);
   const ta=(INV_TOP_ORDER[ca.top]!==undefined?INV_TOP_ORDER[ca.top]:9);
@@ -2952,6 +2989,10 @@ function invGroupSort(a,b){
   const sb=(INV_SUB_ORDER[cb.sub]!==undefined?INV_SUB_ORDER[cb.sub]:99);
   if(sa!==sb) return sa-sb;
   if(ca.sub!==cb.sub) return ca.sub.localeCompare(cb.sub);
+  // 8z110 (owner, 2026-11-13: "out of stock … showing across the top first. I would like out of stock to move to the very
+  // bottom of each category"): nothing-on-the-shelf goes last in its group; running low (but still in stock) stays first.
+  const oa=(parseInt(a.qty,10)||0)>0?0:1, ob=(parseInt(b.qty,10)||0)>0?0:1;
+  if(oa!==ob) return oa-ob;
   const la = TKS.Inventory.isLow(a)?0:1, lb = TKS.Inventory.isLow(b)?0:1;
   if(la!==lb) return la-lb;
   return (a.name||'').toLowerCase().localeCompare((b.name||'').toLowerCase());
@@ -3007,6 +3048,7 @@ let invCatFilter='', invSubFilter='', invBrandFilter='', invNoCostOnly=false, in
 // 8z: keys that carry an FCC ID (same list as the part form's FCC box) and have none entered yet
 const INV_FCC_SUBS={ 'Smart Key':1, 'Remote / Fob':1, 'Remote Head / Flip':1, 'Super Remote':1 };
 function invNeedsFcc(p){ const sub=String(p.category||'').split('/').pop().trim();
+  if(partGrade(p)==='Universal') return false;   // owner: a Universal key needs no FCC ID or chip — the Category says it all
   if(sub==='Transponder') return !String(p.chip||'').trim();   // owner: transponders are identified by chip type, not FCC ID
   return !!INV_FCC_SUBS[sub] && !String(p.fccId||'').trim(); }
 const INV_GRADE_ORDER=['Aftermarket','OEM New','OEM Refurbished','Universal','Accessories','Services','Unsorted'];
@@ -3124,6 +3166,7 @@ function renderInventory(){
   if(invBrandFilter) list=list.filter(p=>partBrand(p)===invBrandFilter);
   if(invNoCostOnly) list=list.filter(p=>!(parseFloat(p.cost)>0));
   if(invNoFccOnly) list=list.filter(invNeedsFcc);
+  if(invStockView()==='low') list=list.filter(p=>TKS.Inventory.isLow(p));   // 8z118: the "low / out" tile
   // location filter: signed in → real Shop / per-van stock (8s); offline → the legacy per-device van/shop flag
   const seg=document.getElementById('invLocSeg'); let showLoc=false;
   if(invCloudLoc()){
@@ -3267,8 +3310,9 @@ function renderInvStrip(){
   const ret=live?(+invCloudDash.returns_needed||0):0, warr=live?(+invCloudDash.warranty_replacements||0):0, fail=live?(+invCloudDash.failed_keys||0):0;
   el.innerHTML =
     (_invStripCtx.fitOn ? '<div class="chip" style="flex:2 1 160px"><b>'+_invStripCtx.listLen+'</b>fit '+esc(TKS_FIT.vehLabel(invFitVeh))+'</div>' : '')+
-    '<div class="chip"><b>'+all.length+'</b>parts</div>'+
-    '<div class="chip'+(low?' low':'')+'"><b>'+low+'</b>low / out</div>'+
+    // 8z118: the tiles are the filters — All shows everything; low / out, missing cost and missing FCC ID each show only those
+    (function(){ const any=invStockView()==='low'||invNoCostOnly||invNoFccOnly; return '<div class="chip clickable'+(any?'':' on')+'" id="invAllChip" role="button" tabindex="0" aria-pressed="'+(any?'false':'true')+'" title="Show every part"><b>'+all.length+'</b>all</div>'; })()+
+    (function(){ const on=invStockView()==='low'; return '<div class="chip clickable'+(low?' low':'')+(on?' on':'')+'" id="invLowChip" role="button" tabindex="0" aria-pressed="'+(on?'true':'false')+'" title="'+(on?'Tap to show every part again':'Tap to list only what is low or out of stock — what to order')+'"><b>'+low+'</b>'+(on?'low / out — showing only these · tap to show all':'low / out')+'</div>'; })()+
     ((canSeeCost && noCost>0)
       // 8i: tap the chip → the list shows only those parts; tap again → everything
       ? '<div class="chip low clickable'+(invNoCostOnly?' on':'')+'" id="invCostNudge" role="button" tabindex="0" aria-pressed="'+(invNoCostOnly?'true':'false')+'" title="'+(invNoCostOnly?'Tap to show every part again':'Tap to list only the parts with no cost entered — open each and enter its Cost')+'"><b>'+noCost+'</b>'+(invNoCostOnly?'missing cost — showing only these · tap to show all':'missing cost — profit reads $0 for these · tap to list them')+'</div>'
@@ -3283,6 +3327,10 @@ function renderInvStrip(){
     (live
       ? '<div class="chip'+(ret?' low':'')+' clickable" id="invRetChip" role="button" tabindex="0" title="Warranty and failed keys owed back to suppliers — opens Reports › Returns"><b>'+ret+'</b>open return'+(ret===1?'':'s')+' to supplier'+((warr||fail)?' · '+warr+' warranty / '+fail+' failed':'')+'</div>'
       : '');
+  (function(){ const key=(n,fn)=>{ if(!n) return; n.onclick=fn; n.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fn(); } }; };
+    const setView=(v)=>{ try{ localStorage.setItem('tks_inv_stock_view', v); }catch(e){} };
+    key(document.getElementById('invAllChip'), ()=>{ setView('all'); invNoCostOnly=false; invNoFccOnly=false; renderInventory(); });
+    key(document.getElementById('invLowChip'), ()=>{ setView(invStockView()==='low'?'all':'low'); renderInventory(); }); })();
   (function(){ const n=document.getElementById('invCostNudge'); if(!n) return;
     const tog=()=>{ invNoCostOnly=!invNoCostOnly; renderInventory(); };
     n.onclick=tog; n.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tog(); } }; })();
@@ -3636,13 +3684,17 @@ function pKeyFieldsToggle(){
   // 8k: Fits / FCC / chip are part of the vehicle-fitment feature
   ['pFitment','pFitPreview','pFitAdd'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=ok?'':'none'; });
   const fl=document.querySelector('label[for="pFitment"]'); if(fl) fl.style.display=ok?'':'none';
-  const showF=ok && !!FCC_SUBS[sub], showC=ok && !!CHIP_SUBS[sub];
+  const uni=document.getElementById('pGrade').value==='Universal';   // owner: a Universal key needs no FCC ID / chip — boxes hidden (typed text is kept), one quiet line instead
+  let un=document.getElementById('pUnivNote');
+  if(!un && wrap){ un=document.createElement('div'); un.id='pUnivNote'; un.className='hint'; un.style.cssText='display:none;margin:6px 0;font-size:13px'; un.textContent='Universal key — no FCC ID or chip needed.'; wrap.parentNode.insertBefore(un, wrap); }
+  if(un) un.style.display=(uni&&ok)?'block':'none';
+  const showF=ok && !uni && !!FCC_SUBS[sub], showC=ok && !uni && !!CHIP_SUBS[sub];
   if(wrap) wrap.style.display=(showF||showC)?'grid':'none';
   if(f) f.style.display=showF?'block':'none';
   if(c) c.style.display=showC?'block':'none';
 }
 (function(){ const gs=document.getElementById('pGrade'), ss=document.getElementById('pSub'), so=document.getElementById('pSubOther'), bs=document.getElementById('pBrand'), bo=document.getElementById('pBrandOther'), dl=document.getElementById('pChipList');
-  if(gs) gs.addEventListener('change', ()=>{ pSubFill(''); pBrandFill(''); pKeyFieldsToggle(); });
+  if(gs) gs.addEventListener('change', ()=>{ const keep=pSubValue(); pSubFill(pSubsFor(gs.value).some(s=>s.toLowerCase()===keep.toLowerCase())?keep:''); pBrandFill(''); pKeyFieldsToggle(); });   // keeps the sub-category when the new Category has it too, so Universal ↔ Aftermarket brings the FCC / chip boxes straight back
   if(ss) ss.addEventListener('change', ()=>{ if(so) so.style.display=(ss.value==='__other')?'block':'none'; pKeyFieldsToggle(); });
   if(so) so.addEventListener('input', pKeyFieldsToggle);
   if(bs) bs.addEventListener('change', ()=>{ if(bo) bo.style.display=(bs.value==='__other')?'block':'none';
@@ -4205,7 +4257,13 @@ function posTotals(){
   return { subtotalCents, taxCents, totalCents: subtotalCents+taxCents, discCents: disc };
 }
 function posAddLine(line){ line.key='l'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); line.qty=line.qty||1; posTicket.push(line); posRender(); }
-function posSetQty(key,delta){ const l=posTicket.find(x=>x.key===key); if(l){ l.qty=Math.max(1,(l.qty||1)+delta); posRender(); } }
+/* Scanned keys ride on a part line (l.unitIds / l.unitSerials). Lowering the quantity below the number of scanned keys drops the last scanned key(s). */
+function posSyncUnits(l){ if(!l.unitIds) return; const q=Math.max(1,l.qty||1); if(l.unitIds.length>q){ l.unitIds=l.unitIds.slice(0,q); l.unitSerials=(l.unitSerials||[]).slice(0,q); } if(!l.unitIds.length){ delete l.unitIds; delete l.unitSerials; } }
+function posSetQty(key,delta){ const l=posTicket.find(x=>x.key===key); if(l){ l.qty=Math.max(1,(l.qty||1)+delta); posSyncUnits(l); posRender(); } }
+function posUnitNote(l,serz){ let h='';
+  if(l.unitSerials && l.unitSerials.length) h+='<div class="pl-sn" style="font-size:12px;font-weight:700;color:var(--dim);letter-spacing:.5px;word-break:break-word">SN '+l.unitSerials.map(esc2).join(', ')+'</div>';
+  if(l.type==='part' && serz && (l.unitIds||[]).length<(l.qty||1)) h+='<div class="pl-snhint" style="font-size:12px;color:var(--dim)">Scan the key’s label so the exact key is recorded</div>';
+  return h; }
 function posRemove(key){ posTicket=posTicket.filter(x=>x.key!==key); posRender(); }
 function posClear(){ posTicket=[]; posDiscountCents=0; posDiscountReason=''; setChgCustomer(null);
   posVeh={year:'',make:'',model:'',vin:''}; const vinEl=document.getElementById('posVin'); if(vinEl) vinEl.value=''; const vn=document.getElementById('posVehNote'); if(vn) vn.textContent=''; posFillYmm();
@@ -4220,9 +4278,9 @@ function posRender(){
     host.innerHTML='<div class="pos-empty">Empty ticket — tap <b>+ Part</b> or <b>+ Service</b> below.</div>';
   } else {
     let rows = posTicket.map((l,idx)=>{
-      let sku=''; if(l.type==='part'){ try{ const p=TKS.Inventory.get(l.refId); sku=(p&&p.sku)||''; }catch(_){} } else { sku=(l.lineType||''); }
+      let sku='', serz=false; if(l.type==='part'){ try{ const p=TKS.Inventory.get(l.refId); sku=(p&&p.sku)||''; serz=!!(p&&p.serialized); }catch(_){} } else { sku=(l.lineType||''); }
       return '<tr><td class="pl-ln">'+(idx+1)+'</td>'+
-        '<td class="pl-desc">'+esc2(l.desc)+(sku?('<span class="pl-sku">'+esc2(sku)+'</span>'):'')+'</td>'+
+        '<td class="pl-desc">'+esc2(l.desc)+(sku?('<span class="pl-sku">'+esc2(sku)+'</span>'):'')+posUnitNote(l,serz)+'</td>'+
         '<td class="pl-qtyc"><div class="pl-qty"><button data-dec="'+l.key+'" aria-label="One less">−</button><span>'+(l.qty||1)+'</span><button data-inc="'+l.key+'" aria-label="One more">+</button></div></td>'+
         '<td class="pl-price" data-edit="'+l.key+'">'+money2(l.unitCents)+'</td><td class="pl-tot">'+money2(posLineAmtCents(l))+'</td>'+
         '<td class="pl-xc"><button class="pl-x" data-rm="'+l.key+'" aria-label="Remove">×</button></td></tr>';
@@ -4282,7 +4340,7 @@ function posBuildPayload(){
       if(d) return Object.assign({}, posVeh, { color:d.color, odometer:d.odometer, plate:d.plate });
       return (posVeh.vin||posVeh.make||posVeh.model) ? posVeh : null; })(),
     nastf: (posJobType==='automotive' && posNastf) ? posNastf : null,
-    lines: posTicket.map(l=> l.type==='part' ? Object.assign({ type:'part', itemId:l.refId, qty:l.qty }, l.priceOverride?{priceCents:l.unitCents}:{})
+    lines: posTicket.map(l=> l.type==='part' ? Object.assign({ type:'part', itemId:l.refId, qty:l.qty }, l.priceOverride?{priceCents:l.unitCents}:{}, (l.unitIds&&l.unitIds.length)?{unitIds:l.unitIds.slice()}:{})
                           : l.type==='service' ? Object.assign({ type:'service', svc:l.svc, cat:l.cat, qty:l.qty }, l.priceOverride?{priceCents:l.unitCents}:{})  // Setup service priced server-side unless overridden
                           : { type:'custom', desc:l.desc, priceCents:l.unitCents, qty:l.qty, taxable:!!l.taxable, lineType:(l.lineType||'service') } )
   };
@@ -4547,13 +4605,32 @@ function posScanAddUnit(code){
   if(!window.unitLookup){ chgSay('Unit lookup isn’t loaded.',false); return; }
   chgSay('Looking up key '+code+'…');
   unitLookup(code).then(res=>{
-    const p=res && res.part; if(!p){ chgSay('That key’s part isn’t in this device’s inventory list yet.',false); return; }
-    posScanAddPart(p.sku||String(p.id));
-    if(res.unit && res.unit.status && res.unit.status!=='in_stock') chgSay('Added '+(p.name||'')+' — heads up: this key is marked “'+res.unit.status.replace(/_/g,' ')+'”.',false);
+    const u=res && res.unit, p=res && res.part; if(!u){ chgSay('No key found for '+code+'.',false); return; }
+    if(!p){ chgSay('That key’s part isn’t in this device’s inventory list yet.',false); return; }
+    const ser=u.serial||u.id, st=u.status||'in_stock';
+    if(st!=='in_stock'){ const why={sold:'already sold',lost:'marked lost',failed:'marked failed',warranty_out:'out on warranty',written_off:'written off'}[st]||('marked “'+String(st).replace(/_/g,' ')+'”'); chgSay('Key SN '+ser+' is '+why+' — it can’t be sold from stock.',false); return; }
+    posAddKeyToTicket(p,u);
   }).catch(err=>chgSay((err&&err.message)||String(err),false));
+}
+/* A scanned key (per-unit label) becomes a part line that remembers WHICH key it is: l.unitIds / l.unitSerials. The server then marks
+   exactly those keys sold. A second key of the same part joins the same line; the same key twice is refused. Price path = SKU scan. */
+function posAddKeyToTicket(p,u,cents,ovr){
+  const ser=u.serial||u.id;
+  if(posTicket.some(l=>(l.unitIds||[]).indexOf(u.id)>=0)){ chgSay('Key SN '+ser+' is already on this sale.',false); return; }
+  const ex=posTicket.find(l=>l.type==='part' && l.refId===p.id);
+  if(ex){
+    if((ex.unitIds||[]).length>=(ex.qty||1)) ex.qty=(ex.qty||1)+1;   // a slot already counted by +/SKU scan gets filled instead
+    ex.unitIds=(ex.unitIds||[]).concat([u.id]); ex.unitSerials=(ex.unitSerials||[]).concat([ser]);
+    posRender(); chgSay('Added key SN '+ser+' — '+(p.name||'')+'.',true); return; }
+  if(cents==null){
+    if(!(p.sellPriceCents>0)){ uiAskPriceCents({title:'Price for '+(p.name||'part')}).then(ent=>{ if(ent==null) return; posAddKeyToTicket(p,u,ent,true); }); return; }
+    cents=p.sellPriceCents; }
+  posAddLine(Object.assign({type:'part',refId:p.id,desc:p.name,unitCents:cents,taxable:true,lineType:'part',unitIds:[u.id],unitSerials:[ser]}, ovr?{priceOverride:true}:{}));
+  chgSay('Added key SN '+ser+' — '+(p.name||'')+'.',true);
 }
 window.addEventListener('tks-scan', async function(e){
   let code=((e.detail&&e.detail.code)||'').trim(); if(!code) return;
+  if(window.unitMoveOpen && unitMoveOpen()){ unitMoveFeed(code); return; }   // the "Move keys by scanning" sheet is open → every scan goes into it, nowhere else
   // 8z29: a 7-character serial → its unit id (if no unit has it, it's treated as a SKU like before)
   if(window.TKS_looksLikeSerial && TKS_looksLikeSerial(code) && !(window.unitPanelOpen && unitPanelOpen())){
     try{ const sb=TKS._sb&&TKS._sb(); if(sb){ const r=await sb.from('inventory_units').select('id').eq('serial', code.toUpperCase()).maybeSingle(); if(r&&r.data&&r.data.id) code=r.data.id; } }catch(_){}
@@ -4562,10 +4639,12 @@ window.addEventListener('tks-scan', async function(e){
   const isUnit=/^u_/i.test(code);   // per-unit label → the unit's story / its part
   if(window.unitPanelOpen && unitPanelOpen()){ openUnitPanel(code); return; }   // the Key lookup panel is open → the scan goes into it (unit id or SKU)
   if(vis(document.getElementById('view-payments'))){ if(isUnit) posScanAddUnit(code); else posScanAddPart(code); return; }
+  if(isUnit && window.unitScanIn && await unitScanIn(code)) return;   // a key waiting for THIS technician to scan in → the scan accepts it (then asks which bin)
   if(isUnit && window.openUnitPanel){ openUnitPanel(code); return; }   // Inventory (or any other screen): open the key's story
   if(vis(document.getElementById('view-inventory'))){ invSearchEl.value=code; renderInventory(); return; }
 });
 { const sk=document.getElementById('invScanKey'); if(sk) sk.onclick=function(){ if(window.openUnitPanel) openUnitPanel(''); else uiAlert('Unit lookup isn’t loaded.'); }; }
+{ const mk=document.getElementById('invMoveKeys'); if(mk) mk.onclick=function(){ if(window.openMoveKeys) openMoveKeys(); else uiAlert('Unit lookup isn’t loaded.'); }; }   // scan keys to move them to the shop / a van
 { const ro=document.getElementById('invReorder'); if(ro) ro.onclick=openReorderModal; }
 { const pr=document.getElementById('chgPrintReceipt'); if(pr) pr.onclick=function(){
   if(!posTicket.length){ chgSay('Add a line to the ticket first.',false); return; }
@@ -7220,7 +7299,13 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       p.innerHTML = '<h2>Hours &amp; receipt footer</h2><div class="sub">Optional. Keep two separate schedules: when your <b>shop/storefront</b> is open for walk-ins, and when you <b>take service jobs</b> in the field (these often differ — e.g. a shop open 10–6 but service running overnight). For an overnight window, set the close time past midnight on the next day (e.g. Sunday 12:00 AM–4:00 AM covers Saturday night). <b>Tip:</b> set one day, then use <b>⧉ Copy to…</b> on that row to reuse it for all days, weekdays (Mon–Fri), or the weekend.</div>'+
         '<label>🏪 Shop / storefront hours <span class="hint" style="font-weight:400">(walk-ins)</span></label><div id="hoursEd"></div>'+
         '<label style="margin-top:14px">🚐 Service hours <span class="hint" style="font-weight:400">(when you take jobs)</span></label><div id="svcHoursEd"></div>'+
-        '<label style="margin-top:14px">Receipt footer line (optional)</label><input id="f_footer" value="'+esc(id.footer||'')+'" placeholder="Insured &amp; Bonded · Thank you!">';
+        '<label style="margin-top:14px">Receipt footer line (optional)</label><input id="f_footer" value="'+esc(id.footer||'')+'" placeholder="Insured &amp; Bonded · Thank you!">'+
+        /* 8z124: estimates — how long the price holds, the line printed at the foot, and the message sent with it */
+        (function(){ var T=TKS.Config.estimateTerms();
+          return '<div class="panel" style="margin-top:16px;padding:12px 14px"><label style="margin-top:0">Estimates</label>'+
+            '<label style="margin-top:8px">An estimate is good for how many days?</label><input id="f_estDays" type="number" inputmode="numeric" min="0" max="365" step="1" value="'+esc(String(T.days))+'" style="max-width:120px"><div class="hint">0 = print no such line.</div>'+
+            '<label style="margin-top:10px">Line printed at the bottom of every estimate</label><textarea id="f_estDisc" rows="3" style="width:100%">'+esc(T.rawDisclaimer)+'</textarea><div class="hint"><b>{days}</b> becomes the number above.</div>'+
+            '<label style="margin-top:10px">Message that goes out with an estimate</label><textarea id="f_estMsg" rows="3" style="width:100%">'+esc(T.rawMessage)+'</textarea><div class="hint"><b>{shop}</b> and <b>{phone}</b> are filled in from Business identity.</div></div>'; })();
       renderHoursEditor('hoursEd','hours');
       renderHoursEditor('svcHoursEd','serviceHours');
     }
@@ -7303,6 +7388,9 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       p.innerHTML='<h2>Inventory (optional)</h2><div class="sub">Already have a parts list in a spreadsheet? Import it now — upload an .xlsx or .csv, match your columns to the app\'s fields, preview, and import. Duplicates are skipped.</div>'+
         '<button type="button" class="btn save" id="invImport" style="flex:none;width:100%">📥 Import inventory from a file</button>'+
         '<div class="hint">You can also do this anytime later from the <b>Inventory</b> tile. Nothing here is required to finish setup.</div>'+
+        /* 8z112: serial numbers for everything */
+        '<div class="panel" id="serBlock" style="margin-top:16px;padding:12px 14px"><label style="margin-top:0">Serial numbers</label><div class="sub" id="serMsg" style="margin:0 0 8px;line-height:1.5">Checking…</div><div id="serAct"></div></div>'+
+        (function(){ setTimeout(function(){ try{ serSettingsPaint(); }catch(e){} }, 0); return ''; })()+
         /* 8z87: automatic key prices */
         (function(){ var A=TKS.Config.autoPrice(), num=function(id,v,ph){ return '<input id="'+id+'" type="number" inputmode="decimal" min="0" step="1" value="'+esc(String(v==null?'':v))+'" placeholder="'+ph+'" style="max-width:120px">'; };
           return '<div class="panel" id="apBlock" style="margin-top:16px;padding:12px 14px"><label style="margin-top:0">Automatic key prices</label>'+
@@ -7660,7 +7748,8 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     else if(key==='services'){ { const ck=[]; root.querySelectorAll('.stype').forEach(cb=>{ if(cb.checked) ck.push(cb.dataset.c); }); if(ck.length||root.querySelector('.stype')) cfg.serviceCats=ck; }   // 8n: categories saved with the services
       cfg.services=cfg.services.filter(s=>(s.value||'').trim()).map(s=>({ value:s.value.trim(), en:(s.value||'').trim(), es:s.es||'', cat:s.cat||'other', price:(s.price!=null?String(s.price).trim():''), taxable:!!s.taxable })); }   // 8z69: keep each service's tax setting (it was dropped on every save)
     else if(key==='inventory'){ /* import is its own modal */ }
-    else if(key==='hours'){ cfg.identity.footer=g('f_footer'); }
+    else if(key==='hours'){ cfg.identity.footer=g('f_footer');
+      if(document.getElementById('f_estDays')){ var ed=parseInt(g('f_estDays'),10); cfg.estimates={ validDays:(ed>=0?Math.min(365,ed):7), disclaimer:g('f_estDisc'), message:g('f_estMsg') }; } }   // 8z124
     else if(key==='timeclock'){ cfg.timeclock=Object.assign({}, cfg.timeclock, { enabled:!!(gid('f_tcEnabled')&&gid('f_tcEnabled').checked), idleMin:Math.max(1, Math.min(120, parseInt(g('f_tcIdle'),10)||5)) });
       /* device flag is per-device localStorage, handled by its own onchange */
       try{ if(window.TKS_CLOCK) setTimeout(function(){ TKS_CLOCK.init(); },0); }catch(e){} }
@@ -8678,7 +8767,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     var head='<div style="margin-top:14px;border:2px solid rgba(34,153,74,.25);border-radius:14px;padding:12px;background:rgba(34,153,74,.05)"><div style="font-weight:800;font-size:16px">🔑 Keys for this vehicle</div>';
     if(!v.make || !v.model){ box.innerHTML=head+'<div class="meta" style="margin-top:4px">Pick the year, make and model (or decode the VIN) to see the keys you stock for it.</div></div>'; return; }
     var L=kfvList(v.year, v.make, v.model, v.ignition), html=head+'<div class="meta" style="margin-top:2px">'+esc([v.year,v.make,v.model].filter(Boolean).join(' '))+' — from your stock'+(L.hidden?' ('+esc(L.hidden)+')':'')+'</div>';
-    if(!L.count) html+='<div class="meta" style="margin-top:8px">No keys in stock list this vehicle in their "Fits".</div>';
+    if(!L.count) html+='<div class="meta" style="margin-top:8px">No keys in stock list this vehicle in their "Fits".'+(L.universalHint?' '+esc(L.universalHint):'')+'</div>';
     L.groups.forEach(function(g){ html+='<div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--dim);text-transform:uppercase;margin:12px 0 6px">'+esc(g[0])+'</div>'+g[1].map(function(p){ return kfvCard(p, b.keyParts.indexOf(p.id)>=0); }).join(''); });
     if(b.keyParts.length) html+='<div style="margin-top:10px;background:var(--card,#fff);border:1px dashed #22994a;border-radius:12px;padding:10px;font-size:13.5px"><b>On this job ('+b.keyParts.length+'):</b> '+
       b.keyParts.map(function(id){ var pt=TKS.Inventory.get(id)||{}; return esc(pt.name||pt.sku||'Part')+' '+esc(kfvMoney(pt.sellPriceCents)); }).join(' · ')+'<div class="meta" style="margin-top:4px">Saved with the job — goes to the invoice.</div></div>';
@@ -9306,12 +9395,13 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       var onJob={}; jobParts.forEach(function(x){ if(x.item_id) onJob[x.item_id]=(onJob[x.item_id]||[]).concat([x]); }); pendingParts.forEach(function(id){ onJob[id]=(onJob[id]||[]).concat([{pending:true}]); });
       var html=head+'<div class="sub" style="margin-top:2px">'+esc([y,mk,md].filter(Boolean).join(' '))+' — from your stock'+esc(hidden)+'</div>';
       if(!list.length) html+='<div class="sub" style="margin-top:8px">No keys in stock list this exact vehicle in their "Fits"'+(maybe.length?'. See “Might fit” below.':'. Add the vehicle to a part\'s Fits (Stock → part) and it shows up here.')+'</div>';
+      if(KL.universalHint) html+='<div class="sub" style="margin-top:8px;font-weight:700">'+esc(KL.universalHint)+'</div>';
       var missingVan=0;
       var kGroupsOf=function(src, prefix){ return KEY_GROUPS.concat([['__other','Other']]).map(function(g){ return [g[0], prefix+g[1], src]; }); };
-      kGroupsOf(list, '').concat(maybe.length?[['__maybeHead','',maybe]].concat(kGroupsOf(maybe, 'Might fit · ')):[]).forEach(function(g){
+      kGroupsOf(list, '').concat((KL.universal&&KL.universal.length)?[['__univ', (window.TKS_FIT&&TKS_FIT.KEY_UNIVERSAL_LABEL)||'Universal', KL.universal]]:[]).concat(maybe.length?[['__maybeHead','',maybe]].concat(kGroupsOf(maybe, 'Might fit · ')):[]).forEach(function(g){
         if(g[0]==='__maybeHead'){ html+='<div style="margin:14px 0 2px;padding-top:10px;border-top:2px dashed rgba(183,121,31,.45);font-weight:800;color:#b7791f">Might fit — not confirmed for this model</div><div class="sub" style="margin:0">These list the make and year only. To confirm one for good, add this vehicle to its Fits (Stock → part).</div>'; return; }
         var list=g[2];
-        var items=list.filter(function(p){ var sb=kSub(p); return g[0]==='__other' ? !KEY_GROUPS.some(function(k){ return k[0]===sb; }) : sb===g[0]; });
+        var items=g[0]==='__univ' ? list : list.filter(function(p){ var sb=kSub(p); return g[0]==='__other' ? !KEY_GROUPS.some(function(k){ return k[0]===sb; }) : sb===g[0]; });
         if(!items.length) return;
         html+='<div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--dim);text-transform:uppercase;margin:12px 0 6px">'+esc(g[1])+'</div>';
         items.forEach(function(p){ var st=kStock(p), onVan=van?(st.vans[van]||0):0, added=!!onJob[p.id];
@@ -9458,11 +9548,12 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       var nb={ jobType:jt0, customer:{ name:String(c.name||''), phone:String(c.phone||''), email:String(c.email||'') }, subType:String(qj.subType||'')||(its[0]&&its[0].desc)||'',
         address:String(qj.address||''), items:its, fromEstimate:String(qj.fromEstimate||''),
         internalNotes:[qj.fromEstimate?('From estimate '+qj.fromEstimate):'', String(qj.internalNotes||'')].filter(Boolean).join(' — ') };
+      if(qj.addr && typeof qj.addr==='object' && (qj.addr.street||qj.addr.city||qj.addr.state||qj.addr.zip)) nb.addr={ street:String(qj.addr.street||''), city:String(qj.addr.city||''), state:String(qj.addr.state||''), zip:String(qj.addr.zip||'') };   // 8z96b
       if(qj.fromLead) nb.fromLead=String(qj.fromLead);
       if(qj.serviceWhere==='shop'||qj.serviceWhere==='mobile') nb.serviceWhere=qj.serviceWhere;   // 8z78
       if(qj.taxExempt && typeof qj.taxExempt==='object') nb.taxExempt=qj.taxExempt;
       if(Array.isArray(qj.moreVehicles) && qj.moreVehicles.length) nb.moreVehicles=qj.moreVehicles;   // 8z84
-      if(jt0==='auto') nb.vehicle={ year:String(v.year||''), make:String(v.make||''), model:String(v.model||''), vin:String(v.vin||''), ignition:'' };
+      if(jt0==='auto') nb.vehicle={ year:String(v.year||''), make:String(v.make||''), model:String(v.model||''), vin:String(v.vin||''), ignition:(v.ignition==='push'||v.ignition==='keyed')?v.ignition:'' };
       jobDraftSet('tks_sj_draft', nb);
       setTimeout(function(){ try{ openForm(null); toast(qj.fromLead ? 'Lead brought over — check the details and pick the day and time.' : ('Estimate '+(qj.fromEstimate||'')+' brought over — pick the day and time.')); }catch(e){} }, 450);
     }
@@ -9853,6 +9944,8 @@ gid('vinIn').addEventListener('keydown',e=>{ if(e.key==='Enter') gid('vinBtn').c
 </script>
 <script src="app/receipts-engine.js"></script>
 <script src="app/receipts-view.js"></script>
+<script src="app/unit-links.js"></script><!-- 8z115: serial numbers on the receipt / customer / scan screens (read only) -->
+<script src="app/inventory-dupes.js"></script><!-- 8z116: Inventory → Find duplicates (finder + review sheet) -->
 <script src="app/tier.js"></script>
 <script src="app/billing.js"></script>
 <!-- Shop-floor hardware: barcode scanner (keyboard-wedge), Star TSP100 thermal

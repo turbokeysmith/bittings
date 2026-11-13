@@ -523,7 +523,6 @@ try{ if(window.self!==window.top){
     <button onclick="closeHist()">Done</button>
   </div>
   <div class="pp-body">
-    <div id="histNewQuote" style="display:none;margin:0 0 12px"><button type="button" id="histNewQuoteBtn" onclick="newQuoteFromList()" style="width:100%;min-height:48px;border:0;border-radius:12px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-size:17px;font-weight:800;cursor:pointer">＋ New quote</button><div style="margin-top:6px;font-size:13px;opacity:.75;text-align:center">Quote a caller, then schedule it or bill it from here.</div></div>
     <div class="hist-filter">
       <button data-f="all" class="active" onclick="setHistFilter('all')">All</button>
       <button data-f="receipt" onclick="setHistFilter('receipt')">Receipts</button>
@@ -835,7 +834,7 @@ function paperCopy(r){
     items:(r.items||[]).filter(it=>it && !it.declined).map(it=>({ desc:String(it.desc||"")+(it.vehicle?(" - "+it.vehicle):""), amount:it.amount, qty:parseInt(it.qty,10)||1, isDiscount:!!it.isDiscount })),
     moreVehicles:moreVehList(r).map(l=>l.replace(/\s*\u00b7\s*/g," - ")),
     totals:t, vehicleText:vehicleString(r)||"", vin:r.vin||"", serviceWhere:r.serviceWhere||"", taxExempt:r.taxExempt||null,
-    exemptLabel:(r.taxExempt && window.TKS_EXEMPT)?TKS_EXEMPT.label(r.taxExempt).replace(/\s*·\s*/g," - "):"", warrantyText:wt, notes:r.notes||"" };
+    exemptLabel:(r.taxExempt && window.TKS_EXEMPT)?TKS_EXEMPT.label(r.taxExempt).replace(/\s*·\s*/g," - "):"", warrantyText:wt, notes:estNotes(r) };
 }
 function printFullPage(r){
   let out; try{ out=makePDF(r, "en", true, true); }catch(e){ appAlert("Print failed", (e&&e.message)||"Could not build the page."); return; }
@@ -873,14 +872,35 @@ function moreVehList(r){ return (Array.isArray(r&&r.moreVehicles)?r.moreVehicles
   return [n, v.vin?("VIN "+v.vin):"", v.d1===true?("NASTF D1 — "+[v.color, v.odometer?(/^no /i.test(v.odometer)?v.odometer:(v.odometer+" mi")):"", v.plate?(/^no /i.test(v.plate)?v.plate:("tag "+v.plate)):""].filter(Boolean).join(", ")):""].filter(Boolean).join(" · "); }).filter(Boolean); }
 /* 8z90: colour / tag / miles of the first vehicle — a document keeps them at the top level, a Register sale inside its vehicle object */
 function d1Of(r){ var v=(r && typeof r.vehicle==="object" && r.vehicle)?r.vehicle:{}; return { color:String((r&&r.vehColor)||v.color||""), plate:String((r&&r.plate)||v.plate||""), odometer:String((r&&r.odometer!=null&&r.odometer!=="")?r.odometer:(v.odometer||"")) }; }
-function docWithVehicles(r){ try{ if(!r || !Array.isArray(r.items) || !r.items.some(function(it){ return it && it.vehicle; })) return r;
+/* 8z124: an estimate carries the shop's "good for N days" line under its notes (Settings → Hours & footer). */
+function estTerms(){ try{ return (window.TKS && TKS.Config && TKS.Config.estimateTerms) ? TKS.Config.estimateTerms() : null; }catch(e){ return null; } }
+function estNotes(r){ var n=String((r&&r.notes)||""); try{ if(r && r.docType==="estimate"){ var t=estTerms(), d=t&&t.disclaimer; if(d && n.indexOf(d)<0) n = n ? (n+"\n\n"+d) : d; } }catch(e){} return n; }
+function estSubject(r){ var svc=""; try{ var it=((r&&r.items)||[]).filter(function(x){ return x && !x.isDiscount && !x.declined; })[0]; svc=it?String(it.desc||""):""; }catch(e){}
+  var veh=""; try{ veh=vehicleString(r)||""; }catch(e){} return ["Estimate", veh, svc.slice(0,60)].filter(Boolean).join(" — "); }
+function docWithVehicles(r){ r=docWithTerms(r); try{ if(!r || !Array.isArray(r.items) || !r.items.some(function(it){ return it && it.vehicle; })) return r;
   return Object.assign({}, r, { items:r.items.map(function(it){ return (it && it.vehicle) ? Object.assign({}, it, { desc:String(it.desc||"")+" — "+it.vehicle }) : it; }) }); }catch(e){ return r; } }
+function docWithTerms(r){ try{ if(r && r.docType==="estimate"){ var n=estNotes(r); if(n!==String(r.notes||"")) return Object.assign({}, r, { notes:n }); } }catch(e){} return r; }
 /* 8z78: what a document says about a tax exemption and about where the work is done (preview, PDF and lists). */
 function exemptLines(r){ try{ return (r && r.taxExempt && window.TKS_EXEMPT) ? TKS_EXEMPT.certLines(r.taxExempt) : (r && r.taxExempt ? ["TAX EXEMPT"] : []); }catch(e){ return []; } }
 function whereLine(r){ if(!r) return ""; if(r.serviceWhere==="shop") return "Service: In shop"+((SETTINGS&&SETTINGS.address)?(" — "+SETTINGS.address):""); if(r.serviceWhere==="mobile") return "Service: Mobile (we come to you)"; return ""; }
 /* Empty state — nothing open (the builder was cancelled). */
+const ESTM=/[?&](estimates|quote)=1/.test(location.search);   // the page was opened from the Quotes & estimates menu item
+/* 8z96b: estimates that are still open = not billed (an invoice / receipt came from them) and not on the schedule. */
+function bookedEstimateMap(){ const m={}; try{ (TKS.Bookings.all()||[]).forEach(b=>{ if(b && b.fromEstimate && !b.deletedAt && !/cancel/i.test(String(b.status||""))) m[b.fromEstimate]=b; }); }catch(e){} return m; }
+function openEstimates(){ const hist=getHistory(), conv={}, bk=bookedEstimateMap(); hist.forEach(x=>{ if(x && x.fromEstimate) conv[x.fromEstimate]=1; });
+  return hist.filter(r=>r && (r.docType||"receipt")==="estimate" && !conv[r.number] && !bk[r.number]); }
+function refreshHomeEst(){ try{ const b=document.getElementById("homeEst"); if(b && ESTM) b.textContent="📋 Estimates ("+openEstimates().length+")"; }catch(e){} }
 function showHome(){
   if(window.RO_RECEIPTS) return;
+  if(ESTM){
+    chat.innerHTML='<div class="res-home"><h2>Quotes &amp; estimates</h2>'+
+      '<p>Quote a caller, then schedule the job or bill it from here.</p>'+
+      '<button type="button" class="primary" id="homeNew">💬 New estimate</button>'+
+      '<button type="button" id="homeEst">📋 Estimates</button></div>';
+    chat.querySelector("#homeNew").onclick=()=>newQuoteFromList();
+    chat.querySelector("#homeEst").onclick=()=>{ setHistFilter("estimate"); openHist(); };
+    refreshHomeEst(); return;
+  }
   chat.innerHTML='<div class="res-home"><h2>Receipts &amp; invoices</h2>'+
     '<p>Build a receipt, invoice or estimate on one screen — parts, services, NASTF D1 paperwork, payment and signature.</p>'+
     '<button type="button" class="primary" id="homeNew">⚡ New document</button>'+
@@ -924,6 +944,8 @@ function jobDraftToPrefill(d){
   if(d.fromDispatch) p.fromDispatch=true;
   if(d.customer) p.customer=String(d.customer);
   if(d.address) p.address=String(d.address);
+  if(d.addr && typeof d.addr==="object" && (d.addr.street||d.addr.city||d.addr.state||d.addr.zip)) p.addr=d.addr;   // 8z96b
+  if(d.vehIgnition==="push"||d.vehIgnition==="keyed") p.vehIgnition=d.vehIgnition;   // 8z96b
   if(d.serviceWhere==="shop"||d.serviceWhere==="mobile") p.serviceWhere=d.serviceWhere;   // 8z78
   if(d.fromEstimate) p.fromEstimate=String(d.fromEstimate);   // 8z81
   if(Array.isArray(d.moreVehicles) && d.moreVehicles.length) p.moreVehicles=d.moreVehicles;   // 8z84
@@ -1313,6 +1335,7 @@ function finish(){
     }, 800);
   }
   finishedActions(receipt);
+  tksAfterCreate(receipt);   // 8z122: "Save & send" / "Save & PDF"
 }
 /* 8z65: turn an estimate into an invoice. A NEW document with its own id and INV number; the estimate is kept.
    (Before, the copy kept the estimate's id, so the two records could overwrite each other.) */
@@ -1333,8 +1356,8 @@ function estimateToJob(r){
     const q=Math.max(1, parseInt(it.qty,10)||1), amt=Number(it.amount)||0;
     return { desc:String(it.desc||"Service"), qty:q, each:Math.round(amt/q*100)/100, amount:amt, taxable:!!it.taxable, partId:it.partId||"" }; });
   const d={ fromEstimate:r.number||"", estimateId:r.id||"", serviceType:r.serviceType||"",
-    customer:{ name:r.noCustomer?"":(r.customer||""), phone:r.phone||"", email:r.email||"" }, address:r.address||"",
-    vehicle:{ year:r.vehYear||"", make:r.vehMake||"", model:r.vehModel||"", vin:r.vin||"" }, vehicleText:r.vehicle||"",
+    customer:{ name:r.noCustomer?"":(r.customer||""), phone:r.phone||"", email:r.email||"" }, address:r.address||"", addr:(r.addr&&typeof r.addr==="object")?r.addr:null,
+    vehicle:{ year:r.vehYear||"", make:r.vehMake||"", model:r.vehModel||"", vin:r.vin||"", ignition:(r.vehIgnition==="push"||r.vehIgnition==="keyed")?r.vehIgnition:"" }, vehicleText:r.vehicle||"",
     items:lines, notes:r.notes||"", internalNotes:r.internalNotes||"", serviceWhere:r.serviceWhere||"", taxExempt:r.taxExempt||null, moreVehicles:Array.isArray(r.moreVehicles)?r.moreVehicles:[], ts:Date.now() };
   try{ sessionStorage.setItem("tks_quote_job", JSON.stringify(d)); }catch(e){}
   location.href="index.html?go=schedule&newjob=quote";
@@ -1348,6 +1371,8 @@ function finishedActions(r){
   if(r.docType!=="estimate" && !receiptClosed(r)) _acts.push({label:"💳 Pay Now", primary:true, onClick:()=>openPayNow(r)});   // 8z48: nothing left to pay on a closed receipt
   if(!receiptLockedForMe(r)) _acts.push({label:"✏️ Edit", onClick:()=>editReceipt(r)});   // 8z48
   _acts.push({label:"🖨 Print", onClick:(ev)=>printPaper(r, ev && ev.currentTarget)});   // 8z80: paper copy
+  _acts.push({label:"📤 Send", onClick:()=>shareDocument(r, "en", true)});   // 8z122: text / email it (the list already had these two)
+  _acts.push({label:"⬇ PDF", onClick:()=>makePDF(r, "en", true)});
   if(receiptScannedUnits(r).length) _acts.push({label:"↩ Scan back in", onClick:()=>scanBackInFromReceipt(r)});
   if(r.docType==="estimate"){   // 8z65: what happens after a quote — book it, or bill it
     _acts.push({label:"📅 Schedule this job", primary:true, onClick:()=>estimateToJob(r)});
@@ -1359,7 +1384,12 @@ function finishedActions(r){
   resultActions(_acts);
   d1PhotoBox(r);   // 8z90: a NASTF document shows its photo box under the buttons
 }
-function renderFinished(r){ renderReceiptCard(r); finishedActions(r); }
+function renderFinished(r){ renderReceiptCard(r); finishedActions(r);
+  /* 8z122: "Save & send" / "Save & PDF" on the estimate screen — the document has just been saved; now do the second half.
+     (Only honoured for a few seconds after the tap, so a save that was stopped by a missing field never fires it later.) */
+  tksAfterCreate(r); }
+function tksAfterCreate(r){ try{ const w=window._tksAfterCreate; window._tksAfterCreate=null;
+    if(w && r && (Date.now()-w.t)<20000){ if(w.do==="send") shareDocument(r, "en", true); else if(w.do==="pdf") makePDF(r, "en", true); } }catch(e){} }
 /* 8z90: a NASTF document shows its photo box under the buttons — what is on file, what is missing, and how to add them */
 function hasD1(r){ return !!(r && ((r.nastf && r.nastf.type) || (Array.isArray(r.moreVehicles) && r.moreVehicles.some(v=>v && v.d1===true)))); }
 function d1PhotoBox(r){ try{ if(!hasD1(r) || !r.id || !window.TKS_RDOCS || r.docType==="estimate") return; const b=document.createElement("div"); b.className="d1-docs"; chat.appendChild(b); TKS_RDOCS.panel(b, r, { pdf:(x)=>makePDF(x, "en", false, true) }); scrollDown(); }catch(e){} }
@@ -1633,9 +1663,9 @@ function shareDocument(r, lang, forCustomer){
   const cust = r.customer || "";
   const shareData = {
     files: [file],
-    title: docLabelText + " " + r.number,
-    text: docLabelText + " from " + (SETTINGS.name || "your locksmith") +
-          (cust ? " for " + cust : "")
+    title: (r.docType==="estimate") ? estSubject(r) : (docLabelText + " " + r.number),
+    text: (r.docType==="estimate" && estTerms()) ? estTerms().message : (docLabelText + " from " + (SETTINGS.name || "your locksmith") +
+          (cust ? " for " + cust : ""))
   };
   // Feature detection: not all browsers support sharing files. Test with
   // canShare before calling share, since calling share() on an unsupported
@@ -1646,6 +1676,9 @@ function shareDocument(r, lang, forCustomer){
     navigator.canShare({files: [file]})
   );
   if(canShareFiles){
+    /* 8z124b: the share sheet (Outlook, Mail, Messages…) gets the PDF, the subject and the message, but an app cannot fill
+       in who it goes to — so the customer's email is put on the clipboard, ready to paste into "To". */
+    if(r.docType==="estimate" && String(r.email||"").trim()){ try{ navigator.clipboard.writeText(String(r.email).trim()).then(()=>{ try{ toastMsg("Customer's email copied — paste it into To"); }catch(e){} }, ()=>{}); }catch(e){} }
     navigator.share(shareData).then(()=>{
       // success — no toast needed, the OS handled it
     }).catch(err=>{
@@ -1664,6 +1697,11 @@ function shareDocument(r, lang, forCustomer){
     a.click();
     document.body.removeChild(a);
     setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    if(r.docType==="estimate"){   // 8z124: this computer cannot hand a file to the mail program — open a ready-made email instead
+      const T=estTerms(), to=String(r.email||"").trim();
+      try{ const a2=document.createElement("a"); a2.href="mailto:"+encodeURIComponent(to)+"?subject="+encodeURIComponent(estSubject(r))+"&body="+encodeURIComponent((T?T.message:"")+"\n\n"); a2.style.display="none"; document.body.appendChild(a2); a2.click(); document.body.removeChild(a2); }catch(e){}
+      appAlert("Estimate saved as a PDF", "The PDF is in your Downloads. An email has been started"+(to?(" to "+to):"")+" with the subject and message filled in — attach the PDF and send. (To text it instead, attach the PDF to a message.)");
+    } else
     appAlert("Share not supported here",
       "This browser doesn't support file sharing. The PDF was downloaded instead — open it from your Files/Downloads to share manually.");
   }
@@ -1952,17 +1990,18 @@ function setHistFilter(f){
   document.querySelectorAll(".hist-filter button").forEach(b=>{
     b.classList.toggle("active", b.dataset.f===f);
   });
-  try{ document.querySelector("#histPanel .pp-head b").textContent=(f==="estimate")?"Quotes & estimates":"History"; document.getElementById("histNewQuote").style.display=(f==="estimate")?"":"none"; }catch(e){}   // 8z78
+  try{ document.querySelector("#histPanel .pp-head b").textContent=(f==="estimate")?"Quotes & estimates":"History"; }catch(e){}   // 8z78
   renderHistList();
 }
-/* New quote from the Quotes & estimates list: same builder as "💬 New quote"; Cancel lands back on the list. */
+/* "New estimate" on the Quotes & estimates card: same builder as "💬 New quote", opened as an Estimate. */
 function newQuoteFromList(){
   if(window.RO_RECEIPTS) return;
   closeHist(); chat.innerHTML="";
-  openQuickInvoice(function(){ showHome(); setHistFilter("estimate"); openHist(); }, null, { docType:"estimate", quote:true });
+  openQuickInvoice(showHome, null, { docType:"estimate", quote:true });   // Cancel lands back on the Quotes & estimates card
 }
 function openHist(){ renderHistList(); document.getElementById("histPanel").classList.add("open"); }
-function closeHist(){ document.getElementById("histPanel").classList.remove("open"); }
+try{ document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') refreshHomeEst(); }); window.addEventListener('pageshow', function(){ refreshHomeEst(); }); }catch(e){}   // a booking changed elsewhere: the count on the card follows when this page is shown again
+function closeHist(){ document.getElementById("histPanel").classList.remove("open"); refreshHomeEst(); }
 function renderHistList(){
   const list=document.getElementById("histList");
   let hist=getHistory();
@@ -1974,10 +2013,11 @@ function renderHistList(){
   const _hq=((document.getElementById("histSearch")||{}).value||"").trim().toLowerCase();
   if(_hq){ const _hd=_hq.replace(/\D/g,""); hist=hist.filter(r=>{ const hay=[r.number,r.customer,r.contact,r.email,r.address,vehicleString(r),r.vin,moreVehList(r).join(" "),(r.items||[]).map(i=>i&&i.desc).join(" ")].join(" ").toLowerCase();
     return hay.indexOf(_hq)>=0 || (_hd.length>=4 && String(r.phone||"").replace(/\D/g,"").indexOf(_hd)>=0); }); }
-  const _booked={}; try{ (TKS.Bookings.all()||[]).forEach(b=>{ if(b && b.fromEstimate && !b.deletedAt && !/cancel/i.test(String(b.status||""))) _booked[b.fromEstimate]=b; }); }catch(e){}
+  const _booked=bookedEstimateMap();
+  if(histFilter==="estimate" && !_hq) hist=hist.filter(r=>!_booked[r.number]);   // 8z96b: the list is the OPEN estimates; a search still finds scheduled ones
   list.innerHTML="";
   if(hist.length===0){
-    list.innerHTML='<div class="pp-empty">'+(_hq?"Nothing matches that search.":(histFilter==="estimate"?"No quotes yet. Tap ＋ New quote above.":"No documents yet."))+'</div>';
+    list.innerHTML='<div class="pp-empty">'+(_hq?"Nothing matches that search.":(histFilter==="estimate"?"No open estimates. Tap Done, then New estimate.":"No documents yet."))+'</div>';
     return;
   }
   hist.forEach((r,idx)=>{
@@ -2284,7 +2324,7 @@ function boot(){
     // 8z65 Quick quote: a customer calls for a price → the builder opens as an Estimate, no name needed
     const _dm=/[?&]docs=([^&]+)/.exec(location.search);
     if(_dm && window.TKS_RDOCS){ openDocsPage(decodeURIComponent(_dm[1])); }   // 8z90: scanned QR → this receipt's photo page
-    else if(/[?&]estimates=1/.test(location.search)){ showHome(); setHistFilter("estimate"); openHist(); }   // 8z78: menu → Estimates
+    else if(/[?&]estimates=1/.test(location.search)){ showHome(); }   // 8z96b: menu → the Quotes & estimates card (the list is one tap away)
     else if(/[?&]quote=1/.test(location.search)){ const pf=draft ? (jobDraftToPrefill(draft)||{}) : {}; pf.docType="estimate"; pf.quote=true; openNewDocument(pf); }   // 8z71: a website lead being quoted comes with its details
     else openNewDocument(draft ? jobDraftToPrefill(draft) : null);
     }
@@ -2304,6 +2344,7 @@ function boot(){
 function _receiptsRefresh(){
   try{ if(typeof renderCustList==='function') renderCustList(); }catch(e){}
   try{ if(typeof renderHistList==='function') renderHistList(); }catch(e){}
+  try{ refreshHomeEst(); }catch(e){}
   try{ if(typeof syncOwnerUI==='function') syncOwnerUI(); }catch(e){}
   try{ if(typeof hydrateIdentityFromConfig==='function') hydrateIdentityFromConfig(); }catch(e){}
 }
@@ -2897,6 +2938,25 @@ function canEditPricing(){
         <button type="button" class="qi-ib qiDel" title="Remove">&times;</button></div></div>`;
   }
 
+  /* 8z96b: address in four boxes (owner: "sometimes the customer doesn't want to give me everything").
+     The record keeps the one string (address) AND the parts (addr:{street,city,state,zip}) — the same pair, and the same
+     "Street, City, ST ZIP" text, the Scheduler's booking form writes. #qiAddr stays in the page as a hidden box that always
+     holds the composed string, so everything that reads it (tax-exempt, NASTF job location…) keeps working. */
+  function qiAddrCompose(a){ a=a||{}; const s=x=>String(x==null?"":x).trim();
+    const cs=[s(a.city),[s(a.state).toUpperCase(),s(a.zip)].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+    return [s(a.street),cs].filter(Boolean).join(", "); }
+  // "…, City, ST 73101" → parts; anything that does not look like that goes whole into Street (nothing is dropped)
+  function qiAddrParse(str){ const o={street:"",city:"",state:"",zip:""}; const t=String(str||"").replace(/\s+/g," ").trim(); if(!t) return o;
+    const mm=/^(.*?),\s*([^,]+?)\s*,?\s+([A-Za-z]{2})\.?\s*,?\s*(\d{5}(?:-\d{4})?)?\s*$/.exec(t);
+    if(mm && mm[1] && (mm[4] || /,\s*[A-Za-z]{2}\s*$/.test(t))){ o.street=mm[1]; o.city=mm[2]; o.state=mm[3].toUpperCase(); o.zip=mm[4]||""; }
+    else o.street=t;
+    return o; }
+  // a record / customer → parts: the saved addr when it still matches the saved string, otherwise split the string
+  function qiAddrOf(rec){ rec=rec||{}; const a=rec.addr, str=String(rec.address||"").trim();
+    if(a && typeof a==="object" && (a.street||a.city||a.state||a.zip) && (!str || qiAddrCompose(a)===str)) return { street:String(a.street||""), city:String(a.city||""), state:String(a.state||""), zip:String(a.zip||"") };
+    return qiAddrParse(str); }
+  function qiIgn(v){ return (v==="push"||v==="keyed")?v:""; }
+
   /* openQuickInvoice(onCancel, edit, prefill)
        edit    — an existing receipt to edit (merge-save), or null
        prefill — {serviceType, customer, vehYear/vehMake/vehModel, vin, vehicle, items:[{desc,amount}]} from Start-a-job, or null */
@@ -2932,7 +2992,10 @@ function canEditPricing(){
       <div class="qi-row"><input id="qiName" class="qi-i" list="qiCustList" placeholder="Name" autocomplete="off"><button type="button" class="qi-ib" id="qiPickCust" title="Pick a saved customer" style="flex:0 0 44px">📇</button></div><datalist id="qiCustList"></datalist>
       <div id="qiContactWrap" style="display:none"><label class="qi-l">Contact person <span class="m">(at the business)</span></label><input id="qiContact" class="qi-i" placeholder="e.g. Joey"></div>
       <div class="qi-row"><div><label class="qi-l">Phone</label><input id="qiPhone" class="qi-i" type="tel"></div><div><label class="qi-l">Email</label><input id="qiEmail" class="qi-i" type="email"></div></div>
-      <label class="qi-l">Address</label><input id="qiAddr" class="qi-i">
+      <label class="qi-l">Address <span class="m">(any part is fine)</span></label>
+      <input id="qiStreet" class="qi-i" placeholder="Street" autocomplete="street-address" aria-label="Street">
+      <div class="qi-row" style="margin-top:6px"><div style="flex:1 1 0;min-width:0"><input id="qiCity" class="qi-i" placeholder="City" autocomplete="address-level2" aria-label="City"></div><div style="flex:0 0 64px"><input id="qiState" class="qi-i" placeholder="ST" maxlength="2" autocomplete="address-level1" autocapitalize="characters" aria-label="State (2 letters)"></div><div style="flex:0 0 100px"><input id="qiZip" class="qi-i" placeholder="ZIP" inputmode="numeric" maxlength="10" autocomplete="postal-code" aria-label="ZIP"></div></div>
+      <input type="hidden" id="qiAddr">
       <label class="qi-l">Where is the work done? <span class="m">(optional)</span></label>
       <div class="qi-seg" id="qiWhere"><button type="button" class="qiWB" data-w="shop">🏪 In shop — they come in</button><button type="button" class="qiWB" data-w="mobile">🚐 Mobile — we go to them</button></div>
       <div id="qiVehWrap" style="display:none">
@@ -2964,11 +3027,22 @@ function canEditPricing(){
       <div id="qiSigWrap"><label class="qi-l">Customer signature <span class="m">(optional)</span></label>
         <div class="qi-sig"><div class="qi-seg"><button type="button" class="qiSG" data-sg="none">None</button><button type="button" class="qiSG" data-sg="LINE">Signature line</button><button type="button" class="qiSG" data-sg="draw">✍ Sign on screen</button></div><img id="qiSigImg" alt="signature" style="display:none"></div></div>
       <div class="qi-err" id="qiErr" role="alert"></div>
+      <div class="qi-foot" id="qiSendRow" style="display:none"><button type="button" class="qi-cancel" id="qiGoSend" style="flex:1;min-height:48px;font-weight:800">📤 Save &amp; send</button><button type="button" class="qi-cancel" id="qiGoPdf" style="flex:1;min-height:48px;font-weight:800">⬇ Save &amp; PDF</button></div>
       <div class="qi-foot"><button type="button" class="qi-go" id="qiGo">${isEdit?"Save changes":"Create"}</button><button type="button" class="qi-cancel" id="qiCancel">Cancel</button></div>
     </div></div>`);
     document.body.appendChild(modal);
     const $q=s=>modal.querySelector(s), $$=s=>Array.from(modal.querySelectorAll(s));
     const setErr=m=>{ $q("#qiErr").textContent=m||""; if(m){ try{ $q("#qiErr").scrollIntoView({block:"nearest"}); }catch(e){} } };
+
+    // ---- address boxes → the hidden #qiAddr (composed string) ----
+    const addrIds=["#qiStreet","#qiCity","#qiState","#qiZip"];
+    function addrBoxes(){ return { street:($q("#qiStreet").value||"").trim(), city:($q("#qiCity").value||"").trim(), state:($q("#qiState").value||"").trim().toUpperCase(), zip:($q("#qiZip").value||"").trim() }; }
+    function addrSync(){ const a=addrBoxes(); $q("#qiAddr").value=qiAddrCompose(a); return a; }
+    function setAddr(a){ a=a||{}; $q("#qiStreet").value=a.street||""; $q("#qiCity").value=a.city||""; $q("#qiState").value=String(a.state||"").toUpperCase(); $q("#qiZip").value=a.zip||""; addrSync(); }
+    addrIds.forEach(id=>{ const el=$q(id); el.addEventListener("input", ()=>{
+      if(id==="#qiState"){ const u=el.value.replace(/[^A-Za-z]/g,"").toUpperCase(); if(u!==el.value) el.value=u; }
+      if(id==="#qiZip"){ const z=el.value.replace(/[^0-9-]/g,""); if(z!==el.value) el.value=z; }
+      addrSync(); }); });
 
     // Segmented control helper → getter with .set(value, fireChange)
     function seg(sel, attr, def, onChange){
@@ -3024,6 +3098,7 @@ function canEditPricing(){
     paintSig();
     function syncPay(){ const t=getType();
       $q("#qiPayWrap").style.display=(t==="estimate")?"none":"block";
+      { const sr=$q("#qiSendRow"); if(sr) sr.style.display=(t==="estimate")?"flex":"none"; }   // 8z122: Save & send / Save & PDF — estimates only
       $q("#qiStatusWrap").style.display=(t==="receipt")?"block":"none";
       $q("#qiPayNS").style.display=(t==="invoice")?"":"none";
       if(t==="receipt" && getPay()==="Not specified") getPay.set("Cash");
@@ -3151,7 +3226,7 @@ function canEditPricing(){
     function fillCustomer(c, force){
       const set=(id,v)=>{ const el=$q(id); if(el && (force || !el.value.trim()) && v) el.value=v; };
       if(force) $q("#qiName").value=c.customer||c.name||"";
-      set("#qiContact", c.contact||c.manager||""); set("#qiPhone", c.phone||""); set("#qiEmail", c.email||""); set("#qiAddr", c.address||"");
+      set("#qiContact", c.contact||c.manager||""); set("#qiPhone", c.phone||""); set("#qiEmail", c.email||""); { const ca=qiAddrOf(c); if(qiAddrCompose(ca) && (force || !($q("#qiAddr").value||"").trim())) setAddr(ca); }
       if(c.customerType==="business"||c.customerType==="individual"){ if(nastfType!=="Customer D1") getCT.set(c.customerType, true); }
     }
     $q("#qiPickCust").onclick=()=>{ const shopMode=(nastfType==="Contracting D1");
@@ -3215,7 +3290,10 @@ function canEditPricing(){
         if(!locked){
           if(!desc.value.trim()) desc.value=p.name||"";
           if(p.cost!=null && p.cost!=="") costEl.value=Number(p.cost).toFixed(2);
-          if(p.price!=null && p.price!=="" && !amt.value && !isNaN(Number(p.price))) amt.value=Number(p.price).toFixed(2);
+          /* 8z121 (owner, 2026-11-13: "I scanned TOY-231 AM into the estimate — it gave me just the cost, not the price"):
+             a scan hands over the stock record, whose price is sellPriceCents; only the 📦 picker passed a ready-made `price`. */
+          { const pr=(p.price!=null && p.price!=="" && !isNaN(Number(p.price))) ? Number(p.price) : ((p.sellPriceCents!=null && p.sellPriceCents!=="" && !isNaN(Number(p.sellPriceCents))) ? Number(p.sellPriceCents)/100 : NaN);
+            if(!isNaN(pr) && pr>0 && !amt.value){ amt.value=pr.toFixed(2); try{ amt.dispatchEvent(new Event("input",{bubbles:true})); }catch(e){} } }
           tax.checked=true; cat.value="Materials"; catTouched=true;   // inventory parts are Materials (taxable)
         }
         const tag=r.querySelector(".qiPartTag"); tag.style.display="block";
@@ -3379,7 +3457,7 @@ function canEditPricing(){
        aftermarket, FCC ID / chip / SKU, how many are on the shelf and the shelf price — the same matching the Scheduler's
        "Keys for this vehicle" uses (TKS_FIT.keysFor). "+ Add" puts the key on the document as a line at that price.
        Above the list: what the shop's vehicle reference says (keyway, chip system, how it is programmed). */
-    const keysBox=$q("#qiKeys"); let keysTimer=null; const mainKeysSt={open:false}, extraVeh=[];   // 8z84: one key list per vehicle
+    const keysBox=$q("#qiKeys"); let keysTimer=null; const mainKeysSt={open:false, ign:qiIgn(src.vehIgnition)}, extraVeh=[];   // 8z84: one key list per vehicle
     function keyMoney(c){ return (c==null||c==="")?"no price":"$"+(Number(c)/100).toFixed(2); }
     function partsOnDoc(){ const mm={}; $$(".qi-item").forEach(r=>{ if(r.dataset.part) mm[r.dataset.part]=1; }); return mm; }
     function renderKeys(){ if(!modal || !keysBox || !keysBox.isConnected) return;   // the builder was closed before a late repaint ran
@@ -3388,7 +3466,7 @@ function canEditPricing(){
       if(!keysBox || !modal || !keysBox.isConnected) return;   // the builder was closed before a late repaint ran
       if(!(window.TKS_FIT && TKS_FIT.keysFor && window.TKS && TKS.Inventory) || !v.make){ keysBox.innerHTML=""; return; }
       if(!v.model){ keysBox.innerHTML='<div class="qi-keys"><div class="qk-h">🔑 Keys for this vehicle</div><div class="qk-sub">Pick the model to see the keys you stock for it and their prices.</div></div>'; return; }
-      let L; try{ L=TKS_FIT.keysFor(TKS.Inventory.all(), v, ""); }catch(e){ L={groups:[],list:[],maybe:[]}; }
+      let L; try{ L=TKS_FIT.keysFor(TKS.Inventory.all(), v, st.ign||""); }catch(e){ L={groups:[],list:[],maybe:[]}; }
       let facts=null; try{ facts=TKS_FIT.vehicleFacts?TKS_FIT.vehicleFacts(v):null; }catch(e){}
       const on=partsOnDoc();
       const card=p=>{ const q=parseInt(p.qty,10)||0, grade=String(p.grade||""), tag=/oem/i.test(grade)?'<span class="qk-tag oem">OEM</span>':(/aftermarket/i.test(grade)?'<span class="qk-tag am">AM</span>':"");
@@ -3397,9 +3475,14 @@ function canEditPricing(){
           '<div class="qk-s '+(q>0?"in":"out")+'">'+(q>0?("In stock: "+q):"Out of stock")+(p._kfvNote?(' <span style="font-weight:600">· '+esc(p._kfvNote)+'</span>'):"")+'</div></div>'+
           '<div class="qk-r"><div class="qk-p">'+esc(keyMoney(p.sellPriceCents))+'</div>'+(on[p.id]?'<div class="qk-added">✓ Added</div>':'<button type="button" class="qk-add" data-id="'+esc(p.id)+'">+ Add</button>')+'</div></div>'; };
       let h='<div class="qi-keys"><div class="qk-h">🔑 Keys for '+esc(TKS_FIT.vehLabel(v))+'</div>';
+      { const ign=st.ign||"", cap=s=>s.charAt(0).toUpperCase()+s.slice(1);   // 8z96b: push-to-start or turn key → do not go through keys that cannot fit
+        h+='<div class="qk-ign" role="group" aria-label="How does this vehicle start?"><div class="qk-sub" style="margin:6px 0 4px;font-weight:700">How does it start?</div><div class="qi-seg">'+
+          [["push","Push to start"],["keyed","Turn key"],["","Not sure / show all"]].map(o=>'<button type="button" class="qkIgn'+(ign===o[0]?" on":"")+'" data-ign="'+o[0]+'" aria-pressed="'+(ign===o[0]?"true":"false")+'">'+o[1]+'</button>').join("")+'</div>'+
+          (L.hidden?'<div class="qk-sub qk-hid" style="margin-top:4px">'+esc(cap(L.hidden))+'. Tap “Not sure / show all” to see everything.</div>':"")+'</div>'; }
       if(facts){ const bits=[facts.keyway?("Keyway "+facts.keyway):"", facts.transponder?("Chip system: "+facts.transponder):"", facts.programming?("Programming: "+facts.programming):"", facts.oemOnly?"OEM key only":"", facts.nastf?"NASTF needed":""].filter(Boolean);
         if(bits.length) h+='<div class="qk-facts">'+bits.map(b=>"<span>"+esc(b)+"</span>").join("")+'</div>'+(facts.exactModel?"":'<div class="qk-sub">From your vehicle reference for '+esc(v.make)+' (no entry for this exact model).</div>'); }
       if(!L.list.length) h+='<div class="qk-sub">No keys in your stock list this exact vehicle in their “Fits”'+(L.maybe.length?". See the ones that might fit below.":". Add the vehicle to a key’s Fits (Stock → the key) and it shows here.")+'</div>';
+      if(L.universalHint) h+='<div class="qk-sub" style="font-weight:700">'+esc(L.universalHint)+'</div>';
       L.groups.forEach(g=>{ h+='<div class="qk-g">'+esc(g[0])+'</div>'+g[1].map(card).join(""); });
       if(L.maybe.length){ h+='<button type="button" class="qk-more" id="qkMore">'+(st.open?"Hide":"Show")+' '+L.maybe.length+' that might fit (make and year only)</button>';
         if(st.open) h+='<div class="qk-g maybe">Might fit — not confirmed for this model</div>'+L.maybe.map(card).join(""); }
@@ -3407,6 +3490,7 @@ function canEditPricing(){
       keysBox.innerHTML=h+'</div>';
       keysBox.querySelectorAll(".qk-add").forEach(b=>{ b.onclick=()=>addKeyLine(b.dataset.id, vIdx); });
       const more=keysBox.querySelector("#qkMore"); if(more) more.onclick=()=>{ st.open=!st.open; renderKeys(); };
+      keysBox.querySelectorAll(".qkIgn").forEach(b=>{ b.onclick=()=>{ st.ign=qiIgn(b.dataset.ign); renderKeys(); }; });
     }
     function addKeyLine(id, vIdx){ let p=null; try{ p=TKS.Inventory.get(id); }catch(e){} if(!p) return;
       // an untouched blank line is replaced by the key rather than left sitting above it
@@ -3444,7 +3528,7 @@ function canEditPricing(){
       try{ fill(pre.year||"", pre.make||"", pre.model||""); }catch(e){}
       if(pre.make && mkEl.value!==pre.make && !pre.text) text.value=[pre.year,pre.make,pre.model].filter(Boolean).join(" ");
       vinEl.value=pre.vin||""; if(pre.text) text.value=pre.text;
-      const x={ el, text, vinEl, keysBox:el.querySelector(".mvKeys"), st:{open:false}, get:()=>({ year:yEl.value||"", make:mkEl.value||"", model:mdEl.value||"" }), d1:(pre.d1===true?true:(pre.d1===false?false:null)) };
+      const x={ el, text, vinEl, keysBox:el.querySelector(".mvKeys"), st:{open:false, ign:qiIgn(pre.ignition)}, get:()=>({ year:yEl.value||"", make:mkEl.value||"", model:mdEl.value||"" }), d1:(pre.d1===true?true:(pre.d1===false?false:null)) };
       { // 8z90: the D1 choice for this vehicle (only asked while the document is a NASTF job)
         const f=el.querySelector(".mvD1F"), paint=()=>{ el.querySelectorAll(".mvD1B").forEach(b=>b.classList.toggle("on", (b.dataset.d==="1")===(x.d1===true) && x.d1!==null)); f.style.display=(x.d1===true)?"":"none"; };
         if(window.TKS_RDOCS){ f.innerHTML=TKS_RDOCS.d1FieldsHTML("qi-i"); TKS_RDOCS.d1Set(f, { color:pre.color||"", odometer:pre.odometer, plate:pre.plate||"" }); }
@@ -3475,7 +3559,7 @@ function canEditPricing(){
     (Array.isArray(src.moreVehicles)?src.moreVehicles:[]).forEach(v=>{ if(v && (v.make||v.text||v.vin)) addVehBlock(v); });
     try{ $q("#qiVehText").addEventListener("change", ()=>keysLater()); }catch(e){}
     function moreVehForSave(){ const nt=(function(){ try{ return !!getNastf(); }catch(e){ return false; } })();
-      return extraVeh.map((x,i)=>{ const v=x.get(), o={ year:v.year, make:v.make, model:v.model, vin:(x.vinEl.value||"").trim().toUpperCase(), text:(x.text.value||"").trim() };
+      return extraVeh.map((x,i)=>{ const v=x.get(), o={ year:v.year, make:v.make, model:v.model, vin:(x.vinEl.value||"").trim().toUpperCase(), text:(x.text.value||"").trim(), ignition:x.st.ign||"" };
         if(nt){ o.d1=x.d1; if(x.d1===true && window.TKS_RDOCS){ const d=TKS_RDOCS.d1Read(x.d1Box); o.color=d.color; o.odometer=d.odometer; o.plate=d.plate; } }   // 8z90
         o._n=i+2; return o; }).filter(v=>v.make||v.text||v.vin); }
     function syncVehD1(){ let on=false; try{ on=!!nastfType && getSvc()==="Automotive"; }catch(e){} extraVeh.forEach(x=>{ const w=x.el.querySelector(".mvD1"); if(w) w.style.display=on?"":"none"; }); }
@@ -3495,7 +3579,7 @@ function canEditPricing(){
 
     // ---- Pre-fill (edit = every field from the receipt; prefill = the Start-a-job draft) ----
     $q("#qiName").value=src.customer||""; $q("#qiContact").value=src.contact||"";
-    $q("#qiPhone").value=src.phone||""; $q("#qiEmail").value=src.email||""; $q("#qiAddr").value=src.address||"";
+    $q("#qiPhone").value=src.phone||""; $q("#qiEmail").value=src.email||""; setAddr(qiAddrOf(src));
     try{ $q("#qiINotes").value=src.internalNotes||""; }catch(e){}   // 8z45
     if(hasVehData()){
       const ok=modal._qiApplyVeh(src.vehYear, src.vehMake, src.vehModel);
@@ -3556,7 +3640,9 @@ function canEditPricing(){
     // ---- Wire up ----
     const cancel=()=>{ close(); if(typeof onCancel==="function") onCancel(); };
     $q("#qiX").onclick=cancel; $q("#qiCancel").onclick=cancel;
-    $q("#qiGo").onclick=()=>submit({getType,getSvc,getPay,getStatus,getCT,getNastf,getNastfChecklist,getSig:()=>sigData,getExempt:()=>exempt,getWhere:()=>where,getVehLabels:()=>vehLabels(),getMoreVeh:()=>moreVehForSave(),edit,isEdit,pricing,techDiscMax,src,setErr});
+    { const after=(what)=>()=>{ window._tksAfterCreate={ do:what, t:Date.now() }; $q("#qiGo").click(); };   // 8z122
+      const gs=$q("#qiGoSend"), gp=$q("#qiGoPdf"); if(gs) gs.onclick=after("send"); if(gp) gp.onclick=after("pdf"); }
+    $q("#qiGo").onclick=()=>submit({getType,getSvc,getPay,getStatus,getCT,getNastf,getNastfChecklist,getSig:()=>sigData,getExempt:()=>exempt,getWhere:()=>where,getVehLabels:()=>vehLabels(),getMoreVeh:()=>moreVehForSave(),getIgn:()=>mainKeysSt.ign,edit,isEdit,pricing,techDiscMax,src,setErr});
     try{ if(!isEdit && !$q("#qiName").value) $q("#qiName").focus(); }catch(e){}
   };
 
@@ -3637,10 +3723,11 @@ function canEditPricing(){
     R.customer=noName?"Phone quote":name; R.customerType=ct;
     if(noName) R.noCustomer=true; else delete R.noCustomer;
     R.contact = (ct==="business") ? ($q("#qiContact").value||"").trim() : "";
-    R.phone=($q("#qiPhone").value||"").trim(); R.email=($q("#qiEmail").value||"").trim(); R.address=($q("#qiAddr").value||"").trim();
+    R.phone=($q("#qiPhone").value||"").trim(); R.email=($q("#qiEmail").value||"").trim(); { const ab={ street:($q("#qiStreet").value||"").trim(), city:($q("#qiCity").value||"").trim(), state:($q("#qiState").value||"").trim().toUpperCase(), zip:($q("#qiZip").value||"").trim() }; R.addr=ab; R.address=qiAddrCompose(ab); }
     R.serviceType=svc;
     R.vehYear=($q("#qiVYear").value||"").trim(); R.vehMake=($q("#qiVMake").value||"").trim(); R.vehModel=($q("#qiVModel").value||"").trim();
     R.vin=vin; R.vehicle=($q("#qiVehText").value||"").trim();
+    { const ig=S.getIgn?qiIgn(S.getIgn()):""; if(ig) R.vehIgnition=ig; else delete R.vehIgnition; }   // 8z96b: push-to-start / turn key (same values as the Scheduler)
     _mv.forEach(v=>{ delete v._n; }); if(_mv.length) R.moreVehicles=_mv; else delete R.moreVehicles;   // 8z84
     R.technician=($q("#qiTech").value||"").trim() || R.technician || currentTechnician();
     R.notes=($q("#qiNotes").value||"").trim();

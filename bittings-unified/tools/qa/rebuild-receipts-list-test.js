@@ -29,6 +29,7 @@ const DOCS = [
   mk('t4', { number: 'EST-T4', docType: 'estimate', customer: 'TEST Quote Dan', status: 'Estimate', savedAt: now - 2000 }),
   mk('t5', { number: 'EST-T5', docType: 'estimate', customer: 'TEST Converted Quote', status: 'Estimate', savedAt: now - 6000 }),
   mk('t6', { number: 'INV-T6', docType: 'invoice', customer: 'TEST Invoice From Quote', status: 'Unpaid', fromEstimate: 'EST-T5', savedAt: now - 1500 }),
+  mk('t8', { number: 'EST-T8', docType: 'estimate', customer: 'TEST Scheduled Quote Fay', status: 'Estimate', savedAt: now - 2500 }),
   mk('t7', { number: 'TKS-T7', customer: 'TEST NASTF Eve', status: 'Paid in Full', payment: 'Cash', paidAt: now - 7000, savedAt: now - 7000, nastf: { type: 'D1', d1Days: 7, d1DueDate: '2026-12-01' } }),
 ];
 
@@ -47,7 +48,7 @@ const DOCS = [
       const iso = new Date(Date.now() - 20 * 60000).toISOString();
       const shop_config = [{ id: 'c1', shop_id: 's', tax_rate: 8.625, updated_at: iso, data: { taxRate: 8.625, identity: { name: 'TEST Shop', address: '1 Test Shop Rd, Testville, OK' }, taxableByCategory: {} } }];
       localStorage.clear();
-      localStorage.setItem('__db', JSON.stringify({ receipts: DOCS.map(d => ({ id: d.id, data: d, deleted_at: null, updated_at: iso })), inventory: [], customers: [], bookings: [], shop_config, web_leads: [], payment_transactions: [], audit_log: [] }));
+      localStorage.setItem('__db', JSON.stringify({ receipts: DOCS.map(d => ({ id: d.id, data: d, deleted_at: null, updated_at: iso })), inventory: [], customers: [], bookings: [{ id: 'b8', date: '2026-12-01', time: '10:00', updated_at: iso, data: { id: 'b8', jobType: 'auto', subType: 'TEST', date: '2026-12-01', time: '10:00', status: 'Scheduled', fromEstimate: 'EST-T8', customer: { name: 'TEST Scheduled Quote Fay' } } }], shop_config, web_leads: [], payment_transactions: [], audit_log: [] }));
       localStorage.setItem('__role', 'owner'); localStorage.setItem('bt_theme', 'dark');
       localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'test-person@example.com' } }));
     }, UID, DOCS);
@@ -173,11 +174,32 @@ const DOCS = [
     // ================= Quotes & estimates screen =================
     await pg.evaluate(() => { try { localStorage.removeItem('tks_bottombar_view'); } catch (e) {} });
     await pg.goto(BASE + 'bittings.html?estimates=1', { waitUntil: 'domcontentloaded' }); await pg.waitForFunction(() => window.TKS && TKS.adapter && TKS.adapter() === 'cloud', { timeout: 15000 }); await sleep(3000);
-    r = await pg.evaluate(() => ({ title: document.querySelector('#histPanel .pp-head b').innerText, chips: getComputedStyle(document.querySelector('#histPanel .hist-filter')).display, newBtn: !!(document.getElementById('histNewQuoteBtn') || {}).offsetParent, rows: Array.from(document.querySelectorAll('#histList .hi-num')).map(x => x.innerText),
+    // CHANGED: the page now lands on the "Quotes & estimates" card (New estimate + Estimates (n), no Receipts button); the list is one tap away
+    r = await pg.evaluate(() => { const c = document.querySelector('#chat .res-home'), bs = c ? Array.from(c.querySelectorAll('button')) : [];
+      return { open: document.getElementById('histPanel').classList.contains('open'), builder: !!document.querySelector('.qi-box'), title: c && c.querySelector('h2').innerText, sub: c && c.querySelector('p').innerText, btns: bs.map(x => x.innerText), h: bs.map(x => Math.round(x.getBoundingClientRect().height)),
+        over: document.documentElement.scrollWidth - window.innerWidth, bar: Array.from(document.querySelectorAll('#appnav a')).map(a => a.innerText.replace(/[^A-Za-z ]/g, '').trim() + (a.classList.contains('active') ? '*' : '')), head: !!document.querySelector('header a[href="index.html"]') }; });
+    check('Quotes & estimates landing: the card, not the list — "New estimate" + "Estimates (1)" (the billed one and the scheduled one are not open), no Receipts button', !r.open && !r.builder && r.title === 'Quotes & estimates' && /quote a caller/i.test(r.sub) && r.btns.join('|') === '💬 New estimate|📋 Estimates (1)', r);
+    check('landing at 390px: no sideways scroll, buttons 44px+, the bottom bar still highlights Quotes, the ‹ Apps link is still there', r.over <= 0 && r.h.every(x => x >= 44) && r.bar.join('|') === 'Schedule|Quotes*|Receipts|Stock|More' && r.head, r);
+    await pg.screenshot({ path: path.join(OUT, 'quotes-landing-phone.png') });
+    await pg.evaluate(() => document.getElementById('homeNew').click()); await sleep(900);
+    r = await pg.evaluate(() => ({ title: (document.querySelector('#qiTitle') || {}).innerText, type: (document.querySelector('.qiTB.on') || { dataset: {} }).dataset.t, hist: document.getElementById('histPanel').classList.contains('open') }));
+    check('"New estimate" opens the builder straight in Estimate mode', /Quick quote/.test(r.title || '') && r.type === 'estimate' && !r.hist, r);
+    await pg.evaluate(() => document.getElementById('qiCancel').click()); await sleep(500);
+    check('Cancel from it returns to the card', await pg.evaluate(() => !document.querySelector('.qi-box') && !!document.querySelector('#chat .res-home #homeNew')));
+    await pg.evaluate(() => document.getElementById('homeEst').click()); await sleep(500);
+    r = await pg.evaluate(() => ({ title: document.querySelector('#histPanel .pp-head b').innerText, chips: getComputedStyle(document.querySelector('#histPanel .hist-filter')).display, newBtn: !!document.getElementById('histNewQuoteBtn'), rows: Array.from(document.querySelectorAll('#histList .hi-num')).map(x => x.innerText), over: document.documentElement.scrollWidth - window.innerWidth,
       bar: Array.from(document.querySelectorAll('#appnav a')).map(a => a.innerText.replace(/[^A-Za-z ]/g, '').trim() + (a.classList.contains('active') ? '*' : '')) }));
-    check('Quotes & estimates: no All/Receipts/Invoices/Estimates chips, "＋ New quote" still there, only the quote is listed', r.title === 'Quotes & estimates' && r.chips === 'none' && r.newBtn && r.rows.join() === 'EST-T4', r);
-    check('Quotes & estimates: the fallback bottom bar highlights Quotes, not Receipts', r.bar.join('|') === 'Schedule|Quotes*|Receipts|Stock|More', r.bar);
-    await pg.screenshot({ path: path.join(OUT, 'quotes-screen-phone-v2.png') });
+    await pg.screenshot({ path: path.join(OUT, 'quotes-list-phone.png') });
+    check('Quotes & estimates list: no chips, no "＋ New quote" button, only the open estimate is listed', r.title === 'Quotes & estimates' && r.chips === 'none' && !r.newBtn && r.rows.join() === 'EST-T4' && r.over <= 0, r);
+    r = await pg.evaluate(() => { const s = document.getElementById('histSearch'); s.value = 'scheduled'; s.dispatchEvent(new Event('input', { bubbles: true })); const t = document.getElementById('histList').innerText.replace(/\s+/g, ' '); s.value = ''; s.dispatchEvent(new Event('input', { bubbles: true })); return t; });
+    check('typing in the search finds the scheduled estimate, tagged "On the schedule"', /EST-T8/.test(r) && /On the schedule 2026-12-01 10:00/.test(r), r);
+    await pg.evaluate(() => document.querySelector('#histPanel .pp-head button').click()); await sleep(300);
+    check('Done in the list returns to the card', await pg.evaluate(() => !document.getElementById('histPanel').classList.contains('open') && !!document.getElementById('homeNew')));
+    // a booking that is cancelled makes the estimate open again (and the count on the button follows)
+    await pg.evaluate(() => { const bk = TKS.Bookings.all().find(x => x.fromEstimate === 'EST-T8'); TKS.Bookings.setStatus(bk.id, 'Canceled'); document.dispatchEvent(new Event('visibilitychange')); }); await sleep(800);   // (the booking is changed from the Schedule page / cloud; the card re-counts when the page is shown again)
+    r = await pg.evaluate(() => ({ btn: document.getElementById('homeEst').innerText, nums: (openEstimates() || []).map(x => x.number).sort().join() }));
+    check('cancelling the booking makes the estimate open again: "Estimates (2)"', r.btn === '📋 Estimates (2)' && r.nums === 'EST-T4,EST-T8', r);
+    // (the fallback bottom bar highlighting Quotes is now checked on the landing card, above)
     await pg.goto(BASE + 'bittings.html?docs=t7', { waitUntil: 'domcontentloaded' }); await sleep(1500);
     r = await pg.evaluate(() => Array.from(document.querySelectorAll('#appnav a')).map(a => a.innerText.replace(/[^A-Za-z ]/g, '').trim() + (a.classList.contains('active') ? '*' : '')));
     check('anywhere else the fallback bar highlights Receipts, and its Receipts link goes to the main app', r.join('|') === 'Schedule|Quotes|Receipts*|Stock|More' && await pg.evaluate(() => document.querySelector('#appnav a.active').getAttribute('href')) === 'index.html?go=receipts', r);

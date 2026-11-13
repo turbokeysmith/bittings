@@ -75,10 +75,10 @@ const PART = { id: 'k1', name: 'TEST Ford F-150 2015-2020 5-Button Smart Key', s
       NB.printUnits = (u, p, size) => { window.__nb.push('units ' + u.length + ' ' + size); return Promise.resolve(u.length); };
       TKS_HW.labels.openPrintDialog(PART, { inStock: 7 }); }, PART); await sleep(400);
     const dlg = () => pg.evaluate(() => { const g = document.getElementById('plGo'); if (!g) return null; const card = g.closest('div[role="dialog"], .hw-card, div');
-      return { prn: Array.from(document.querySelectorAll('#plPrn button')).map(x => x.innerText.trim() + (x.getAttribute('aria-pressed') === 'true' ? '*' : '')), go: g.innerText.trim(), note: document.getElementById('plNote').innerText, sizeShown: getComputedStyle(document.getElementById('plSizeWrap')).display !== 'none',
+      return { prn: Array.from(document.querySelectorAll('#plPrn button')).map(x => x.innerText.trim() + (x.getAttribute('aria-pressed') === 'true' ? '*' : '')), go: g.innerText.trim(), note: document.getElementById('plNote').innerText, sizeShown: !!document.getElementById('plSizeWrap'),
         sample: (document.querySelector('#plSample canvas') ? 'canvas ' + document.querySelector('#plSample canvas').width + 'x' + document.querySelector('#plSample canvas').height : (document.querySelector('#plSample svg') ? 'svg' : 'none')), err: document.getElementById('plErr').innerText }; });
     r = await dlg();
-    check('with both printers on, the print box asks which printer (counter printer first)', !!r && r.prn.join() === 'Counter printer*,Bluetooth (Niimbot)' && r.sample === 'svg' && r.sizeShown, r);
+    check('with both printers on, the print box asks which printer (counter printer first)', !!r && r.prn.join() === 'Counter printer*,Bluetooth (Niimbot)' && r.sample === 'svg' && !r.sizeShown, r);   // 8z111: the size comes from Settings, it is not asked again
     await pg.evaluate(() => document.querySelector('#plPrn [data-prn="niimbot"]').click()); await sleep(300); r = await dlg();
     check('choosing the Niimbot shows its own label (50 × 30 mm) as a picture and offers "Connect the printer and print"', r.prn[1] === 'Bluetooth (Niimbot)*' && r.sample === 'canvas 768x480' && /50 × 30 mm/.test(r.note) && /Connect the printer and print 1/.test(r.go) && !r.sizeShown, r);
     await pg.screenshot({ path: path.join(OUT, 'niimbot-dialog-phone.png') });

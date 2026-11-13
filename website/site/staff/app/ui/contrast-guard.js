@@ -102,7 +102,10 @@
     var field = /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
     if (field && /^(checkbox|radio|hidden|file|range|color|button|submit|image)$/.test(el.type || '')) return;
     var bg = bgOf(el, memo), big = parseFloat(cs.fontSize) >= 18 || (parseFloat(cs.fontSize) >= 14 && parseInt(cs.fontWeight, 10) >= 700), limit = big ? 3 : 4.5;
-    var op = 1, n = el; while (n && n.nodeType === 1) { op *= parseFloat(getComputedStyle(n).opacity || '1'); n = n.parentElement; }
+    // fading above the element that paints the background fades text and background together — it is not "see-through text"
+    var op = 1, n = el; while (n && n.nodeType === 1) { var ncs = getComputedStyle(n); op *= parseFloat(ncs.opacity || '1');
+      var nb = parse(ncs.backgroundColor); if (!field && ((nb && nb.a >= 0.99) || (ncs.backgroundImage && ncs.backgroundImage !== 'none' && /gradient/.test(ncs.backgroundImage)))) break;   // input boxes keep the old rule (their placeholder is judged with them)
+      n = n.parentElement; }
     var own = parseFloat(cs.opacity || '1');
     var fg = parse(cs.color); if (!fg) return;
     var seen = over({ r: fg.r, g: fg.g, b: fg.b, a: fg.a * op }, bg);

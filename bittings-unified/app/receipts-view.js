@@ -15,7 +15,7 @@
   function canEditClosed() { try { var role = (window.TKS && TKS.auth && TKS.auth.staffRole) ? TKS.auth.staffRole() : null; if (role) return role === 'owner' || role === 'manager'; return !!(TKS.auth.isOwner && TKS.auth.isOwner()); } catch (e) { return false; } }
   function vehStr(r) { var v = r.vehicle || {}; return [r.vehYear || v.year, r.vehMake || v.make, r.vehModel || v.model].filter(Boolean).join(' ') +
     ((Array.isArray(r.moreVehicles) && r.moreVehicles.length) ? (' ' + r.moreVehicles.map(function (m) { return [m.year, m.make, m.model, m.vin, m.text].filter(Boolean).join(' '); }).join(' ')) : ''); }   // 8z84: search finds the other vehicles too
-  function desc(r) { var it = r.items || []; if (it.length) return it[0].desc + (it.length > 1 ? (' +' + (it.length - 1) + ' more') : ''); return r.serviceType || 'Service'; }
+  function desc(r) { var it = r.items || []; if (it.length) return it[0].desc + (it.length > 1 ? (' +' + (it.length - 1) + ' more') : ''); return r.serviceType || 'Service'; }
 
   var PAGE = 60, shown = 60, lastPageKey = '';   // 8z70: how many documents are drawn
 
@@ -75,6 +75,8 @@
       var warrF = E.warrantyPillHTML ? E.warrantyPillHTML(r) : '';
       var badges = (warrF || d1) ? ('<div class="ro-badges">' + warrF + d1 + '</div>') : '';
       var isInv = r.docType === 'invoice', unpaid = isInv && r.status !== 'Paid in Full', fb = r.id && filedBy[r.id];
+      // 8z123: off the D1 tab there is no worklist row — use the receipt's own record (the server still decides who may tick it)
+      if (!fb && isN && r.id && r.docType !== 'estimate' && window.TKS && TKS.NASTF && TKS.NASTF.setFiled) fb = { d1_filed: !!r.nastf.d1Filed };
       var filed = fb ? ('<label class="rc-filed"><input type="checkbox" data-d1id="' + esc(r.id) + '"' + (fb.d1_filed ? ' checked' : '') + (fb.can_file === false ? ' disabled' : '') + '> <span>D1 filed ✓' + ((fb.d1_filed && fb.d1_filed_by_name) ? (' · by ' + esc(fb.d1_filed_by_name)) : '') + '</span></label>') : '';
       return '<div class="ro-item" data-id="' + esc(r.id || '') + '"><div class="ro-open" tabindex="0" role="button" title="Tap to view">' +
         '<div class="ro-top"><span class="ro-num">' + esc(r.number || r.id || '') + '</span>' + warrC + '<span class="ro-amt">' + money(total) + '</span></div>' +
@@ -89,7 +91,9 @@
     var more = gid('rcMore'); if (more) more.onclick = function () { shown += PAGE; render(); };
     list.querySelectorAll('input[data-d1id]').forEach(function (cb) {
       cb.onchange = function () { var want = cb.checked; cb.disabled = true;
-        TKS.NASTF.setFiled(cb.dataset.d1id, want).then(function (res) { if (res && res.error) throw res.error; nastfRows = null; render(); })
+        TKS.NASTF.setFiled(cb.dataset.d1id, want).then(function (res) { if (res && res.error) throw res.error;
+            try { var rr = hist.find(function (x) { return (x.id || '') === cb.dataset.d1id; }); if (rr && rr.nastf) rr.nastf.d1Filed = want; } catch (e) { }   // show it at once; the next sync brings the server's copy
+            nastfRows = null; render(); try { if (TKS.refresh) TKS.refresh(false); } catch (e) { } })
           .catch(function (e) { cb.checked = !want; cb.disabled = false; (window.uiAlert || window.alert)((e && e.message) || 'Could not update D1 status — you may not be assigned to this job.'); }); };
     });
     list.querySelectorAll('.ro-item').forEach(function (it) {
@@ -120,6 +124,11 @@
     // 8z90: a NASTF receipt shows its photo box (licence, proof of ownership…) under the document
     try { var d1 = (r.nastf && r.nastf.type) || (Array.isArray(r.moreVehicles) && r.moreVehicles.some(function (v) { return v && v.d1 === true; }));
       if (d1 && r.id && window.TKS_RDOCS && r.docType !== 'estimate') { var bx = document.createElement('div'); bx.style.padding = '0 12px 12px'; doc.appendChild(bx); TKS_RDOCS.panel(bx, r, { pdf: function (x) { return TKS_RECEIPTS.makePDF(x, 'en', false, true); } }); } } catch (e) { }
+    // 8z115: the serial numbers of the keys sold on this receipt (read only; nothing shown when there are none). Also stored on r._serials so Print / PDF add an "SN:" line.
+    try { if (window.TKS_UNITS && r.docType !== 'estimate') TKS_UNITS.forReceipt(r).then(function (u) {
+      if (cur !== r || !u || !u.length || !doc || doc.querySelector('.uk-box')) return;
+      var bx = document.createElement('div'); bx.innerHTML = TKS_UNITS.receiptBoxHTML(u); if (bx.firstChild) doc.appendChild(bx.firstChild);
+    }); } catch (e) { }
     var v = gid('rcViewer'); v.classList.add('open'); v.setAttribute('aria-hidden', 'false');
   }
   function closeViewer() { var v = gid('rcViewer'); v.classList.remove('open'); v.setAttribute('aria-hidden', 'true'); var d = gid('rcViewerDoc'); if (d) d.innerHTML = ''; cur = null; }

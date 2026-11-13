@@ -106,10 +106,10 @@
     });
     return c;
   }
-  function canvasFor(part, unit, sizeId) { var L = layout(part, unit, sizeId), c = draw(L, 1); if (!L.nbTurned) return c;
+  function canvasFor(part, unit, sizeId, extra) { var L = layout(part, unit, sizeId, extra), c = draw(L, 1); if (!L.nbTurned) return c;
     var r = document.createElement('canvas'); r.width = L.LL; r.height = L.PW; var x = r.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, r.width, r.height); x.translate(L.LL, 0); x.rotate(Math.PI / 2); x.drawImage(c, 0, 0); return r; }
   // an on-screen sample (sharper than the printer picture)
-  function sampleCanvas(part, unit, sizeId) { var L = layout(part, unit, sizeId), c = draw(L, 2); c.style.cssText = 'display:block;width:100%;max-width:' + Math.round(L.mm.w * 4.2) + 'px;height:auto;border:1px solid #8a93a0;border-radius:8px;background:#fff'; c.setAttribute('role', 'img'); c.setAttribute('aria-label', 'Label sample ' + L.mm.w + ' by ' + L.mm.h + ' mm'); return c; }
+  function sampleCanvas(part, unit, sizeId, extra) { var L = layout(part, unit, sizeId, extra), c = draw(L, 2); c.style.cssText = 'display:block;width:100%;max-width:' + Math.round(L.mm.w * 4.2) + 'px;height:auto;border:1px solid #8a93a0;border-radius:8px;background:#fff'; c.setAttribute('role', 'img'); c.setAttribute('aria-label', 'Label sample ' + L.mm.w + ' by ' + L.mm.h + ' mm'); return c; }
 
   // ---- the printer ------------------------------------------------------------------------------------------------
   var client = null, info = null, listeners = [];
@@ -168,14 +168,14 @@
     });
   }
   function logoFirst() { try { return Promise.resolve(TKS_HW.labels.ensureLogo()).catch(function () {}); } catch (e) { return Promise.resolve(); } }
-  function printPart(part, copies, sizeId) { return logoFirst().then(function () { return printJobs([{ canvas: canvasFor(part, null, sizeId), copies: copies }]); }); }
+  function printPart(part, copies, sizeId, extra) { return logoFirst().then(function () { return printJobs([{ canvas: canvasFor(part, null, sizeId, extra), copies: copies }]); }); }   // extra: { kind: 'bin' } = a bin label (8z109)
   function printUnits(units, part, sizeId) { return logoFirst().then(function () { return printJobs((units || []).map(function (u) { return { canvas: canvasFor(part, u, sizeId), copies: 1 }; })); }); }
 
   // ---- no Bluetooth (iPhone): the label as a picture ------------------------------------------------------------
-  function pngBlob(part, unit, sizeId) { return logoFirst().then(function () { var c = canvasFor(part, unit, sizeId); return new Promise(function (res) { c.toBlob(function (b) { res(b); }, 'image/png'); }); }); }
-  function savePicture(part, unit, sizeId) {
+  function pngBlob(part, unit, sizeId, extra) { return logoFirst().then(function () { var c = canvasFor(part, unit, sizeId, extra); return new Promise(function (res) { c.toBlob(function (b) { res(b); }, 'image/png'); }); }); }
+  function savePicture(part, unit, sizeId, extra) {
     var nameSafe = String((part && (part.sku || part.name)) || 'label').replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 40) || 'label';
-    return pngBlob(part, unit, sizeId).then(function (blob) {
+    return pngBlob(part, unit, sizeId, extra).then(function (blob) {
       var file = null; try { file = new File([blob], 'label-' + nameSafe + '.png', { type: 'image/png' }); } catch (e) {}
       if (file && navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share)
         return navigator.share({ files: [file], title: 'Label' }).then(function () { return 'shared'; }, function (e) { if (e && e.name === 'AbortError') return 'cancelled'; throw e; });

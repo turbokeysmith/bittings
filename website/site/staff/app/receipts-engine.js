@@ -198,7 +198,8 @@ function buildReceiptCardHTML(r, actionsHTML){
   const sColor= status==="Paid in Full"?"var(--green)"
               : status==="Unpaid"?"var(--red)" : "var(--amber)";
   let itemRows="";
-  r.items.forEach(it=>{
+  const snMap=snLines(r);   // 8z115: serial numbers of the keys sold (only when the viewer set r._serials)
+  r.items.forEach((it,ix)=>{
     if(it.isDiscount){
       const lbl = it.discountMode==="percent" ? "Discount ("+it.discountValue+"%)" : "Discount";
       itemRows+='<div class="rc-irow"><span>'+escapeHtml(lbl)+'</span>'+
@@ -209,7 +210,8 @@ function buildReceiptCardHTML(r, actionsHTML){
         '<span><s>'+money(0)+'</s></span></div>';
     }else{
       itemRows+='<div class="rc-irow"><span>'+escapeHtml(it.desc)+(it.declinedQty>0?'<em class="rc-nd">— '+it.declinedQty+' of '+((it.dispatchQty||0)||(it.qty+it.declinedQty))+' not done'+(it.declineReason?(' ('+escapeHtml(it.declineReason)+')'):'')+'</em>':'')+'</span>'+
-        '<span>'+money(it.amount)+'</span></div>';
+        '<span>'+money(it.amount)+'</span></div>'+
+        (snMap[ix]?('<div class="rc-sn" style="font-size:11.5px;color:#5a616c;padding:0 0 4px 2px;overflow-wrap:anywhere">SN: '+escapeHtml(snMap[ix].join(", "))+'</div>'):'');
     }
   });
   let sub="";
@@ -340,8 +342,8 @@ function shareDocument(r, lang, forCustomer){
   const cust = r.customer || "";
   const shareData = {
     files: [file],
-    title: docLabelText + " " + r.number,
-    text: docLabelText + " from " + (SETTINGS.name || "your locksmith") +
+    title: (r.docType==="estimate") ? estSubject(r) : (docLabelText + " " + r.number),
+    text: (r.docType==="estimate" && estTerms()) ? estTerms().message : docLabelText + " from " + (SETTINGS.name || "your locksmith") +
           (cust ? " for " + cust : "")
   };
   // Feature detection: not all browsers support sharing files. Test with
@@ -499,9 +501,11 @@ function makePDF(r, lang, forCustomer){
 
   let rY=tY+22;
   doc.setFont("helvetica","normal"); doc.setFontSize(10.5);
+  const snMap=snLines(r);   // 8z115: serial numbers of the keys sold (only when the viewer set r._serials)
   r.items.forEach((it,i)=>{
+    const snTxt=snMap[i]?("SN: "+snMap[i].join(", ")):"", rowH=snTxt?34:22;
     doc.setFillColor(...(i%2===0?LIGHT:[255,255,255]));
-    doc.setDrawColor(...RED); doc.rect(40,rY,532,22,"FD");
+    doc.setDrawColor(...RED); doc.rect(40,rY,532,rowH,"FD");
     if(it.isDiscount){
       doc.setTextColor(...GREEN);
       const lbl = it.discountMode==="percent" ? tr("Discount",lang)+" ("+it.discountValue+"%)" : tr("Discount",lang);
@@ -523,7 +527,13 @@ function makePDF(r, lang, forCustomer){
       doc.text(d,50,rY+15);
       doc.text(money(it.amount),562,rY+15,{align:"right"});
     }
-    rY+=22;
+    if(snTxt){
+      doc.setFontSize(8.5); doc.setTextColor(90,97,108);
+      let s=snTxt; while(doc.getTextWidth(s)>480 && s.length>8){ s=s.slice(0,-2); } if(s!==snTxt) s=s.trim()+"...";
+      doc.text(s,50,rY+28);
+      doc.setFontSize(10.5);
+    }
+    rY+=rowH;
   });
 
   let toY=rY+22;
@@ -660,8 +670,21 @@ function makePDF(r, lang, forCustomer){
   return [n, v.vin?("VIN "+v.vin):"", v.d1===true?("NASTF D1 — "+[v.color, v.odometer?(/^no /i.test(v.odometer)?v.odometer:(v.odometer+" mi")):"", v.plate?(/^no /i.test(v.plate)?v.plate:("tag "+v.plate)):""].filter(Boolean).join(", ")):""].filter(Boolean).join(" · "); }).filter(Boolean); }
 /* 8z90: colour / tag / miles of the first vehicle — a document keeps them at the top level, a Register sale inside its vehicle object */
 function d1Of(r){ var v=(r && typeof r.vehicle==="object" && r.vehicle)?r.vehicle:{}; return { color:String((r&&r.vehColor)||v.color||""), plate:String((r&&r.plate)||v.plate||""), odometer:String((r&&r.odometer!=null&&r.odometer!=="")?r.odometer:(v.odometer||"")) }; }
-  function docWithVehicles(r){ try{ if(!r || !Array.isArray(r.items) || !r.items.some(function(it){ return it && it.vehicle; })) return r;
-    return Object.assign({}, r, { items:r.items.map(function(it){ return (it && it.vehicle) ? Object.assign({}, it, { desc:String(it.desc||"")+" — "+it.vehicle }) : it; }) }); }catch(e){ return r; } }
+  /* 8z115: r._serials = [{item_id, serial, …}] (set by TKS_UNITS.forReceipt before the viewer prints). Returns { itemIndex: [serial, …] }
+     for the FIRST normal line of each key; empty when r._serials is not set, so the output is then exactly what it always was. */
+  function snLines(r){ var out={}; try{ var s=r&&r._serials; if(!Array.isArray(s)||!s.length||!Array.isArray(r.items)) return out;
+    s.forEach(function(u){ if(!u||!u.serial) return; var i=r.items.findIndex(function(it){ return it&&!it.isDiscount&&!it.declined&&it.partId&&String(it.partId)===String(u.item_id); });
+      if(i>=0) (out[i]=out[i]||[]).push(String(u.serial)); }); }catch(e){} return out; }
+  /* 8z124: an estimate carries the shop's "good for N days" line under its notes (Settings → Hours & footer). */
+  function estTerms(){ try{ return (window.TKS && TKS.Config && TKS.Config.estimateTerms) ? TKS.Config.estimateTerms() : null; }catch(e){ return null; } }
+  function estNotes(r){ var n=String((r&&r.notes)||""); try{ if(r && r.docType==="estimate"){ var t=estTerms(), d=t&&t.disclaimer; if(d && n.indexOf(d)<0) n = n ? (n+"\n\n"+d) : d; } }catch(e){} return n; }
+  function estSubject(r){ var svc=""; try{ var it=((r&&r.items)||[]).filter(function(x){ return x && !x.isDiscount && !x.declined; })[0]; svc=it?String(it.desc||""):""; }catch(e){}
+    var veh=""; try{ veh=vehicleString(r)||""; }catch(e){} return ["Estimate", veh, svc.slice(0,60)].filter(Boolean).join(" — "); }
+  function docWithTerms(r){ try{ if(r && r.docType==="estimate"){ var n=estNotes(r); if(n!==String(r.notes||"")){ var c2=Object.assign({}, r, { notes:n }); if(r._serials) c2._serials=r._serials; return c2; } } }catch(e){} return r; }
+  function docWithVehicles(r){ r=docWithTerms(r); try{ if(!r || !Array.isArray(r.items) || !r.items.some(function(it){ return it && it.vehicle; })) return r;
+    var c=Object.assign({}, r, { items:r.items.map(function(it){ return (it && it.vehicle) ? Object.assign({}, it, { desc:String(it.desc||"")+" — "+it.vehicle }) : it; }) });
+    if(r._serials) c._serials=r._serials;   // 8z115: kept even when the viewer stored it as a hidden (non-enumerable) property
+    return c; }catch(e){ return r; } }
   /* 8z81: same two helpers as bittings.html (this file is that page's print code, copied for the Receipts tab) */
   function exemptLines(r){ try{ return (r && r.taxExempt && window.TKS_EXEMPT) ? TKS_EXEMPT.certLines(r.taxExempt) : (r && r.taxExempt ? ["TAX EXEMPT"] : []); }catch(e){ return []; } }
   function whereLine(r){ if(!r) return ""; if(r.serviceWhere==="shop") return "Service: In shop"+((SETTINGS&&SETTINGS.address)?(" — "+SETTINGS.address):""); if(r.serviceWhere==="mobile") return "Service: Mobile (we come to you)"; return ""; }
@@ -669,12 +692,13 @@ function d1Of(r){ var v=(r && typeof r.vehicle==="object" && r.vehicle)?r.vehicl
   function paperCopy(r){
     const t=r.totals||computeTotals(r.items||[], r.payment, receiptTaxRate(r)), est=(r.docType==="estimate");
     let wt=""; try{ wt=warrantyTermText(r)||""; }catch(e){}
+    const snMap=snLines(r), snIdx=new Map(); (r.items||[]).forEach((it,i)=>{ snIdx.set(it,i); });   // 8z115: "SN: …" rides on the line text (hardware.js wraps it to the paper width)
     return { number:r.number||"", date:r.date||"", docType:r.docType||"receipt", customer:r.noCustomer?"":(r.customer||""), technician:r.technician||"",
       payment:est?"":(r.payment||""), status:est?"":(r.status||""),
-      items:(r.items||[]).filter(it=>it && !it.declined).map(it=>({ desc:String(it.desc||"")+(it.vehicle?(" - "+it.vehicle):""), amount:it.amount, qty:parseInt(it.qty,10)||1, isDiscount:!!it.isDiscount })),
+      items:(r.items||[]).filter(it=>it && !it.declined).map(it=>({ desc:String(it.desc||"")+(it.vehicle?(" - "+it.vehicle):"")+(snMap[snIdx.get(it)]?(" - SN: "+snMap[snIdx.get(it)].join(", ")):""), amount:it.amount, qty:parseInt(it.qty,10)||1, isDiscount:!!it.isDiscount })),
       moreVehicles:moreVehList(r).map(l=>l.replace(/\s*\u00b7\s*/g," - ")),
       totals:t, vehicleText:vehicleString(r)||"", vin:r.vin||"", serviceWhere:r.serviceWhere||"", taxExempt:r.taxExempt||null,
-      exemptLabel:(r.taxExempt && window.TKS_EXEMPT)?TKS_EXEMPT.label(r.taxExempt).replace(/\s*\u00b7\s*/g," - "):"", warrantyText:wt, notes:r.notes||"" };
+      exemptLabel:(r.taxExempt && window.TKS_EXEMPT)?TKS_EXEMPT.label(r.taxExempt).replace(/\s*\u00b7\s*/g," - "):"", warrantyText:wt, notes:estNotes(r) };
   }
   window.TKS_RECEIPTS = {
     normalize: _normalize,

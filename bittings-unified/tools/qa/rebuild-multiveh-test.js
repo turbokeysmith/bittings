@@ -92,6 +92,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
 
     // ================= 4. Lists and the Scheduler job =================
     await pg.goto('http://127.0.0.1:8088/bittings.html?estimates=1', { waitUntil: 'domcontentloaded' }); await sleep(2800);
+    await pg.evaluate(() => document.getElementById('homeEst').click()); await sleep(400);   // the page lands on the Quotes & estimates card now; the list is one tap away
     r = await pg.evaluate(() => { const s = document.getElementById('histSearch'); s.value = 'golf'; s.dispatchEvent(new Event('input', { bubbles: true })); return Array.from(document.querySelectorAll('#histList .hist-item')).map(x => x.innerText.replace(/\s+/g, ' ')); });
     check('the estimates list shows "2 vehicles" and search finds it by the second vehicle', r.length === 1 && /🚗 2 vehicles/.test(r[0]), r);
     await Promise.all([pg.waitForNavigation({ waitUntil: 'domcontentloaded' }), pg.evaluate(() => document.querySelector('#histList [data-act="sched"]').click())]);

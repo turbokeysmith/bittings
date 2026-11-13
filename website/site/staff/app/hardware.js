@@ -89,10 +89,10 @@
     { id: 'small',  label: 'Small — 2 × 1 in',        hint: 'Van drawers, small bags', wIn: 2.0,  hIn: 1.0 },
     { id: 'medium', label: 'Medium — 2¼ × 1¼ in', hint: 'Small bags, shelf bins', wIn: 2.25, hIn: 1.25 },
     { id: 'wide',   label: 'Wide — 3 × 1 in',         hint: 'Drawer fronts, bin edges', wIn: 3.0,  hIn: 1.0 },
-    { id: 'large',  label: 'Large — 3 × 2 in',        hint: 'Key bags', wIn: 3.0,  hIn: 2.0 },
+    { id: 'large',  label: 'Large — 2 × 3 in',        hint: 'Key bags', wIn: 3.0,  hIn: 2.0 },
     { id: 'xl',     label: 'Extra large — 4 × 2 in',  hint: 'Big bags and boxes', wIn: 4.0,  hIn: 2.0 },
     { id: 'xxl',    label: '4 × 3 in',                     hint: 'Boxes and totes', wIn: 4.0,  hIn: 3.0 },
-    { id: 'tall',   label: '2 × 3 in',                     hint: 'Key bags (tall roll)', wIn: 2.0,  hIn: 3.0 },
+    { id: 'tall',   label: '2 × 3 in (2 in across)',  hint: 'Key bags', wIn: 2.0,  hIn: 3.0, hidden: true },
     { id: 'ship',   label: '4 × 6 in',                     hint: 'Large bags and boxes', wIn: 4.0,  hIn: 6.0 },
     { id: 'custom', label: 'Custom size',                       hint: 'Type your own width and height', wIn: 0, hIn: 0 }
   ];
@@ -101,6 +101,7 @@
     for (var i = 0; i < LABEL_SIZES.length; i++) if (LABEL_SIZES[i].id === id) s = LABEL_SIZES[i];
     if (!s) s = LABEL_SIZES[0];
     if (s.id === 'custom') return { id: 'custom', label: s.label, hint: s.hint, wIn: parseFloat(L.customW) || 2.5, hIn: parseFloat(L.customH) || 1.5 };
+    if (L.rollTurn && L.rollTurn[s.id] && Math.min(s.wIn, s.hIn) >= 1.75) return { id: s.id, label: s.label, hint: s.hint, wIn: s.hIn, hIn: s.wIn, hidden: s.hidden };   // 8z108
     return s;
   }
   /* 8z104: Vertical / Horizontal on the big sizes. A size is a ROLL (width across the printer × length). "h" = the label
@@ -119,6 +120,15 @@
       LABEL_SIZES.forEach(function (s) { if (s.id !== 'custom' && Math.abs(s.wIn - w) < 0.01 && Math.abs(s.hIn - h) < 0.01) found = s.id; });
       L.size = found || 'custom';
       if (L.size === 'custom') { L.customW = w; L.customH = h; }
+    }
+    // 8z106 (owner: "It's showing 3x2 and 2x3. Those are the same."): the old 3 x 2 entry is now the 2 x 3 one, laid out
+    // the way it used to read (horizontal) unless a layout was already chosen for it
+    // 8z108: …and the one entry is the roll with the 3-inch side across the printer ('large'). Anything saved under the
+    // other id comes back to it, keeping the chosen layout (Horizontal / Vertical means how the label READS).
+    if (L.size === 'tall' || (Array.isArray(L.sizesOn) && L.sizesOn.indexOf('tall') >= 0)) {
+      L.orient = L.orient || {}; if (L.orient.tall) L.orient.large = L.orient.tall; delete L.orient.tall;
+      if (L.size === 'tall') L.size = 'large';
+      if (Array.isArray(L.sizesOn)) L.sizesOn = L.sizesOn.map(function (id) { return id === 'tall' ? 'large' : id; }).filter(function (id, i, a) { return a.indexOf(id) === i; });
     }
     L.sizesOn = (Array.isArray(L.sizesOn) ? L.sizesOn : []).filter(validSize);
     if (L.sizesOn.indexOf(L.size) < 0) L.sizesOn.push(L.size);
@@ -643,6 +653,70 @@
       return '^FO' + e.x + ',' + e.y + '^GFA,' + (rowBytes * e.h) + ',' + (rowBytes * e.h) + ',' + rowBytes + ',' + hex + '^FS';
     }
 
+    /* 8z107: blocks. Each piece of a label belongs to one block; a saved tweak {dx, dy (1/100 in), s (size), hide}
+       moves / resizes / hides that block. A block can never leave the label. */
+    var BLOCKS = ['logo', 'name', 'qr', 'unit', 'price', 'details', 'sku'], BLOCK_NAME = { logo: 'Logo', name: 'Name', qr: 'QR code', unit: 'Serial number', price: 'Price', details: 'Details', sku: 'SKU' };
+    function blockOf(e, ctx) {
+      if (e.blk) return e.blk;
+      if (e.t === 'qr') return 'qr'; if (e.t === 'logo') return 'logo'; if (e.t === 'line') return 'sku';
+      var t = String(e.text || (e.rows || []).join(' '));
+      if (e.bold) return 'sku';
+      if (ctx.unit && (/^(SN: |Received: )/.test(t) || t === ctx.code)) return 'unit';
+      if (ctx.price && t === ctx.price) return 'price';
+      if (/^(Fits:|FCC ID: |FCC |Chip: |Type: )/.test(t)) return 'details';
+      return 'name';
+    }
+    function elBox(e) {
+      if (e.t === 'qr') return [e.x, e.y, e.x + e.size, e.y + e.size];
+      if (e.t === 'logo') return [e.x, e.y, e.x + e.w, e.y + e.h];
+      if (e.t === 'line') return [e.x, e.y, e.x + e.w, e.y + 3];
+      var rows = e.rows || [e.text || ''], len = 1; rows.forEach(function (r) { len = Math.max(len, String(r).length); });
+      var w = Math.min(e.w, Math.ceil(len * 0.56 * e.font) + 2), x = e.align === 'C' ? e.x + (e.w - w) / 2 : (e.align === 'R' ? e.x + e.w - w : e.x);
+      return [x, e.y, x + w, e.y + rows.length * e.font];
+    }
+    function listBox(list) { var b = [1e9, 1e9, -1e9, -1e9]; list.forEach(function (e) { var q = elBox(e); b[0] = Math.min(b[0], q[0]); b[1] = Math.min(b[1], q[1]); b[2] = Math.max(b[2], q[2]); b[3] = Math.max(b[3], q[3]); }); return b; }
+    function applyTweaks(els, tw, dpi, W, H, ctx) {
+      var blocks = {}, keep = [], qrDelta = null;
+      els.forEach(function (e) { e.b = blockOf(e, ctx); });
+      BLOCKS.concat(['bin']).forEach(function (b) {
+        var list = els.filter(function (e) { return e.b === b; }); if (!list.length) return;
+        // 8z114: the serial number is its own block; until it has been moved itself it keeps following the QR code
+        var t = (tw && tw[b]) || null, follow = (!t && b === 'unit') ? qrDelta : null;
+        if (t && t.hide) { blocks[b] = { hidden: true }; return; }
+        var sc = t ? Number(t.s) || 1 : 1; sc = Math.max(0.5, Math.min(2.5, sc));
+        var bb = listBox(list);
+        if (sc !== 1) {
+          var room = Math.min(W / Math.max(1, bb[2] - bb[0]), H / Math.max(1, bb[3] - bb[1])); sc = Math.min(sc, room);   // "can't be bigger than this"
+          list.forEach(function (e) { e.x = Math.round(bb[0] + (e.x - bb[0]) * sc); e.y = Math.round(bb[1] + (e.y - bb[1]) * sc);
+            if (e.t === 'qr') e.size = Math.min(qrSizeFor(e.data, e.size * sc), Math.floor(Math.min(W, H)));
+            else if (e.t === 'logo') { e.w = Math.round(e.w * sc); e.h = Math.round(e.h * sc); }
+            else if (e.t === 'line') e.w = Math.round(e.w * sc);
+            else { e.font = Math.max(10, Math.round(e.font * sc)); e.w = Math.round(e.w * sc); } });
+          bb = listBox(list);
+        }
+        var dx = 0, dy = 0;
+        if (t && t.ax != null) { dx = Math.round(Number(t.ax) / 100 * dpi - bb[0]); dy = Math.round((Number(t.ay) || 0) / 100 * dpi - bb[1]); }   // 8z117: anchored — a fixed place on the label
+        else if (t) { dx = Math.round((Number(t.dx) || 0) / 100 * dpi); dy = Math.round((Number(t.dy) || 0) / 100 * dpi); }                       // older saved move (converted by anchorLegacy)
+        else if (follow) { dx = follow.dx; dy = follow.dy; }
+        if (t || follow) { dx = Math.max(-bb[0], Math.min(dx, W - bb[2])); if (bb[2] - bb[0] > W) dx = -bb[0];
+                 dy = Math.max(-bb[1], Math.min(dy, H - bb[3])); if (bb[3] - bb[1] > H) dy = -bb[1]; dx = Math.round(dx); dy = Math.round(dy); }
+        if (dx || dy) list.forEach(function (e) { e.x += dx; e.y += dy; });
+        if (b === 'qr' && t) qrDelta = { dx: dx, dy: dy };
+        bb = listBox(list);
+        blocks[b] = { x: Math.round(bb[0]), y: Math.round(bb[1]), w: Math.round(bb[2] - bb[0]), h: Math.round(bb[3] - bb[1]), dx: dx, dy: dy, s: sc };
+        keep = keep.concat(list);
+      });
+      return { els: els.filter(function (e) { return keep.indexOf(e) >= 0; }), blocks: blocks };
+    }
+
+    // 8z108: "Fits" on a label — the first five vehicles of a long list, then how many more
+    function fitsText(part, opt) {
+      if ((opt && opt.fits === false) || (!(opt && opt.fits === true) && prefs.labels.fits === false)) return null;   // switched off
+      var list = String(part.fitment || '').split(/[\r\n;]+/).map(function (t) { return t.trim(); }).filter(Boolean);
+      if (!list.length) return '';
+      return z(list.slice(0, 5).join(', ')) + (list.length > 5 ? ' … +' + (list.length - 5) + ' more' : '');
+    }
+
     function layoutFor(part, unit, sizeId, opt) {
       opt = opt || {}; part = part || {}; unit = unit || null;
       var sp = sizeSpec(sizeId || prefs.labels.size);
@@ -665,7 +739,29 @@
         return { t: 'text', x: m, y: skuY + (skuFont - f), w: fullW, font: f, lines: 1, rows: [txt], text: txt, align: 'L', bold: true };
       }
 
-      if (tier < 3) {
+      if (opt.kind === 'bin') {
+        /* 8z109 bin label: where this key lives. The bin in the biggest letters that fit, then what goes there. */
+        var binTxt = z(String(part.location || '')).toUpperCase().trim() || 'BIN', tall = LL >= PW * 0.95;
+        var bSkuF = Math.round(Math.min(0.16, hIn * 0.12) * dpi), bSkuY = LL - m - bSkuF, gap = Math.round(0.05 * dpi), bNameF = Math.round(Math.min(0.14, Math.max(0.1, Math.min(wIn, hIn) * 0.06)) * dpi);
+        var fitBin = function (w, maxF) { return Math.max(16, Math.min(maxF, Math.floor(w / (binTxt.length * 0.6)))); };
+        if (tall) {   // bin across the top, then QR + name
+          var bf = fitBin(fullW, Math.round(Math.min(0.3 * LL, 1.1 * dpi)));
+          els.push(textEl(m, m, fullW, bf, 1, binTxt, 'C', { raw: 1, bold: true, blk: 'bin' }));
+          var by = m + bf + gap, bq = qrSizeFor(code, Math.min(bSkuY - 6 - by, Math.round(0.45 * PW), Math.round(1.4 * dpi)));
+          els.push({ t: 'qr', x: m, y: by, size: bq, data: code, mag: 4 });
+          var bx = m + bq + gap, bw = Math.max(60, PW - shift - bx - m), bl = Math.max(1, Math.min(4, Math.floor((bSkuY - 4 - by) / bNameF)));
+          els.push(textEl(bx, by, bw, bNameF, bl, name, 'L', { blk: 'name' }));
+        } else {      // QR on the left; bin, then the name, beside it
+          var bq2 = qrSizeFor(code, Math.min(bSkuY - 6 - m, Math.round(0.36 * PW), Math.round(1.4 * dpi)));
+          els.push({ t: 'qr', x: m, y: m, size: bq2, data: code, mag: 4 });
+          var bx2 = m + bq2 + gap, bw2 = Math.max(60, PW - shift - bx2 - m), bf2 = fitBin(bw2, Math.round(Math.min(0.5 * (bSkuY - m), 0.9 * dpi)));
+          els.push(textEl(bx2, m, bw2, bf2, 1, binTxt, 'L', { raw: 1, bold: true, blk: 'bin' }));
+          var ny = m + bf2 + 4, nl2 = Math.max(0, Math.min(3, Math.floor((bSkuY - 4 - ny) / bNameF)));
+          if (nl2 > 0) els.push(textEl(bx2, ny, bw2, bNameF, nl2, name, 'L', { blk: 'name' }));
+        }
+        if (tier === 3) els.push({ t: 'line', x: m, y: bSkuY - 8, w: fullW });
+        els.push(skuEl(bSkuF, bSkuY));
+      } else if (tier < 3) {
         // tier 1 = today's 2x1 label; tier 2 adds one "Fits:" / "FCC" line under the price
         var skuFont = Math.round(Math.min(0.15, hIn * 0.15) * dpi), skuY = LL - m - skuFont;
         var nameFont = Math.round(Math.min(0.11, hIn * 0.10) * dpi), priceFont = Math.round(Math.min(0.17, hIn * 0.16) * dpi);
@@ -680,7 +776,7 @@
         var priceY = Math.min(skuY - 4 - priceFont, m + Math.round(nameFont * 1.15 * (nm.rows.length || 1)) + 4);
         if (price) els.push(textEl(tx, priceY, tw, priceFont, 1, price, 'L', { raw: 1 }));
         if (tier === 2) {
-          var xt = part.fitment ? 'Fits: ' + z(part.fitment) : (part.fccId ? 'FCC ' + z(part.fccId) : '');
+          var ft2 = fitsText(part, opt), xt = ft2 ? 'Fits: ' + ft2 : (part.fccId ? 'FCC ' + z(part.fccId) : '');
           var xf = Math.round(Math.min(0.09, hIn * 0.08) * dpi), xy = (price ? priceY + priceFont : m + Math.round(nameFont * 1.15 * (nm.rows.length || 1))) + 5;
           if (xt && xy + xf <= skuY - 4) { var xe = textEl(tx, xy, tw, xf, 2, xt, 'L'); if (xy + xe.rows.length * xf > skuY - 4) xe = textEl(tx, xy, tw, xf, 1, xt, 'L'); els.push(xe); }   // 8z102
         }
@@ -689,9 +785,11 @@
         /* tier 3 — big labels. 8z103 (owner: "on the larger labels there's a lot of white space … if there is room I would
            want my logo across the top"): an optional logo band on top, and the type is scaled up (k) as far as it goes
            without dropping a line or cutting the name shorter. */
+        var tsz = opt.textSize || prefs.labels.textSize || 'm'; if (tsz !== 's' && tsz !== 'l') tsz = 'm';   // 8z106: Small / Medium / Large type on big labels
+        var kShare = tsz === 's' ? 0.15 : (tsz === 'l' ? 1 : 0.5), logoCap = tsz === 's' ? [0.12, 0.45] : (tsz === 'l' ? [0.2, 1.0] : [0.15, 0.65]);
         var logoImg = (opt.logo !== false && prefs.labels.logo !== false) ? logoReady() : null, band = 0, top = m;
         if (logoImg && logoImg.width && logoImg.height) {
-          var bh = Math.round(Math.min(0.2 * LL, 1.0 * dpi)), bw = Math.min(fullW, Math.round(bh * logoImg.width / logoImg.height)); bh = Math.max(8, Math.round(bw * logoImg.height / logoImg.width));
+          var bh = Math.round(Math.min(logoCap[0] * LL, logoCap[1] * dpi)), bw = Math.min(fullW, Math.round(bh * logoImg.width / logoImg.height)); bh = Math.max(8, Math.round(bw * logoImg.height / logoImg.width));
           els.push({ t: 'logo', x: m + Math.round((fullW - bw) / 2), y: m, w: bw, h: bh }); band = bh + Math.round(0.04 * dpi); top = m + band;
         }
         var stack = LL >= PW * 0.95;   // 8z102: square or tall label — details go under the QR, full width
@@ -701,7 +799,7 @@
         var nLen = function (e) { return e.rows.join(' ').replace(/\.\.\.$/, '').length; };
         var build3 = function (k, g) {
           g = g || 0;   // g = extra dots between the lines (the leftover white space, shared out)
-          var out = [], gaps = 0, sFont = Math.round(Math.min(0.2, hIn * 0.1) * dpi * Math.min(k, 2)), sY = LL - m - sFont, ruleY = sY - 8, limit = ruleY - 4;
+          var out = [], gaps = 0, sFont = Math.round(Math.min(0.2, hIn * 0.1) * dpi * Math.min(k, 2) * (tsz === 'l' ? 1 : 0.85)), sY = LL - m - sFont, ruleY = sY - 8, limit = ruleY - 4;
           var small = Math.round(0.085 * dpi * k), lh = Math.round(small * 1.2), uf = Math.round(0.1 * dpi * k);
           var unitLines = unit ? 1 + (unit.acquired_at ? 1 : 0) : 0, unitH = unit ? unitLines * (uf + 4) + 4 : 0;
           var nFont1 = Math.round(Math.min(0.13, hIn * 0.065) * dpi), nFont = Math.round(nFont1 * k), pFont = Math.round(Math.min(0.24, hIn * 0.12) * dpi * k);
@@ -738,8 +836,9 @@
             dx = tx3; dw = priceW;
           }
           var cands = [], dropped = 0;   // in display order; "drop" = order they are given up when the label is full (1 first)
-          if (part.fitment) cands.push({ key: 'fits', text: 'Fits: ' + z(part.fitment), n: 2, drop: 4 });
-          else cands.push({ key: 'fits', text: 'Fits:', n: 1, drop: 4, blank: 1 });   // 8z104: not filled in → "Fits:" and a blank line to write on
+          var ft3 = fitsText(part, opt);   // null = the shop switched "Fits" off
+          if (ft3) cands.push({ key: 'fits', text: 'Fits: ' + ft3, n: 4, drop: 0.5 });   // up to 4 lines; it gives lines back first when the label is full
+          else if (ft3 === '') cands.push({ key: 'fits', text: 'Fits:', n: 1, drop: 4, blank: 1 });   // 8z104: not filled in → "Fits:" and room to write
           if (part.fccId) cands.push({ key: 'fcc', text: 'FCC ID: ' + z(part.fccId), n: 1, drop: 3 });
           if (part.chip) cands.push({ key: 'chip', text: 'Chip: ' + z(part.chip), n: 1, drop: 2 });
           if (typeTxt) cands.push({ key: 'type', text: 'Type: ' + typeTxt, n: 1, drop: 1 });
@@ -748,12 +847,12 @@
           while (cands.length && y + total() > limit) {
             var low = null; cands.forEach(function (c) { if (!low || c.drop < low.drop) low = c; });
             dropped++;
-            if (low.key === 'fits' && low.n === 2) { low.n = 1; low.drop = 5; } else cands.splice(cands.indexOf(low), 1);
+            if (low.key === 'fits' && low.n > 1 && !low.blank) { low.n--; low.drop = low.n > 2 ? 0.5 : (low.n === 2 ? 4 : 5); dropped--; } else cands.splice(cands.indexOf(low), 1);
           }
           var cut = 0;
           cands.forEach(function (c, ci) { if (ci) { y += g; gaps++; }
             var e = textEl(dx, y, dw, small, c.n, c.text, 'L'); out.push(e);
-            if (c.blank) { var ind = Math.round(small * 2.7); out.push({ t: 'line', x: dx + ind, y: y + small - 1, w: Math.max(20, dw - ind) }); out.push({ t: 'line', x: dx, y: y + lh + Math.round(small * 0.75), w: dw }); y += lh; }
+            if (c.blank) y += lh;   // 8z106: room to write, no lines (owner: "we need those removed")
             y += e.rows.length * lh; if (/\.\.\.$/.test(e.text)) cut++; });
           out.push({ t: 'line', x: m, y: ruleY, w: fullW });
           out.push(skuEl(sFont, sY));
@@ -763,13 +862,19 @@
         var base3 = build3(1), best3 = base3, bestK = 1;
         if (opt.fill !== false) {
           for (var k3 = 4.0; k3 > 1.04; k3 -= 0.1) { /* 8z104: the bigger the label, the bigger the type */ var tr = build3(k3); if (tr.ok && tr.nameChars >= base3.nameChars && tr.cut <= base3.cut) { best3 = tr; bestK = k3; break; } }
+          // 8z106: Small / Medium use only a share of that growth (owner, first real 2 x 3 print: "this is too big of a font")
+          if (kShare < 1 && bestK > 1) { var kFull = bestK, kt = Math.round((1 + (kFull - 1) * kShare) * 10) / 10; best3 = base3; bestK = 1;
+            for (; kt > 1.04; kt -= 0.1) { var ts = build3(kt); if (ts.ok && ts.nameChars >= base3.nameChars && ts.cut <= base3.cut) { best3 = ts; bestK = kt; break; } } }
           // whatever room is still left over is shared out between the lines, so the label is not top-heavy
           var spare = best3.limit - best3.yEnd, gEach = best3.gaps ? Math.min(Math.floor(spare / best3.gaps), Math.round(best3.lh * 0.7)) : 0;
           if (best3.ok && gEach >= 2) { var sp3 = build3(bestK, gEach); if (sp3.ok && sp3.cut <= best3.cut && sp3.nameChars >= best3.nameChars) best3 = sp3; }
         }
         els = els.concat(best3.els);
       }
-      return { wIn: wIn, hIn: hIn, dpi: dpi, PW: PW, LL: LL, shift: shift, tier: tier, els: els, turned: turned, rollShift: rollShift };
+      var twKey = opt.tweakKey || (opt.widthIn ? '' : (sp.id + ':' + (wIn >= hIn ? 'h' : 'v') + (opt.kind === 'bin' ? ':bin' : '')));
+      var twSet = (opt.tweaks !== undefined) ? opt.tweaks : (twKey ? (prefs.labels.tweaks || {})[twKey] : null);
+      var twd = applyTweaks(els, twSet, dpi, PW - shift, LL, { price: price, unit: unit, code: code });
+      return { wIn: wIn, hIn: hIn, dpi: dpi, PW: PW, LL: LL, fullLL: LL + (turned ? rollShift : 0), shift: shift, tier: tier, els: twd.els, blocks: twd.blocks, twKey: twKey, turned: turned, rollShift: rollShift };
     }
 
     function canvasGFA(c, x0, y0) {
@@ -830,9 +935,9 @@
 
     var SANS = "'Arial Narrow','Roboto Condensed','Helvetica Neue',Arial,sans-serif";
     function toSVG(L) {
-      var r = Math.round(0.06 * L.dpi), s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + L.PW + ' ' + L.LL + '" width="' + L.PW + '" height="' + L.LL
+      var FH = L.fullLL || L.LL, r = Math.round(0.06 * L.dpi), s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + L.PW + ' ' + FH + '" width="' + L.PW + '" height="' + FH
         + '" style="display:block;width:100%;height:auto" role="img" aria-label="Label sample ' + L.wIn + ' by ' + L.hIn + ' inches" data-tier="' + L.tier + '">'
-        + '<rect x="2" y="2" width="' + (L.PW - 4) + '" height="' + (L.LL - 4) + '" rx="' + r + '" fill="#fff" stroke="#8a93a0" stroke-width="3"/>'
+        + '<rect x="2" y="2" width="' + (L.PW - 4) + '" height="' + (FH - 4) + '" rx="' + r + '" fill="#fff" stroke="#8a93a0" stroke-width="3"/>'
         + '<g transform="translate(' + (L.shift || 0) + ',0)" fill="#000" font-family="' + SANS + '">';
       L.els.forEach(function (e) {
         if (e.t === 'qr') {
@@ -860,6 +965,90 @@
         }
       });
       return s + '</g></svg>';
+    }
+
+    var ED_SAMPLE = { name: 'Ford F-150 2015-2020 5-Button Smart Key', sku: 'FORD-R8134', sellPriceCents: 16500, fitment: '2015-2020 Ford F-150', fccId: 'M3N-A2C31243300', chip: 'Hitag Pro (ID49)', category: 'Keys/Smart Key', grade: 'OEM' };
+    function edUnit() { return { id: 'u_sample', serial: 'K7Q2M9X', acquired_at: new Date().toISOString() }; }
+    function in100(dots, dpi) { return Math.round(dots / dpi * 100); }
+    // 8z117: older saved moves were offsets; pin each one to the place it has on the sample label (what the editor showed)
+    function anchorLegacy(sizeId) {
+      try { var la = layoutFor(ED_SAMPLE, edUnit(), sizeId || defSize()), tw = la.twKey && (prefs.labels.tweaks || {})[la.twKey], changed = false; if (!tw) return false;
+        Object.keys(tw).forEach(function (b) { var c = tw[b], q = la.blocks[b]; if (!c || c.ax != null || !q || q.hidden) return;
+          c.ax = in100(q.x, la.dpi); c.ay = in100(q.y, la.dpi); delete c.dx; delete c.dy; changed = true; });
+        if (changed) persist(); return changed; } catch (e) { return false; }
+    }
+    function openLayoutEditor(sizeId, onDone) {
+      var sp = sizeSpec(sizeId), sel = 'name', drag = null;
+      var SAMPLE = ED_SAMPLE;
+      var B = 'min-height:46px;min-width:46px;padding:8px 12px;border-radius:10px;border:1px solid var(--edge,#2a2f3a);background:var(--bg,#11141a);color:var(--ink,#f4f5f7);font-weight:700;font-size:15px;cursor:pointer';
+      var mo = modal('Move things around — ' + sp.label, ''
+        + '<div style="font-size:13px;color:var(--dim,#9aa3af)">Tap a part of the label and drag it to move it, or drag its round corner handle to make it bigger or smaller. The arrows and Smaller / Bigger do the same in small steps. It is saved on this device and used every time this size prints. Nothing can be moved off the label. A part you have moved stays at that exact spot for every key; the parts you leave alone still arrange themselves. This picture is a sample key.</div>'
+        + '<div id="leStage" style="position:relative;margin:12px auto 10px;touch-action:none;user-select:none;-webkit-user-select:none"></div>'
+        + '<div id="leChips" style="display:flex;flex-wrap:wrap;gap:8px"></div>'
+        + '<div id="leRead" style="font-size:13px;margin:10px 0 8px;min-height:18px"></div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">'
+        + '<button type="button" data-le="l" aria-label="Move left" style="' + B + '">←</button><button type="button" data-le="u" aria-label="Move up" style="' + B + '">↑</button><button type="button" data-le="d" aria-label="Move down" style="' + B + '">↓</button><button type="button" data-le="r" aria-label="Move right" style="' + B + '">→</button>'
+        + '<button type="button" data-le="minus" style="' + B + '">Smaller</button><button type="button" data-le="plus" style="' + B + '">Bigger</button>'
+        + '<button type="button" data-le="hide" id="leHide" style="' + B + '">Hide</button></div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" data-le="reset1" style="' + B + ';font-weight:600">Put this one back</button><button type="button" data-le="resetall" style="' + B + ';font-weight:600">Put everything back</button>'
+        + '<button type="button" data-le="done" style="' + B + ';flex:1;background:#c8323c;border-color:#c8323c;color:#fff">Done</button></div>', true);
+      var $ = function (id) { return mo.card.querySelector('#' + id); };
+      var SAMPLE_UNIT = edUnit();   // 8z114: so the Serial number box is there to move
+      function lay() { return layoutFor(SAMPLE, SAMPLE_UNIT, sizeId); }
+      function set() { var k = lay().twKey; prefs.labels.tweaks = prefs.labels.tweaks || {}; return prefs.labels.tweaks[k] || (prefs.labels.tweaks[k] = {}); }
+      // a block that is touched is pinned where it is now (8z117), then moved from there
+      function cur() { var t = set(), c = t[sel]; if (c && c.ax != null) return c; var la = lay(), q = la.blocks[sel], at = (q && !q.hidden) ? { ax: in100(q.x, la.dpi), ay: in100(q.y, la.dpi) } : { ax: 0, ay: 0 };
+        if (c) { c.ax = at.ax; c.ay = at.ay; delete c.dx; delete c.dy; return c; } return (t[sel] = { ax: at.ax, ay: at.ay, s: 1 }); }
+      function peek() { return (prefs.labels.tweaks || {})[lay().twKey] || {}; }   // read only: never creates an empty entry
+      function tidy() { var k = lay().twKey, t = (prefs.labels.tweaks || {})[k]; if (t && !Object.keys(t).length) delete prefs.labels.tweaks[k]; persist(); }
+      var scale = 1;
+      function render() {
+        var la = lay(); scale = Math.min((Math.min(window.innerWidth, 560) - 70) / la.PW, 380 / la.fullLL);
+        // what was asked for and what fits can differ at the label's edge — keep the saved number honest
+        var cb = la.blocks[sel]; if (cb && !cb.hidden && peek()[sel] && peek()[sel].ax != null) { var c0 = peek()[sel]; c0.ax = in100(cb.x, la.dpi); c0.ay = in100(cb.y, la.dpi); c0.s = Math.round(cb.s * 100) / 100; }
+        var st = $('leStage'); st.style.width = Math.round(la.PW * scale) + 'px'; st.style.height = Math.round(la.fullLL * scale) + 'px';
+        st.innerHTML = toSVG(la) + BLOCKS.map(function (b) { var q = la.blocks[b]; if (!q || q.hidden) return '';
+          return '<div data-blk="' + b + '" title="' + BLOCK_NAME[b] + '" style="position:absolute;left:' + Math.round(((la.shift || 0) + q.x) * scale - 3) + 'px;top:' + Math.round(q.y * scale - 3) + 'px;width:' + Math.round(q.w * scale + 6) + 'px;height:' + Math.max(14, Math.round(q.h * scale + 6)) + 'px;box-sizing:border-box;border-radius:5px;cursor:move;z-index:' + (b === sel ? 3 : 1) + ';border:2px ' + (b === sel ? 'solid #c8323c;background:rgba(200,50,60,.10)' : 'dashed rgba(47,111,237,.75)') + '">'
+            + (b === sel ? '<span data-handle="1" title="Drag to make it bigger or smaller" style="position:absolute;right:-13px;bottom:-13px;width:26px;height:26px;border-radius:50%;background:#c8323c;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);cursor:nwse-resize;touch-action:none"></span>' : '') + '</div>'; }).join('');
+        $('leChips').innerHTML = BLOCKS.filter(function (b) { return la.blocks[b]; }).map(function (b) { var hid = la.blocks[b].hidden;
+          return '<button type="button" data-chip="' + b + '" aria-pressed="' + (b === sel) + '" style="' + B + ';font-size:14px' + (b === sel ? ';background:#c8323c;border-color:#c8323c;color:#fff' : '') + (hid ? ';opacity:.6;text-decoration:line-through' : '') + '">' + BLOCK_NAME[b] + '</button>'; }).join('');
+        var q = la.blocks[sel], t = peek()[sel], parts = [];
+        if (q && q.hidden) parts.push('hidden — it will not print');
+        else if (t) { var sc = Number(t.s) || 1;
+          if (t.ax != null) parts.push('fixed ' + (Number(t.ax) / 100).toFixed(2) + ' in from the left, ' + ((Number(t.ay) || 0) / 100).toFixed(2) + ' in from the top'); if (sc !== 1) parts.push('size ' + Math.round(sc * 100) + '%'); }
+        $('leRead').innerHTML = '<b>' + BLOCK_NAME[sel] + '</b>: ' + (parts.length ? parts.join(' · ') : 'in its usual place');
+        $('leHide').textContent = (q && q.hidden) ? 'Show' : 'Hide';
+      }
+      function act(a) {
+        if (a === 'done') { tidy(); mo.close(); if (onDone) onDone(); return; }
+        if (a === 'resetall') { var k = lay().twKey; if (prefs.labels.tweaks) delete prefs.labels.tweaks[k]; persist(); render(); return; }
+        if (a === 'reset1') { delete set()[sel]; persist(); render(); return; }
+        var c = cur(), step = 2;
+        if (a === 'hide') c.hide = !c.hide;
+        else { c.hide = false;
+          if (a === 'l') c.ax = (Number(c.ax) || 0) - step; else if (a === 'r') c.ax = (Number(c.ax) || 0) + step;
+          else if (a === 'u') c.ay = (Number(c.ay) || 0) - step; else if (a === 'd') c.ay = (Number(c.ay) || 0) + step;
+          else if (a === 'plus') c.s = Math.min(2.5, Math.round(((Number(c.s) || 1) + 0.05) * 100) / 100); else if (a === 'minus') c.s = Math.max(0.5, Math.round(((Number(c.s) || 1) - 0.05) * 100) / 100); }
+        persist(); render();
+      }
+      mo.card.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-le],[data-chip]'); if (!b) return;
+        if (b.hasAttribute('data-chip')) { sel = b.getAttribute('data-chip'); render(); } else act(b.getAttribute('data-le')); });
+      // drag a block with a finger or the mouse
+      $('leStage').addEventListener('pointerdown', function (e) { var b = e.target.closest && e.target.closest('[data-blk]'); if (!b) return; e.preventDefault();
+        var onHandle = !!(e.target.closest && e.target.closest('[data-handle]'));
+        sel = b.getAttribute('data-blk'); var c = cur(), bx = b.getBoundingClientRect();
+        drag = { x: e.clientX, y: e.clientY, ax: Number(c.ax) || 0, ay: Number(c.ay) || 0, dpi: lay().dpi, size: onHandle, s: Number(c.s) || 1, w: Math.max(12, bx.width), h: Math.max(12, bx.height) }; render(); });
+      function move(e) { if (!drag) return; var c = cur(); c.hide = false;
+        if (drag.size) {   // 8z114: pulling the corner makes the part bigger or smaller (it keeps its shape)
+          var ratio = Math.max((drag.w + (e.clientX - drag.x)) / drag.w, (drag.h + (e.clientY - drag.y)) / drag.h);
+          c.s = Math.max(0.5, Math.min(2.5, Math.round(drag.s * Math.max(0.2, ratio) * 100) / 100));
+        } else { c.ax = Math.round(drag.ax + (e.clientX - drag.x) / scale / drag.dpi * 100); c.ay = Math.round(drag.ay + (e.clientY - drag.y) / scale / drag.dpi * 100); }
+        render(); }
+      function up() { if (!drag) return; drag = null; persist(); if (!document.body.contains(mo.card)) { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); } }
+      window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+      var x0 = mo.card.querySelector('[data-x]'), oldX = x0.onclick; x0.onclick = function () { tidy(); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); oldX(); if (onDone) onDone(); };
+      ensureLogo().then(function () { anchorLegacy(sizeId); if (document.body.contains(mo.card)) render(); }); render();
+      return mo;
     }
 
     function defSize() { return prefs.labels.size; }
@@ -915,7 +1104,7 @@
 
     function printPart(part, opt) {
       if (!prefs.labels.enabled) return Promise.reject(new Error('Label printing is disabled in Hardware settings.'));
-      return ensureLogo().then(function () { return sendZPL(buildZPL(part, opt)); });   // 8z103
+      return ensureLogo().then(function () { anchorLegacy((opt && opt.size) || defSize()); return sendZPL(buildZPL(part, opt)); });   // 8z103
     }
 
     function printUnit(unit, part, opt) {
@@ -924,7 +1113,7 @@
       return ensureLogo().then(function () { return sendZPL(buildUnitZPL(unit, part, opt)); });
     }
     // One label per unit, sent in order on one device connection; resolves with the count printed.
-    function printUnits(units, part, opt) { return ensureLogo().then(function () { return printUnits0(units, part, opt); }); }   // 8z103
+    function printUnits(units, part, opt) { return ensureLogo().then(function () { anchorLegacy((opt && opt.size) || defSize()); return printUnits0(units, part, opt); }); }   // 8z103
     function printUnits0(units, part, opt) {
       if (!prefs.labels.enabled) return Promise.reject(new Error('Label printing is disabled in Hardware settings.'));
       units = (units || []).filter(function (u) { return u && u.id; });
@@ -951,8 +1140,7 @@
       var L = prefs.labels, inStock = (o.inStock != null && isFinite(Number(o.inStock))) ? Math.max(0, Math.floor(Number(o.inStock))) : null;
       var ids = LABEL_SIZES.map(function (s) { return s.id; }).filter(function (id) { return (L.sizesOn || []).indexOf(id) >= 0; });
       if (!ids.length) ids = [L.size];
-      var last = ''; try { last = localStorage.getItem(LAST_SIZE_KEY) || ''; } catch (e) {}
-      var st = { count: 1, all: false, size: ids.indexOf(last) >= 0 ? last : (ids.indexOf(L.size) >= 0 ? L.size : ids[0]), mode: 'same', touched: false, units: [], busy: false };
+      var st = { count: 1, all: false, size: L.size, mode: 'same', touched: false, units: [], busy: false };   // 8z111: always the size set in Settings
       // 8z102: two kinds of label printer — the counter one (Zebra) and a Bluetooth NIIMBOT on this device
       var NB = window.TKS_NIIM || null, nbOn = !!(NB && prefs.niimbot && prefs.niimbot.enabled), zbOn = !!L.enabled;
       var lastPrn = ''; try { lastPrn = localStorage.getItem('tks_lbl_printer') || ''; } catch (e) {}
@@ -960,87 +1148,99 @@
       function nb() { return st.printer === 'niimbot' && NB; }
       var CH = 'min-height:44px;min-width:44px;padding:8px 14px;border-radius:22px;border:2px solid var(--edge,#2a2f3a);background:transparent;color:var(--ink,#f4f5f7);font:700 15px -apple-system,Segoe UI,Roboto,sans-serif;cursor:pointer';
       var mo = modal('Print labels', '<div style="font-size:14px;margin:-4px 0 6px;font-weight:600">' + esc(part.name || 'Part') + '</div>'
+        + '<div id="plKindWrap"><div style="font-size:13px;color:var(--dim,#9aa3af);margin:10px 0 4px">What to print</div><div id="plKind" style="display:flex;flex-wrap:wrap;gap:8px"></div><div id="plKindNote" style="font-size:12px;color:var(--dim,#9aa3af);margin-top:4px"></div></div>'
         + '<div id="plPrnWrap" style="display:none"><div style="font-size:13px;color:var(--dim,#9aa3af);margin:10px 0 4px">Printer</div><div id="plPrn" style="display:flex;flex-wrap:wrap;gap:8px"></div></div>'
         + '<div style="font-size:13px;color:var(--dim,#9aa3af);margin:10px 0 4px"><label for="plNum">How many labels?</label></div>'
         + '<div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap">'
         + '<input id="plNum" type="number" inputmode="numeric" min="1" max="200" value="1" style="width:110px;min-height:48px;box-sizing:border-box;background:var(--bg,#11141a);border:1px solid var(--edge,#2a2f3a);border-radius:9px;color:var(--ink,#f4f5f7);padding:6px 10px;font-size:20px;font-weight:800;text-align:center">'
         + '<div id="plChips" style="display:flex;flex:1;min-width:170px"></div></div>'   // 8z103: only "Print all" lives here now
-        + '<label id="plLogoWrap" style="display:none;align-items:center;gap:10px;min-height:44px;margin-top:10px;font-size:14px;cursor:pointer"><input type="checkbox" id="plLogo" style="width:22px;height:22px"> Shop logo across the top</label>'
-        + '<div id="plSizeWrap"><div style="font-size:13px;color:var(--dim,#9aa3af);margin:14px 0 4px">Label size</div><div id="plSizes" style="display:flex;flex-wrap:wrap;gap:8px"></div></div>'
-        + '<div id="plOrWrap" style="display:none"><div style="font-size:13px;color:var(--dim,#9aa3af);margin:14px 0 4px">Layout</div><div id="plOr" style="display:flex;flex-wrap:wrap;gap:8px"></div></div>'
         + '<div id="plModeWrap" style="display:none;margin-top:14px"></div>'
         + '<div id="plNote" style="font-size:12px;color:var(--dim,#9aa3af);margin-top:8px;min-height:16px"></div>'
         + '<div style="font-size:13px;color:var(--dim,#9aa3af);margin:12px 0 4px">What it will look like</div>'
         + '<div id="plSample" style="margin:0 auto"></div>'
+        + '<div id="plSet" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px;font-size:13px;color:var(--dim,#9aa3af)"><span id="plSetTxt"></span><button type="button" data-set="1" style="min-height:44px;padding:6px 10px;background:none;border:none;color:var(--ink,#f4f5f7);font:700 13px -apple-system,Segoe UI,Roboto,sans-serif;text-decoration:underline;cursor:pointer">Change label size or layout</button></div>'
         + '<div id="plErr" role="alert" style="font-size:13px;color:#ff8a8a;margin-top:10px;min-height:0"></div>'
         + '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button type="button" id="plCancel" style="' + CH + ';flex:1">Cancel</button>'
         + '<button type="button" id="plGo" style="min-height:44px;flex:2;padding:8px 14px;border-radius:22px;border:none;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font:800 15px -apple-system,Segoe UI,Roboto,sans-serif;cursor:pointer"></button></div>');
       var $ = function (id) { return mo.card.querySelector('#' + id); };
       function chip(active) { return CH + (active ? ';background:#c8323c;border-color:#c8323c;color:#fff' : ''); }
-      function ownList() { return st.units.slice(0, st.all ? st.units.length : Math.min(st.count, st.units.length)); }
+      // 8z109: "Key labels" or one "Bin label" (only when the item has a Bin / shelf). In bin mode there are no per-key labels.
+      var binName = String(part.location || '').trim(); st.kind = 'key';
+      function isBin() { return st.kind === 'bin'; }
+      function kopt(o2) { o2 = o2 || {}; if (isBin()) o2.kind = 'bin'; return o2; }
+      function setKind(k) { if (k === st.kind || (k === 'bin' && !binName)) return;
+        if (k === 'bin') { st._keep = { units: st.units, count: st.count, all: st.all, mode: st.mode }; st.units = []; st.count = 1; st.all = false; st.mode = 'same'; }
+        else if (st._keep) { st.units = st._keep.units; st.count = st._keep.count; st.all = st._keep.all; st.mode = st._keep.mode; st._keep = null; }
+        st.kind = k; }
+      st.pick = [];   // 8z126: the exact keys (unit ids) chosen by serial number; empty = the newest N
+      function ownList() { if (st.pick.length) return st.units.filter(function (u) { return st.pick.indexOf(String(u.id)) >= 0; });
+        return st.units.slice(0, st.all ? st.units.length : Math.min(st.count, st.units.length)); }
       function copies() { return st.all ? (inStock || 1) : st.count; }
       function willPrint() { return (st.mode === 'own' && st.units.length) ? ownList().length : copies(); }
       function render() {
         var h = '';
-        if (inStock && inStock > 0) h += '<button type="button" data-all="1" style="' + chip(st.all) + ';flex:1" aria-pressed="' + st.all + '">Print all (' + inStock + ' in stock)</button>';
+        if (inStock && inStock > 0 && !isBin()) h += '<button type="button" data-all="1" style="' + chip(st.all) + ';flex:1" aria-pressed="' + st.all + '">Print all (' + inStock + ' in stock)</button>';
+        $('plKind').innerHTML = '<button type="button" data-kind="key" style="' + chip(!isBin()) + '" aria-pressed="' + !isBin() + '">Key labels</button>'
+          + '<button type="button" data-kind="bin" style="' + chip(isBin()) + (binName ? '' : ';opacity:.5') + '" aria-pressed="' + isBin() + '"' + (binName ? '' : ' aria-disabled="true"') + '>Bin label' + (binName ? ' (' + esc(binName.length > 14 ? binName.slice(0, 13) + '…' : binName) + ')' : '') + '</button>';
+        $('plKindNote').textContent = binName ? (isBin() ? 'One label for the bin or drawer this key lives in.' : '') : 'To print a bin label, give this item a Bin / shelf first (Inventory → open the item → Bin / shelf).';
         $('plChips').innerHTML = h;
-        $('plNum').value = st.all ? (inStock || 1) : st.count;
+        $('plNum').value = (st.pick.length && st.mode === 'own') ? st.pick.length : (st.all ? (inStock || 1) : st.count);
         $('plPrnWrap').style.display = (nbOn && zbOn) ? '' : 'none';
         if (nbOn && zbOn) $('plPrn').innerHTML = '<button type="button" data-prn="zebra" style="' + chip(st.printer === 'zebra') + '" aria-pressed="' + (st.printer === 'zebra') + '">Counter printer</button>'
           + '<button type="button" data-prn="niimbot" style="' + chip(st.printer === 'niimbot') + '" aria-pressed="' + (st.printer === 'niimbot') + '">Bluetooth (Niimbot)</button>';
-        $('plSizeWrap').style.display = (!nb() && ids.length > 1) ? '' : 'none';
-        $('plSizes').innerHTML = ids.map(function (id) { var sp = sizeSpec(id);
-          return '<button type="button" data-sz="' + id + '" style="' + chip(st.size === id) + '" aria-pressed="' + (st.size === id) + '">' + esc(sp.label.replace(/ — /, ' ')) + '</button>'; }).join('');
         var mw = $('plModeWrap');
         if (st.units.length) {
           mw.style.display = '';
           var row = function (v, txt) { return '<label style="display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px;cursor:pointer"><input type="radio" name="plMode" value="' + v + '" style="width:22px;height:22px"' + (st.mode === v ? ' checked' : '') + '> ' + txt + '</label>'; };
-          mw.innerHTML = row('own', 'Each key’s own label (with its serial number)') + row('same', 'Same label × ' + copies());
+          var place = function (u) { var l = String(u.location || ''); return l === 'shop' ? 'shop' : (/^van:/.test(l) ? 'van' : ''); };
+          mw.innerHTML = row('own', 'Each key’s own label (with its serial number)') + row('same', 'Same label × ' + copies())
+            + (st.mode === 'own' ? ('<div style="font-size:13px;color:var(--dim,#9aa3af);margin:8px 0 4px">Reprint a certain key? Tap its serial number' + (st.pick.length ? ' · <button type="button" data-pickclear="1" style="background:none;border:none;color:var(--ink,#f4f5f7);text-decoration:underline;font-weight:700;font-size:13px;cursor:pointer;min-height:32px">clear</button>' : '') + '</div>'
+              + '<div id="plPick" style="display:flex;flex-wrap:wrap;gap:6px;max-height:150px;overflow:auto">' + st.units.map(function (u) { var on = st.pick.indexOf(String(u.id)) >= 0, pl = place(u);
+                  return '<button type="button" data-pick="' + esc(String(u.id)) + '" aria-pressed="' + on + '" style="min-height:44px;padding:6px 12px;border-radius:10px;border:2px solid ' + (on ? '#c8323c' : 'var(--edge,#2a2f3a)') + ';background:' + (on ? '#c8323c' : 'transparent') + ';color:' + (on ? '#fff' : 'var(--ink,#f4f5f7)') + ';font:700 14px ui-monospace,Consolas,monospace;cursor:pointer">' + esc(u.serial || String(u.id).slice(-6)) + (pl ? '<span style="font:600 11px -apple-system,Segoe UI,Roboto,sans-serif;opacity:.8"> · ' + pl + '</span>' : '') + '</button>'; }).join('') + '</div>') : '');
         } else mw.style.display = 'none';
         var note = '';
-        if (st.mode === 'own' && st.units.length) {
+        if (st.mode === 'own' && st.units.length && st.pick.length) note = 'Prints the label' + (st.pick.length === 1 ? '' : 's') + ' for the ' + (st.pick.length === 1 ? 'key' : st.pick.length + ' keys') + ' you tapped. No key is added — a label is only ever printed for a key that already exists.';
+        else if (st.mode === 'own' && st.units.length) {
           if (!st.all && st.count < st.units.length) note = 'Prints the first ' + st.count + ' keys (newest first).';
           else if (st.all && inStock && st.units.length < inStock) note = 'Only ' + st.units.length + ' of the ' + inStock + ' keys have their own serial number, so ' + st.units.length + ' labels will print.';
           else if (!st.all && st.count > st.units.length) note = 'Only ' + st.units.length + ' keys have their own serial number, so ' + st.units.length + ' labels will print.';
         }
         $('plNote').textContent = note;
-        var unit = (st.mode === 'own' && st.units.length) ? st.units[0] : null;
-        var sp = sizeSpec(st.size);
-        // 8z103: the logo tick shows when a logo is uploaded and this label is big enough to carry it
-        var canLogo = false; try { canLogo = !!logoReady() && (nb() ? NB.layout(part, unit, prefs.niimbot.size, { logo: false }).tier === 3 : layoutFor(part, unit, st.size, { logo: false }).tier === 3); } catch (er) {}
-        $('plLogoWrap').style.display = canLogo ? 'flex' : 'none'; $('plLogo').checked = prefs.labels.logo !== false;
-        var showOr = !nb() && canTurn(st.size), oNow = orientOf(st.size);   // 8z104
-        $('plOrWrap').style.display = showOr ? '' : 'none';
-        if (showOr) $('plOr').innerHTML = '<button type="button" data-or="h" style="' + chip(oNow === 'h') + '" aria-pressed="' + (oNow === 'h') + '">Horizontal</button><button type="button" data-or="v" style="' + chip(oNow === 'v') + '" aria-pressed="' + (oNow === 'v') + '">Vertical</button>';
+        var unit = (st.mode === 'own' && st.units.length) ? (ownList()[0] || st.units[0]) : null;
+        // 8z111: one line saying what Settings has (size · layout · text size); the choices themselves live in Settings
+        var spN = sizeSpec(st.size), bigN = false; try { bigN = !isBin() && layoutFor(part, unit, st.size, { logo: false }).tier === 3; } catch (er) {}
+        var tsNow = prefs.labels.textSize === 's' || prefs.labels.textSize === 'l' ? prefs.labels.textSize : 'm';
+        $('plSetTxt').textContent = nb() ? '' : ('Label: ' + spN.label.replace(/ — /, ' ') + (canTurn(st.size) ? ' · ' + (orientOf(st.size) === 'v' ? 'Vertical' : 'Horizontal') : '') + (bigN ? ' · ' + { s: 'Small', m: 'Medium', l: 'Large' }[tsNow] + ' text' : '') + '.');
         var n = willPrint();
         if (nb()) {   // 8z102: the Niimbot prints the roll size chosen in Settings
           var nsz = NB.size(prefs.niimbot.size), stt = NB.status(), can = NB.supported();
           $('plSample').style.width = Math.min(nsz.w * 4.2, 460) + 'px'; $('plSample').style.maxWidth = '100%'; $('plSample').innerHTML = '';
-          try { $('plSample').appendChild(NB.sampleCanvas(part, unit, nsz.id)); } catch (er) {}
+          try { $('plSample').appendChild(NB.sampleCanvas(part, unit, nsz.id, kopt())); } catch (er) {}
           $('plNote').textContent = (note ? note + ' ' : '') + 'Niimbot label: ' + nsz.label + ' (change it in Settings → Printers & scanner).' + (can ? (stt.connected ? ' Connected to ' + stt.name + '.' : '') : ' ' + NB.whyNot());
-          $('plGo').textContent = !can ? '🖼 Save the label as a picture' : (stt.connected ? '🖨 Print ' + n + ' label' + (n === 1 ? '' : 's') : '🔗 Connect the printer and print ' + n);
+          $('plGo').textContent = !can ? '🖼 Save the label as a picture' : (stt.connected ? '🖨 Print ' + n + (isBin() ? ' bin' : '') + ' label' + (n === 1 ? '' : 's') : '🔗 Connect the printer and print ' + n);
         } else {
-        var LS = layoutFor(part, unit, st.size);
+        var LS = layoutFor(part, unit, st.size, kopt());
         $('plSample').style.width = Math.min(LS.wIn * 90, 460) + 'px'; $('plSample').style.maxWidth = '100%';
         $('plSample').innerHTML = toSVG(LS);
-        $('plGo').textContent = '🖨 Print ' + n + ' label' + (n === 1 ? '' : 's');
+        $('plGo').textContent = '🖨 Print ' + n + (isBin() ? ' bin' : '') + ' label' + (n === 1 ? '' : 's');
         }
         $('plGo').disabled = st.busy; $('plGo').style.opacity = st.busy ? '.6' : '1';
       }
       mo.card.addEventListener('click', function (e) {
         var b = e.target.closest && e.target.closest('button'); if (!b || st.busy) return;
         if (b.hasAttribute('data-n')) { st.count = parseInt(b.getAttribute('data-n'), 10); st.all = false; if (!st.touched) st.mode = 'same'; render(); }
-        else if (b.hasAttribute('data-all')) { st.all = true; if (!st.touched) st.mode = st.units.length ? 'own' : 'same'; render(); }
-        else if (b.hasAttribute('data-sz')) { st.size = b.getAttribute('data-sz'); render(); }
-        else if (b.hasAttribute('data-or')) { prefs.labels.orient = prefs.labels.orient || {}; prefs.labels.orient[st.size] = b.getAttribute('data-or'); persist(); render(); }
+        else if (b.hasAttribute('data-all')) { st.all = true; st.pick = []; if (!st.touched) st.mode = st.units.length ? 'own' : 'same'; render(); }
+        else if (b.hasAttribute('data-pick')) { var pid = b.getAttribute('data-pick'), pi = st.pick.indexOf(pid); if (pi >= 0) st.pick.splice(pi, 1); else st.pick.push(pid); st.all = false; render(); }
+        else if (b.hasAttribute('data-pickclear')) { st.pick = []; render(); }
+        else if (b.hasAttribute('data-kind')) { setKind(b.getAttribute('data-kind')); render(); }
+        else if (b.hasAttribute('data-set')) { mo.close(); openSettings(); setTimeout(function () { var p = document.getElementById('hwLbPick'); if (p && p.scrollIntoView) p.scrollIntoView({ block: 'center' }); }, 350); }
         else if (b.hasAttribute('data-prn')) { st.printer = b.getAttribute('data-prn'); try { localStorage.setItem('tks_lbl_printer', st.printer); } catch (er) {} $('plErr').textContent = ''; render(); }
       });
       mo.card.addEventListener('change', function (e) {
         if (e.target.name === 'plMode') { st.mode = e.target.value; st.touched = true; render(); }
-        if (e.target.id === 'plLogo') { prefs.labels.logo = e.target.checked; persist(); render(); }
       });
       $('plNum').addEventListener('input', function () {
-        var v = parseInt(this.value, 10); if (!(v >= 1)) return; st.count = Math.min(200, v); st.all = false; if (!st.touched) st.mode = 'same';
+        var v = parseInt(this.value, 10); if (!(v >= 1)) return; st.count = Math.min(200, v); st.all = false; st.pick = []; if (!st.touched) st.mode = st.units.length ? 'own' : 'same';
         var keep = this.value; render(); this.value = keep;
       });
       $('plCancel').onclick = mo.close;
@@ -1050,14 +1250,14 @@
           var nN = willPrint(), nSize = prefs.niimbot.size, own = (st.mode === 'own' && st.units.length) ? ownList() : null;
           if (!NB.supported()) {   // iPhone / iPad: hand over the picture
             st.busy = true; render();
-            NB.savePicture(part, own ? own[0] : null, nSize).then(function (how) { st.busy = false; render(); if (how !== 'cancelled') toast('Label picture ' + (how === 'shared' ? 'shared' : 'saved') + '. Print it from the NIIMBOT app.'); },
+            NB.savePicture(part, own ? own[0] : null, nSize, kopt()).then(function (how) { st.busy = false; render(); if (how !== 'cancelled') toast('Label picture ' + (how === 'shared' ? 'shared' : 'saved') + '. Print it from the NIIMBOT app.'); },
               function (err) { st.busy = false; render(); $('plErr').textContent = (err && err.message) || 'Could not make the picture.'; });
             return;
           }
           if (nN > 50 && !window.confirm('Print ' + nN + ' labels?')) return;
           st.busy = true; render();
           var first = NB.status().connected ? Promise.resolve() : NB.connect();
-          first.then(function () { render(); return own ? NB.printUnits(own, part, nSize) : NB.printPart(part, copies(), nSize); })
+          first.then(function () { render(); return own ? NB.printUnits(own, part, nSize) : NB.printPart(part, copies(), nSize, kopt()); })
             .then(function (done) { toast((done || nN) + ' label' + ((done || nN) === 1 ? '' : 's') + ' printed.'); mo.close(); })
             .catch(function (err) { st.busy = false; render(); $('plErr').textContent = (err && err.message) || 'The printer did not answer.'; });
           return;
@@ -1066,25 +1266,25 @@
         var n = willPrint();
         if (n > 50 && !window.confirm('Print ' + n + ' labels?')) return;
         st.busy = true; render();
-        try { localStorage.setItem(LAST_SIZE_KEY, st.size); } catch (e) {}
-        var job = (st.mode === 'own' && st.units.length) ? printUnits(ownList(), part, { size: st.size }) : printPart(part, { size: st.size, copies: copies() });
-        job.then(function () { toast(n + ' label' + (n === 1 ? '' : 's') + ' sent to the printer.'); mo.close(); })
+        var job = (st.mode === 'own' && st.units.length) ? printUnits(ownList(), part, { size: st.size }) : printPart(part, kopt({ size: st.size, copies: copies() }));
+        job.then(function () { toast(n + (isBin() ? ' bin' : '') + ' label' + (n === 1 ? '' : 's') + ' sent to the printer.'); mo.close(); })
           .catch(function (err) { st.busy = false; render(); $('plErr').textContent = (err && err.message) || 'The label printer did not answer. Check that it is on and has labels.'; });
       };
       render();
-      ensureLogo().then(function () { if (document.body.contains(mo.card)) render(); });   // 8z103
+      ensureLogo().then(function () { anchorLegacy(st.size); if (document.body.contains(mo.card)) render(); });   // 8z103
       if (typeof o.fetchUnits === 'function') {
         Promise.resolve().then(function () { return o.fetchUnits(); }).then(function (u) {
           u = (Array.isArray(u) ? u : []).filter(function (x) { return x && x.id; });
           if (!u.length || !document.body.contains(mo.card)) return;
-          st.units = u; if (!st.touched) st.mode = st.all ? 'own' : 'same'; render();
+          if (isBin() && st._keep) { st._keep.units = u; return; }   // 8z109: looking at the bin label — keep the keys for when they switch back
+          st.units = u; if (!st.touched) st.mode = 'own'; render();   // 8z112: the serial is the point — own labels first
         }).catch(function () {});
       }
       return mo;
     }
 
     return { buildZPL: buildZPL, printPart: printPart, buildUnitZPL: buildUnitZPL, printUnit: printUnit, printUnits: printUnits, listDevices: listDevices, sendZPL: sendZPL, sdkReady: sdkReady,
-      SIZES: LABEL_SIZES, sizeSpec: sizeSpec, layoutFor: layoutFor, toSVG: toSVG, toZPL: toZPL, openPrintDialog: openPrintDialog, ensureLogo: ensureLogo, logoImage: logoReady, toCanvas: toCanvas, canTurn: canTurn, orientOf: orientOf };
+      SIZES: LABEL_SIZES, sizeSpec: sizeSpec, layoutFor: layoutFor, toSVG: toSVG, toZPL: toZPL, openPrintDialog: openPrintDialog, openLayoutEditor: openLayoutEditor, anchorLegacy: anchorLegacy, BLOCKS: BLOCKS, ensureLogo: ensureLogo, logoImage: logoReady, toCanvas: toCanvas, canTurn: canTurn, orientOf: orientOf };
   })();
 
   /* ========================================================================
@@ -1144,19 +1344,21 @@
   }
   function labelSizeCards(lb) {
     var chk = 'width:22px;height:22px;flex:none', row = 'display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;cursor:pointer';
-    return labels.SIZES.map(function (sz) {
+    var SHOWN = labels.SIZES.filter(function (z) { return !z.hidden; });
+    return '<select id="hwLbPick" aria-label="Label size to show" style="' + inputCss() + ';min-height:44px;margin-top:8px">' + SHOWN.map(function (sz) { return '<option value="' + sz.id + '"' + (lb.size === sz.id ? ' selected' : '') + '>' + esc(sz.label) + '</option>'; }).join('') + '</select>'
+    + SHOWN.map(function (sz) {
       var custom = sz.id === 'custom';
-      return '<div data-szcard="' + sz.id + '" style="border:1px solid var(--edge,#2a2f3a);border-radius:12px;padding:10px;margin-top:10px">'
+      return '<div data-szcard="' + sz.id + '" style="border:1px solid var(--edge,#2a2f3a);border-radius:12px;padding:10px;margin-top:10px' + (lb.size === sz.id ? '' : ';display:none') + '">'
         + '<div style="font-weight:800;font-size:15px">' + esc(sz.label) + '</div>'
         + '<div style="font-size:12px;color:var(--dim,#9aa3af)">' + esc(sz.hint) + '</div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:0 18px">'
-        + '<label style="' + row + '"><input type="checkbox" data-szon="' + sz.id + '" style="' + chk + '"' + (lb.sizesOn.indexOf(sz.id) >= 0 ? ' checked' : '') + '> We have this size</label>'
-        + '<label style="' + row + '"><input type="radio" name="hwLbSize" value="' + sz.id + '" style="' + chk + '"' + (lb.size === sz.id ? ' checked' : '') + '> Use by default</label></div>'
         + (canTurn(sz.id) ? '<div style="display:flex;flex-wrap:wrap;gap:0 18px"><label style="' + row + '"><input type="radio" name="hwLbOr_' + sz.id + '" value="h" style="' + chk + '"' + (orientOf(sz.id) === 'h' ? ' checked' : '') + '> Horizontal</label>'
-          + '<label style="' + row + '"><input type="radio" name="hwLbOr_' + sz.id + '" value="v" style="' + chk + '"' + (orientOf(sz.id) === 'v' ? ' checked' : '') + '> Vertical</label></div>' : '')
+          + '<label style="' + row + '"><input type="radio" name="hwLbOr_' + sz.id + '" value="v" style="' + chk + '"' + (orientOf(sz.id) === 'v' ? ' checked' : '') + '> Vertical</label></div>'
+          + '<label style="' + row + ';font-size:13px"><input type="checkbox" data-szroll="' + sz.id + '" style="' + chk + '"' + ((lb.rollTurn || {})[sz.id] ? ' checked' : '') + '> Labels print sideways? Tick this — my roll feeds the other way</label>' : '')
         + (custom ? '<div style="display:flex;gap:8px"><div style="flex:1">' + field('Width in', '<input id="hwLbW" type="number" step="0.05" min="0.75" max="8" value="' + (parseFloat(lb.customW) || 2.5) + '" style="' + inputCss() + ';min-height:44px">') + '</div>'
           + '<div style="flex:1">' + field('Height in', '<input id="hwLbH" type="number" step="0.05" min="0.5" max="8" value="' + (parseFloat(lb.customH) || 1.5) + '" style="' + inputCss() + ';min-height:44px">') + '</div></div>' : '')
-        + '<div data-szsample="' + sz.id + '" style="margin-top:8px"></div></div>';
+        + '<div data-szsample="' + sz.id + '" style="margin-top:8px"></div>'
+        + '<button type="button" data-szedit="' + sz.id + '" style="margin-top:10px;min-height:44px;padding:8px 14px;border-radius:10px;border:1px solid var(--edge,#2a2f3a);background:transparent;color:var(--ink,#f4f5f7);font-weight:700;font-size:14px;cursor:pointer">✥ Move things around</button>'
+        + '<div data-szmoved="' + sz.id + '" style="font-size:12px;color:var(--dim,#9aa3af);margin-top:4px"></div></div>';
     }).join('');
   }
 
@@ -1204,10 +1406,13 @@
       + (function () { var has = false; try { has = !!identity().logo; } catch (e) {}
           return '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px;min-height:44px' + (has ? '' : ';opacity:.6') + '"><input type="checkbox" id="hwLbLogo" style="width:22px;height:22px"' + (has && prefs.labels.logo !== false ? ' checked' : '') + (has ? '' : ' disabled') + '> Shop logo across the top of large labels</label>'
             + (has ? '' : '<div style="font-size:12px;color:var(--dim,#9aa3af);margin:-4px 0 4px 30px">Upload a logo in Settings → Business identity to use this.</div>'); })()
-      + '<div style="font-size:16px;font-weight:800;margin-top:10px">What size labels do you use?</div>'
-      + '<div style="font-size:12px;color:var(--dim,#9aa3af);margin-top:2px">Tick every size you have rolls for. Bigger labels show more about the key. The pictures below are drawn to scale.</div>'
+      + '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px;min-height:44px"><input type="checkbox" id="hwLbFits" style="width:22px;height:22px"' + (lb.fits !== false ? ' checked' : '') + '> Print what the key fits (first five vehicles)</label>'
+      + (function () { var cur = lb.textSize === 's' || lb.textSize === 'l' ? lb.textSize : 'm', one = function (v, t) { return '<label style="display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;cursor:pointer"><input type="radio" name="hwLbText" value="' + v + '" style="width:22px;height:22px"' + (cur === v ? ' checked' : '') + '> ' + t + '</label>'; };
+          return '<div style="font-size:13px;color:var(--dim,#9aa3af);margin:8px 0 0">Text size on large labels</div><div style="display:flex;flex-wrap:wrap;gap:0 18px">' + one('s', 'Small') + one('m', 'Medium') + one('l', 'Large') + '</div>'; })()
+      + '<div style="font-size:16px;font-weight:800;margin-top:10px">Label size in the printer</div>'
+      + '<div style="font-size:12px;color:var(--dim,#9aa3af);margin-top:2px">Pick the roll that is in the printer — every label prints at this size. Bigger labels show more about the key. The picture is drawn to scale.</div>'
       + labelSizeCards(lb)
-      + '<div style="font-size:12px;color:var(--dim,#9aa3af);margin-top:10px">The printer holds one roll at a time. When you change rolls, pick that size when you print — the printer re-measures the label by itself after you close the lid (or press Feed once).</div>'
+      + '<div style="font-size:12px;color:var(--dim,#9aa3af);margin-top:10px">The printer holds one roll at a time. When you change rolls, pick the new size here — the printer re-measures the label by itself after you close the lid (or press Feed once).</div>'
       + field('Send labels through', '<select id="hwLbMode" style="' + inputCss() + '"><option value="helper"' + ((lb.mode || 'helper') === 'helper' ? ' selected' : '') + '>Bittings Print Helper (this PC)</option><option value="browserprint"' + (lb.mode === 'browserprint' ? ' selected' : '') + '>Zebra Browser Print</option></select>')
       + field('Printer (Browser Print only)', '<select id="hwLbDev" style="' + inputCss() + '"><option value="">(OS default)</option></select>')
       + '<div style="display:flex;gap:8px">'
@@ -1218,6 +1423,7 @@
       + '<div style="flex:1">' + field('Left margin (dots)', '<input id="hwLbShift" type="number" min="0" max="200" value="' + (lb.shiftX != null ? lb.shiftX : 40) + '" style="' + inputCss() + '">') + '</div>'
       + '<div style="flex:1">' + field('Speed (ips)', '<input id="hwLbSpeed" type="number" min="2" max="6" value="' + lb.speed + '" style="' + inputCss() + '">') + '</div>'
       + '</div>'
+      + '<div style="font-size:13px;margin:10px 0 2px;padding:10px;border:1px solid var(--edge,#2a2f3a);border-radius:10px"><b>To print a label for one of your items:</b> open <b>Inventory</b>, find the item and tap the 🏷 button on its row. “Test label” below only prints a made-up sample.</div>'
       + '<div>' + btn('Refresh printers', 'hwLbScan') + btn('Preview ZPL', 'hwLbPrev') + btn('Test label', 'hwLbTest', 'go') + '</div>'
       + '</div>'
 
@@ -1262,16 +1468,18 @@
       prefs.thermal.autoPrint = $('hwThAuto').checked;
       prefs.labels.enabled = $('hwLbEn').checked;
       if ($('hwLbLogo') && !$('hwLbLogo').disabled) prefs.labels.logo = $('hwLbLogo').checked;   // 8z103
+      var tsr = mo.card.querySelector('input[name="hwLbText"]:checked'); if (tsr) prefs.labels.textSize = tsr.value;   // 8z106
+      prefs.labels.rollTurn = {}; mo.card.querySelectorAll('[data-szroll]').forEach(function (c) { if (c.checked) prefs.labels.rollTurn[c.getAttribute('data-szroll')] = true; });   // 8z108
+      if ($('hwLbFits')) prefs.labels.fits = $('hwLbFits').checked;
       prefs.labels.orient = prefs.labels.orient || {}; mo.card.querySelectorAll('input[name^="hwLbOr_"]:checked').forEach(function (r) { prefs.labels.orient[r.name.slice(7)] = r.value; });   // 8z104
       if ($('hwNbTurn')) { prefs.niimbot = prefs.niimbot || {}; prefs.niimbot.turned = $('hwNbTurn').checked; }
       prefs.labels.deviceUid = $('hwLbDev').value;
       prefs.labels.dpi = parseInt($('hwLbDpi').value, 10) || 203;
       prefs.labels.customW = Math.max(0.75, Math.min(8, parseFloat($('hwLbW').value) || 2.5));
       prefs.labels.customH = Math.max(0.5, Math.min(8, parseFloat($('hwLbH').value) || 1.5));
-      var on = [], dr = mo.card.querySelector('input[name="hwLbSize"]:checked');
-      mo.card.querySelectorAll('[data-szon]').forEach(function (c) { if (c.checked) on.push(c.getAttribute('data-szon')); });
-      prefs.labels.size = dr ? dr.value : prefs.labels.size;
-      if (on.indexOf(prefs.labels.size) < 0) on.push(prefs.labels.size);
+      var on = [], pkv = $('hwLbPick');   // 8z111: the list is the size in use
+      if (pkv && pkv.value) prefs.labels.size = pkv.value;
+      on.push(prefs.labels.size);
       prefs.labels.sizesOn = on; normLabelPrefs();
       mo.card.querySelectorAll('[data-szon]').forEach(function (c) { c.checked = prefs.labels.sizesOn.indexOf(c.getAttribute('data-szon')) >= 0; });
       prefs.labels.darkness = Math.max(0, Math.min(30, parseInt($('hwLbDark').value, 10) || 20));
@@ -1298,9 +1506,17 @@
         var sp = labels.sizeSpec(d.getAttribute('data-szsample'));
         var LS = labels.layoutFor(sampleKey(), null, sp.id); d.innerHTML = '<div style="width:' + Math.round(LS.wIn * 90) + 'px;max-width:100%">' + labels.toSVG(LS) + '</div>';
       });
+      mo.card.querySelectorAll('[data-szedit]').forEach(function (b) { var id = b.getAttribute('data-szedit');
+        b.onclick = function () { save(); labels.openLayoutEditor(id, function () { samples(); }); };
+        var note = mo.card.querySelector('[data-szmoved="' + id + '"]'), k = labels.layoutFor(sampleKey(), null, id).twKey, has = !!((prefs.labels.tweaks || {})[k] && Object.keys(prefs.labels.tweaks[k]).length);
+        if (note) note.textContent = has ? 'You have moved things on this label.' : ''; });
+      // one size on screen at a time; the list says which sizes are in use and which is the default
+      var pk = $('hwLbPick'); if (pk) {
+        mo.card.querySelectorAll('[data-szcard]').forEach(function (c) { c.style.display = c.getAttribute('data-szcard') === pk.value ? '' : 'none'; });
+      }
     }
     samples();
-    labels.ensureLogo().then(function (im) { if (im && document.body.contains(mo.card)) { samples(); try { nbSample(); } catch (e) {} } });   // 8z103: redraw the samples once the logo is ready
+    labels.ensureLogo().then(function (im) { var conv = false; try { labels.SIZES.forEach(function (z) { if (labels.anchorLegacy(z.id)) conv = true; }); } catch (e) {} if ((im || conv) && document.body.contains(mo.card)) { samples(); try { nbSample(); } catch (e) {} } });   // 8z103: redraw the samples once the logo is ready
 
     // 8z26: helper status + drawer
     function chk() { var st = $('hwHelpSt'); if (!st) return; st.textContent = '● checking…'; st.style.color = '#9aa3af';

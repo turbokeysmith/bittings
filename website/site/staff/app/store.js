@@ -106,7 +106,7 @@
         deleted_at: o.deletedAt || null, deleted_by: o.deletedBy || null }; }
     },
     inventory: {
-      table: 'inventory', readTable: 'inventory_safe', idStrategy: 'text', filter: null, serverOwned: ['qty'],   // 8z69: qty is never sent on an UPDATE (inserts still carry the opening count)   // read via cost-masking view (cost null for non-managers)
+      table: 'inventory', readTable: 'inventory_safe', idStrategy: 'text', filter: null, hideDeleted: true, serverOwned: ['qty'],   /* 8z116: a merged-away (soft-deleted) item must not show for managers, whose view returns deleted rows */   // 8z69: qty is never sent on an UPDATE (inserts still carry the opening count)   // read via cost-masking view (cost null for non-managers)
       fromRow: function (r) { return {
         id: r.id, name: r.name, sku: r.sku, category: r.category, qty: r.qty, lowAt: r.low_at,
         unit: r.unit, cost: r.cost, sellPriceCents: r.sell_price_cents, location: r.location, notes: r.notes,
@@ -1047,6 +1047,7 @@
       locations: Object.assign({}, d.locations, c.locations || {}),
       nastf: Object.assign({}, d.nastf, c.nastf || {}),
       autoPrice: Object.assign({}, d.autoPrice, c.autoPrice || {}),   // 8z87
+      estimates: Object.assign({}, c.estimates || {}),   // 8z124: { validDays, disclaimer, message }
       timeclock: Object.assign({}, d.timeclock, c.timeclock || {}),
       // warranty was missing from this whitelist, so Setup's warranty months/default were
       // silently dropped on every save/load and Config.warranty() always fell back to "off".
@@ -1193,6 +1194,15 @@
       locations: function () { return getConfig().locations; },
       nastf: function () { return getConfig().nastf || { d1Days: 5 }; },
       autoPrice: function () { return getConfig().autoPrice || { on: false }; },   // 8z87
+      /* 8z124: what an estimate says at its foot, and the message that goes out with it. {days} {shop} {phone} are filled in. */
+      estimateTerms: function () {
+        var c = getConfig().estimates || {}, id = getConfig().identity || {};
+        var days = parseInt(c.validDays, 10); if (!(days >= 0)) days = 7;
+        var rawD = (c.disclaimer != null && String(c.disclaimer).trim() !== '') ? String(c.disclaimer) : 'This estimate is good for {days} days. After that, or if the work turns out to be different once we see the vehicle or lock, the price may change.';
+        var rawM = (c.message != null && String(c.message).trim() !== '') ? String(c.message) : 'Thank you for requesting this estimate from {shop}. Please see the attached. If you have any questions, call us at {phone}.';
+        var fill = function (t) { return String(t).replace(/\{days\}/g, String(days)).replace(/\{shop\}/g, String(id.name || 'us')).replace(/\{phone\}/g, String(id.phone || 'the shop')); };
+        return { days: days, disclaimer: days > 0 ? fill(rawD) : '', message: fill(rawM), rawDisclaimer: rawD, rawMessage: rawM };
+      },
       d1Days: function () { var n = getConfig().nastf || {}; var d = parseInt(n.d1Days, 10); return (d >= 1) ? d : 5; },
       prefs: function () { return getConfig().prefs || {}; },
       quickLinks: function () { return getConfig().quickLinks; },

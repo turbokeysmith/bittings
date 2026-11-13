@@ -290,6 +290,16 @@
     if(/megamos.*48|id\s*48/.test(c)) return 'id48'; if(/megamos|id\s*13|pk3/.test(c)) return 'id13'; if(/\b4c\b/.test(c)) return '4c'; if(/n\s*chip/.test(c)) return 'nchip';
     return c.replace(/[^a-z0-9]/g,''); }
   function isKeyItem(p){ return /^keys\//i.test(String(p.category||'')); }
+  var UNIVERSAL_LABEL='Universal — works as a temporary / spare on most vehicles';
+  var UNIVERSAL_HINT='No key in stock for this exact vehicle — a universal key can work as a temporary or spare.';
+  // Is this a Universal key? KEEP IN STEP with partGrade() in index.html (that file cannot be called from here): top category "Keys",
+  // then the stored grade wins (=== 'Universal'); with no stored grade, UNIV / UNIVERSAL / IKEY as a word in the SKU or name.
+  function isUniversalKey(p){
+    if(!p || !/^keys(\/|$)/i.test(String(p.category||'').trim())) return false;
+    var g=String(p.grade||'').trim(); if(g) return g==='Universal';
+    var toks=(String(p.sku||'')+' '+String(p.name||'')).toUpperCase().split(/[^A-Z0-9]+/);
+    return toks.indexOf('UNIV')>=0 || toks.indexOf('UNIVERSAL')>=0 || toks.indexOf('IKEY')>=0;
+  }
   // → { groups:[[label, items]], count, hidden, list (confirmed fits), maybe (make + year only — "might fit") }
   function keysFor(all, veh, ign){
     all=(all||[]).filter(function(p){ return p && !p.deletedAt; });
@@ -306,6 +316,7 @@
       if(sb==='Transponder'){ if(haveChip){ if(!chips[ck]) return; note='✓ same chip as this car\'s keys'; } else note='Fits '+mk+' — check the chip'; }
       else note='Fits '+mk;
       list.push(Object.assign({}, p, { _kfvNote:note })); seen[p.id]=1; });   // a copy — never tag the stock record itself
+    var confirmed=list.map(function(p){ return p.id; });   // before the push / keyed filter — a fitment match is never repeated in the universal group
     if(ign==='keyed'){ list=list.filter(function(p){ return keySub(p)!=='Smart Key'; }); hidden='smart keys hidden — turn-key ignition'; }
     if(ign==='push'){ list=list.filter(function(p){ return ['Remote Head / Flip','Transponder'].indexOf(keySub(p))<0; }); hidden='flip & transponder keys hidden — push-to-start'; }
     var groups=[]; KEY_GROUPS.concat([['__other','Other']]).forEach(function(g){ var items=list.filter(function(p){ var sb=keySub(p); return g[0]==='__other' ? !KEY_GROUPS.some(function(k){ return k[0]===sb; }) : sb===g[0]; }); if(items.length) groups.push([g[1], items]); });
@@ -320,7 +331,23 @@
       if(ign==='keyed') maybe=maybe.filter(function(p){ return keySub(p)!=='Smart Key'; });
       if(ign==='push') maybe=maybe.filter(function(p){ return ['Remote Head / Flip','Transponder'].indexOf(keySub(p))<0; });
     }catch(e){ maybe=[]; }
-    return { groups:groups, count:list.length, hidden:hidden, list:list, maybe:maybe };
+    // Universal keys (owner, 2026-11-13): a key marked Universal fits "almost every vehicle" as a temporary / spare, so it is offered
+    // on every vehicle — in its own group after the confirmed ones, before "might fit". Copies only, never the stock record.
+    var universal=[], universalHint='';
+    try{
+      var inList={}; confirmed.forEach(function(id){ inList[id]=1; });
+      var uni=all.filter(function(p){ return isUniversalKey(p) && !inList[p.id]; });
+      if(ign==='push') uni=uni.filter(function(p){ return keySub(p)==='Smart Key'; });
+      if(ign==='keyed') uni=uni.filter(function(p){ return keySub(p)!=='Smart Key'; });
+      var ord=uni.map(function(p,i){ return { p:p, i:i, s:(parseInt(p.qty,10)||0)>0?0:1 }; }).sort(function(a,b){ return a.s-b.s || a.i-b.i; });
+      universal=ord.map(function(o){ return Object.assign({}, o.p, { _kfvNote:'Universal — check it covers this vehicle before promising it' }); });
+      if(universal.length){
+        groups.push([UNIVERSAL_LABEL, universal]);
+        var uid={}; universal.forEach(function(p){ uid[p.id]=1; }); maybe=maybe.filter(function(p){ return !uid[p.id]; });   // never listed twice
+        if(!list.length) universalHint=UNIVERSAL_HINT;
+      }
+    }catch(e){ universal=[]; universalHint=''; }
+    return { groups:groups, count:list.length, hidden:hidden, list:list, maybe:maybe, universal:universal, universalHint:universalHint };
   }
   // What the shop's vehicle reference (Lishi & Keys) says about this vehicle: keyway, transponder system, how it is programmed.
   // Rows that name the model win over make-only rows; null when nothing is on file.
@@ -341,7 +368,7 @@
   }
 
   var api={ parse:parse, parseQuery:parseQuery, itemFits:itemFits, filter:filter, label:label, summary:summary, canonMake:canonMake, vehLabel:vehLabel, MAKES:MAKES, _tokenize:tokenize,
-            keysFor:keysFor, keySub:keySub, chipFamily:chipFamily, KEY_GROUPS:KEY_GROUPS, vehicleFacts:vehicleFacts };
+            keysFor:keysFor, isUniversalKey:isUniversalKey, KEY_UNIVERSAL_LABEL:UNIVERSAL_LABEL, keySub:keySub, chipFamily:chipFamily, KEY_GROUPS:KEY_GROUPS, vehicleFacts:vehicleFacts };
   root.TKS_FIT=api;
   if(typeof module!=='undefined' && module.exports) module.exports=api;
 })(typeof window!=='undefined' ? window : globalThis);

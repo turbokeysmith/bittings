@@ -379,7 +379,7 @@
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px';
     ov.innerHTML = '<div style="background:var(--card,#fff);color:var(--ink,#14171b);width:100%;max-width:460px;border-radius:16px;padding:16px;max-height:90vh;overflow:auto">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:17px">' + title + '</b>' +
-      '<button class="tmX" style="background:none;border:none;font-size:24px;cursor:pointer;color:inherit;width:40px;height:40px">×</button></div>' +
+      '<button class="tmX" style="background:none;border:none;font-size:24px;cursor:pointer;color:inherit;width:44px;height:44px">×</button></div>' +
       '<div class="tmBody">' + bodyHtml + '</div></div>';
     document.body.appendChild(ov);
     function close(){ ov.remove(); }
@@ -536,6 +536,181 @@
   }
   var ROW = 'display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid rgba(128,128,128,.22);font-size:14px';
   var ACT = 'flex:1 1 140px;min-height:44px;padding:10px 12px;border-radius:10px;border:1px solid rgba(128,128,128,.4);background:transparent;color:inherit;font-weight:700;cursor:pointer;font-size:14px';
+  // =========================== SENDING KEYS (shop <-> vans) ====================
+  // A key sent to a van is NOT on the van until that van's technician scans it in (unit_accept); a move to the shop is immediate.
+  // The scan IS the acceptance. After scanning in, a small box asks where on the van the key was put (unit_set_bin).
+  var MOVE_ROLES = ['technician', 'manager', 'owner'];
+  function vanLabel(v){ return (v && (v.nickname || (v.fleet_no ? 'Van ' + v.fleet_no : ''))) || 'Van'; }
+  function placeList(vans){ return [{ loc: 'shop', label: '🏪 Shop', name: 'the shop' }].concat((vans || []).filter(function (v){ return v && v.id && String(v.status || 'active') !== 'retired'; })
+    .map(function (v){ return { loc: 'van:' + v.id, label: '🚐 ' + vanLabel(v), name: vanLabel(v) }; })); }
+  function placeWords(loc, vans){
+    if (!loc || loc === 'shop') return 'in the shop';
+    if (String(loc).indexOf('van:') === 0) { var v = (vans || []).filter(function (x){ return x.id === String(loc).slice(4); })[0]; return 'in ' + vanLabel(v); }
+    return 'at ' + loc; }
+  function moveErr(msg){ msg = String(msg || '');
+    if (/not in stock|not found/i.test(msg)) return 'That key isn’t in stock (it may be sold, lost or already handed over).';
+    if (/same.location|same_place/i.test(msg)) return 'It’s already there.';
+    return msg || 'Could not move it.'; }
+  function namesOf(a){ a = (a || []).filter(Boolean); return a.length ? a.join(' / ') : 'the van’s technician'; }
+  var pend = { mine: [], sent: [] };
+  // ONE rpc: keys waiting for me to scan in ("mine") and hand-overs I sent that are still waiting ("sent"; managers see them all)
+  async function pendingList(s){
+    try { var r = await s.rpc('unit_transfers_pending'); var d = r && !r.error && r.data;
+      pend = d ? { mine: d.mine || [], sent: d.sent || [] } : { mine: [], sent: [] }; } catch (e) { pend = { mine: [], sent: [] }; }
+    return pend; }
+  async function sendUnit(s, unit, loc){
+    var r; try { r = await s.rpc('unit_send', { p_unit: unit, p_to: loc }); } catch (e) { r = { error: e }; }
+    if (r.error) return { ok: false, error: moveErr(r.error.message) };
+    var d = r.data || {};
+    if (d.ok === false) return d.code === 'same_place' ? { ok: false, same: true, error: 'It’s already there.' } : { ok: false, error: moveErr(d.error) };
+    return { ok: true, pending: !!d.pending, d: d }; }
+  function recentBins(){ try { return (JSON.parse(localStorage.getItem('tks_bin_recent') || '[]') || []).slice(0, 5); } catch (e) { return []; } }
+  function rememberBin(b){ try { var a = recentBins().filter(function (x){ return x !== b; }); a.unshift(b); localStorage.setItem('tks_bin_recent', JSON.stringify(a.slice(0, 5))); } catch (e) {} }
+  // "Where on the van did you put it?" — free text (max 80), the last few answers on this device are tap-to-fill, Skip allowed.
+  function binBox(o){
+    var m = modal(E(o.title || 'Where is it?'),
+      (o.head ? '<div style="font-weight:700;margin-bottom:10px">' + E(o.head) + '</div>' : '') +
+      '<input id="bbIn" value="' + E(o.current || '') + '" maxlength="80" placeholder="e.g. wall 1 · row 4 · drawer 2 · section 3" autocomplete="off" style="' + INP + 'min-height:44px;margin:0 0 8px">' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">' + recentBins().map(function (b, i){ return '<button type="button" class="bbR" data-i="' + i + '" style="' + ACT + ';flex:0 1 auto">' + E(b) + '</button>'; }).join('') + '</div>' +
+      '<div style="display:flex;gap:8px"><button type="button" id="bbSave" style="' + ACT + ';border:none;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff">Save</button>' +
+      '<button type="button" id="bbSkip" style="' + ACT + '">Skip</button></div><div id="bbMsg" class="sub" style="margin-top:8px"></div>');
+    var inp = m.body.querySelector('#bbIn'), msg = m.body.querySelector('#bbMsg'), recent = recentBins();
+    m.body.querySelectorAll('.bbR').forEach(function (b){ b.onclick = function (){ inp.value = recent[+b.dataset.i]; try { inp.focus(); } catch (e) {} }; });
+    m.body.querySelector('#bbSkip').onclick = function (){ m.close(); if (o.after) o.after(null); };
+    async function save(){
+      var v = inp.value.trim(); if (!v) { m.close(); if (o.after) o.after(null); return; }
+      var btn = m.body.querySelector('#bbSave'); btn.disabled = true; msg.textContent = 'Saving…';
+      var r; try { r = await sb().rpc('unit_set_bin', { p_unit: o.unitId, p_bin: v }); } catch (e) { r = { error: e }; }
+      if (r.error || (r.data && r.data.ok === false)) { btn.disabled = false; msg.textContent = '⚠ ' + ((r.error && r.error.message) || (r.data && r.data.error) || 'Could not save'); return; }
+      rememberBin(v); m.close(); if (o.after) o.after(v); }
+    m.body.querySelector('#bbSave').onclick = save;
+    inp.addEventListener('keydown', function (e){ if (e.key === 'Enter') { e.preventDefault(); save(); } });
+    setTimeout(function (){ try { inp.focus(); } catch (e) {} }, 40);
+    return m; }
+  // the scan IS the acceptance
+  async function acceptUnit(row, after){
+    var s = sb(); if (!s) return false;
+    var r; try { r = await s.rpc('unit_accept', { p_unit: row.unit_id, p_bin: null }); } catch (e) { r = { error: e }; }
+    if (r.error || (r.data && r.data.ok === false)) { say((r.error && r.error.message) || (r.data && r.data.error) || 'Could not scan that key in.', 'Can’t scan that in'); return false; }
+    var d = r.data || {}, van = d.van_name || row.van_name || 'the van';
+    refreshWaiting(); afterChange(); try { if (window.TKS && TKS.refresh) TKS.refresh(); } catch (e) {}
+    binBox({ title: 'Where on the van did you put it?', head: '✓ ' + (row.item_name || 'Key') + ' · SN ' + (row.serial || '') + ' is now on ' + van, unitId: row.unit_id, current: '', after: after });
+    return true; }
+  // called by the scan handler (outside the Register and the batch sheet): true when the scan was a key waiting for THIS user
+  window.unitScanIn = async function (code){
+    var s = sb(); if (!s || demo()) return false;
+    var p = await pendingList(s), c = String(code || '').trim(), cu = c.toUpperCase();
+    var row = p.mine.filter(function (x){ return x.unit_id === c || String(x.serial || '').toUpperCase() === cu; })[0];
+    if (!row) return false;
+    await acceptUnit(row); return true; };
+
+  // ---- the "keys waiting" notice + list ----
+  function bannerEl(){
+    var el = document.getElementById('keyWaitBanner'); if (el) return el;
+    var anchor = document.getElementById('moveReqBanner') || document.getElementById('consolBanner'); if (!anchor || !anchor.parentNode) return null;
+    el = document.createElement('div'); el.id = 'keyWaitBanner'; el.className = 'consol-banner'; el.style.display = 'none';
+    anchor.parentNode.insertBefore(el, anchor.nextSibling); return el; }
+  async function refreshWaiting(){
+    var el = bannerEl(); if (!el) return;
+    var s = sb(); if (!s || demo()) { el.style.display = 'none'; return; }
+    var p = await pendingList(s), n = p.mine.length, k = p.sent.length;
+    if (!n && !k) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    el.innerHTML = '<button type="button" id="kwOpen" style="width:100%;min-height:44px;background:none;border:none;color:inherit;font:inherit;font-weight:700;text-align:left;cursor:pointer">' +
+      (n ? '🔑 ' + n + ' key' + (n === 1 ? '' : 's') + ' waiting — scan ' + (n === 1 ? 'it' : 'them') + ' in to your van' : '📤 ' + k + ' key' + (k === 1 ? '' : 's') + ' sent, not scanned in yet') + '</button>';
+    el.style.display = ''; el.querySelector('#kwOpen').onclick = function (){ window.openKeyWaiting(); }; }
+  window.refreshKeyWaiting = refreshWaiting;
+  window.openKeyWaiting = function (){
+    var s = sb(); if (!s || demo()) { say(demo() ? 'Keys waiting to be scanned in need the live app.' : 'Sign in to the cloud first.'); return; }
+    var cam = (window.TKS_CAM && TKS_CAM.available());
+    var m = modal('🔑 Keys on their way',
+      '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px"><input id="kwIn" placeholder="Type the key’s serial" autocomplete="off" autocapitalize="characters" spellcheck="false" style="' + INP + 'margin:0;flex:1;min-width:0;min-height:44px">' +
+      '<button type="button" id="kwGo" style="' + ACT + ';flex:0 0 auto;min-width:96px">Scan in</button></div>' +
+      (cam ? '<button type="button" id="kwCam" style="' + ACT + ';width:100%;margin-bottom:8px">📷 Scan with the camera</button>' : '') +
+      '<div id="kwMsg" role="status" class="sub" style="margin-bottom:8px"></div><div id="kwList"><div class="sub">Loading…</div></div>' +
+      '<button type="button" id="kwDone" style="' + ACT + ';width:100%;margin-top:10px">Close</button>');
+    var list = m.body.querySelector('#kwList'), msg = m.body.querySelector('#kwMsg'), cur = { mine: [], sent: [] };
+    var CRD = CARD + ';margin-bottom:8px';
+    async function render(){
+      cur = await pendingList(s);
+      var h = '';
+      if (cur.mine.length) h += '<div style="font-weight:800;margin:4px 0 6px">Waiting for you to scan in (' + cur.mine.length + ')</div>' + cur.mine.map(function (x, i){
+        return '<div style="' + CRD + '"><div style="font-weight:700">SN ' + E(x.serial || '') + ' · ' + E(x.item_name || x.sku || '') + '</div><div class="sub">' + (x.sent_by_name ? 'from ' + E(x.sent_by_name) + ' · ' : '') + E(hhmm(x.sent_at)) + ' · to ' + E(x.van_name || 'your van') + '</div>' +
+          '<button type="button" class="kwAcc" data-i="' + i + '" style="' + ACT + ';width:100%;margin-top:8px">✅ Scan it in</button></div>'; }).join('');
+      if (cur.sent.length) h += '<div style="font-weight:800;margin:10px 0 6px">Sent, not scanned in yet (' + cur.sent.length + ')</div>' + cur.sent.map(function (x, i){
+        return '<div style="' + CRD + '"><div style="font-weight:700">SN ' + E(x.serial || '') + ' · ' + E(x.item_name || x.sku || '') + '</div><div class="sub">to ' + E(x.van_name || 'a van') + ' · waiting for ' + E(namesOf(x.for_names)) + ' · sent ' + E(hhmm(x.sent_at)) + '</div>' +
+          '<button type="button" class="kwBack" data-i="' + i + '" style="' + ACT + ';width:100%;margin-top:8px">↩ Take it back</button></div>'; }).join('');
+      list.innerHTML = h || '<div class="sub">Nothing is waiting.</div>';
+      list.querySelectorAll('.kwAcc').forEach(function (b){ b.onclick = function (){ b.disabled = true; acceptUnit(cur.mine[+b.dataset.i], render).then(function (ok){ if (!ok) b.disabled = false; }); }; });
+      list.querySelectorAll('.kwBack').forEach(function (b){ b.onclick = async function (){ b.disabled = true;
+        var r = await s.rpc('unit_transfer_cancel', { p_unit: cur.sent[+b.dataset.i].unit_id });
+        if (r.error || (r.data && r.data.ok === false)) { msg.textContent = '⚠ ' + moveErr((r.error && r.error.message) || (r.data && r.data.error)); b.disabled = false; return; }
+        msg.textContent = '✓ Taken back — it stays where it was.'; afterChange(); render(); refreshWaiting(); }; });
+    }
+    async function scanIn(code){
+      code = String(code || '').trim(); if (!code) return;
+      var c = code.toUpperCase(), row = cur.mine.filter(function (x){ return x.unit_id === code || String(x.serial || '').toUpperCase() === c; })[0];
+      if (row) { await acceptUnit(row, render); return; }
+      var other = cur.sent.filter(function (x){ return x.unit_id === code || String(x.serial || '').toUpperCase() === c; })[0];
+      msg.textContent = other ? 'That key is waiting for ' + namesOf(other.for_names) + ' to scan it in, not you.' : 'That key isn’t waiting for you to scan in.'; }
+    var inp = m.body.querySelector('#kwIn');
+    m.body.querySelector('#kwGo').onclick = function (){ scanIn(inp.value); inp.value = ''; };
+    inp.addEventListener('keydown', function (e){ if (e.key === 'Enter') { e.preventDefault(); scanIn(inp.value); inp.value = ''; } });
+    var cb = m.body.querySelector('#kwCam'); if (cb) cb.onclick = function (){ TKS_CAM.scan({ title: '📷 Scan a key in', hint: 'Point the camera at the key label’s QR code.' }).then(scanIn).catch(function (e){ if (e && e.message !== 'cancelled') msg.textContent = e.message || String(e); }); };
+    m.body.querySelector('#kwDone').onclick = m.close;
+    render();
+    return m; };
+  // start-up, tab return: keep it cheap (one rpc each)
+  setTimeout(refreshWaiting, 3500); setTimeout(refreshWaiting, 9000);
+  document.addEventListener('visibilitychange', function (){ if (!document.hidden) refreshWaiting(); });
+
+  // =========================== MOVE KEYS BY SCANNING (batch) ===================
+  var mvOpen = null;
+  window.unitMoveOpen = function (){ return !!(mvOpen && document.body.contains(mvOpen.ov)); };
+  window.unitMoveFeed = function (code){ if (window.unitMoveOpen()) mvOpen.feed(code); };
+  window.openMoveKeys = async function (){
+    var s = sb();
+    if (demo() || !s) { say(demo() ? 'Moving keys by scanning needs the live app (the demo has no serialized units).' : 'Sign in to the cloud first.'); return; }
+    if (window.unitMoveOpen()) return;
+    if (MOVE_ROLES.indexOf(await role(s)) < 0) { say('Moving keys is for technicians, managers and the owner.'); return; }
+    var vans = []; try { vans = ((await s.from('vans').select('id,nickname,fleet_no,status')).data) || []; } catch (e) {}
+    var places = placeList(vans), dest = null, q = Promise.resolve();
+    var cam = (window.TKS_CAM && TKS_CAM.available());
+    var SEL = ';background:var(--ink,#14171b);color:var(--card,#fff);border-color:var(--ink,#14171b)';
+    var m = modal('🚐 Move keys by scanning',
+      '<div class="sub" style="margin-bottom:8px">Pick where the keys are going, then scan each key. A van’s keys are not on the van until its technician scans them in.</div>' +
+      '<div id="mvDest" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">' + places.map(function (p, i){ return '<button type="button" class="mvD" data-i="' + i + '" aria-pressed="false" style="' + ACT + ';flex:1 1 120px">' + E(p.label) + '</button>'; }).join('') + '</div>' +
+      '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px"><input id="mvIn" placeholder="Scan, or type a serial" autocomplete="off" autocapitalize="characters" spellcheck="false" style="' + INP + 'margin:0;flex:1;min-width:0;min-height:44px">' +
+      '<button type="button" id="mvGo" style="' + ACT + ';flex:0 0 auto;min-width:80px">Move</button></div>' +
+      (cam ? '<button type="button" id="mvCam" style="' + ACT + ';width:100%;margin-bottom:8px">📷 Scan with the camera</button>' : '') +
+      '<button type="button" id="mvDone" style="' + ACT + ';width:100%;margin-bottom:10px">Done</button>' +
+      '<div id="mvList" role="log" aria-live="polite"></div>');
+    var list = m.body.querySelector('#mvList'), inp = m.body.querySelector('#mvIn');
+    function add(kind, text){
+      var d = document.createElement('div'); var col = kind === 'ok' ? '#1c7d3e' : kind === 'bad' ? '#c8323c' : 'rgba(128,128,128,.7)';
+      d.style.cssText = 'padding:8px 10px;margin-bottom:6px;border-left:4px solid ' + col + ';background:rgba(128,128,128,.10);border-radius:6px;font-size:14px;word-break:break-word' + (kind === 'ok' ? ';font-weight:700' : '');
+      d.textContent = text; list.insertBefore(d, list.firstChild); }
+    m.body.querySelectorAll('.mvD').forEach(function (b){ b.onclick = function (){
+      dest = places[+b.dataset.i];
+      m.body.querySelectorAll('.mvD').forEach(function (x){ var on = x === b; x.setAttribute('aria-pressed', on ? 'true' : 'false'); x.style.cssText = ACT + ';flex:1 1 120px' + (on ? SEL : ''); });
+      try { inp.focus(); } catch (e) {} }; });
+    async function handle(code){
+      if (!dest) { add('bad', 'Pick where the keys are going first (Shop or a van).'); return; }
+      if (!looksLikeUnit(code)) { add('bad', '✗ ' + code + ' — that isn’t a key label'); return; }
+      var res; try { res = await window.unitLookup(code); } catch (e) { add('bad', '✗ ' + code + ' — ' + ((e && e.message) || e)); return; }
+      var u = res.unit, nm = (res.part && res.part.name) || u.item_id, sn = u.serial || u.id;
+      if (u.status !== 'in_stock') { add('bad', '✗ ' + sn + ' — ' + nm + ' is ' + String(ST_LABEL[u.status] || u.status).toLowerCase() + ', so it can’t be moved'); return; }
+      if (u.location === dest.loc) { add('same', '• ' + sn + ' — ' + nm + ' is already ' + placeWords(dest.loc, vans)); return; }
+      var r = await sendUnit(s, u.id, dest.loc);
+      if (!r.ok) { add(r.same ? 'same' : 'bad', r.same ? '• ' + sn + ' — ' + nm + ' is already ' + placeWords(dest.loc, vans) : '✗ ' + sn + ' — ' + r.error); return; }
+      add('ok', r.pending ? '✓ ' + sn + ' — ' + nm + ' → sent to ' + dest.name + ', waiting for ' + namesOf(r.d && r.d.for_names) + ' to scan in' : '✓ ' + sn + ' — ' + nm + ' → ' + dest.name); }
+    function feed(code){ code = String(code || '').trim(); if (!code) return; q = q.then(function (){ return handle(code); }).catch(function (e){ add('bad', '✗ ' + code + ' — ' + ((e && e.message) || e)); }); }
+    m.body.querySelector('#mvGo').onclick = function (){ feed(inp.value); inp.value = ''; };
+    inp.addEventListener('keydown', function (e){ if (e.key === 'Enter') { e.preventDefault(); feed(inp.value); inp.value = ''; } });
+    var cb = m.body.querySelector('#mvCam'); if (cb) cb.onclick = function (){ TKS_CAM.scan({ title: '📷 Scan a key', hint: 'Point the camera at the key label’s QR code.' }).then(feed).catch(function (e){ if (e && e.message !== 'cancelled') add('bad', (e && e.message) || String(e)); }); };
+    m.body.querySelector('#mvDone').onclick = function (){ m.close(); afterChange(); refreshWaiting(); try { if (window.TKS && TKS.refresh) TKS.refresh(); } catch (e) {} };
+    mvOpen = { ov: m.ov, feed: feed };
+    return m; };
+
   var upOpen = null;   // the panel that is open right now — a scan while it's open feeds it instead of stacking another
   window.openUnitPanel = function (code) {
     code = String(code || '').trim();
@@ -557,13 +732,17 @@
       return '<div style="font-weight:800;font-size:16px;line-height:1.3">' + E((part && part.name) || fallbackName || '(part)') + '</div>' +
         '<div class="sub" style="margin-top:2px">' + [part && part.sku, brand, grade].filter(Boolean).map(E).join(' · ') + '</div>';
     }
-    async function story(unit, part){
+    async function story(unit, part, flash){
       var s = sb();
       var vans = [], who = '', custName = '';
-      try { vans = ((await s.from('vans').select('id,nickname,fleet_no')).data) || []; } catch (e) {}
+      try { vans = ((await s.from('vans').select('id,nickname,fleet_no,status')).data) || []; } catch (e) {}
       if (unit.created_by) { try { var st = await s.from('staff').select('user_id,name').eq('user_id', unit.created_by).maybeSingle(); who = (st.data && st.data.name) || ''; } catch (e) {} }
       if (unit.sold_customer_id) { try { var c = (TKS.Customers.all() || []).find(function (x){ return x.id === unit.sold_customer_id; }); custName = (c && (c.customer || c.name)) || ''; } catch (e) {} }
-      if (!custName && unit.sold_receipt_id) { try { var rc = await s.from('receipts').select('data').eq('id', unit.sold_receipt_id).maybeSingle(); custName = (rc.data && rc.data.data && rc.data.data.customer) || ''; } catch (e) {} }
+      var vehTxt = '';   // 8z115: the vehicle the key went on (read from the receipt; read only)
+      if (unit.sold_receipt_id) { try { var rc = await s.from('receipts').select('data').eq('id', unit.sold_receipt_id).maybeSingle(); var rd = (rc.data && rc.data.data) || {};
+        if (!custName) custName = rd.customer || '';
+        vehTxt = [rd.vehYear, rd.vehMake, rd.vehModel].filter(Boolean).join(' ') || ((rd.vehicle && typeof rd.vehicle === 'object') ? [rd.vehicle.year, rd.vehicle.make, rd.vehicle.model].filter(Boolean).join(' ') : '');
+      } catch (e) {} }
       function locName(l){ if (l === 'shop') return '🏪 Shop'; if (String(l).indexOf('van:') === 0) { var v = vans.find(function (x){ return x.id === String(l).slice(4); }); return '🚐 ' + ((v && (v.nickname || ('Van ' + (v.fleet_no || '')))) || 'Van'); } return l || '—'; }
       var st = unit.status || 'in_stock';
       var pName = (part && part.name) || unit.item_id;
@@ -574,13 +753,40 @@
         ['Received', E(fmtDate(unit.acquired_at || unit.created_at) || '—') + (who ? ' · by ' + E(who) : '')],
         ['Unit cost', unit.unit_cost_cents != null ? money(unit.unit_cost_cents) : '<span class="sub">—</span>']
       ];
-      if (unit.sold_receipt_id || unit.sold_at) rows.push(['Sold', [fmtDate(unit.sold_at), unit.sold_receipt_id ? ('receipt ' + unit.sold_receipt_id) : '', custName].filter(Boolean).map(E).join(' · ') || '—']);
+      if (unit.sold_receipt_id || unit.sold_at) rows.push(['Sold', [fmtDate(unit.sold_at), unit.sold_receipt_id ? ('receipt ' + unit.sold_receipt_id) : ''].filter(Boolean).map(E).join(' · ') || '—']);
+      if (custName && (unit.sold_receipt_id || unit.sold_at)) rows.push(['Customer', E(custName)]);
+      if (vehTxt) rows.push(['Vehicle', E(vehTxt)]);
       if (unit.disposition) rows.push([st === 'warranty_out' ? 'Warranty' : 'Disposition', E(unit.disposition)]);
+      // Move: an in-stock key goes to the shop at once, or is SENT to a van (it stays put until that van's technician scans it in).
+      var moveHtml = '', dests = [], pendRow = null, pendKind = '', canMove = false, mgr = false, binTxt = '';
+      if (st === 'in_stock') {
+        var rl = await role(s); canMove = MOVE_ROLES.indexOf(rl) >= 0; mgr = isMgr(rl);
+        var tp = await pendingList(s);
+        pendRow = tp.mine.filter(function (x){ return x.unit_id === unit.id; })[0]; pendKind = pendRow ? 'mine' : '';
+        if (!pendRow) { pendRow = tp.sent.filter(function (x){ return x.unit_id === unit.id; })[0]; pendKind = pendRow ? 'sent' : ''; }
+        binTxt = unit.bin || (part && part.location) || '';
+        rows.push([String(unit.location).indexOf('van:') === 0 ? 'Bin on the van' : 'Bin', (binTxt ? E(binTxt) : '<span class="sub">— not set</span>') +
+          (canMove ? ' <button type="button" id="upBinChg" style="min-height:44px;padding:0 10px;border:none;background:transparent;color:inherit;text-decoration:underline;font-size:14px;cursor:pointer">Change</button>' : '')]);
+      }
+      if (st === 'in_stock' && canMove) {
+        var msgDiv = '<div id="upMoveMsg" role="status" style="margin-top:8px;font-weight:700;font-size:14px">' + (flash ? E(flash) : '') + '</div>';
+        if (pendRow) {
+          var pv = pendRow.van_name || 'the van';
+          moveHtml = '<div id="upMoveBox" style="margin-top:12px"><div style="font-weight:700;margin-bottom:6px">📦 On its way to ' + E(pv) + ' — waiting for ' + E(namesOf(pendRow.for_names)) + ' to scan it in</div>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+            ((pendKind === 'mine' || mgr) ? '<button type="button" class="upAcc" style="' + ACT + '">✅ Scan it in to ' + E(pv) + (pendKind === 'mine' ? '' : ' for them') + '</button>' : '') +
+            (pendKind === 'sent' ? '<button type="button" class="upBack" style="' + ACT + '">↩ Take it back</button>' : '') + '</div>' + msgDiv + '</div>';
+        } else {
+          dests = placeList(vans).filter(function (p){ return p.loc !== unit.location; });
+          moveHtml = '<div id="upMoveBox" style="margin-top:12px"><div style="font-weight:700;margin-bottom:6px">📍 Now ' + E(placeWords(unit.location, vans)) + ' — move it to</div>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap">' + (dests.length ? dests.map(function (p, i){ return '<button type="button" class="upDest" data-i="' + i + '" style="' + ACT + '">' + E(p.loc === 'shop' ? p.label : 'Send to ' + p.label) + '</button>'; }).join('') : '<span class="sub">No other place to move it to.</span>') + '</div>' + msgDiv + '</div>';
+        }
+      }
       out.innerHTML = '<div style="' + CARD + '">' + partHead(part, unit.item_id) +
         (unit.serial ? '<div style="margin:8px 0 2px;font:700 20px ui-monospace,Menlo,Consolas,monospace;letter-spacing:2px">SN ' + E(unit.serial) + '</div>' : '') +
         '<div class="sub" style="margin:2px 0 8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;word-break:break-all">' + E(unit.id) + '</div>' +
         rows.map(function (r){ return '<div style="' + ROW + '"><span class="sub" style="flex:0 0 auto">' + r[0] + '</span><span style="text-align:right">' + r[1] + '</span></div>'; }).join('') +
-        '</div>' +
+        '</div>' + moveHtml +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
           '<button type="button" id="upWarr" style="' + ACT + '">🛡️ Warranty replacement</button>' +
           '<button type="button" id="upFail" style="' + ACT + '">⚠️ Mark failed → return</button>' +
@@ -592,6 +798,28 @@
       out.querySelector('#upFail').onclick = function (){ m.close(); if (window.invFailed) invFailed(itemId, pName); };
       var mv = out.querySelector('#upMove'); if (mv) mv.onclick = function (){ m.close(); try { openStockPanel(part); } catch (e) {} };
       out.querySelector('#upClose').onclick = m.close;
+      async function reload(flashMsg){ var f = null; try { f = await window.unitLookup(unit.id); } catch (e) {} await story(f ? f.unit : unit, f ? f.part : part, flashMsg); }
+      function busy(on, txt){ out.querySelectorAll('#upMoveBox button').forEach(function (x){ x.disabled = on; }); var mg = out.querySelector('#upMoveMsg'); if (mg && txt != null) mg.textContent = txt; }
+      out.querySelectorAll('.upDest').forEach(function (b){ b.onclick = async function (){
+        var d = dests[+b.dataset.i]; busy(true, d.loc === 'shop' ? 'Moving…' : 'Sending…');
+        var r = await sendUnit(s, unit.id, d.loc);
+        if (!r.ok) { busy(false, '⚠ ' + r.error); return; }
+        afterChange(); refreshWaiting(); try { if (window.TKS && TKS.refresh) TKS.refresh(); } catch (e) {}
+        await reload(r.pending ? '✓ Sent — waiting for the technician to scan it in' : '✓ Moved to ' + d.label);
+      }; });
+      var bk = out.querySelector('.upBack'); if (bk) bk.onclick = async function (){
+        busy(true, 'Taking it back…');
+        var r = await s.rpc('unit_transfer_cancel', { p_unit: unit.id });
+        if (r.error || (r.data && r.data.ok === false)) { busy(false, '⚠ ' + moveErr((r.error && r.error.message) || (r.data && r.data.error))); return; }
+        refreshWaiting(); await reload('✓ Taken back — it stays where it was');
+      };
+      var ac = out.querySelector('.upAcc'); if (ac) ac.onclick = async function (){
+        busy(true, 'Scanning in…');
+        var ok = await acceptUnit({ unit_id: unit.id, serial: unit.serial, item_name: pName, van_name: pendRow && pendRow.van_name }, function (){ reload(''); });
+        if (!ok) busy(false, '');
+      };
+      var bc = out.querySelector('#upBinChg'); if (bc) bc.onclick = function (){
+        binBox({ title: 'Where is this key?', unitId: unit.id, current: unit.bin || '', after: function (b){ if (b != null) reload('✓ Bin saved'); } }); };
     }
     async function partUnits(part){
       // SKU typed/scanned → the part, plus (live app) its most recent units to pick from

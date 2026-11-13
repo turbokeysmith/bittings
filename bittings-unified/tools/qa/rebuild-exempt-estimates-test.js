@@ -56,7 +56,7 @@ function stubServer() {
       ev('pointerdown', 20, 60); ev('pointermove', 80, 30); ev('pointermove', 140, 90); ev('pointermove', 220, 50); ev('pointerup', 220, 50); });
     const fillLine = async (desc, amt) => { await pg.type('.qi-item .qiDesc', desc);
       await pg.evaluate((amt) => { const row = document.querySelector('.qi-item'); const a = row.querySelector('.qiAmt'); a.value = amt; a.dispatchEvent(new Event('input', { bubbles: true })); const c = row.querySelector('.qiCat'); c.value = 'Materials'; c.dispatchEvent(new Event('change', { bubbles: true }));   /* 8z96: only a part can be taxed */ const t = row.querySelector('.qiTax'); if (!t.checked) t.click(); }, amt); await sleep(400); };
-    const setCust = (name, phone, addr) => pg.evaluate((name, phone, addr) => { const s = (id, v) => { const x = document.querySelector(id); x.value = v; x.dispatchEvent(new Event('input', { bubbles: true })); x.dispatchEvent(new Event('change', { bubbles: true })); }; s('#qiName', name); s('#qiPhone', phone); s('#qiAddr', addr); }, name, phone, addr);
+    const setCust = (name, phone, addr) => pg.evaluate((name, phone, addr) => { const s = (id, v) => { const x = document.querySelector(id); x.value = v; x.dispatchEvent(new Event('input', { bubbles: true })); x.dispatchEvent(new Event('change', { bubbles: true })); }; s('#qiName', name); s('#qiPhone', phone); const p = addr.split(', '); s('#qiStreet', p[0] || ''); s('#qiCity', p[1] || ''); s('#qiState', p[2] || ''); }, name, phone, addr);   // address is now Street / City / State / ZIP boxes (was one #qiAddr)
 
     // ================= 1. Quick quote: tax exempt (resale) + In shop =================
     await openQuote();
@@ -141,22 +141,31 @@ function stubServer() {
     // ================= 4. The estimates list: see them all, search, edit, schedule =================
     await pg.evaluate(async () => { localStorage.setItem('__role', 'technician'); try { await TKS.clearDeviceCache(); } catch (e) {} });
     await pg.goto('http://127.0.0.1:8088/bittings.html?estimates=1', { waitUntil: 'domcontentloaded' }); await sleep(2800);
+    r = await pg.evaluate(() => ({ open: document.getElementById('histPanel').classList.contains('open'), builder: !!document.querySelector('.qi-box'),
+      card: (function () { const c = document.querySelector('#chat .res-home'); return c ? { title: c.querySelector('h2').innerText, btns: Array.from(c.querySelectorAll('button')).map(x => x.innerText) } : null; })() }));
+    // CHANGED (landing): the menu used to open the list straight away; it now lands on the "Quotes & estimates" card
+    // (New estimate + Estimates (n), no Receipts button) and the list is one tap on "Estimates (n)".
+    check('menu → lands on the Quotes & estimates card, NOT the list: "New estimate" + "Estimates (2)", no Receipts button, no builder', !r.open && !r.builder && r.card && r.card.title === 'Quotes & estimates' && r.card.btns.join('|') === '💬 New estimate|📋 Estimates (2)', r);
+    await pg.evaluate(() => document.getElementById('homeEst').click()); await sleep(400);
     r = await pg.evaluate(() => ({ open: document.getElementById('histPanel').classList.contains('open'), filter: (document.querySelector('.hist-filter button.active') || {}).innerText, builder: !!document.querySelector('.qi-box'),
       rows: Array.from(document.querySelectorAll('#histList .hist-item')).map(x => x.innerText.replace(/\s+/g, ' ')), acts: Array.from(document.querySelectorAll('#histList .hist-item')).map(x => Array.from(x.querySelectorAll('.hi-actions button')).filter(b => b.offsetParent && !b.classList.contains('tks-cap-hidden')).map(b => b.innerText).slice(0, 2).join('|')) }));
-    check('menu → Estimates opens the list of every estimate (no blank document in the way)', r.open && r.filter === 'Estimates' && !r.builder && r.rows.length === 2, r);
+    check('"Estimates (2)" opens the list of the open estimates', r.open && r.filter === 'Estimates' && !r.builder && r.rows.length === 2, r);
     check('each estimate leads with Schedule and Edit — for a technician too — and shows In shop / Tax exempt', r.acts.every(a => a === '📅 Schedule|✏️ Edit') && r.rows.some(x => /TEST Dealer Motors/.test(x) && /🏪 In shop · 🏛 Tax exempt/.test(x) && /405-555-0101/.test(x)), r);
     await pg.screenshot({ path: path.join(OUT, 'estimates-list.png') });
-    // ---- Quotes & estimates screen: one big "＋ New quote" button; Cancel comes back to this list ----
-    r = await pg.evaluate(() => { const b = document.getElementById('histNewQuoteBtn'), rc = b && b.getBoundingClientRect(); return { title: document.querySelector('#histPanel .pp-head b').innerText, txt: b && b.innerText, vis: !!(b && b.offsetParent), h: rc && Math.round(rc.height), w: rc && Math.round(rc.width), hint: /Quote a caller, then schedule it or bill it from here\./.test(document.getElementById('histNewQuote').innerText) }; });
-    check('Quotes & estimates screen shows a full-width "＋ New quote" button (48px+) with the hint', r.title === 'Quotes & estimates' && r.txt === '＋ New quote' && r.vis && r.h >= 48 && r.w >= 300 && r.hint, r);
-    await pg.screenshot({ path: path.join(OUT, 'quotes-screen-phone.png') });
-    await pg.evaluate(() => document.getElementById('histNewQuoteBtn').click()); await sleep(900);
-    r = await pg.evaluate(() => ({ title: (document.querySelector('#qiTitle') || {}).innerText, histOpen: document.getElementById('histPanel').classList.contains('open'), pay: !!document.querySelector('.qi-box #qiPay, .qi-box [data-pay]') }));
-    check('tapping "＋ New quote" opens the builder as an Estimate (Quick quote)', /Quick quote/.test(r.title || '') && !r.histOpen, r);
+    // ---- Quotes & estimates: no big "＋ New quote" in the list any more (the card has "New estimate"); Done and Cancel come back to the card ----
+    r = await pg.evaluate(() => ({ title: document.querySelector('#histPanel .pp-head b').innerText, oldBtn: !!document.getElementById('histNewQuoteBtn'), hint: /Quote a caller, then schedule it or bill it from here./.test(document.getElementById('histPanel').innerText) }));
+    check('CHANGED: the list has no "＋ New quote" button and no hint line any more', r.title === 'Quotes & estimates' && !r.oldBtn && !r.hint, r);
+    await pg.evaluate(() => document.querySelector('#histPanel .pp-head button').click()); await sleep(400);
+    r = await pg.evaluate(() => ({ open: document.getElementById('histPanel').classList.contains('open'), card: !!document.querySelector('#chat .res-home #homeNew') }));
+    check('CHANGED: Done in the list returns to the Quotes & estimates card', !r.open && r.card, r);
+    await pg.evaluate(() => document.getElementById('homeNew').click()); await sleep(900);
+    r = await pg.evaluate(() => ({ title: (document.querySelector('#qiTitle') || {}).innerText, histOpen: document.getElementById('histPanel').classList.contains('open'), type: (document.querySelector('.qiTB.on') || { dataset: {} }).dataset.t }));
+    check('CHANGED: tapping "New estimate" opens the builder as an Estimate (Quick quote)', /Quick quote/.test(r.title || '') && r.type === 'estimate' && !r.histOpen, r);
     await pg.screenshot({ path: path.join(OUT, 'quotes-new-phone.png') });
     await pg.evaluate(() => document.getElementById('qiCancel').click()); await sleep(600);
-    r = await pg.evaluate(() => ({ builder: !!document.querySelector('.qi-box'), open: document.getElementById('histPanel').classList.contains('open'), filter: (document.querySelector('.hist-filter button.active') || {}).innerText, btn: !!(document.getElementById('histNewQuoteBtn') || {}).offsetParent, rows: document.querySelectorAll('#histList .hist-item').length }));
-    check('Cancel on a new quote lands back on the Quotes & estimates list', !r.builder && r.open && r.filter === 'Estimates' && r.btn && r.rows === 2, r);
+    r = await pg.evaluate(() => ({ builder: !!document.querySelector('.qi-box'), open: document.getElementById('histPanel').classList.contains('open'), card: !!document.querySelector('#chat .res-home #homeNew') }));
+    check('CHANGED: Cancel on a new estimate lands back on the card (not the list)', !r.builder && !r.open && r.card, r);
+    await pg.evaluate(() => document.getElementById('homeEst').click()); await sleep(400);
     r = await pg.evaluate(() => { const s = document.getElementById('histSearch'); s.value = 'vet'; s.dispatchEvent(new Event('input', { bubbles: true })); const a = document.querySelectorAll('#histList .hist-item').length; s.value = '0101'; s.dispatchEvent(new Event('input', { bubbles: true })); const b2 = Array.from(document.querySelectorAll('#histList .hist-item')).map(x => x.querySelector('.hi-cust').innerText); s.value = 'zzzz'; s.dispatchEvent(new Event('input', { bubbles: true })); const c = document.getElementById('histList').innerText; s.value = ''; s.dispatchEvent(new Event('input', { bubbles: true })); return { a, b2, c }; });
     check('search finds an estimate by name or by phone digits', r.a === 1 && r.b2.join() === 'TEST Dealer Motors' && /Nothing matches/.test(r.c), r);
     await pg.evaluate(() => { const it = Array.from(document.querySelectorAll('#histList .hist-item')).find(x => /TEST Dealer Motors/.test(x.innerText)); it.querySelector('[data-act="edit"]').click(); }); await sleep(900);
@@ -165,6 +174,7 @@ function stubServer() {
     // owner schedules it
     await pg.evaluate(async () => { localStorage.setItem('__role', 'owner'); try { await TKS.clearDeviceCache(); } catch (e) {} });
     await pg.goto('http://127.0.0.1:8088/bittings.html?estimates=1', { waitUntil: 'domcontentloaded' }); await sleep(2800);
+    await pg.evaluate(() => document.getElementById('homeEst').click()); await sleep(400);   // the list is one tap from the card now
     await Promise.all([pg.waitForNavigation({ waitUntil: 'domcontentloaded' }), pg.evaluate(() => { const it = Array.from(document.querySelectorAll('#histList .hist-item')).find(x => /TEST Dealer Motors/.test(x.innerText)); it.querySelector('[data-act="sched"]').click(); })]);
     await pg.waitForFunction(() => window.TKS && TKS.adapter && TKS.adapter() === 'cloud', { timeout: 15000 }); await pg.waitForSelector('#sjSave', { timeout: 15000 }); await sleep(900);
     r = await pg.evaluate(() => ({ url: location.pathname, name: document.getElementById('sjName').value, where: (document.querySelector('#sjWhere button.on') || {}).innerText, addrHidden: getComputedStyle(document.getElementById('sjAddrWrap')).display === 'none',
@@ -178,8 +188,12 @@ function stubServer() {
     check('the saved job keeps In shop, the exemption (no tax in its total) and which estimate it came from', !!r.job && r.job.where === 'shop' && r.job.ex === '123456' && /^EST-/.test(r.job.from || '') && r.job.tax === 0 && r.job.total === 100, r.job);
     check('the job card says "In shop" and "Tax exempt"', /🏪 In shop — customer comes in/.test(r.card) && /🏛 Tax exempt/.test(r.card), r.card);
     await pg.goto('http://127.0.0.1:8088/bittings.html?estimates=1', { waitUntil: 'domcontentloaded' }); await sleep(2800);
-    r = await pg.evaluate(() => Array.from(document.querySelectorAll('#histList .hist-item')).map(x => x.innerText.replace(/\s+/g, ' ')).find(x => /TEST Dealer Motors/.test(x)) || '');
-    check('back in the list the estimate shows it is on the schedule', /📅 On the schedule \d{4}-\d\d-\d\d 14:00/.test(r) && /Schedule again/.test(r), r);
+    await pg.evaluate(() => document.getElementById('homeEst').click()); await sleep(400);   // the list is one tap from the card now
+    // CHANGED: a scheduled estimate is no longer in the list (it is not "open"); search still finds it, tagged "On the schedule"
+    r = await pg.evaluate(() => { const rows = () => Array.from(document.querySelectorAll('#histList .hist-item')).map(x => x.innerText.replace(/\s+/g, ' ')); const listed = rows().some(x => /TEST Dealer Motors/.test(x));
+      const s = document.getElementById('histSearch'); s.value = 'dealer'; s.dispatchEvent(new Event('input', { bubbles: true })); const found = rows().find(x => /TEST Dealer Motors/.test(x)) || ''; s.value = ''; s.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('#histPanel .pp-head button').click(); return { listed, found, btn: (document.getElementById('homeEst') || {}).innerText }; });
+    check('back in the list the scheduled estimate is gone (open ones only); search still finds it "On the schedule"; the card counts one fewer', !r.listed && /📅 On the schedule \d{4}-\d\d-\d\d 14:00/.test(r.found) && /Schedule again/.test(r.found) && r.btn === '📋 Estimates (1)', r);
 
     // ================= 5. Settings → Sales tax: the certificates on file =================
     await pg.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });

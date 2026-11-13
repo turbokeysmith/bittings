@@ -408,6 +408,79 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-11-13, last (8z115 – 8z118) — LIVE (64d9aa210085), NOT committed
+- **The owner switched "serial numbers for everything" ON himself at 17:43 UTC** (audit_log `serialize_all_on`: 529 items,
+  3,385 pieces, 3,385 units). He then hard-deleted two items (one held 998 pieces) — the shop total is 2,387 pieces now.
+- **Labels are WYSIWYG now (8z117):** a block that has been moved is ANCHORED — `tweaks[key][block] = { ax, ay (1/100 in from
+  the top-left), s, hide }` — so it prints at the same spot for every key (before, a one-line name pulled moved blocks up).
+  Older offset-style moves (`dx, dy`) are pinned once by `anchorLegacy(sizeId)` from the editor's sample label (runs after the
+  logo is ready: editor, print box, print, Settings). The picture of a turned label now includes the strip at its foot that
+  the printer cannot use (`L.fullLL = LL + rollShift`).
+- **Stock tiles are the filters (8z118):** "all" · "low / out" (`invStockView() === 'low'`) · missing cost · missing FCC ID.
+  The separate All / In stock / Out of stock control is gone; out of stock still sorts last in each group.
+- **Serial numbers on receipts / customers (8z115, helper-built, lead-reviewed):** SQL APPLIED — `units_for_receipt(text)`,
+  `units_for_customer(text, text[])`. `app/unit-links.js` (`TKS_UNITS`): "Serial numbers" box under a receipt in the viewer,
+  optional "SN: …" sub-line on PDF / paper copy (`r._serials`, never saved), "Keys sold to this customer" on the customer
+  screen, Customer + Vehicle rows in the unit story after a scan. Lead change: only 3 of 1,777 live receipts carry a
+  customer id, so the customer's keys are found through that customer's RECEIPTS (the ids the screen already matched by
+  name / phone), not through `sold_customer_id`.
+  KNOWN GAP: a sale marks the OLDEST in-stock unit of the item as sold (`order by acquired_at`), not the physical key whose
+  label was handed over. For exact traceability the sale must record the scanned serial — not built.
+- **Duplicate finder + merge (8z116, helper-built, lead-reviewed):** SQL APPLIED — `inventory.merged_into`,
+  `inventory_dupe_decisions`, `dupe_decisions()`, `dupe_decide()`, `inventory_merge(keep, drop)`. `app/inventory-dupes.js`
+  (`TKS_DUPES`), Inventory → "🧹 Find duplicates" (owner / manager). Trialled on live items in a rolled-back transaction:
+  plain merge 1+1 → 2, serial-numbered merge 5+8 → 13 with 13 units, shop total unchanged, technician refused. The dropped
+  item is soft-deleted with `merged_into`; receipts are not rewritten, so `warranty_replace` on an OLD sale of a merged-away
+  item will not find its unit. `app/store.js`: inventory now has `hideDeleted: true`.
+- Not verified on a real device: everything above (browser tests + database trials only).
+
+### 2026-11-13, late night (8z109 – 8z114 + estimate screen) — LIVE (8639c6a9daa7), NOT committed
+- **Print box is minimal (8z111):** what to print (Key labels / Bin label), how many (+ Print all), own-serial vs same label,
+  the picture, and one line "Label: Large 2 × 3 in · Vertical · Medium text. Change label size or layout" → opens Settings.
+  Size, layout, text size, logo and Fits are chosen ONLY in Settings → Printers & scanner. The size list there is simply the
+  roll in the printer (`#hwLbPick` = `prefs.labels.size`; no "we have this size" / "use by default" any more).
+- **Bin labels (8z109):** `layoutFor(..., { kind: 'bin' })` — the item's Bin / shelf (`part.location`) in big capitals, the key
+  name, SKU, QR, no price. Offered in the print box only when the item has a bin. Zebra and Niimbot.
+- **Serial numbers for everything (8z112):** SQL `supabase/phase8/8z112_serialize_everything.sql` (APPLIED, switch OFF until
+  the owner turns it on): `shops.serialize_all`, `serialize_all_status / _on / _off`, trigger
+  `trg_inventory_zz_serialize_new`. Settings → Inventory → "Serial numbers" → "Give everything a serial number". Trialled
+  against the shop's real stock in a rolled-back transaction: 529 items / 3,385 pieces → 3,385 units, every count unchanged.
+  The print box now defaults to "each key's own label" (serial printed) whenever the item has serial-numbered pieces.
+- **Label editor (8z114):** the Serial number is its own block (`unit`; it follows the QR code until moved itself) and the
+  selected box has a round corner handle — drag it to make that part bigger or smaller.
+- **Stock list (8z110 / 8z113):** out-of-stock items sort to the bottom of each group; tile "All · In stock · Out of stock (n)"
+  (`invStockView()`, localStorage `tks_inv_stock_view`).
+- **Estimate / document builder (helper-built, lead re-ran every suite):** address is Street / City / State / ZIP
+  (record keeps `address` string + `addr{}`; hidden `#qiAddr` still holds the string); "Push to start / Turn key / Not sure"
+  above each vehicle's key list (`vehIgnition`, `moreVehicles[i].ignition`, passed to `TKS_FIT.keysFor`), carried to the
+  Scheduler; `?estimates=1` lands on a card "Quotes & estimates" with "New estimate" + "Estimates (n)" (open ones only:
+  not billed, not scheduled; search still finds the rest). Test: `tools/qa/rebuild-quote-address-ignition-test.js` (8097).
+- **In progress (helpers):** serial numbers shown on receipts / customer / unit lookup (`app/unit-links.js`, SQL 8z115 not
+  applied); duplicate-item finder with merge (`app/inventory-dupes.js`, SQL 8z116 not applied — lead must trial the merge
+  against live data before applying).
+- **Asked, not built:** website auto-fill for a key from its supplier page (answer given: possible; AI page reader + confirm
+  step; real cost needs a logged-in browser button).
+
+### 2026-11-13, night (labels after the first real 2 × 3 prints: 8z106 – 8z108) — LIVE (3d958c46e4a2), NOT committed
+All in `app/hardware.js` (+ `tools/qa/rebuild-labels-test.js`). First prints on the shop's ZD420 with the new roll happened today.
+- **The shop's "2 × 3" roll feeds the 3-inch side ACROSS the printer** (609 dots wide, 406 long). There is ONE entry for it
+  now: id `large` ("Large — 2 × 3 in"). The 2-in-across variant (`tall`) is hidden; anything saved under it is moved back
+  to `large` in `normLabelPrefs`. Horizontal / Vertical always means how the label READS. A roll that feeds the other
+  way: tick "Labels print sideways? … my roll feeds the other way" in the size card (`prefs.labels.rollTurn[id]`,
+  applied in `sizeSpec`). (An interim build today had kept the wrong entry and flipped both layouts — owner caught it.)
+- **No lines under a blank "Fits:"** — just the word and room to write.
+- **Text size on big labels:** Small / Medium (default) / Large — `prefs.labels.textSize`; it is a SHARE of "as big as
+  fits" (`kShare` 0.15 / 0.5 / 1), so it follows the label size. In Settings (next to the logo tick) and in the print box.
+- **"Print what it fits"** tick (`prefs.labels.fits`, Settings + print box). A long list (stock stores one vehicle per
+  line, up to 30–40) prints the first five, then "… +N more" (`fitsText`).
+- **Settings shows one size at a time:** a list (`#hwLbPick`, ✓ = in use, "(default)") and that size's card + picture.
+- **Move things around (8z107):** every label is made of blocks — Logo, Name, QR code, Price, Details, SKU
+  (`blockOf`, `applyTweaks`). Settings → size → "✥ Move things around" (`openLayoutEditor`): tap or drag a block, arrows
+  (0.02 in a step), Smaller / Bigger (5 %), Hide, put back. Saved per size + layout on the device:
+  `prefs.labels.tweaks['<sizeId>:<h|v>'][block] = { dx, dy (1/100 in), s, hide }`; applied inside `layoutFor`, so the
+  sample, the print box and the Zebra code all follow; a block can never leave the label. Not applied to Niimbot labels yet.
+- Still to confirm on paper: Medium text on the real label, the turned (Vertical) picture's darkness, a moved block.
+
 ### 2026-11-13, late (one "Receipts & invoices" list · approve a shop computer from a phone · founder price = 12 months) — LIVE (ff60d6de7577)
 - **Menu cleanup step 3 — one receipts list.** There were three lists of the same documents; now:
   - the main app's list (`#view-receipts`, `app/receipts-view.js`) is "Receipts & invoices": tabs All / Receipts / Invoices /
