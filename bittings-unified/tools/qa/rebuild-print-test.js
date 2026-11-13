@@ -82,7 +82,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     const j1 = jobs[jobs.length - 1] || {}; const txt = (j1.lines || []).map(l => l.text).join('\n');
     check('with the printer helper it prints the receipt — even though "thermal" was never switched on in Hardware settings', r.enabled === false && jobs.length === 1 && (j1.lines || []).length > 10, { enabled: r.enabled, jobs: jobs.length });
     check('the paper receipt has the shop, number, customer, vehicle, items, EXEMPT tax, total, how it was paid and the exemption',
-      /TEST Shop/.test(txt) && /Receipt: TKS-TEST-0001/.test(txt) && /Customer: TEST Pat Customer/.test(txt) && /Vehicle: 2015 Ford F-150/.test(txt) && /VIN: 1FTEW1EG0FFA00001/.test(txt) && /Service: In shop/.test(txt) &&
+      /1 Test Shop Rd/.test(txt) && (j1.logo ? !/^TEST Shop$/m.test(txt) : /TEST Shop/.test(txt)) /* 8z97: no name under the logo */ && /Receipt: TKS-TEST-0001/.test(txt) && /Customer: TEST Pat Customer/.test(txt) && /Vehicle: 2015 Ford F-150/.test(txt) && /VIN: 1FTEW1EG0FFA00001/.test(txt) && /Service: In shop/.test(txt) &&
       /TEST Smart key\s+\$200\.00/.test(txt) && /TEST Programming\s+\$125\.00/.test(txt) && /Tax\s+EXEMPT/.test(txt) && /TOTAL\s+\$325\.00/.test(txt) && /Paid by\s+Card/.test(txt) && /Status\s+Paid in Full/.test(txt) &&
       /Tax exempt: 100% disabled veteran - EXM-55555 - TEST Pat Customer/.test(txt.replace(/\n/g, ' ')) && /Note: TEST note for the customer/.test(txt), txt);
     check('a card receipt does not open the cash drawer', j1.drawer === false, j1.drawer);

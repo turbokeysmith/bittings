@@ -408,6 +408,34 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-11-13, early (receipt name, deposit slip print, website videos) — LIVE, not committed yet
+- **8z97 receipt:** when the logo prints, the shop name line under it is left out (`tokens()` / `helperLines(r, logoPrinted)`
+  in `app/hardware.js`; the name is still printed when there is no logo). Owner request with a photo of the paper.
+- **8z98 Closeout → "🖨 Print deposit slip"** (`printDepositSlip` in index.html; `TKS_HW.thermal.printLines(lines)` new in
+  hardware.js — posts to the helper's `/receipt`, never opens the drawer). Slip: shop + address, DEPOSIT SLIP, date, count
+  by denomination, total / less float / CASH TO DEPOSIT (big), today's checks + cash-and-checks total, expected and
+  over/short, counted by, printed time, signature + bank lines. Checks come from the day's payments
+  (`lastCloseout.checkCents/checkCount`). Test: `tools/qa/rebuild-deposit-print-test.js`.
+- **Videos on getbittings.com** (`#watch`): "At the shop counter" (1:29) and "Mobile tech in the van" (1:14), 1920×1080
+  MP4 + poster + captions in `site/assets/video/`. Mock shop **Ironwood Lock & Key** (owner: "don't use my data").
+  How to remake them: `bittings-unified/tools/site-media/README.md`. Voice = Windows built-in "Mark"; the owner may want a
+  better voice (his own recording, or a paid voice service) — not decided.
+
+### 2026-11-13, early (getbittings.com feature pages + Google) — LIVE, not committed yet
+- Owner: each "What it does" box clickable with its own page, big PC / tablet / phone screenshots, large sample numbers
+  like the shop's own year, "always updating / more features coming", then index the site on Google.
+- `bittings-unified/site/`: 8 pages (`key-lookup`, `key-inventory`, `quotes-scheduling`, `register-payments` (PC + tablet
+  only — the register is not for phones), `nastf-d1`, `reports-pay`, `team-time-clock`, `phone-tablet-pc`), shared
+  `site.css`; index cards are links ("See it →"); new `#updates` section "Always getting better" (+ one line in Plans).
+- Pictures `site/assets/f-<slug>-<pc|tab|phone>.webp` = the real app on the stand-in cloud with made-up data ("Your Shop",
+  made-up staff/customers, ~$250k / ~1,300 payments for the year — sized like the owner's 2026 ~$234k / 1,273, not his
+  data). Made by a scratchpad Puppeteer script (stubs TKPay.dayTransactions, payroll_paid, commission_day_rows,
+  timesheet_rows, TKS.Fleet.staff; switches screens by clicking the menu — `show()` alone leaves Scheduler/Timesheets "Loading…").
+- SEO: `sitemap.xml` (9 URLs) + `robots.txt`; every page has a canonical; only legal.html is noindex.
+- **Google Search Console** (owner's Google account): URL-prefix property `https://getbittings.com/`, verified by the
+  `google-site-verification` meta tag in `site/index.html` (**do not remove it**); sitemap submitted (9 pages found);
+  indexing of the home page requested. Google decides when it appears (days to weeks).
+
 ### 2026-11-12, midnight (website moved to getbittings.com; app stays on bittings.app) — LIVE, not committed yet
 - Owner: "upload the site to getbittings.com and have the app run on bittings.app".
 - The marketing pages left the app: `bittings-unified/welcome.html` → **`bittings-unified/site/index.html`**, `legal.html` →

@@ -280,10 +280,11 @@
       var T = [];
       function line(data, align, bold, big) { T.push({ t: 'text', data: data, align: align || 'left', bold: !!bold, big: !!big }); }
 
-      if (opt.logo && prefs.thermal.printLogo && (id.logo)) T.push({ t: 'logo' });
+      var logoOn = !!(opt.logo && prefs.thermal.printLogo && (id.logo));
+      if (logoOn) T.push({ t: 'logo' });
 
-      // header
-      line(id.name || 'RECEIPT', 'center', true, true);
+      // header — 8z97: no shop name under the logo (the logo already shows it)
+      if (!(logoOn || opt.logoPrinted)) line(id.name || 'RECEIPT', 'center', true, true);
       // 8z26d: street on line 1, "City, ST ZIP" on line 2 (split before the city)
       if (id.address) { var ap = String(id.address).split(/\s*,\s*/).filter(Boolean);
         var cityLine = ap.length >= 3 ? ap.slice(-2).join(', ') : (ap.length === 2 && /\d{5}/.test(ap[1]) ? ap[1] : '');
@@ -451,9 +452,9 @@
     // 8z26: tokens → plain lines for the helper (it draws them through the Star driver)
     // 8z69: only a cash or check sale opens the drawer (it used to open on every print — card sales, reprints, previews)
     function wantsDrawer(r) { return /cash|check/i.test(String((r && r.payment) || '')); }
-    function helperLines(r) {
+    function helperLines(r, logoPrinted) {
       var w = prefs.thermal.width || 48, out = [], drawer = false;
-      tokens(r, { drawer: wantsDrawer(r), logo: false }).forEach(function (tk) {
+      tokens(r, { drawer: wantsDrawer(r), logo: false, logoPrinted: !!logoPrinted }).forEach(function (tk) {
         if (tk.t === 'text') out.push({ text: tk.align === 'left' ? tk.data : String(tk.data).trim(), align: tk.align, bold: tk.bold, big: tk.big });
         else if (tk.t === 'rule') out.push({ text: rule(w), align: 'left' });
         else if (tk.t === 'barcode') out.push({ text: '# ' + tk.data, align: 'center' });
@@ -494,8 +495,8 @@
     function printReceipt(r, opt) {
       opt = opt || {};
       if (!prefs.thermal.enabled && !opt.force) return Promise.reject(new Error('Thermal printing is disabled in Hardware settings.'));
-      if ((prefs.thermal.mode || 'helper') === 'helper' || opt.force) { var job = helperLines(r);
-        var send = function (logo) { var body = { lines: job.lines, cols: prefs.thermal.width || 48, drawer: job.drawer && prefs.thermal.drawerKick && !opt.noDrawer, copies: Math.max(1, prefs.thermal.copies || 1) };
+      if ((prefs.thermal.mode || 'helper') === 'helper' || opt.force) {
+        var send = function (logo) { var job = helperLines(r, !!logo); var body = { lines: job.lines, cols: prefs.thermal.width || 48, drawer: job.drawer && prefs.thermal.drawerKick && !opt.noDrawer, copies: Math.max(1, prefs.thermal.copies || 1) };
           if (logo) body.logo = logo; return helperCall('/receipt', body); };
         if (prefs.thermal.logo === false) return send('');
         return logoForHelper().then(send, function () { return send(''); }); }   // a logo problem never stops the receipt
@@ -509,8 +510,15 @@
     }
 
     function openDrawer() { return helperCall('/drawer', {}); }   // 8z26
+    /* 8z98: print any slip (the closeout deposit slip) on the receipt printer through the Print Helper.
+       lines = [{ text, align:'left'|'center'|'right', bold, big }] or {rule:true}. Never opens the drawer. */
+    function printLines(lines, opt) { opt = opt || {}; var w = prefs.thermal.width || 48;
+      var out = (lines || []).map(function (l) { return l && l.rule ? { text: rule(w), align: 'left' } : { text: String((l && l.text) || ''), align: (l && l.align) || 'left', bold: !!(l && l.bold), big: !!(l && l.big) }; });
+      return helperCall('/receipt', { lines: out, cols: w, drawer: false, copies: Math.max(1, opt.copies || 1) }); }
     return {
       printReceipt: printReceipt,
+      printLines: printLines,
+      cols: function () { return prefs.thermal.width || 48; },
       openDrawer: openDrawer,
       previewText: previewText,
       sdkReady: sdkReady,

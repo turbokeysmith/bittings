@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Key lookup — Bittings</title>
+<meta name="description" content="Look up a vehicle by VIN or year, make and model. See the keyway, chip system and how it programs, and which keys on your shelf fit.">
+<link rel="canonical" href="https://getbittings.com/key-lookup">
+<meta property="og:type" content="website"><meta property="og:url" content="https://getbittings.com/key-lookup"><meta property="og:title" content="Key lookup — Bittings"><meta property="og:description" content="Look up a vehicle by VIN or year, make and model. See the keyway, chip system and how it programs, and which keys on your shelf fit."><meta property="og:image" content="https://getbittings.com/icon-512.png">
+<meta name="theme-color" content="#191c22"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="./" aria-label="Bittings home"><span class="mark"></span><span>Bittings<i>.</i></span></a>
+  <nav class="links" aria-label="Sections"><a href="./#what">What it does</a><a href="./#screens">Screens</a><a href="./#plans">Plans</a><a href="./#faq">Questions</a><a href="./#contact">Contact</a></nav>
+  <div class="navr">
+    <button class="ghost" id="themeBtn" type="button">Light mode</button>
+    <a class="btn" href="https://bittings.app/signin">Log in</a>
+    <a class="btn red" href="./#contact">Request access</a>
+  </div>
+</div></header>
+
+<main>
+<div class="fhead"><div class="wrap">
+  <p class="eyebrow">01 · Lookup</p>
+  <h1>Key lookup<i>.</i></h1>
+  <p class="lede">Type a VIN or pick the year, make and model. You see what the key is and which ones on your shelf will do the job.</p>
+</div></div>
+
+<section class="show"><div class="wrap"><div class="showcase">
+  <figure class="pc"><div class="laptop"><div class="scr"><img src="assets/f-key-lookup-pc.webp" alt="Bittings on a PC: key lookup screen, shown with sample data" width="1440" height="900"></div><div class="base"></div></div><figcaption>On the PC at the counter</figcaption></figure>
+  <div class="pair">
+    <figure><div class="tablet"><img src="assets/f-key-lookup-tab.webp" alt="Bittings on a tablet: key lookup screen, shown with sample data" width="1024" height="768" loading="lazy"></div><figcaption>On a tablet</figcaption></figure>
+      <figure class="ph"><div class="dphone"><img src="assets/f-key-lookup-phone.webp" alt="Bittings on a phone: key lookup screen, shown with sample data" width="390" height="844" loading="lazy"></div><figcaption>On your phone</figcaption></figure>
+  </div>
+</div></div></section>
+
+<section><div class="wrap">
+  <h2>What you can do<span class="dot">.</span></h2>
+  <ul class="points">
+    <li><b>Type a VIN.</b>It is decoded to the year, make and model for you. Or pick year, make and model yourself.</li>
+    <li><b>See the key details.</b>Keyway, chip or transponder system, and how it programs, for example by OBD.</li>
+    <li><b>Know if it is OEM-only.</b>The result says whether the key is OEM-only or needs NASTF.</li>
+    <li><b>Keys from your own shelf.</b>It lists the keys you have that fit, with your price and how many are in stock.</li>
+    <li><b>Lishi and keyway reference.</b>Look up the pick and the keyway without leaving the screen.</li>
+    <li><b>Programmer and key-code links.</b>Jump to programmers and key-code tools. It works the same on your phone in the field.</li>
+  </ul>
+</div></section>
+
+<div class="strip"><div class="wrap"><b>Always getting better<span class="dot">.</span></b><p>Bittings is built and used every day in a working key shop. Updates arrive on their own, with nothing to install. Every plan gets new features as they are released.</p></div></div>
+
+<section class="band"><div class="wrap">
+  <h2>Want it in your shop?</h2>
+  <div class="cta"><a class="btn red big" href="./#contact">Request access</a><a class="btn big" href="./#plans">See the plans</a></div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>More of what it does<span class="dot">.</span></h2>
+  <div class="more">
+    <a href="key-inventory"><small>02 · Stock</small>Key inventory</a>
+    <a href="quotes-scheduling"><small>03 · Jobs</small>Quotes and scheduling</a>
+    <a href="register-payments"><small>04 · Money</small>Register and card payments</a>
+    <a href="nastf-d1"><small>05 · NASTF</small>NASTF D1 paperwork</a>
+    <a href="reports-pay"><small>06 · Numbers</small>Reports and pay</a>
+    <a href="team-time-clock"><small>07 · Team</small>Roles and time clock</a>
+    <a href="phone-tablet-pc"><small>08 · Anywhere</small>Phone, tablet or PC</a>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap"><span>© <span id="yr"></span> Bittings. Shop software for locksmiths.</span><span class="flinks"><a href="legal.html#terms">Terms of Service</a><a href="legal.html#cancellation">Cancellation &amp; refunds</a><a href="legal.html#privacy">Privacy</a><a href="mailto:support@bittings.app">support@bittings.app</a><a href="https://bittings.app/signin">Log in</a></span></div></footer>
+
+<script>
+(function(){
+  var root=document.documentElement, tb=document.getElementById('themeBtn');
+  function setTheme(t){ root.setAttribute('data-theme', t); tb.textContent = t==='dark' ? 'Light mode' : 'Dark mode'; try{ localStorage.setItem('bt_site_theme', t); }catch(e){} }
+  var saved=null; try{ saved=localStorage.getItem('bt_site_theme'); }catch(e){}
+  setTheme(saved==='light' ? 'light' : 'dark');
+  tb.onclick=function(){ setTheme(root.getAttribute('data-theme')==='dark' ? 'light' : 'dark'); };
+  document.getElementById('yr').textContent=new Date().getFullYear();
+})();
+</script>
+</body>
+</html>

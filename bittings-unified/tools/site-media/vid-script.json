@@ -1,0 +1,31 @@
+{
+  "voice": "Microsoft Mark",
+  "pc": {
+    "title": "At the shop counter",
+    "intro": "Here's one job in Bittings, from the first phone call to checkout, at the shop counter.",
+    "scenes": [
+      { "img": "pc-01-call", "cap": "A customer calls", "say": "A customer calls. She's lost the only key to her 2018 Ford F-150. Start a quick quote with her name and number.", "fx": 0.5, "fy": 0.35 },
+      { "img": "pc-02-keys", "cap": "Pick the vehicle — see the keys that fit", "say": "Pick the year, make and model. Bittings shows the keyway, the chip, how it programs, and the keys on your shelf that fit, with your price and how many you have.", "fx": 0.5, "fy": 0.3 },
+      { "img": "pc-03-quote", "cap": "Add the key and the programming", "say": "Add the key and the programming. The price is ready before she hangs up.", "fx": 0.5, "fy": 0.3 },
+      { "img": "pc-04-schedule", "cap": "Put it on the calendar", "say": "She'll come into the shop, so put the job on the calendar in one tap. Everyone on the team can see it.", "fx": 0.6, "fy": 0.35 },
+      { "img": "pc-05-register", "cap": "Ring it up at the register", "say": "When she arrives, ring it up at the register: the key, the programming, and a fob cover.", "fx": 0.55, "fy": 0.45 },
+      { "img": "pc-06-cash", "cap": "Cash? It shows the change", "say": "She pays cash. Enter what she hands you, and Bittings shows the change.", "fx": 0.5, "fy": 0.45 },
+      { "img": "pc-07-done", "cap": "Receipt prints, stock updates", "say": "The sale is recorded, the receipt prints on the counter printer, and the key comes out of stock.", "fx": 0.6, "fy": 0.45 },
+      { "img": "pc-08-reports", "cap": "Your month, already added up", "say": "At the end of the month, your sales, profit and pay are already added up, and the sales tax figures are ready.", "fx": 0.55, "fy": 0.3 }
+    ],
+    "outro": "Bittings. Shop software built for locksmiths, by locksmiths. Request access at get bittings dot com."
+  },
+  "phone": {
+    "title": "Mobile tech in the van",
+    "intro": "Here's one job in Bittings, from the first call to checkout, for a mobile tech on a phone.",
+    "scenes": [
+      { "img": "phone-01-day", "cap": "Your day, on your phone", "say": "Your day is on your phone. Next up, Riley Auto Sales needs a spare key for a 2019 Honda Civic." },
+      { "img": "phone-02-keys", "cap": "The keys that fit — on your van", "say": "Pick the vehicle, or type the VIN. The keys that fit come up with your price and how many are on the van." },
+      { "img": "phone-03b-total", "cap": "Key, programming, service call", "say": "Add the key, the programming and the service call. Sales tax is worked out for you, on the parts only." },
+      { "img": "phone-04-d1", "cap": "NASTF D1: nothing gets missed", "say": "It's a NASTF job, so Bittings asks for the color, the miles and the tag before the invoice can close." },
+      { "img": "phone-06-photos", "cap": "License and ownership photos", "say": "Take the license and proof of ownership photos right from the phone. They're filed with the invoice, ready for NASTF." },
+      { "img": "phone-07-paynow", "cap": "Get paid on the spot", "say": "Tap Pay Now to take the card or text a pay link, then share the receipt. Back at the shop, it's already in the books." }
+    ],
+    "outro": "Bittings. Shop software built for locksmiths, by locksmiths. Request access at get bittings dot com."
+  }
+}

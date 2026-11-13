@@ -2,6 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
+<meta name="google-site-verification" content="JagqU19G4uNitTcuMCfKXa43IlTCHRl_V4lkmg-d_9M"><!-- Google Search Console ownership (owner's Google account, 2026-11-12) — keep it -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bittings — shop software for locksmiths</title>
 <meta name="description" content="Key lookup, key inventory, jobs, register and card payments in one place. Runs in the browser on your phone, tablet or PC.">
@@ -63,6 +64,13 @@
   .card .k{font:600 12px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--redtext);margin-bottom:12px}
   .card h3{margin:0 0 8px;font-size:21px;font-weight:800;letter-spacing:-.01em}
   .card p{margin:0;color:var(--dim);font-size:16px}
+  a.card{display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
+  a.card:hover,a.card:focus-visible{border-color:var(--red);transform:translateY(-2px)}
+  a.card .more{margin-top:auto;padding-top:14px;font-weight:800;font-size:15px;color:var(--redtext)}
+  .ups{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  .ups h3{margin:0 0 6px;font-size:20px;font-weight:800}
+  .ups p{margin:0;color:var(--dim);font-size:16px}
+  .soon{color:var(--faint);margin:22px 0 0}
   /* devices: a PC, a tablet and a phone, each showing a real screen of the app */
   .devices{position:relative;max-width:1040px;margin:8px auto 0;padding:0 0 5% 5.5%}
   section{scroll-margin-top:70px}
@@ -76,6 +84,12 @@
   .where{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
   .where div{border-left:3px solid var(--red);padding:2px 0 2px 14px} .where b{display:block;font-size:19px} .where span{color:var(--dim);font-size:16px}
   @media (max-width:700px){ .where{grid-template-columns:1fr} .laptop .scr{border-width:5px;border-radius:8px 8px 0 0} .laptop .base{height:8px} .tablet{border-width:5px;border-radius:10px} .dphone{border-width:3px;border-radius:9px} }
+  /* videos: a job start to finish */
+  .vids{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .vid{margin:0;background:var(--card);border:1px solid var(--edge);border-radius:18px;overflow:hidden}
+  .vid video{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#0c0e12}
+  .vid figcaption{padding:14px 18px 16px} .vid figcaption b{display:block;font-size:19px} .vid figcaption span{color:var(--dim);font-size:15.5px}
+  @media (max-width:900px){ .vids{grid-template-columns:1fr} }
   /* plans */
   .plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;align-items:stretch}
   .plan{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--edge);border-radius:18px;padding:26px}
@@ -140,8 +154,8 @@
     <p class="already">Already use Bittings? <a href="https://bittings.app/signin">Log in</a></p>
   </div>
   <div class="phones" aria-label="Two screens of the app, shown with sample data">
-    <div class="phone"><img src="assets/shot-keys-dark.png" alt="Bittings on a phone: the keys in stock that fit a 2018 Ford F-150, with prices" width="390" height="640"></div>
-    <div class="phone low"><img src="assets/shot-home-light.png" alt="Bittings on a phone: today's jobs on the schedule" width="390" height="640" loading="lazy"></div>
+    <div class="phone"><img src="assets/f-key-lookup-phone.webp" alt="Bittings on a phone: the keys in stock that fit a 2018 Ford F-150, with prices" width="390" height="844"></div>
+    <div class="phone low"><img src="assets/f-quotes-scheduling-phone.webp" alt="Bittings on a phone: today's jobs on the schedule" width="390" height="844" loading="lazy"></div>
   </div>
 </div></div>
 
@@ -149,14 +163,14 @@
   <h2>What it does</h2>
   <p class="sub">Everything a key shop touches in a day, built around the vehicle in front of you.</p>
   <div class="grid">
-    <div class="card"><div class="k">01 · Lookup</div><h3>Key lookup</h3><p>Type a VIN or pick year, make and model. See the keyway, the chip system and how it programs — and which keys on your shelf fit, with your prices.</p></div>
-    <div class="card"><div class="k">02 · Stock</div><h3>Key inventory</h3><p>Counts for the shop and each van. Book in deliveries, count stock, see what is out, and get a reorder list grouped by supplier.</p></div>
-    <div class="card"><div class="k">03 · Jobs</div><h3>Quotes and scheduling</h3><p>Quote a caller in a minute, put it on the schedule in one tap, and bill it from the job. One job can cover several vehicles.</p></div>
-    <div class="card"><div class="k">04 · Money</div><h3>Register and card payments</h3><p>Ring up a counter sale, take a card on a reader, or text the customer a pay link. Receipts print, email or text.</p></div>
-    <div class="card"><div class="k">05 · NASTF</div><h3>D1 paperwork</h3><p>The D1 form asks for what it needs and will not close without it. Licence and ownership photos are filed with the receipt, with a countdown to the filing date.</p></div>
-    <div class="card"><div class="k">06 · Numbers</div><h3>Reports and pay</h3><p>Sales, real profit after parts and card fees, tax-exempt sales, hours, commission and what you owe contractors.</p></div>
-    <div class="card"><div class="k">07 · Team</div><h3>Roles and time clock</h3><p>Owner, manager, front desk and technician each see what they should. Technicians see prices, not your cost.</p></div>
-    <div class="card"><div class="k">08 · Anywhere</div><h3>Phone, tablet or PC</h3><p>Open it in the browser and sign in. Add it to your home screen and it behaves like an app. It keeps your work if the signal drops.</p></div>
+    <a class="card" href="key-lookup"><div class="k">01 · Lookup</div><h3>Key lookup</h3><p>Type a VIN or pick year, make and model. See the keyway, the chip system and how it programs — and which keys on your shelf fit, with your prices.</p><div class="more">See it →</div></a>
+    <a class="card" href="key-inventory"><div class="k">02 · Stock</div><h3>Key inventory</h3><p>Counts for the shop and each van. Book in deliveries, count stock, see what is out, and get a reorder list grouped by supplier.</p><div class="more">See it →</div></a>
+    <a class="card" href="quotes-scheduling"><div class="k">03 · Jobs</div><h3>Quotes and scheduling</h3><p>Quote a caller in a minute, put it on the schedule in one tap, and bill it from the job. One job can cover several vehicles.</p><div class="more">See it →</div></a>
+    <a class="card" href="register-payments"><div class="k">04 · Money</div><h3>Register and card payments</h3><p>Ring up a counter sale, take a card on a reader, or text the customer a pay link. Receipts print, email or text.</p><div class="more">See it →</div></a>
+    <a class="card" href="nastf-d1"><div class="k">05 · NASTF</div><h3>D1 paperwork</h3><p>The D1 form asks for what it needs and will not close without it. License and ownership photos are filed with the receipt, with a countdown to the filing date.</p><div class="more">See it →</div></a>
+    <a class="card" href="reports-pay"><div class="k">06 · Numbers</div><h3>Reports and pay</h3><p>Sales, real profit after parts and card fees, tax-exempt sales, hours, commission and what you owe contractors.</p><div class="more">See it →</div></a>
+    <a class="card" href="team-time-clock"><div class="k">07 · Team</div><h3>Roles and time clock</h3><p>Owner, manager, front desk and technician each see what they should. Technicians see prices, not your cost.</p><div class="more">See it →</div></a>
+    <a class="card" href="phone-tablet-pc"><div class="k">08 · Anywhere</div><h3>Phone, tablet or PC</h3><p>Open it in the browser and sign in. Add it to your home screen and it behaves like an app. It keeps your work if the signal drops.</p><div class="more">See it →</div></a>
   </div>
 </div></section>
 
@@ -164,15 +178,47 @@
   <h2>One login. Every screen<span class="dot">.</span></h2>
   <p class="sub">The same shop on the PC at the counter, the tablet in the van and the phone in your pocket. Ring a sale up on one and it is on the others.</p>
   <div class="devices" aria-label="Bittings on a PC, a tablet and a phone, shown with sample data">
-    <div class="laptop"><div class="scr"><img src="assets/shot-pc-inventory-dark.webp" alt="Bittings on a PC: key inventory with counts, low stock and stock value" width="1440" height="900" loading="lazy"></div><div class="base"></div></div>
-    <div class="tablet"><img src="assets/shot-tablet-register-light.webp" alt="Bittings on a tablet: the register with a smart key and programming on the ticket" width="1024" height="768" loading="lazy"></div>
-    <div class="dphone"><img src="assets/shot-keys-dark.png" alt="Bittings on a phone: keys that fit the vehicle" width="390" height="640" loading="lazy"></div>
+    <div class="laptop"><div class="scr"><img src="assets/f-key-inventory-pc.webp" alt="Bittings on a PC: key inventory with counts, low stock and stock value" width="1440" height="900" loading="lazy"></div><div class="base"></div></div>
+    <div class="tablet"><img src="assets/f-register-payments-tab.webp" alt="Bittings on a tablet: the register with a smart key and programming on the ticket" width="1024" height="768" loading="lazy"></div>
+    <div class="dphone"><img src="assets/f-key-lookup-phone.webp" alt="Bittings on a phone: keys that fit the vehicle" width="390" height="844" loading="lazy"></div>
   </div>
   <div class="where">
     <div><b>PC at the counter</b><span>Register, receipt printer, cash drawer and card reader.</span></div>
     <div><b>Tablet in the van</b><span>Quotes, van stock and the day's jobs on a bigger screen.</span></div>
     <div><b>Phone in your pocket</b><span>Look a key up, take a photo for the D1, send a pay link.</span></div>
   </div>
+</div></section>
+
+<section id="watch"><div class="wrap">
+  <h2>Watch a job, start to finish<span class="dot">.</span></h2>
+  <p class="sub">From the first phone call to the money in the drawer — once at the shop counter, once with a mobile tech on a phone. Sample shop, sample data.</p>
+  <div class="vids">
+    <figure class="vid">
+      <video controls playsinline preload="none" poster="assets/video/job-at-the-counter.jpg" width="1920" height="1080" aria-label="Video: a job at the shop counter, from the first call to checkout">
+        <source src="assets/video/job-at-the-counter.mp4" type="video/mp4">
+        <track kind="captions" src="assets/video/job-at-the-counter.vtt" srclang="en" label="English" default>
+      </video>
+      <figcaption><b>At the shop counter</b><span>Quote on the phone, schedule, ring up, cash and change, receipt. 1:29</span></figcaption>
+    </figure>
+    <figure class="vid">
+      <video controls playsinline preload="none" poster="assets/video/job-mobile-tech.jpg" width="1920" height="1080" aria-label="Video: a mobile tech's job on a phone, from the first call to checkout">
+        <source src="assets/video/job-mobile-tech.mp4" type="video/mp4">
+        <track kind="captions" src="assets/video/job-mobile-tech.vtt" srclang="en" label="English" default>
+      </video>
+      <figcaption><b>Mobile tech in the van</b><span>Keys that fit the van stock, invoice, NASTF D1 photos, pay on the spot. 1:14</span></figcaption>
+    </figure>
+  </div>
+</div></section>
+
+<section id="updates"><div class="wrap">
+  <h2>Always getting better<span class="dot">.</span></h2>
+  <p class="sub">Bittings is built and used every day in a working key shop. Updates arrive on their own — there is nothing to download or install.</p>
+  <div class="ups">
+    <div class="card"><h3>New features every month</h3><p>The software keeps growing.</p></div>
+    <div class="card"><h3>Your requests shape it</h3><p>Tell us what your shop needs and it goes on the list.</p></div>
+    <div class="card"><h3>Nothing to install</h3><p>Every phone, tablet and PC gets the update the next time it opens.</p></div>
+  </div>
+  <p class="soon">Coming next: online booking for your customers, more supplier price lists, and more.</p>
 </div></section>
 
 <section id="plans"><div class="wrap">
@@ -200,7 +246,7 @@
       <a class="btn" href="#contact" data-plan="Pro">Request access</a>
     </div>
   </div>
-  <p class="fine">Founder prices are for the first shops to join and stay in place while your plan stays active. Regular prices are $69, $129 and $199 a month. Nothing is charged from this page: request access and we will set you up. Extra users are $20 a month each. Card payments run through your own Stripe account at Stripe's rates; Starter adds 1% on card payments, Pro adds nothing. Prices are in US dollars.</p>
+  <p class="fine">Founder prices are for the first shops to join and stay in place while your plan stays active. Regular prices are $69, $129 and $199 a month. Nothing is charged from this page: request access and we will set you up. Extra users are $20 a month each. Card payments run through your own Stripe account at Stripe's rates; Starter adds 1% on card payments, Pro adds nothing. Prices are in US dollars. Every plan gets new features as they are released.</p>
 </div></section>
 
 <section id="faq"><div class="wrap">

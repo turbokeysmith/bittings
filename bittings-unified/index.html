@@ -4927,7 +4927,7 @@ async function renderHistory(){
     (byM.check?'<div class="chip"><b>'+money(byM.check)+'</b>check</div>':'')+(byM.other?'<div class="chip"><b>'+money(byM.other)+'</b>Cash App / Venmo / Zelle / mobile</div>':'')+'<div class="chip"><b>'+money(sur)+'</b>surcharge</div>'+
     '<div class="chip"><b>'+money(tax)+'</b>sales tax</div>'+
     (refunds?'<div class="chip low"><b>'+refunds+'</b>refunded · '+money(refundAmt)+'</div>':'');
-  setCloseoutAndDrawer(date, byM.cash);   // expected cash = today's recorded cash sales
+  setCloseoutAndDrawer(date, byM.cash); lastCloseout.checkCents=byM.check||0; lastCloseout.checkCount=rows.filter(t=>(t.status==='completed'||t.status==='partially_refunded') && payBucket(t.method)==='check').length;   // expected cash = today's recorded cash sales; 8z98: checks for the deposit slip
   if(!rows.length){ list.innerHTML='<div class="empty">No transactions on this day.</div>'; return; }
   list.innerHTML=rows.map(t=>{
     const time=new Date(t.created_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
@@ -5003,7 +5003,8 @@ function renderDrawer(){
       '<p class="dsub" style="margin:6px 2px 0">This is what the drawer opened with (you keep it for tomorrow). Edit it to change the starting float — managers only. The standard float lives in Settings → Payments.</p>'+
       '<div class="drawer-tot" id="drawerTotals"></div>'+
       '<div class="drawer-actions">'+
-        '<button class="primary" onclick="openDepositSlip()">⬇ View / Download PDF</button>'+
+        '<button class="primary" id="drawerPrintSlip" onclick="printDepositSlip(this)">🖨 Print deposit slip</button>'+   // 8z98
+        '<button onclick="openDepositSlip()">⬇ View / Download PDF</button>'+
         '<button onclick="shareDepositSlip()">📤 Share</button>'+
         '<button onclick="copyDepositSummary()">📋 Copy summary</button>'+
       '</div>'+
@@ -5061,6 +5062,42 @@ function depositSummaryText(d){
     (d.floatShort>0?('** Float shortfall: '+dMoney(d.floatShort)+' under the '+dMoney(d.float)+' starting float (add to restore) **\n'):'')+
     'Expected cash (cash sales): '+dMoney(d.expected)+'\n'+
     (d.overShort>0?'Over':d.overShort<0?'Short':'Balanced')+' vs expected: '+dMoney(d.overShort)+'\n';
+}
+/* 8z98 (owner: "on the closeout we need a print on receipt to submit it as a deposit"): the deposit slip on the Star receipt
+   printer — shop name, date, the drawer count, the cash to deposit (big), today's checks, and lines to sign. */
+function printDepositSlip(btn){
+  if(!ownerHard()){ uiAlert('Managers only.'); return; }
+  if(!(window.TKS_HW && TKS_HW.thermal && TKS_HW.thermal.printLines)){ uiAlert({ title:'Printer not ready', message:'The receipt printer code did not load. Tap Update app and try again.' }); return; }
+  const d=depositData(); const id=(window.TKS&&TKS.Config)?(TKS.Config.identity()||{}):{};
+  const w=(TKS_HW.thermal.cols&&TKS_HW.thermal.cols())||48, pair=(a,b)=>{ a=String(a); b=String(b); const gap=Math.max(1,w-a.length-b.length); return a+' '.repeat(gap)+b; };
+  const L=[], t=(text,align,bold,big)=>L.push({text:text,align:align||'left',bold:!!bold,big:!!big}), rule=()=>L.push({rule:true});
+  const dt=(function(){ try{ const p=String(d.date).split('-').map(Number); return new Date(p[0],p[1]-1,p[2]).toLocaleDateString([], {weekday:'short',month:'long',day:'numeric',year:'numeric'}); }catch(e){ return d.date; } })();
+  if(id.name) t(id.name,'center',true); if(id.address) t(String(id.address),'center');
+  t('DEPOSIT SLIP','center',true,true); t(dt,'center'); rule();
+  t('Cash counted','left',true);
+  if(d.lines.length) d.lines.forEach(l=>t(pair('  '+l.label+' x '+l.count, dMoney(l.amount))));
+  else t('  (no cash counted)');
+  rule();
+  t(pair('Total cash counted', dMoney(d.counted)));
+  t(pair('Less starting float', '-'+dMoney(d.float).replace('-','')));
+  t(pair('CASH TO DEPOSIT', dMoney(d.deposit)),'left',true,false);
+  t(dMoney(d.deposit),'center',true,true);
+  if(d.floatShort>0) t(pair('** Float short by', dMoney(d.floatShort)),'left',true);
+  const ck=lastCloseout.checkCents||0;
+  if(ck>0){ rule(); t(pair('Checks today ('+(lastCloseout.checkCount||0)+')', dMoney(ck)),'left',true); t(pair('CASH + CHECKS TO DEPOSIT', dMoney(d.deposit+ck)),'left',true); }
+  rule();
+  t(pair('Expected cash (cash sales)', dMoney(d.expected)));
+  t(pair((d.overShort>0?'Over':d.overShort<0?'Short':'Balanced')+' vs expected', dMoney(d.overShort)));
+  rule();
+  let who=''; try{ who=(TKS.auth && (TKS.auth.name&&TKS.auth.name()) ) || (TKS.auth && TKS.auth.email && TKS.auth.email()) || ''; }catch(e){}
+  t('Counted by: '+(who||'________________________'));
+  t('Printed: '+new Date().toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}));
+  t(''); t('Signature: _____________________________'); t(''); t('Bank: ______________  Deposited: ________');
+  finalizeCloseout(d);
+  if(btn){ btn.disabled=true; btn.dataset.t=btn.textContent; btn.textContent='Printing…'; }
+  Promise.resolve().then(()=>TKS_HW.thermal.printLines(L)).then(()=>{ try{ toast('Deposit slip sent to the receipt printer.'); }catch(e){} },
+    e=>uiAlert({ title:'Could not print', message:'The receipt printer did not answer ('+((e&&e.message)||e)+'). Check the Bittings Print Helper on this PC, or use View / Download PDF.' }))
+    .then(()=>{ if(btn){ btn.disabled=false; btn.textContent=btn.dataset.t||'🖨 Print deposit slip'; } });
 }
 function fallbackCopy(txt){
   try{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); uiAlert('Deposit summary copied.'); }
