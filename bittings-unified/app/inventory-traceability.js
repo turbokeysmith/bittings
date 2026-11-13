@@ -35,6 +35,7 @@
 
   // =========================== RECONCILE / CYCLE COUNT ======================
   var rc = { countId: null, loc: 'shop', role: '', count: null, staff: [], make: '', onlyMissing: false };
+  var rcFlushAll = null;   // 8z135: finishes every save still on its way; resolves with how many parts are NOT saved
   function staffName(id){ var p = (rc.staff || []).filter(function (x){ return x.user_id === id; })[0]; return p ? (p.name || p.role) : 'someone'; }
   function hhmm(t){ try { return new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; } }
   function locName(loc){ var l = document.getElementById('rcLoc'); if (l) { for (var i = 0; i < l.options.length; i++) if (l.options[i].value === loc) return l.options[i].textContent; } return loc === 'shop' ? '🏪 Shop' : '🚐 Van'; }
@@ -116,6 +117,8 @@
       };
       finishBtn.onclick = async function (){
         finishBtn.disabled = true;
+        if (rcFlushAll) { var badF = 0; try { badF = await rcFlushAll(); } catch (e) {}   // 8z135: never apply while a number is still unsaved
+          if (badF) { finishBtn.disabled = false; status.textContent = '⚠ ' + badF + ' part' + (badF === 1 ? '' : 's') + ' did not save (marked in red). Fix ' + (badF === 1 ? 'it' : 'them') + ' first, then apply.'; return; } }
         var r = await s.rpc('cycle_complete', { p_count: rc.countId });
         finishBtn.disabled = false;
         if (r.error) { status.textContent = 'Could not finish: ' + r.error.message; return; }
@@ -163,6 +166,11 @@
     var rows = [], saved = {};
     try { rows = ((await s.from('inventory_locations').select('item_id,qty,inventory(name,sku,deleted_at,category,fcc_id,chip,fitment,brand,image)').eq('location', rc.loc)).data) || []; } catch (e) {}
     try { (((await s.from('cycle_count_lines').select('item_id,counted_qty,reason').eq('count_id', rc.countId)).data) || []).forEach(function (l){ saved[l.item_id] = l; }); } catch (e) {}
+    if (rc.loc === 'shop') {   // 8z135: parts with no shop stock record yet (new, or never stocked) are on the sheet too — expected 0
+      try { var have = {}; rows.forEach(function (r){ have[r.item_id] = 1; });
+        (((await s.from('inventory').select('id,name,sku,deleted_at,merged_into,category,fcc_id,chip,fitment,brand,image').is('deleted_at', null)).data) || [])
+          .forEach(function (i){ if (i && i.id && !have[i.id] && !i.merged_into) rows.push({ item_id: i.id, qty: 0, inventory: i }); }); } catch (e) {}
+    }
     rows = rows.filter(function (r){ return r.inventory && !r.inventory.deleted_at; })
       .sort(function (a, b){ return String(a.inventory.name || '').localeCompare(String(b.inventory.name || '')); });
     if (!rows.length) { list.innerHTML = '<div class="empty">No stock recorded at ' + E(locLabel()) + ' yet.</div>'; return; }
@@ -278,17 +286,50 @@
         });
       };
     });
-    async function save(row){
-      var s2 = sb(); if (!s2 || !rc.countId) return;
-      var item = row.dataset.item, cnt = +row.querySelector('.rccount').value || 0, reason = row.querySelector('.rcreason').value || null;
-      var r = await s2.rpc('cycle_save_line', { p_count: rc.countId, p_item: item, p_location: rc.loc, p_counted: cnt, p_reason: reason });
-      var nm = row.querySelector('.nm');
-      if (r.error) { nm.style.color = '#e0555f'; row.title = r.error.message; }
-      else { nm.style.color = ''; row.title = 'saved ✓'; if (!nm.querySelector('.rcok')) nm.insertAdjacentHTML('beforeend', ' <span class="rcok" style="color:#2caa6e">✓</span>'); }
+    /* 8z135: one save at a time per part, always the LATEST number. Quick taps on + / − used to send several saves at once and
+       whichever ARRIVED last won — sometimes an older number. A changed count with no reason picked is saved as "Miscount"
+       instead of being refused, and a save that fails says so on the row. */
+    function markRow(row, state, msg){
+      var nm = row.querySelector('.nm'), ok = nm.querySelector('.rcok'), er = row.querySelector('.rcerr');
+      if (state === 'ok') { nm.style.color = ''; row.title = 'saved ✓'; row.dataset.unsaved = '0'; if (er) er.remove(); if (!ok) nm.insertAdjacentHTML('beforeend', ' <span class="rcok" style="color:#2caa6e">✓</span>'); }
+      else if (state === 'wait') { row.dataset.unsaved = '1'; if (ok) ok.remove(); }
+      else { nm.style.color = '#e0555f'; row.title = msg || ''; row.dataset.unsaved = '1'; if (ok) ok.remove();
+        if (!er) { er = document.createElement('div'); er.className = 'rcerr'; er.setAttribute('role', 'alert'); er.style.cssText = 'flex-basis:100%;color:#e0555f;font-size:13.5px;font-weight:700'; row.appendChild(er); }
+        er.textContent = '⚠ Not saved: ' + (msg || 'no answer from the cloud') + '. Tap + or − to try again.'; }
     }
+    function flush(row){
+      if (row._busy) return row._p;
+      var s2 = sb(); if (!s2 || !rc.countId) return Promise.resolve();
+      row._busy = true; row._want = false;
+      var rs = row.querySelector('.rcreason'), cnt = +row.querySelector('.rccount').value || 0;
+      if (cnt !== (+row.dataset.exp || 0) && !rs.value) rs.value = 'miscount';
+      var args = { p_count: rc.countId, p_item: row.dataset.item, p_location: rc.loc, p_counted: cnt, p_reason: rs.value || null };
+      row._p = Promise.resolve().then(function (){ return s2.rpc('cycle_save_line', args); })
+        .then(function (r){ if (r && r.error) markRow(row, 'err', r.error.message); else if (!row._want) markRow(row, 'ok'); },
+              function (e){ markRow(row, 'err', (e && e.message) || ''); })
+        .then(function (){ row._busy = false; if (row._want && !row._t) return flush(row); });
+      return row._p;
+    }
+    function save(row){
+      row._want = true; markRow(row, 'wait');
+      clearTimeout(row._t); row._t = setTimeout(function (){ row._t = null; flush(row); }, 200);
+    }
+    rcFlushAll = async function (){
+      var all = [].slice.call(list.querySelectorAll('.crow'));
+      for (var pass = 0; pass < 4; pass++) {
+        var ps = all.map(function (row){
+          if (row._t) { clearTimeout(row._t); row._t = null; return flush(row); }
+          return row._busy ? row._p : (row._want ? flush(row) : null); }).filter(Boolean);
+        if (!ps.length) break; await Promise.all(ps);
+      }
+      return all.filter(function (row){ return row.dataset.unsaved === '1'; }).length;
+    };
     // 8z15: the assignee marks the count done → manager sees it ready to apply
     var done = document.getElementById('rcDone');
     if (done) done.onclick = async function (){
+      var badN = 0; try { badN = await rcFlushAll(); } catch (e) {}   // 8z135: nothing is sent while a number is still unsaved
+      if (badN) { document.getElementById('rcStatus').textContent = '⚠ ' + badN + ' part' + (badN === 1 ? '' : 's') + ' did not save (marked in red). Fix ' + (badN === 1 ? 'it' : 'them') + ' first, then send.';
+        var first = list.querySelector('.crow[data-unsaved="1"]'); if (first && first.scrollIntoView) { first.style.display = ''; first.scrollIntoView({ block: 'center' }); } return; }
       var ok = await ask({ title: 'Send this count to your manager?', message: 'Any part you didn\'t change counts as matching what was expected. You can still reopen it until your manager applies it.', okText: 'Send' });
       if (!ok) return;
       done.disabled = true; done.textContent = 'Sending…';

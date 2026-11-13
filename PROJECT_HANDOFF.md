@@ -408,6 +408,24 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-11-13, evening (8z135: stock-count sheet saves made safe) — LIVE; NOT committed
+Owner: "a lot of the reconciliation Jayden did yesterday didn't save to today." What the cloud shows (audit_log +
+cycle_count_lines): the count Jayden sent on 11-12 13:28 was applied at 13:29 — 514 lines, 218 stock changes, all still in
+place (the 6 that differ today are explained by sales, receiving, one deleted item and one van move). His 12 part edits and
+5 new parts that day are intact. A NEW count was started 14:40; he clocked out 14:45 and it held no lines until today. So
+no lost rows could be found — but three real holes in `app/inventory-traceability.js` (`rcItems`) could lose work with no
+trace, and are fixed:
+- quick + / − taps sent several `cycle_save_line` calls at once; whichever ARRIVED last won (sometimes an older number).
+  Now one save at a time per part, always the latest number (`save` → 200 ms → `flush`, `rcFlushAll`).
+- a technician's changed count with no reason picked was refused by the server ("a discrepancy reason is required") and
+  the only sign was the part name turning red (a tooltip on a phone). Now it saves as "Miscount"; any refused save is
+  written on the row ("⚠ Not saved: …"), and "Done — send to manager" / "Finish & apply" wait for saves and refuse while
+  a part is unsaved.
+- the Shop sheet listed only parts with an `inventory_locations` row, so a new or never-stocked part (14 of them, incl.
+  4 Jayden added on 11-12 with quantity 0) could not be counted at all. They are on the sheet now, expected 0.
+- Not a bug but looks like one: after a count is applied, the next count starts as a blank sheet (no ✓ marks).
+- Test: `tools/qa/rebuild-count-sheet-test.js` (port 8102, standalone page + fake cloud).
+
 ### 2026-11-13, late (8z131 – 8z133: big-label foot group) — LIVE (4be0f5a4418a); NOT committed
 All in `app/hardware.js` (label engine), big labels only (tier 3 = 2 × 3 and up; small labels unchanged):
 - **8z131** — a details block the owner pinned by hand never prints over the SKU: it sheds lines until it ends above it
