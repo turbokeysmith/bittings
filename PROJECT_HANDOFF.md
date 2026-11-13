@@ -408,6 +408,45 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-11-13, late (8z131 – 8z133: big-label foot group) — LIVE (4be0f5a4418a); NOT committed
+All in `app/hardware.js` (label engine), big labels only (tier 3 = 2 × 3 and up; small labels unchanged):
+- **8z131** — a details block the owner pinned by hand never prints over the SKU: it sheds lines until it ends above it
+  (`applyTweaks`, the block after the per-block loop). The print box always fetches the key's serial units (it used to
+  depend on a stale local `part.serialized`), and a specific serial can be reprinted (`#plPick [data-pick]`).
+- **8z132** — owner, after the first serialized 2 × 3 prints: Fits is capped at **three** vehicles ("… +N more");
+  details read FCC ID → Fits → Chip → (Type); the FCC ID is the last thing given up; a **smart key's Chip prints only when
+  everything else fits**; a transponder's Chip leads. The serial number is one small line directly under the SKU
+  ("SN: … Received: …"). Big labels have a 0.10 in white border (`if (tier === 3) m = …` in `layoutFor`).
+- **8z133** — owner: "lock the type, SKU and serial number in these spots so they all move together". The Type line
+  (just above the rule), the rule, the SKU and the serial line are ONE block (`sku`; the elements carry `blk: 'sku'`).
+  Type always prints; it is no longer one of the droppable details. The editor shows that block as
+  "Type + SKU + Serial"; there is no separate "Serial number" box on a big label any more (small labels keep it under
+  the QR code). One-time reset (`prefs.labels.footGroup`) drops older hand-placed `sku` / `unit` positions on big labels
+  so the group starts in its standard place. Details pinned onto the group are lifted to end just above it.
+- Tests: `tools/qa/rebuild-labels-test.js` (group moves as one, border, order), `rebuild-niimbot-test.js`.
+- Still owed on real equipment: one 2 × 3 print at the counter to confirm the border and the group on paper.
+
+### 2026-11-13, end of day (8z119 – 8z130) — LIVE (78af88d76e43); committed through 9fa9e5a, the rest NOT committed
+Committed in 9fa9e5a: exact-serial scanning (Register keeps `unitIds` — SQL 8z119), van hand-over (SQL 8z120:
+`unit_send / unit_accept / unit_set_bin / unit_transfer_cancel / unit_transfers_pending`, `inventory_units.bin`,
+`unit_transfers`; screens in `app/inventory-traceability.js` + index.html — "Move keys by scanning", waiting banner, bin box),
+universal keys (`app/fitment.js` `isUniversalKey`, group + `universalHint`), reprint a chosen serial, "D1 filed" tick on
+every tab, Save & send / Save & PDF, estimate "good for N days" + message (`TKS.Config.estimateTerms(info)`, settings in
+Hours & footer, `cfg.estimates`), contrast-guard fix (fading is counted only up to the element that paints the background).
+NOT committed yet:
+- **Estimate message / subject:** "…for your <service> service for your <year make model> (push to start)…", subject
+  "Estimate for <vehicle>" (`estInfo / estMessage / estSubject` in both engines). The older fixed "Valid for 30 days"
+  (card, PDF, paper) now uses the shop's days (`estDays / estValid`).
+- **Register double receipt (8z128):** the card screen can report "paid" twice; `done()` in `posCheckoutThen` now runs once
+  (`doneOnce`). pay.js untouched. NEEDS a real card sale to confirm. Paper receipt: number only at the foot.
+- **Email from Bittings (8z130):** `supabase/functions/send-document` (DEPLOYED) sends via Resend with the PDF attached;
+  `sendDocument(r)` in bittings.html = review box (To / Subject / Message / attachment) used by the finished card's Send, the
+  estimates list's Send and "Save & send"; "Share another way" = the old share sheet. The estimate remembers `sentTo / sentAt`.
+  Secrets: `MAIL_FROM=estimates@turbokeysmith.com` and `MAIL_ONLY_SHOP=<TK shop id>` are set; **`RESEND_API_KEY` is NOT set**
+  (the owner must create a sending key in Resend and set it himself) — until then the function answers 503 not_configured and
+  the app falls back to the share sheet. For other shops: verify bittings.app in Resend, change MAIL_FROM, drop MAIL_ONLY_SHOP.
+- Not verified on real equipment: scanning at the Register, van hand-over, the email send (no key yet).
+
 ### 2026-11-13, last (8z115 – 8z118) — LIVE (64d9aa210085), NOT committed
 - **The owner switched "serial numbers for everything" ON himself at 17:43 UTC** (audit_log `serialize_all_on`: 529 items,
   3,385 pieces, 3,385 units). He then hard-deleted two items (one held 998 pieces) — the shop total is 2,387 pieces now.

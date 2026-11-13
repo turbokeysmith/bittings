@@ -43,12 +43,12 @@ const PART = { id: 'k1', name: 'TEST Ford F-150 2015-2020 5-Button Smart Key', s
     check('a 50 × 30 mm label is drawn 384 × 240 dots — the full width of the B1\'s print head', r.w === 384 && r.h === 240, r);
     check('the picture has the QR code, name, price and part number on it, nothing runs off the label, and there is no Zebra left-margin shift', r.pct > 0.03 && r.pct < 0.6 && r.over === 0 && r.shift === 0 && /\$165\.00/.test(r.texts) && /T-FORD-R8134/.test(r.texts), r);
     check('the printing library loads on demand, has the B1 print routine, and turns the picture into 240 rows of 384 dots', r.tasks && r.cols === 384 && r.rows === 240, { cols: r.cols, rows: r.rows, rowsData: r.rowsData });
-    check('bigger rolls carry more: 40 × 20 = basics, 50 × 30 adds "Fits", 50 × 80 adds FCC ID, chip and type', r.tiers.join() === '1,2,3' && /Fits:/.test(r.texts) && /FCC ID:/.test(r.bigTexts) && /Chip:/.test(r.bigTexts), { tiers: r.tiers, big: r.bigTexts });
+    check('bigger rolls carry more: 40 × 20 = basics, 50 × 30 adds "Fits", 50 × 80 adds FCC ID and type', r.tiers.join() === '1,2,3' && /Fits:/.test(r.texts) && /FCC ID:/.test(r.bigTexts) && /Type:/.test(r.bigTexts), { tiers: r.tiers, big: r.bigTexts });
 
     // ---- 8z103: big labels use the room, and carry the shop logo when one is uploaded ----
     r = await pg.evaluate(async (PART) => { const HW = TKS_HW.labels, f = e => e.t === 'text';
       const plain = HW.layoutFor(PART, null, 'large', { fill: false }), filled = HW.layoutFor(PART, null, 'large');
-      const nameFont = L => L.els.filter(f)[0].font, lastTextBottom = L => Math.max.apply(null, L.els.filter(f).slice(0, -1).map(e => e.y + e.font * (e.rows ? e.rows.length : 1)));
+      const nameFont = L => L.els.filter(f)[0].font, lastTextBottom = L => Math.max.apply(null, L.els.filter(f).filter(e => e.b !== 'sku').map(e => e.y + e.font * (e.rows ? e.rows.length : 1)));
       // upload a logo (a made-up black bar with white text) and let the label code load it
       const c = document.createElement('canvas'); c.width = 600; c.height = 150; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 600, 150); x.fillStyle = '#c00'; x.fillRect(20, 30, 560, 90); x.fillStyle = '#fff'; x.font = '700 60px sans-serif'; x.fillText('TEST LOGO', 120, 98);
       const real = TKS.Config.identity; TKS.Config.identity = () => Object.assign({}, real.call(TKS.Config), { logo: c.toDataURL('image/png') });
@@ -60,7 +60,7 @@ const PART = { id: 'k1', name: 'TEST Ford F-150 2015-2020 5-Button Smart Key', s
         loaded: !!im, logo: lg ? { w: lg.w, h: lg.h, y: lg.y } : null, qrBelow: lg ? withLogo.els.find(e => e.t === 'qr').y >= lg.y + lg.h : false, gfa: (zpl.match(/\^GFA/g) || []).length, svgImg: /<image /.test(svg), smallLogo: small.els.some(e => e.t === 'logo'), offLogo: off.els.some(e => e.t === 'logo'),
         nbLogo: nb.els.some(e => e.t === 'logo'), nbDark: dark, over: over(withLogo) + over(filled) + over(nb) }; }, PART);
     check('large labels use the room: the type is bigger and the text reaches further down, with the same lines on it', r.filledFont > r.plainFont && r.filledBottom > r.plainBottom + 20 && r.sameLines, { plainFont: r.plainFont, filledFont: r.filledFont, plainBottom: r.plainBottom, filledBottom: r.filledBottom, LL: r.LL });
-    check('with a logo uploaded, a large label carries it across the top (the QR code and text start below it) — on the Zebra code, the sample and the Niimbot picture', r.loaded && !!r.logo && r.logo.y < 20 && r.qrBelow && r.gfa >= 2 && r.svgImg && r.nbLogo && r.nbDark > 300, r);
+    check('with a logo uploaded, a large label carries it across the top (the QR code and text start below it) — on the Zebra code, the sample and the Niimbot picture', r.loaded && !!r.logo && r.logo.y <= 24 && r.qrBelow && r.gfa >= 2 && r.svgImg && r.nbLogo && r.nbDark > 300, r);
     check('small labels never get the logo, the logo can be switched off, and nothing runs off any label', !r.smallLogo && !r.offLogo && r.over === 0, r);
     await pg.evaluate(async (PART) => { const d = document.createElement('div'); d.id = 'lgShow'; d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#667;padding:14px;overflow:auto;display:flex;flex-direction:column;gap:14px;align-items:center';
       for (const sz of ['large', 'xl']) { const w = document.createElement('div'); w.style.width = sz === 'large' ? '330px' : '360px'; w.innerHTML = TKS_HW.labels.toSVG(TKS_HW.labels.layoutFor(PART, null, sz)); d.appendChild(w); }

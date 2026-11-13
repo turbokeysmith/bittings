@@ -234,7 +234,7 @@ function buildReceiptCardHTML(r, actionsHTML){
     }
   }
   const docLbl = r.docType==="invoice"?"INVOICE":r.docType==="estimate"?"ESTIMATE":"RECEIPT";
-  const subline = r.docType==="invoice"?"Due upon receipt":r.docType==="estimate"?"Valid for 30 days":"";
+  const subline = r.docType==="invoice"?"Due upon receipt":r.docType==="estimate"?estValid():"";
   const numLabel = r.docType==="invoice"?"Invoice #":r.docType==="estimate"?"Estimate #":"Receipt #";
 
   let statusLine = "";
@@ -247,7 +247,7 @@ function buildReceiptCardHTML(r, actionsHTML){
     statusLine='<div class="rc-pm">Expected payment: '+escapeHtml(r.payment||"Not specified")+'</div>'+
                '<div class="rc-st" style="color:var(--amber)">Status: UNPAID — DUE UPON RECEIPT</div>';
   }else{
-    statusLine='<div class="rc-st" style="color:#595959">ESTIMATE — Valid 30 days from issue</div>';
+    statusLine='<div class="rc-st" style="color:#595959">ESTIMATE'+(estDays()>0?(' — Valid '+estDays()+' days from issue'):'')+'</div>';
   }
 
   const isContracting = r.nastf && r.nastf.type==="Contracting D1";
@@ -343,7 +343,7 @@ function shareDocument(r, lang, forCustomer){
   const shareData = {
     files: [file],
     title: (r.docType==="estimate") ? estSubject(r) : (docLabelText + " " + r.number),
-    text: (r.docType==="estimate" && estTerms()) ? estTerms().message : docLabelText + " from " + (SETTINGS.name || "your locksmith") +
+    text: (r.docType==="estimate" && estTerms()) ? estMessage(r) : docLabelText + " from " + (SETTINGS.name || "your locksmith") +
           (cust ? " for " + cust : "")
   };
   // Feature detection: not all browsers support sharing files. Test with
@@ -418,7 +418,7 @@ function makePDF(r, lang, forCustomer){
   doc.text(numLbl+": "+r.number, 572, 90, {align:"right"});
   doc.text(tr("Date",lang)+": "+r.date, 572, 103, {align:"right"});
   const subline = r.docType==="invoice" ? tr("Due upon receipt",lang)
-                : r.docType==="estimate" ? tr("Valid for 30 days",lang) : "";
+                : r.docType==="estimate" ? estValid(lang) : "";
   if(subline){ doc.text(subline, 572, 116, {align:"right"}); }
 
   // ---- BILL TO ----
@@ -678,8 +678,12 @@ function d1Of(r){ var v=(r && typeof r.vehicle==="object" && r.vehicle)?r.vehicl
   /* 8z124: an estimate carries the shop's "good for N days" line under its notes (Settings → Hours & footer). */
   function estTerms(){ try{ return (window.TKS && TKS.Config && TKS.Config.estimateTerms) ? TKS.Config.estimateTerms() : null; }catch(e){ return null; } }
   function estNotes(r){ var n=String((r&&r.notes)||""); try{ if(r && r.docType==="estimate"){ var t=estTerms(), d=t&&t.disclaimer; if(d && n.indexOf(d)<0) n = n ? (n+"\n\n"+d) : d; } }catch(e){} return n; }
-  function estSubject(r){ var svc=""; try{ var it=((r&&r.items)||[]).filter(function(x){ return x && !x.isDiscount && !x.declined; })[0]; svc=it?String(it.desc||""):""; }catch(e){}
-    var veh=""; try{ veh=vehicleString(r)||""; }catch(e){} return ["Estimate", veh, svc.slice(0,60)].filter(Boolean).join(" — "); }
+  function estDays(){ try{ var t=estTerms(); return t ? t.days : 30; }catch(e){ return 30; } }
+  function estValid(lang){ var d=estDays(); if(!(d>0)) return ""; return lang==="es" ? ("V\u00e1lido por "+d+" d\u00edas") : ("Valid for "+d+" days"); }
+  function estInfo(r){ var svc="", veh=""; try{ var it=((r&&r.items)||[]).filter(function(x){ return x && !x.isDiscount && !x.declined && !x.partId; })[0] || ((r&&r.items)||[]).filter(function(x){ return x && !x.isDiscount && !x.declined; })[0]; svc=it?String(it.desc||"").replace(/\s+—\s+.*$/,"").slice(0,60):""; }catch(e){}
+    try{ veh=[r.vehYear,r.vehMake,r.vehModel].filter(Boolean).join(" ") || vehicleString(r) || ""; if(veh && r.vehIgnition==="push") veh+=" (push to start)"; else if(veh && r.vehIgnition==="keyed") veh+=" (turn key)"; }catch(e){} return { service:svc, vehicle:veh }; }
+  function estMessage(r){ try{ return TKS.Config.estimateTerms(estInfo(r)).message; }catch(e){ return ""; } }
+  function estSubject(r){ var veh=""; try{ veh=[r.vehYear,r.vehMake,r.vehModel].filter(Boolean).join(" ") || vehicleString(r) || ""; }catch(e){} var nm=""; try{ nm=(TKS.Config.identity()||{}).name||""; }catch(e){} return veh ? ("Estimate for "+veh) : ("Estimate"+(nm?(" from "+nm):"")); }
   function docWithTerms(r){ try{ if(r && r.docType==="estimate"){ var n=estNotes(r); if(n!==String(r.notes||"")){ var c2=Object.assign({}, r, { notes:n }); if(r._serials) c2._serials=r._serials; return c2; } } }catch(e){} return r; }
   function docWithVehicles(r){ r=docWithTerms(r); try{ if(!r || !Array.isArray(r.items) || !r.items.some(function(it){ return it && it.vehicle; })) return r;
     var c=Object.assign({}, r, { items:r.items.map(function(it){ return (it && it.vehicle) ? Object.assign({}, it, { desc:String(it.desc||"")+" — "+it.vehicle }) : it; }) });

@@ -1195,12 +1195,19 @@
       nastf: function () { return getConfig().nastf || { d1Days: 5 }; },
       autoPrice: function () { return getConfig().autoPrice || { on: false }; },   // 8z87
       /* 8z124: what an estimate says at its foot, and the message that goes out with it. {days} {shop} {phone} are filled in. */
-      estimateTerms: function () {
+      estimateTerms: function (info) {   // info (optional): { service, vehicle } of the estimate being sent
+        info = info || {};
         var c = getConfig().estimates || {}, id = getConfig().identity || {};
         var days = parseInt(c.validDays, 10); if (!(days >= 0)) days = 7;
         var rawD = (c.disclaimer != null && String(c.disclaimer).trim() !== '') ? String(c.disclaimer) : 'This estimate is good for {days} days. After that, or if the work turns out to be different once we see the vehicle or lock, the price may change.';
-        var rawM = (c.message != null && String(c.message).trim() !== '') ? String(c.message) : 'Thank you for requesting this estimate from {shop}. Please see the attached. If you have any questions, call us at {phone}.';
-        var fill = function (t) { return String(t).replace(/\{days\}/g, String(days)).replace(/\{shop\}/g, String(id.name || 'us')).replace(/\{phone\}/g, String(id.phone || 'the shop')); };
+        var OLD_M = 'Thank you for requesting this estimate from {shop}. Please see the attached. If you have any questions, call us at {phone}.';   // the first wording — never chosen by anyone, so it follows the new one
+        var DEF_M = 'Thank you for requesting this estimate{for service}{for vehicle}. Please see the attached. If you have any questions, call us at {phone}.\n\n{shop}';
+        var rawM = (c.message != null && String(c.message).trim() !== '' && String(c.message).trim() !== OLD_M) ? String(c.message) : DEF_M;
+        var phone = String(id.phone || '').trim(), pd = phone.replace(/\D/g, ''); if (pd.length === 11 && pd.charAt(0) === '1') pd = pd.slice(1); if (pd.length === 10) phone = '(' + pd.slice(0, 3) + ') ' + pd.slice(3, 6) + '-' + pd.slice(6);
+        var svc = String(info.service || '').trim(), veh = String(info.vehicle || '').trim();
+        var fill = function (t) { return String(t).replace(/\{days\}/g, String(days)).replace(/\{shop\}/g, String(id.name || 'us')).replace(/\{phone\}/g, phone || 'the shop')
+          .replace(/\{for service\}/g, svc ? ' for your ' + svc + (/service$/i.test(svc) ? '' : ' service') : '').replace(/\{for vehicle\}/g, veh ? ' for your ' + veh : '')
+          .replace(/\{service\}/g, svc || 'service').replace(/\{vehicle\}/g, veh || 'vehicle'); };
         return { days: days, disclaimer: days > 0 ? fill(rawD) : '', message: fill(rawM), rawDisclaimer: rawD, rawMessage: rawM };
       },
       d1Days: function () { var n = getConfig().nastf || {}; var d = parseInt(n.d1Days, 10); return (d >= 1) ? d : 5; },

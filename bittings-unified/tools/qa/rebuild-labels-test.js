@@ -57,7 +57,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     check('old saved prefs (2x1, no size) become the Small size, ticked', r.size === 'small' && r.on.join() === 'small' && r.w === 2, { size: r.size, on: r.on });
     check('size list: small, medium, wide, large, xl, xxl, 2x3 (tall), 4x6 (ship), custom', r.sizes.join() === 'small,medium,wide,large,xl,xxl,tall,ship,custom', r.sizes);
     check('small ZPL keeps ^PW406 ^LL203 with the name, price and SKU', /\^PW406/.test(r.small) && /\^LL203/.test(r.small) && /Ford F-150/.test(r.small) && /\$165\.00/.test(r.small) && /FORD-R8134/.test(r.small) && !/Fits:/.test(r.small) && !/\^PQ/.test(r.small), r.small.slice(0, 700));
-    check('large ZPL is ^PW609 ^LL406 and adds Fits:, FCC ID:, Chip:', /\^PW609/.test(r.large) && /\^LL406/.test(r.large) && /Fits: 2015-2020 Ford F-150/.test(r.large) && /FCC ID: M3N-A2C31243300/.test(r.large) && /Chip: Hitag Pro/.test(r.large) && /Type: Smart Key - OEM/.test(r.large) && /\^GB/.test(r.large), r.large.slice(0, 1200));
+    check('large ZPL is ^PW609 ^LL406 and adds FCC ID:, Fits: and Type:', /\^PW609/.test(r.large) && /\^LL406/.test(r.large) && /Fits: 2015-2020 Ford F-150/.test(r.large) && /FCC ID: M3N-A2C31243300/.test(r.large) && /Type: Smart Key/.test(r.large) && /Type: Smart Key - OEM/.test(r.large) && /\^GB/.test(r.large), r.large.slice(0, 1200));
     check('copies 3 → ^PQ3 right before ^XZ', /\^PQ3\n\^XZ$/.test(r.x3), r.x3.slice(-30));
     check('unit labels: small has SN, large also has Received date', /SN: AB12C34/.test(r.unitS) && !/Received/.test(r.unitS) && /SN: AB12C34/.test(r.unitL) && /Received: 2026-11-03/.test(r.unitL), { s: r.unitS.slice(-200), l: r.unitL.slice(-400) });
 
@@ -119,9 +119,9 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
         const fitsOf = (la) => (la.els.filter(T).find(e => /^Fits:/.test(e.rows[0])) || { rows: [] }).rows.join(' ');
         const big = L.layoutFor(many, null, 'ship', { logo: false }), txt = fitsOf(big), off = L.layoutFor(many, null, 'ship', { logo: false, fits: false }), offMed = L.layoutFor(PART, null, 'medium', { fits: false });
         const over = big.els.filter(e => e.t === 'text' && (e.x + e.w > big.PW + 1 || e.y + e.rows.length * e.font > big.LL + 1)).length;
-        return { a: [a.PW, !!a.turned], av: [av.PW, !!av.turned], b: [b.PW, !!b.turned], bv: [bv.PW, !!bv.turned], zb: /\^FD/.test(zb), txt, hasSixth: /Traverse/.test(txt), more: /\+3 more/.test(txt), over, offFits: fitsOf(off), offMed: fitsOf(offMed), offOther: off.els.filter(T).some(e => /^FCC ID:/.test(e.rows[0])) }; }, PART);
+        return { a: [a.PW, !!a.turned], av: [av.PW, !!av.turned], b: [b.PW, !!b.turned], bv: [bv.PW, !!bv.turned], zb: /\^FD/.test(zb), txt, hasSixth: /Silverado/.test(txt), more: /\+5 more/.test(txt), over, offFits: fitsOf(off), offMed: fitsOf(offMed), offOther: off.els.filter(T).some(e => /^FCC ID:/.test(e.rows[0])) }; }, PART);
       check('one "2 × 3" entry: the 3-inch side is across the printer — Horizontal prints straight (609 wide), Vertical is turned; ticking "my roll feeds the other way" swaps that', rx.a.join() === '609,false' && rx.av.join() === '406,true' && rx.b.join() === '609,true' && rx.bv.join() === '406,false' && rx.zb, rx);
-      check('a long Fits list stops after five vehicles and says how many more; with "Print what it fits" off the line is gone and the other details stay', /Tahoe/.test(rx.txt) && /Sierra/.test(rx.txt) && !rx.hasSixth && rx.more && rx.over === 0 && rx.offFits === '' && rx.offMed === '' && rx.offOther, rx); }
+      check('a long Fits list stops after THREE vehicles and says how many more; with "Print what it fits" off the line is gone and the other details stay', /Tahoe/.test(rx.txt) && /Yukon/.test(rx.txt) && !rx.hasSixth && rx.more && rx.over === 0 && rx.offFits === '' && rx.offMed === '' && rx.offOther, rx); }
 
     { const rb = await pg.evaluate((PART) => { const L = TKS_HW.labels, T = e => e.t === 'text', P2 = Object.assign({}, PART, { location: 'bin 3' }), res = {}, bad = [];
         ['small', 'medium', 'wide', 'large', 'xl', 'xxl', 'ship'].forEach(id => { ['h', 'v'].forEach(o => { const la = L.layoutFor(P2, null, id, { kind: 'bin', orient: o }), tx = la.els.filter(T), bin = tx.find(e => e.rows[0] === 'BIN 3'), nm = tx.find(e => /Ford F-150/.test(e.rows.join(' '))), sku = tx.find(e => /FORD-R8134/.test(e.rows[0]));
@@ -134,14 +134,56 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
       check('bin label: the bin in big letters (at least 1.5× the name), the key name, its SKU and QR code — on every size and layout, nothing off the label or overlapping; no price on it; key labels are unchanged', rb.bad.length === 0 && rb.zBin && !rb.zPrice && !rb.keyHasBin, { bad: rb.bad.slice(0, 4), res: rb.res }); }
 
     { const rl = await pg.evaluate(async (PART) => { const L = TKS_HW.labels, P = TKS_HW.prefs().labels, keep = JSON.stringify(P.tweaks || null), keepOr = JSON.stringify(P.orient || null), U = { id: 'u1', serial: 'AB12C34', acquired_at: '2026-11-03T10:00:00Z' };
-        const pos = (la) => { const e = la.els.find(x => x.t === 'text' && /^SN: /.test(x.text)), q = la.els.find(x => x.t === 'qr'); return [e.x, e.y, q.x, q.y]; };
-        P.tweaks = { 'large:h': { unit: { dx: 40, dy: 30, s: 1 }, qr: { dx: 6, dy: 4, s: 1 } } };
+        const pos = (la) => { const e = la.els.find(x => x.t === 'text' && /^\$/.test(x.text)), q = la.els.find(x => x.t === 'qr'); return [e.x, e.y, q.x, q.y]; };
+        P.tweaks = { 'large:h': { price: { dx: 40, dy: 30, s: 1 }, qr: { dx: 6, dy: 4, s: 1 } } };
         const before = pos(L.layoutFor(PART, U, 'large', { orient: 'h' })); const did = L.anchorLegacy('large'); const tw = JSON.parse(JSON.stringify(P.tweaks['large:h'])); const after = pos(L.layoutFor(PART, U, 'large', { orient: 'h' })), again = L.anchorLegacy('large');
         P.tweaks = JSON.parse(keep) || undefined; if (!P.tweaks) delete P.tweaks;
         const v = L.layoutFor(PART, null, 'large', { orient: 'v', logo: false }), svg = L.toSVG(v), h = L.layoutFor(PART, null, 'large', { orient: 'h', logo: false });
         return { did, again, tw, before, after, v: [v.PW, v.LL, v.fullLL, v.rollShift], vb: (svg.match(/viewBox="0 0 (\d+) (\d+)"/) || []).slice(1).map(Number), h: [h.LL, h.fullLL] }; }, PART);
-      check('moves saved the old way (as offsets) are pinned once to the spot they had on the sample label — nothing shifts when that happens', rl.did === true && rl.again === false && rl.tw.unit.ax != null && rl.tw.unit.dx === undefined && rl.tw.qr.ax != null && rl.before.every((n, i) => Math.abs(n - rl.after[i]) <= 2), rl);
+      check('moves saved the old way (as offsets) are pinned once to the spot they had on the sample label — nothing shifts when that happens', rl.did === true && rl.again === false && rl.tw.price.ax != null && rl.tw.price.dx === undefined && rl.tw.qr.ax != null && rl.before.every((n, i) => Math.abs(n - rl.after[i]) <= 2), rl);
       check('the picture of a turned (Vertical) label is the WHOLE label, including the strip at the foot the printer cannot use; an unturned label is unchanged', rl.v[3] > 0 && rl.v[2] === rl.v[1] + rl.v[3] && rl.vb[0] === rl.v[0] && rl.vb[1] === rl.v[2] && rl.v[2] === 609 && rl.h[0] === rl.h[1], rl); }
+
+    { const rp = await pg.evaluate((PART) => { const L = TKS_HW.labels, P = TKS_HW.prefs().labels, keep = JSON.stringify(P.tweaks || null), T = e => e.t === 'text';
+        const bmw = { id: 'k9', name: 'TEST BMW 3/5 06-10 (KR55WK49127)', sku: 'BMW-1451 AM', category: 'Keys/Smart Key', grade: 'Aftermarket', sellPriceCents: 15000, fccId: 'KR55WK49127', chip: 'Philips ID46',
+          fitment: ['2006-2012 BMW 3 Series', '2005-2010 BMW 5 Series', '2007-2011 BMW 6 Series', '2008-2011 BMW X3', '2007-2013 BMW X5', '2008-2014 BMW X6', '2009-2015 BMW Z4', '2004-2012 BMW 1 Series'].join('\n') };
+        const U = { id: 'u9', serial: 'AKA6FGM', acquired_at: '2026-11-13T10:00:00Z' }, out = [];
+        for (const [size, or] of [['large', 'v'], ['large', 'h'], ['ship', 'v']]) for (const ay of [150, 205, 240]) {
+          P.tweaks = {}; P.tweaks[size + ':' + or] = { details: { ax: 6, ay: ay, s: 1 } };
+          const la = L.layoutFor(bmw, U, size, { orient: or, logo: false }), tx = la.els.filter(T), sku = tx.find(e => e.bold), det = tx.filter(e => /^(Fits:|FCC ID:|Chip:)/.test(e.rows[0])), typ = tx.find(e => /^Type:/.test(e.rows[0]));
+          const rule = la.els.find(e => e.t === 'line'), skuTop = Math.min(sku.y, rule ? rule.y : 1e9, typ ? typ.y : 1e9), detBottom = det.length ? Math.max.apply(null, det.map(e => e.y + e.rows.length * e.font)) : 0;
+          out.push({ k: size + ':' + or + '@' + ay, lines: det.map(e => e.rows[0].slice(0, 5) + '×' + e.rows.length).join(','), type: !!typ && typ.y + typ.font <= (rule ? rule.y : sku.y), over: det.length ? detBottom > skuTop : false, sn: tx.some(e => /^SN: AKA6FGM/.test(e.text)), fd: (L.toZPL(la, 1).match(/Type:|Chip:/g) || []).length });
+        }
+        P.tweaks = JSON.parse(keep) || undefined; if (!P.tweaks) delete P.tweaks; return out; }, PART);
+      check('a details block pinned low + a long Fits list never prints over the SKU line: never over the Type line above it either: it gives up the Chip, then Fits lines, then Fits — the FCC ID, the Type and the serial number always print', rp.every(x => !x.over && x.sn && x.type && /FCC I/.test(x.lines)) && rp.some(x => !/Chip:/.test(x.lines)), rp); }
+
+    { const ru = await pg.evaluate((PART) => { const L = TKS_HW.labels, T = e => e.t === 'text', U = { id: 'u1', serial: 'AB12C34', acquired_at: '2026-11-03T10:00:00Z' }, res = {};
+        const tp = Object.assign({}, PART, { category: 'Keys/Transponder', name: 'TEST transponder key', fccId: '' }), flip = Object.assign({}, PART, { category: 'Keys/Remote Head / Flip', name: 'TEST flip key' });
+        const lines = (la) => la.els.filter(T).map(e => e.rows[0]).filter(x => /^(Fits:|FCC ID:|Chip:|Type:)/.test(x)).map(x => x.split(':')[0]);
+        ['large', 'xl', 'ship'].forEach(id => { ['h', 'v'].forEach(o => { const la = L.layoutFor(PART, U, id, { orient: o, logo: false, tweaks: null }), tx = la.els.filter(T), sku = tx.find(e => e.bold), sn = tx.find(e => /^SN: AB12C34/.test(e.text)), qr = la.els.find(e => e.t === 'qr');
+          res[id + ':' + o] = { under: !!sn && sn.y >= sku.y + sku.font - 2 && sn.y <= sku.y + sku.font + 8 && sn.x === sku.x, smaller: !!sn && sn.font <= sku.font * 0.62, inside: !!sn && sn.y + sn.font <= la.LL + 1, notUnderQr: !!sn && sn.y > qr.y + qr.size + 20, order: lines(la).join('>') }; }); });
+        const moved = L.layoutFor(PART, U, 'large', { orient: 'h', logo: false, tweaks: { sku: { ax: 60, ay: 150, s: 1 } } }), mt = moved.els.filter(T), ms = mt.find(e => e.bold), mn = mt.find(e => /^SN: /.test(e.text));
+        const small = L.layoutFor(PART, U, 'small'), ssn = small.els.filter(T).find(e => /^SN: /.test(e.text)), sqr = small.els.find(e => e.t === 'qr');
+        return { res, smart: lines(L.layoutFor(PART, null, 'ship', { logo: false, tweaks: null })).join('>'), tp: lines(L.layoutFor(tp, null, 'ship', { logo: false, tweaks: null })).join('>'), flip: lines(L.layoutFor(flip, null, 'ship', { logo: false, tweaks: null })).join('>'),
+          follows: !!mn && Math.abs(mn.y - (ms.y + ms.font + 2)) <= 3 && mn.x === ms.x,
+          group: (() => { const out = {}; ['large', 'xl', 'ship'].forEach(id => { ['h', 'v'].forEach(o => { const a = L.layoutFor(PART, U, id, { orient: o, logo: false, tweaks: null }), b = L.layoutFor(PART, U, id, { orient: o, logo: false, tweaks: { sku: { ax: 30, ay: 100, s: 1 } } });
+            const pick = (la) => { const x = la.els.filter(T), ty = x.find(e => /^Type: /.test(e.rows[0])), sk = x.find(e => e.bold), sn = x.find(e => /^SN: /.test(e.text)), ru = la.els.find(e => e.t === 'line'); return [ty, ru, sk, sn]; };
+            const pa = pick(a), pb = pick(b), d = pa.map((e, i) => e && pb[i] ? [pb[i].x - e.x, pb[i].y - e.y].join() : 'missing');
+            out[id + ':' + o] = { one: d.every(x => x === d[0] && x !== 'missing' && x !== '0,0'), stacked: !!pa[0] && pa[0].y + pa[0].font <= pa[1].y && pa[1].y < pa[2].y && pa[2].y < pa[3].y, noUnit: !a.blocks.unit, blk: pa.every(e => e && e.b === 'sku') }; }); }); return out; })(),
+          smallUnit: !!small.blocks.unit, smallUnderQr: !!ssn && ssn.y > sqr.y + sqr.size - 2 }; }, PART);
+      check('big labels: the serial number sits right under the SKU in smaller type (not under the QR code), on every big size and layout, and follows the SKU if the SKU is moved; small labels keep it under the QR code', Object.values(ru.res).every(x => x.under && x.smaller && x.inside && x.notUnderQr) && ru.follows && ru.smallUnderQr, ru);
+      check('big labels: Type, the rule, the SKU and the serial number are ONE block — stacked in that order, and all four move by exactly the same amount when the block is moved (every big size and layout); small labels keep the serial as its own box', Object.values(ru.group).every(x => x.one && x.stacked && x.noUnit && x.blk) && ru.smallUnit, ru.group);
+      check('details: FCC ID first, Type (OEM / aftermarket) always kept; on a roomy label a smart key still shows its Chip, and a transponder leads with its Chip', ru.smart === 'FCC ID>Fits>Chip>Type' && ru.flip === 'FCC ID>Fits>Chip>Type' && /^Chip>Fits/.test(ru.tp) && /Type$/.test(ru.tp), { smart: ru.smart, flip: ru.flip, tp: ru.tp });
+      { const rc = await pg.evaluate((PART) => { const L = TKS_HW.labels, T = e => e.t === 'text', U = { id: 'u1', serial: 'AB12C34', acquired_at: '2026-11-03T10:00:00Z' };
+          const bmw = Object.assign({}, PART, { name: 'TEST BMW 3/5 06-10 (KR55WK49127)', grade: 'Aftermarket', chip: 'Philips ID46', fitment: ['2006-2012 BMW 3 Series', '2005-2010 BMW 5 Series', '2007-2011 BMW 6 Series', '2008-2011 BMW X3', '2007-2013 BMW X5', '2008-2014 BMW X6'].join('\n') });
+          const lines = (la) => la.els.filter(T).map(e => e.rows[0]).filter(x => /^(Fits:|FCC ID:|Chip:|Type:)/.test(x)).map(x => x.split(':')[0]).join('>');
+          const out = {}; ['s', 'm', 'l'].forEach(ts => { ['h', 'v'].forEach(o => { out[ts + o] = lines(L.layoutFor(bmw, U, 'large', { orient: o, logo: true, textSize: ts, tweaks: null })); }); }); return out; }, PART);
+        check('a 2 × 3 smart-key label keeps FCC ID first and Type last at every text size (the chip prints when it fits)', Object.values(rc).every(x => /^FCC ID/.test(x) && /Type$/.test(x)), rc); }
+      { const rb = await pg.evaluate((PART) => { const L = TKS_HW.labels, U = { id: 'u1', serial: 'AB12C34' }, out = {};
+          ['large', 'xl', 'ship'].forEach(id => { ['h', 'v'].forEach(o => { const la = L.layoutFor(PART, U, id, { orient: o, logo: false, tweaks: null }); let minX = 1e9, minY = 1e9, maxX = 0, maxY = 0;
+            la.els.forEach(e => { const w = e.t === 'qr' ? e.size : e.w, h = e.t === 'qr' ? e.size : (e.t === 'text' ? e.rows.length * e.font : 3); minX = Math.min(minX, e.x); minY = Math.min(minY, e.y); maxX = Math.max(maxX, e.x + (e.t === 'text' ? Math.min(w, Math.ceil(Math.max.apply(null, e.rows.map(r => r.length)) * 0.56 * e.font)) : w)); maxY = Math.max(maxY, e.y + h); });
+            out[id + ':' + o] = [minX, minY, la.PW - la.shift - maxX, la.LL - maxY]; }); });
+          const sm = L.layoutFor(PART, U, 'small'); return { out, smallLeft: Math.min.apply(null, sm.els.map(e => e.x)) }; }, PART);
+        check('big labels have a small white border: nothing closer than 0.09 in (18 dots) to any edge; the 2 × 1 keeps its tighter margin', Object.values(rb.out).every(v => v.every(n => n >= 18)) && rb.smallLeft === 12, rb); } }
 
     // ---- settings ----
     const openSettings = async () => { await pg.evaluate(() => TKS_HW.openSettings()); await sleep(600); await pg.evaluate(() => { const c = document.querySelector('[data-szcard="small"]'); c && c.scrollIntoView({ block: 'start' }); }); await sleep(200); };
@@ -339,7 +381,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     await click('[data-szedit="large"]'); await sleep(500);
     const ed = (f) => pg.evaluate(f);
     r = await ed(() => ({ boxes: Array.from(document.querySelectorAll('#leStage [data-blk]')).map(b => b.getAttribute('data-blk')), chips: Array.from(document.querySelectorAll('#leChips [data-chip]')).map(b => b.innerText), read: document.getElementById('leRead').innerText, svg: !!document.querySelector('#leStage svg') }));
-    check('editor: the label with a box on each part (Name, QR code, Serial number, Price, Details, SKU) and a button for each', r.svg && r.boxes.sort().join() === 'details,name,price,qr,sku,unit' && r.chips.join() === 'Name,QR code,Serial number,Price,Details,SKU' && /in its usual place/.test(r.read), r);
+    check('editor: the label with a box on each part (Name, QR code, Price, Details, and Type + SKU + Serial as one) and a button for each', r.svg && r.boxes.sort().join() === 'details,name,price,qr,sku' && r.chips.join() === 'Name,QR code,Price,Details,Type + SKU + Serial' && /in its usual place/.test(r.read), r);
     await pg.screenshot({ path: path.join(OUT, 'labels-move-pc.png') });
     const tapLe = async (a, n) => { for (let i = 0; i < (n || 1); i++) { await pg.evaluate((a) => document.querySelector('[data-le="' + a + '"]').click(), a); } await sleep(120); };
     const priceEl = () => pg.evaluate((PART) => { const L = TKS_HW.labels, T = e => e.t === 'text' && /^\$/.test(e.text), SU = { id: 'u_sample', serial: 'K7Q2M9X', acquired_at: '2026-11-03T10:00:00Z' }, a = L.layoutFor(PART, SU, 'large', { tweaks: null }).els.find(T), b = L.layoutFor(PART, null, 'large'), e = b.els.find(T); return { was: [a.x, a.y, a.font], now: e ? [e.x, e.y, e.font] : null, zpl: e ? TKS_HW.labels.toZPL(b, 1).indexOf('^FO' + e.x + ',' + e.y + '^A0N,' + e.font) >= 0 : false, tw: (TKS_HW.prefs().labels.tweaks || {})[b.twKey] || null, key: b.twKey }; }, PART);
@@ -350,8 +392,8 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     r = await pg.evaluate((PART) => { const b = TKS_HW.labels.layoutFor(PART, null, 'large'), q = b.blocks.sku; return { q, W: b.PW - b.shift, H: b.LL }; }, PART);
     check('nothing can be pushed off the label (SKU moved 90 steps right and down stops at the edge)', r.q.x + r.q.w <= r.W + 1 && r.q.y + r.q.h <= r.H + 1 && r.q.x >= 0, r);
     await click('#leChips [data-chip="details"]'); await sleep(150); await tapLe('hide');
-    r = await pg.evaluate((PART) => { const b = TKS_HW.labels.layoutFor(PART, null, 'large'); return { hidden: !!(b.blocks.details && b.blocks.details.hidden), any: b.els.some(e => e.t === 'text' && /^(Fits:|FCC ID:|Chip:|Type:)/.test(e.text)), btn: document.getElementById('leHide').innerText, read: document.getElementById('leRead').innerText }; }, PART);
-    check('Hide takes Details off the label (and offers Show)', r.hidden && !r.any && r.btn === 'Show' && /will not print/.test(r.read), r);
+    r = await pg.evaluate((PART) => { const b = TKS_HW.labels.layoutFor(PART, null, 'large'); return { hidden: !!(b.blocks.details && b.blocks.details.hidden), any: b.els.some(e => e.t === 'text' && /^(Fits:|FCC ID:|Chip:)/.test(e.text)), type: b.els.some(e => e.t === 'text' && /^Type:/.test(e.text)), btn: document.getElementById('leHide').innerText, read: document.getElementById('leRead').innerText }; }, PART);
+    check('Hide takes Details off the label (and offers Show); the Type line stays — it belongs to the SKU group', r.hidden && !r.any && r.type && r.btn === 'Show' && /will not print/.test(r.read), r);
     // drag the QR with the mouse
     { const bx = await pg.evaluate(() => { const b = document.querySelector('#leStage [data-blk="qr"]').getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; });
       await pg.mouse.move(bx[0], bx[1]); await pg.mouse.down(); await pg.mouse.move(bx[0] + 30, bx[1] + 20, { steps: 4 }); await pg.mouse.up(); await sleep(250);
@@ -364,12 +406,13 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
       if (hb) { await pg.mouse.move(hb[0], hb[1]); await pg.mouse.down(); await pg.mouse.move(hb[0] - 30, hb[1] - 30, { steps: 4 }); await pg.mouse.up(); await sleep(250); }
       r = await pg.evaluate((PART) => ({ s: ((TKS_HW.prefs().labels.tweaks || {})['large:h'].qr || {}).s, now: TKS_HW.labels.layoutFor(PART, null, 'large').els.find(e => e.t === 'qr').size, read: document.getElementById('leRead').innerText }), PART);
       check('pulling the QR code\'s corner handle inwards makes it smaller (and the readout shows the size)', !!hb && r.s < 1 && r.now < before && /size \d+%/.test(r.read), { hb: !!hb, before, r });
-      await click('#leChips [data-chip="unit"]'); await sleep(150); await tapLe('d', 3);
-      r = await pg.evaluate((PART) => { const U = { id: 'u1', serial: 'AB12C34' }, L = TKS_HW.labels, a = L.layoutFor(PART, U, 'large', { tweaks: null }), b = L.layoutFor(PART, U, 'large'), f = (la) => la.els.find(e => e.t === 'text' && /^SN: /.test(e.text)), tw = (TKS_HW.prefs().labels.tweaks || {})['large:h'];
-        const short = Object.assign({}, PART, { name: 'TEST RAV4 22-23' }), c = L.layoutFor(short, U, 'large'), c0 = L.layoutFor(short, U, 'large', { tweaks: null }), a0 = L.layoutFor(PART, U, 'large', { tweaks: null });
-        return { was: f(a).y, now: f(b).y, unit: tw.unit, zpl: L.toZPL(b, 1).indexOf('SN: AB12C34') >= 0, shortNow: f(c).y, autoLong: f(a0).y, autoShort: f(c0).y }; }, PART);
-      check('the Serial number is its own box: moved down 3 steps from where it was (it had been following the QR code), on the printed label too', !!r.unit && r.unit.ax != null && r.now > r.was && r.zpl, r);
-      check('a moved part stays at the SAME spot whatever key prints (a short one-line name used to pull it up — the screen and the print now agree)', r.shortNow === r.now, r); }
+      const pre = await pg.evaluate((PART) => { const la = TKS_HW.labels.layoutFor(PART, { id: 'u1', serial: 'AB12C34' }, 'large'), f = (re) => la.els.find(e => e.t === 'text' && re.test(e.rows[0])); return { ty: f(/^Type: /).y, sn: f(/^SN: /).y, sk: la.els.find(e => e.t === 'text' && e.bold).y }; }, PART);
+      await click('#leChips [data-chip="sku"]'); await sleep(150); await tapLe('u', 3);
+      r = await pg.evaluate((PART) => { const U = { id: 'u1', serial: 'AB12C34' }, L = TKS_HW.labels, b = L.layoutFor(PART, U, 'large'), f = (la, re) => la.els.find(e => e.t === 'text' && re.test(e.rows[0])), tw = (TKS_HW.prefs().labels.tweaks || {})['large:h'];
+        const short = Object.assign({}, PART, { name: 'TEST RAV4 22-23' }), c = L.layoutFor(short, U, 'large');
+        return { ty: f(b, /^Type: /).y, sn: f(b, /^SN: /).y, sk: b.els.find(e => e.t === 'text' && e.bold).y, sku: tw.sku, unitChip: !!document.querySelector('#leChips [data-chip="unit"]'), zpl: L.toZPL(b, 1).indexOf('SN: AB12C34') >= 0 && /Type: /.test(L.toZPL(b, 1)), shortTy: f(c, /^Type: /).y, read: document.getElementById('leRead').innerText }; }, PART);
+      check('Type + SKU + Serial move as one box: 3 steps up moves all three by the same amount, on the printed label too; there is no separate Serial box on a big label', !!r.sku && r.sku.ax != null && !r.unitChip && r.ty < pre.ty && (pre.ty - r.ty) === (pre.sn - r.sn) && (pre.ty - r.ty) === (pre.sk - r.sk) && r.zpl && /^Type \+ SKU \+ Serial/.test(r.read), { pre, r });
+      check('a moved part stays at the SAME spot whatever key prints (a short one-line name used to pull it up — the screen and the print now agree)', r.shortTy === r.ty, r); }
     await pg.screenshot({ path: path.join(OUT, 'labels-move-changed-pc.png') });
     await tapLe('done'); await sleep(400);
     r = await pg.evaluate(() => ({ open: !!document.getElementById('leStage'), note: (document.querySelector('[data-szmoved="large"]') || {}).innerText, other: (document.querySelector('[data-szmoved="xl"]') || {}).innerText }));

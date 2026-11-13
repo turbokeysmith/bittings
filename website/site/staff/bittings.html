@@ -875,8 +875,12 @@ function d1Of(r){ var v=(r && typeof r.vehicle==="object" && r.vehicle)?r.vehicl
 /* 8z124: an estimate carries the shop's "good for N days" line under its notes (Settings → Hours & footer). */
 function estTerms(){ try{ return (window.TKS && TKS.Config && TKS.Config.estimateTerms) ? TKS.Config.estimateTerms() : null; }catch(e){ return null; } }
 function estNotes(r){ var n=String((r&&r.notes)||""); try{ if(r && r.docType==="estimate"){ var t=estTerms(), d=t&&t.disclaimer; if(d && n.indexOf(d)<0) n = n ? (n+"\n\n"+d) : d; } }catch(e){} return n; }
-function estSubject(r){ var svc=""; try{ var it=((r&&r.items)||[]).filter(function(x){ return x && !x.isDiscount && !x.declined; })[0]; svc=it?String(it.desc||""):""; }catch(e){}
-  var veh=""; try{ veh=vehicleString(r)||""; }catch(e){} return ["Estimate", veh, svc.slice(0,60)].filter(Boolean).join(" — "); }
+function estDays(){ try{ var t=estTerms(); return t ? t.days : 30; }catch(e){ return 30; } }
+function estValid(lang){ var d=estDays(); if(!(d>0)) return ""; return lang==="es" ? ("V\u00e1lido por "+d+" d\u00edas") : ("Valid for "+d+" days"); }
+function estInfo(r){ var svc="", veh=""; try{ var it=((r&&r.items)||[]).filter(function(x){ return x && !x.isDiscount && !x.declined && !x.partId; })[0] || ((r&&r.items)||[]).filter(function(x){ return x && !x.isDiscount && !x.declined; })[0]; svc=it?String(it.desc||"").replace(/\s+—\s+.*$/,"").slice(0,60):""; }catch(e){}
+  try{ veh=[r.vehYear,r.vehMake,r.vehModel].filter(Boolean).join(" ") || vehicleString(r) || ""; if(veh && r.vehIgnition==="push") veh+=" (push to start)"; else if(veh && r.vehIgnition==="keyed") veh+=" (turn key)"; }catch(e){} return { service:svc, vehicle:veh }; }
+function estMessage(r){ try{ return TKS.Config.estimateTerms(estInfo(r)).message; }catch(e){ return ""; } }
+function estSubject(r){ var veh=""; try{ veh=[r.vehYear,r.vehMake,r.vehModel].filter(Boolean).join(" ") || vehicleString(r) || ""; }catch(e){} var nm=""; try{ nm=(TKS.Config.identity()||{}).name||""; }catch(e){} return veh ? ("Estimate for "+veh) : ("Estimate"+(nm?(" from "+nm):"")); }
 function docWithVehicles(r){ r=docWithTerms(r); try{ if(!r || !Array.isArray(r.items) || !r.items.some(function(it){ return it && it.vehicle; })) return r;
   return Object.assign({}, r, { items:r.items.map(function(it){ return (it && it.vehicle) ? Object.assign({}, it, { desc:String(it.desc||"")+" — "+it.vehicle }) : it; }) }); }catch(e){ return r; } }
 function docWithTerms(r){ try{ if(r && r.docType==="estimate"){ var n=estNotes(r); if(n!==String(r.notes||"")) return Object.assign({}, r, { notes:n }); } }catch(e){} return r; }
@@ -1371,7 +1375,7 @@ function finishedActions(r){
   if(r.docType!=="estimate" && !receiptClosed(r)) _acts.push({label:"💳 Pay Now", primary:true, onClick:()=>openPayNow(r)});   // 8z48: nothing left to pay on a closed receipt
   if(!receiptLockedForMe(r)) _acts.push({label:"✏️ Edit", onClick:()=>editReceipt(r)});   // 8z48
   _acts.push({label:"🖨 Print", onClick:(ev)=>printPaper(r, ev && ev.currentTarget)});   // 8z80: paper copy
-  _acts.push({label:"📤 Send", onClick:()=>shareDocument(r, "en", true)});   // 8z122: text / email it (the list already had these two)
+  _acts.push({label:"📤 Send", onClick:()=>sendDocument(r)});   // 8z122 / 8z130: review To · Subject · message, then email it (or share another way)
   _acts.push({label:"⬇ PDF", onClick:()=>makePDF(r, "en", true)});
   if(receiptScannedUnits(r).length) _acts.push({label:"↩ Scan back in", onClick:()=>scanBackInFromReceipt(r)});
   if(r.docType==="estimate"){   // 8z65: what happens after a quote — book it, or bill it
@@ -1389,7 +1393,7 @@ function renderFinished(r){ renderReceiptCard(r); finishedActions(r);
      (Only honoured for a few seconds after the tap, so a save that was stopped by a missing field never fires it later.) */
   tksAfterCreate(r); }
 function tksAfterCreate(r){ try{ const w=window._tksAfterCreate; window._tksAfterCreate=null;
-    if(w && r && (Date.now()-w.t)<20000){ if(w.do==="send") shareDocument(r, "en", true); else if(w.do==="pdf") makePDF(r, "en", true); } }catch(e){} }
+    if(w && r && (Date.now()-w.t)<20000){ if(w.do==="send") sendDocument(r); else if(w.do==="pdf") makePDF(r, "en", true); } }catch(e){} }
 /* 8z90: a NASTF document shows its photo box under the buttons — what is on file, what is missing, and how to add them */
 function hasD1(r){ return !!(r && ((r.nastf && r.nastf.type) || (Array.isArray(r.moreVehicles) && r.moreVehicles.some(v=>v && v.d1===true)))); }
 function d1PhotoBox(r){ try{ if(!hasD1(r) || !r.id || !window.TKS_RDOCS || r.docType==="estimate") return; const b=document.createElement("div"); b.className="d1-docs"; chat.appendChild(b); TKS_RDOCS.panel(b, r, { pdf:(x)=>makePDF(x, "en", false, true) }); scrollDown(); }catch(e){} }
@@ -1522,7 +1526,7 @@ function buildReceiptCardHTML(r, actionsHTML){
     }
   }
   const docLbl = r.docType==="invoice"?"INVOICE":r.docType==="estimate"?"ESTIMATE":"RECEIPT";
-  const subline = r.docType==="invoice"?"Due upon receipt":r.docType==="estimate"?"Valid for 30 days":"";
+  const subline = r.docType==="invoice"?"Due upon receipt":r.docType==="estimate"?estValid():"";
   const numLabel = r.docType==="invoice"?"Invoice #":r.docType==="estimate"?"Estimate #":"Receipt #";
 
   let statusLine = "";
@@ -1537,7 +1541,7 @@ function buildReceiptCardHTML(r, actionsHTML){
     statusLine='<div class="rc-pm">Expected payment: '+escapeHtml(r.payment||"Not specified")+'</div>'+
                '<div class="rc-st" style="color:var(--amber)">Status: UNPAID — DUE UPON RECEIPT</div>';
   }else{
-    statusLine='<div class="rc-st" style="color:#595959">ESTIMATE — Valid 30 days from issue</div>';
+    statusLine='<div class="rc-st" style="color:#595959">ESTIMATE'+(estDays()>0?(' — Valid '+estDays()+' days from issue'):'')+'</div>';
   }
 
   const isContracting = r.nastf && r.nastf.type==="Contracting D1";
@@ -1643,6 +1647,59 @@ function renderReceiptCard(r){
    Android: SMS/Gmail/WhatsApp/etc.). Falls back to download + a hint
    message when the browser doesn't support sharing files.
    ========================================================== */
+/* 8z130 (owner, 2026-11-13: "fill in the blanks so all we have to do is hit send after we review it"): email a document
+   from Bittings itself. The share sheet (Outlook, Mail…) takes the PDF and the message but not who it goes to or the
+   subject, so this box holds all four, already filled in, and the server sends it with the PDF attached. */
+function sendDocument(r){
+  let sbx=null; try{ sbx=(cloudReady() && TKS._sb) ? TKS._sb() : null; }catch(e){}
+  if(!sbx || !sbx.functions || !sbx.functions.invoke){ shareDocument(r, "en", true); return; }   // demo / not signed in: the share sheet as before
+  let pdf; try{ pdf=makePDF(r, "en", true, true); }catch(err){ appAlert("Couldn't build PDF", (err&&err.message)||"Unknown error"); return; }
+  if(!pdf || !pdf.blob){ appAlert("Couldn't build PDF", "Try the PDF button instead."); return; }
+  const est=(r.docType==="estimate"), label=docLabel(r.docType), shop=(SETTINGS&&SETTINGS.name)||"";
+  const old=document.getElementById("sendDocOv"); if(old) old.remove();
+  const ov=document.createElement("div"); ov.id="sendDocOv";
+  ov.style.cssText="position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:14px";
+  ov.innerHTML='<div class="modal-box" style="width:100%;max-width:520px;max-height:92vh;overflow:auto;text-align:left">'+
+    '<div class="mtitle">✉ Email this '+escapeHtml(String(label).toLowerCase())+'</div>'+
+    '<label class="qi-l" for="sdTo">To</label><input id="sdTo" class="qi-i" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="customer@email.com">'+
+    '<label class="qi-l" for="sdSub">Subject</label><input id="sdSub" class="qi-i" type="text" maxlength="200">'+
+    '<label class="qi-l" for="sdMsg">Message</label><textarea id="sdMsg" class="qi-i" rows="7"></textarea>'+
+    '<div id="sdAtt" style="font-size:13px;margin:10px 0 2px"></div>'+
+    '<div id="sdErr" role="alert" style="font-size:13px;color:#c8323c;min-height:18px;margin-top:6px"></div>'+
+    '<div class="mbtns" style="margin-top:8px"><button type="button" class="mbtn-no" id="sdCancel">Cancel</button><button type="button" class="mbtn-no" id="sdOther">Share another way</button><button type="button" class="mbtn-yes" id="sdGo">Send email</button></div></div>';
+  document.body.appendChild(ov);
+  const $s=id=>ov.querySelector("#"+id), close=()=>ov.remove();
+  $s("sdTo").value=String(r.email||"").trim();
+  $s("sdSub").value=est ? estSubject(r) : (label+" "+(r.number||"")+(shop?(" from "+shop):""));
+  $s("sdMsg").value=est ? estMessage(r) : ("Thank you for your business. Your "+String(label).toLowerCase()+" "+(r.number||"")+" is attached."+(SETTINGS&&SETTINGS.phone?(" If you have any questions, call us at "+SETTINGS.phone+"."):"")+(shop?("\n\n"+shop):""));
+  $s("sdAtt").textContent="📎 "+pdf.filename+" · "+Math.max(1, Math.round(pdf.blob.size/1024))+" KB — attached";
+  $s("sdCancel").onclick=close;
+  $s("sdOther").onclick=()=>{ close(); shareDocument(r, "en", true); };
+  setTimeout(()=>{ try{ ($s("sdTo").value ? $s("sdGo") : $s("sdTo")).focus(); }catch(e){} }, 60);
+  $s("sdGo").onclick=()=>{
+    const to=$s("sdTo").value.trim(), subject=$s("sdSub").value.trim(), message=$s("sdMsg").value, err=$s("sdErr"), go=$s("sdGo");
+    if(!/^[^\s@<>"',;:]+@[^\s@<>"',;:]+\.[^\s@<>"',;:]{2,}$/.test(to)){ err.textContent="Type the customer's email address."; $s("sdTo").focus(); return; }
+    if(!subject){ err.textContent="Add a subject."; $s("sdSub").focus(); return; }
+    if(!message.trim()){ err.textContent="Add a message."; $s("sdMsg").focus(); return; }
+    go.disabled=true; go.textContent="Sending…"; err.textContent="";
+    const fail=(m)=>{ go.disabled=false; go.textContent="Send email"; err.textContent=m; };
+    const fr=new FileReader();
+    fr.onerror=()=>fail("Could not read the PDF — try again.");
+    fr.onload=()=>{ const b64=String(fr.result||"").replace(/^data:[^,]*,/, "");
+      Promise.resolve(sbx.functions.invoke("send-document", { body:{ to:to, subject:subject, message:message, filename:pdf.filename, pdfBase64:b64, receiptId:r.id||"", docType:r.docType||"receipt" } })).then(async res=>{
+        if(res && res.error){ let j=null; try{ j=await res.error.context.json(); }catch(e){}
+          if(j && j.error==="not_configured"){ close(); appAlert("Email from Bittings is not switched on yet", "Opening the usual share screen instead.").then(()=>shareDocument(r, "en", true)); return; }
+          fail((j && (j.message||j.error)) || (res.error.message||"The email did not go out — try again.")); return; }
+        if(!(res && res.data && res.data.ok)){ fail("The email did not go out — try again."); return; }
+        // remember it on the document: who it went to and when (and the address, if it was typed here)
+        try{ const live=getHistory(), rec=live.find(x=>x && (x.id===r.id || x.number===r.number)) || r; rec.sentTo=to; rec.sentAt=Date.now(); if(!String(rec.email||"").trim()) rec.email=to; r.sentTo=to; r.sentAt=rec.sentAt; if(!String(r.email||"").trim()) r.email=to; saveHistory(live); }catch(e){}
+        close(); try{ toastMsg("✉ Emailed to "+to); }catch(e){} try{ if(document.querySelector(".res-actions")) resultNote("✉ Emailed to "+to+" just now."); }catch(e){}
+        try{ if(document.getElementById("histPanel").classList.contains("open")) renderHistList(); }catch(e){}
+      }, ()=>fail("No connection — the email did not go out."));
+    };
+    fr.readAsDataURL(pdf.blob);
+  };
+}
 function shareDocument(r, lang, forCustomer){
   lang = lang || "en";
   // Spanish is always customer-facing
@@ -1664,7 +1721,7 @@ function shareDocument(r, lang, forCustomer){
   const shareData = {
     files: [file],
     title: (r.docType==="estimate") ? estSubject(r) : (docLabelText + " " + r.number),
-    text: (r.docType==="estimate" && estTerms()) ? estTerms().message : (docLabelText + " from " + (SETTINGS.name || "your locksmith") +
+    text: (r.docType==="estimate" && estTerms()) ? estMessage(r) : (docLabelText + " from " + (SETTINGS.name || "your locksmith") +
           (cust ? " for " + cust : ""))
   };
   // Feature detection: not all browsers support sharing files. Test with
@@ -1699,7 +1756,7 @@ function shareDocument(r, lang, forCustomer){
     setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
     if(r.docType==="estimate"){   // 8z124: this computer cannot hand a file to the mail program — open a ready-made email instead
       const T=estTerms(), to=String(r.email||"").trim();
-      try{ const a2=document.createElement("a"); a2.href="mailto:"+encodeURIComponent(to)+"?subject="+encodeURIComponent(estSubject(r))+"&body="+encodeURIComponent((T?T.message:"")+"\n\n"); a2.style.display="none"; document.body.appendChild(a2); a2.click(); document.body.removeChild(a2); }catch(e){}
+      try{ const a2=document.createElement("a"); a2.href="mailto:"+encodeURIComponent(to)+"?subject="+encodeURIComponent(estSubject(r))+"&body="+encodeURIComponent(estMessage(r)+"\n\n"); a2.style.display="none"; document.body.appendChild(a2); a2.click(); document.body.removeChild(a2); }catch(e){}
       appAlert("Estimate saved as a PDF", "The PDF is in your Downloads. An email has been started"+(to?(" to "+to):"")+" with the subject and message filled in — attach the PDF and send. (To text it instead, attach the PDF to a message.)");
     } else
     appAlert("Share not supported here",
@@ -1750,7 +1807,7 @@ function makePDF(r, lang, forCustomer){
   doc.text(numLbl+": "+r.number, 572, 90, {align:"right"});
   doc.text(tr("Date",lang)+": "+r.date, 572, 103, {align:"right"});
   const subline = r.docType==="invoice" ? tr("Due upon receipt",lang)
-                : r.docType==="estimate" ? tr("Valid for 30 days",lang) : "";
+                : r.docType==="estimate" ? estValid(lang) : "";
   if(subline){ doc.text(subline, 572, 116, {align:"right"}); }
 
   // ---- BILL TO ----
@@ -2054,7 +2111,7 @@ function renderHistList(){
                 (type==="estimate" ? '' : '<button data-cap="editPricing" data-act="edit" data-num="'+dn+'">Edit</button>');   // edit invoice = manager/owner
     if(type==="invoice") actions += '<button data-act="paid" data-num="'+dn+'">Mark Paid</button>';
     if(type==="estimate") actions += '<button data-act="toinv" data-num="'+dn+'">→ Invoice</button>';
-    const tags=[ (Array.isArray(r.moreVehicles)&&r.moreVehicles.length)?("🚗 "+(r.moreVehicles.length+1)+" vehicles"):"", r.serviceWhere==="shop"?"🏪 In shop":(r.serviceWhere==="mobile"?"🚐 Mobile":""), r.taxExempt?"🏛 Tax exempt":"",
+    const tags=[ (r.sentTo && r.sentAt)?("✉ Emailed "+new Date(r.sentAt).toLocaleDateString([], {month:"short",day:"numeric"})+" to "+r.sentTo):"", (Array.isArray(r.moreVehicles)&&r.moreVehicles.length)?("🚗 "+(r.moreVehicles.length+1)+" vehicles"):"", r.serviceWhere==="shop"?"🏪 In shop":(r.serviceWhere==="mobile"?"🚐 Mobile":""), r.taxExempt?"🏛 Tax exempt":"",
       bk?("📅 On the schedule"+(bk.date?(" "+bk.date):"")+(bk.time?(" "+bk.time):"")):"" ].filter(Boolean).join(" · ");
     actions += '<button data-cap="hardDelete" data-act="del" data-num="'+dn+'">Delete</button>';   // invoice hard-delete = owner only (hidden for others by access.js)
     div.innerHTML=
@@ -2089,7 +2146,7 @@ function histAction(act, r, b, done, cancel){
   done=done||function(){}; cancel=cancel||function(){};
       if(!r.totals){ r.totals=computeTotals(r.items||[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}], r.payment, receiptTaxRate(r)); }
       if(!r.items) r.items=[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}];
-      if(act==="share") shareDocument(r, "en", true);
+      if(act==="share") sendDocument(r);
       else if(act==="sched"){ closeHist(); estimateToJob(r); }   // 8z78
       else if(act==="print") printPaper(r, b, true);   // 8z80: a reprint never opens the cash drawer
       else if(act==="pdf") makePDF(r, "en");

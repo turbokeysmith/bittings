@@ -82,7 +82,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     const j1 = jobs[jobs.length - 1] || {}; const txt = (j1.lines || []).map(l => l.text).join('\n');
     check('with the printer helper it prints the receipt — even though "thermal" was never switched on in Hardware settings', r.enabled === false && jobs.length === 1 && (j1.lines || []).length > 10, { enabled: r.enabled, jobs: jobs.length });
     check('the paper receipt has the shop, number, customer, vehicle, items, EXEMPT tax, total, how it was paid and the exemption',
-      /1 Test Shop Rd/.test(txt) && (j1.logo ? !/^TEST Shop$/m.test(txt) : /TEST Shop/.test(txt)) /* 8z97: no name under the logo */ && /Receipt: TKS-TEST-0001/.test(txt) && /Customer: TEST Pat Customer/.test(txt) && /Vehicle: 2015 Ford F-150/.test(txt) && /VIN: 1FTEW1EG0FFA00001/.test(txt) && /Service: In shop/.test(txt) &&
+      /1 Test Shop Rd/.test(txt) && (j1.logo ? !/^TEST Shop$/m.test(txt) : /TEST Shop/.test(txt)) /* 8z97: no name under the logo */ && /^Receipt\s+\S/m.test(txt) && !/Receipt: /.test(txt) && /Thank you![\s\S]*# TKS-TEST-0001/.test(txt) && /Customer: TEST Pat Customer/.test(txt) && /Vehicle: 2015 Ford F-150/.test(txt) && /VIN: 1FTEW1EG0FFA00001/.test(txt) && /Service: In shop/.test(txt) &&
       /TEST Smart key\s+\$200\.00/.test(txt) && /TEST Programming\s+\$125\.00/.test(txt) && /Tax\s+EXEMPT/.test(txt) && /TOTAL\s+\$325\.00/.test(txt) && /Paid by\s+Card/.test(txt) && /Status\s+Paid in Full/.test(txt) &&
       /Tax exempt: 100% disabled veteran - EXM-55555 - TEST Pat Customer/.test(txt.replace(/\n/g, ' ')) && /Note: TEST note for the customer/.test(txt), txt);
     check('a card receipt does not open the cash drawer', j1.drawer === false, j1.drawer);
@@ -94,7 +94,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     check('a cash receipt paid just now prints with tax and opens the drawer', jobs.length === 2 && /Tax \(8\.625%\)\s+\$17\.25/.test(t2) && /TOTAL\s+\$342\.25/.test(t2) && /Paid by\s+Cash/.test(t2) && j2.drawer === true, { drawer: j2.drawer, t2: t2.slice(0, 400) });
     await show('r3'); await clickPrint(); await sleep(900);
     const j3 = jobs[jobs.length - 1] || {}; const t3 = (j3.lines || []).map(l => l.text).join('\n');
-    check('an estimate prints as an estimate (no "Paid by"), drawer stays shut', jobs.length === 3 && /Estimate: EST-TEST-0003/.test(t3) && /ESTIMATE - valid 30 days/.test(t3) && !/Paid by/.test(t3) && j3.drawer === false, t3.slice(0, 500));
+    check('an estimate prints as an estimate (no "Paid by"), drawer stays shut', jobs.length === 3 && /^Estimate\s+\S/m.test(t3) && /# EST-TEST-0003/.test(t3) && /ESTIMATE - valid 7 days/.test(t3) && !/Paid by/.test(t3) && j3.drawer === false, t3.slice(0, 500));
 
     // ---- History: reprint ----
     await pg.evaluate(() => { openHist(); }); await sleep(400);
@@ -122,12 +122,12 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     const before = jobs.length;
     await pg.evaluate(() => { const it = Array.from(document.querySelectorAll('#rcList .ro-item')).find(x => /TKS-TEST-0001/.test(x.innerText)); it.querySelector('[data-act="print"]').click(); }); await sleep(1200);
     const j5 = jobs[jobs.length - 1] || {}; const t5 = (j5.lines || []).map(l => l.text).join('\n');
-    check('Receipts tab: Print on a row goes to the receipt printer (not a PDF), with the logo, drawer shut', jobs.length === before + 1 && /Receipt: TKS-TEST-0001/.test(t5) && /Tax\s+EXEMPT/.test(t5) && /Vehicle: 2015 Ford F-150/.test(t5) && !!j5.logo && j5.drawer === false, { jobs: jobs.length - before, drawer: j5.drawer, logo: !!j5.logo, t5: t5.slice(0, 300) });
+    check('Receipts tab: Print on a row goes to the receipt printer (not a PDF), with the logo, drawer shut', jobs.length === before + 1 && /# TKS-TEST-0001/.test(t5) && /Tax\s+EXEMPT/.test(t5) && /Vehicle: 2015 Ford F-150/.test(t5) && !!j5.logo && j5.drawer === false, { jobs: jobs.length - before, drawer: j5.drawer, logo: !!j5.logo, t5: t5.slice(0, 300) });
     await pg.evaluate(() => { const it = Array.from(document.querySelectorAll('#rcList .ro-item')).find(x => /TKS-TEST-0002/.test(x.innerText)); it.querySelector('[data-act="view"]').click(); }); await sleep(700);
     r = await pg.evaluate(() => { const v = document.getElementById('rcViewer'); return v ? v.innerText.replace(/\s+/g, ' ').slice(0, 200) : null; });
     await pg.evaluate(() => document.getElementById('rcvPrint').click()); await sleep(1200);
     const j6 = jobs[jobs.length - 1] || {}; const t6 = (j6.lines || []).map(l => l.text).join('\n');
-    check('Receipts tab: Print inside the opened receipt goes to the receipt printer too; a cash reprint keeps the drawer shut', jobs.length === before + 2 && /Receipt: TKS-TEST-0002/.test(t6) && /Paid by\s+Cash/.test(t6) && j6.drawer === false, { jobs: jobs.length - before, drawer: j6.drawer });
+    check('Receipts tab: Print inside the opened receipt goes to the receipt printer too; a cash reprint keeps the drawer shut', jobs.length === before + 2 && /# TKS-TEST-0002/.test(t6) && /Paid by\s+Cash/.test(t6) && j6.drawer === false, { jobs: jobs.length - before, drawer: j6.drawer });
     await pg.evaluate(() => { const it = Array.from(document.querySelectorAll('#rcList .ro-item')).find(x => /TKS-TEST-0001/.test(x.innerText)); it.querySelector('[data-act="view"]').click(); }); await sleep(700);
     r = await pg.evaluate(() => (document.getElementById('rcvDoc') || document.getElementById('rcViewer')).innerText.replace(/\s+/g, ' '));
     check('Receipts tab: the opened tax-exempt receipt shows EXEMPT, the exemption and In shop', /Sales Tax EXEMPT/.test(r) && /TAX EXEMPT — 100% disabled veteran/.test(r) && /Service: In shop/.test(r), r.slice(0, 700));

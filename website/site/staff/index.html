@@ -3269,7 +3269,7 @@ function renderInventory(){
     if(lbl) lbl.onclick=(e)=>{ e.stopPropagation(); const part=TKS.Inventory.get(p.id)||p;
       const qty=parseInt(p.qty,10)||0;
       TKS_HW.labels.openPrintDialog(part,{ inStock:qty, fetchUnits:async()=>{
-        try{ if(!(TKS.auth && TKS.auth.isSignedIn()) || !part.serialized) return []; const sb=TKS._sb&&TKS._sb(); if(!sb) return [];
+        try{ if(!(TKS.auth && TKS.auth.isSignedIn())) return []; const sb=TKS._sb&&TKS._sb(); if(!sb) return [];   // 8z131: always ask — this device's copy of "serial-numbered" can be behind the server's
           const r=await sb.from('inventory_units').select('id,serial,status,location,acquired_at').eq('item_id',part.id).eq('status','in_stock').order('acquired_at',{ascending:false}).limit(200);
           return r.data||[]; }catch(_){ return []; } } }); };
     const wb=row.querySelector('[data-warr]'); if(wb) wb.onclick=(e)=>{ e.stopPropagation(); window.invWarranty && window.invWarranty(p.id, p.name||''); };
@@ -4957,7 +4957,9 @@ function posCheckoutThen(method, tender){   // tender (8z94) = { tenderedCents, 
     const cust=chgCustomer||{};
     const d1Sale = posNastf ? { id:rid, number:rid, customer:cust.customer||'', nastf:{ type:posNastf }, vehicle:Object.assign({}, posVeh) } : null;   // 8z90: kept for the photo box (the ticket clears after the sale)
     const stub={ id:rid, number:rid, customer:cust.customer||'', email:cust.email||'', totals:{ total:t.totalCents/100, surcharge:0 } };
+    let doneOnce=false;   // 8z128: one sale → this runs once, however many times "paid" is reported
     const done=(j)=>{
+      if(doneOnce) return; doneOnce=true;
       posSetBusy(false);
       // What was ACTUALLY charged comes back from the server (pay-status / pay-record):
       // captured_cents includes the 2% credit surcharge when it applied. Use it for the printed
@@ -7305,7 +7307,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
           return '<div class="panel" style="margin-top:16px;padding:12px 14px"><label style="margin-top:0">Estimates</label>'+
             '<label style="margin-top:8px">An estimate is good for how many days?</label><input id="f_estDays" type="number" inputmode="numeric" min="0" max="365" step="1" value="'+esc(String(T.days))+'" style="max-width:120px"><div class="hint">0 = print no such line.</div>'+
             '<label style="margin-top:10px">Line printed at the bottom of every estimate</label><textarea id="f_estDisc" rows="3" style="width:100%">'+esc(T.rawDisclaimer)+'</textarea><div class="hint"><b>{days}</b> becomes the number above.</div>'+
-            '<label style="margin-top:10px">Message that goes out with an estimate</label><textarea id="f_estMsg" rows="3" style="width:100%">'+esc(T.rawMessage)+'</textarea><div class="hint"><b>{shop}</b> and <b>{phone}</b> are filled in from Business identity.</div></div>'; })();
+            '<label style="margin-top:10px">Message that goes out with an estimate</label><textarea id="f_estMsg" rows="3" style="width:100%">'+esc(T.rawMessage)+'</textarea><div class="hint"><b>{for service}</b> and <b>{for vehicle}</b> become “ for your All keys lost service” and “ for your 2006 Toyota Prius” (left out when the estimate has none). <b>{shop}</b> and <b>{phone}</b> come from Business identity.</div></div>'; })();
       renderHoursEditor('hoursEd','hours');
       renderHoursEditor('svcHoursEd','serviceHours');
     }

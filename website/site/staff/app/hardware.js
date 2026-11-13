@@ -130,6 +130,16 @@
       if (L.size === 'tall') L.size = 'large';
       if (Array.isArray(L.sizesOn)) L.sizesOn = L.sizesOn.map(function (id) { return id === 'tall' ? 'large' : id; }).filter(function (id, i, a) { return a.indexOf(id) === i; });
     }
+    if (!L.unitUnderSku) {   // 8z132 (owner: "move the serial number to be right underneath the SKU"): drop older hand-placed serial positions, once
+      try { Object.keys(L.tweaks || {}).forEach(function (k) { if (L.tweaks[k] && L.tweaks[k].unit) delete L.tweaks[k].unit; }); } catch (e) {}
+      L.unitUnderSku = 1;
+    }
+    if (!L.footGroup) {   // 8z133 (owner: "lock the type, SKU and serial number in these spots"): the group starts in its standard place, once
+      try { Object.keys(L.tweaks || {}).forEach(function (k) { var id = k.split(':')[0], sp = null; LABEL_SIZES.forEach(function (q) { if (q.id === id) sp = q; });
+        var tall = sp ? (id === 'custom' ? (parseFloat(L.customH) || 1.5) : sp.hIn) : 0;
+        if (tall >= 1.75 && !/:bin$/.test(k) && L.tweaks[k]) { delete L.tweaks[k].sku; delete L.tweaks[k].unit; } }); } catch (e) {}
+      L.footGroup = 1;
+    }
     L.sizesOn = (Array.isArray(L.sizesOn) ? L.sizesOn : []).filter(validSize);
     if (L.sizesOn.indexOf(L.size) < 0) L.sizesOn.push(L.size);
     L.sizesOn = LABEL_SIZES.map(function (s) { return s.id; }).filter(function (id) { return L.sizesOn.indexOf(id) >= 0; });
@@ -357,8 +367,7 @@
       var date = r.date || (new Date()).toISOString().slice(0, 10);
       // 8z80: documents from the Receipts screen print here too — say what it is, and carry the vehicle
       var docWord = r.docType === 'invoice' ? 'Invoice' : (r.docType === 'estimate' ? 'Estimate' : 'Receipt');
-      if ((docWord + ': ' + num).length + String(date).length + 1 > w) { line(docWord + ': ' + num); line(String(date)); }
-      else line(row(docWord + ': ' + num, date, w));
+      line(row(docWord, String(date), w));   // 8z128 (owner): the number is only at the foot, under "Thank you!"
       if (r.customer) line(row('Customer: ' + r.customer, '', w));
       if (r.vehicleText) wrap('Vehicle: ' + r.vehicleText, w).forEach(function (l) { line(l); });
       if (r.vin) line('VIN: ' + r.vin);
@@ -391,7 +400,8 @@
       if (t.surcharge) line(row('Card surcharge', money(t.surcharge), w));
       // 8z26d: the big TOTAL prints ~1.7x wider, so it gets its own narrower row (amount was cut off)
       line(row('TOTAL', money(t.total != null ? t.total : sub), Math.floor(w / 1.75)), 'left', true, true);
-      if (r.docType === 'estimate') { T.push({ t: 'rule' }); line('ESTIMATE - valid 30 days', 'center'); }
+      if (r.docType === 'estimate') { var ed = 7; try { ed = TKS.Config.estimateTerms().days; } catch (e) {}   // 8z129: the shop's own number of days (Settings → Hours & footer)
+        T.push({ t: 'rule' }); line(ed > 0 ? ('ESTIMATE - valid ' + ed + ' days') : 'ESTIMATE', 'center'); }
       else {
         if (r.payment) { T.push({ t: 'rule' }); line(row(r.docType === 'invoice' ? 'Payment' : 'Paid by', r.payment, w)); }
         if (r.status) line(row('Status', r.status, w));
@@ -656,6 +666,7 @@
     /* 8z107: blocks. Each piece of a label belongs to one block; a saved tweak {dx, dy (1/100 in), s (size), hide}
        moves / resizes / hides that block. A block can never leave the label. */
     var BLOCKS = ['logo', 'name', 'qr', 'unit', 'price', 'details', 'sku'], BLOCK_NAME = { logo: 'Logo', name: 'Name', qr: 'QR code', unit: 'Serial number', price: 'Price', details: 'Details', sku: 'SKU' };
+    function blkName(b, la) { return (b === 'sku' && la && la.tier === 3) ? (la.els.some(function (e) { return e.t === 'text' && /^SN: /.test(e.text); }) ? 'Type + SKU + Serial' : 'Type + SKU') : BLOCK_NAME[b]; }   // 8z133
     function blockOf(e, ctx) {
       if (e.blk) return e.blk;
       if (e.t === 'qr') return 'qr'; if (e.t === 'logo') return 'logo'; if (e.t === 'line') return 'sku';
@@ -676,12 +687,12 @@
     }
     function listBox(list) { var b = [1e9, 1e9, -1e9, -1e9]; list.forEach(function (e) { var q = elBox(e); b[0] = Math.min(b[0], q[0]); b[1] = Math.min(b[1], q[1]); b[2] = Math.max(b[2], q[2]); b[3] = Math.max(b[3], q[3]); }); return b; }
     function applyTweaks(els, tw, dpi, W, H, ctx) {
-      var blocks = {}, keep = [], qrDelta = null;
+      var blocks = {}, keep = [], qrDelta = null, skuDelta = null;
       els.forEach(function (e) { e.b = blockOf(e, ctx); });
-      BLOCKS.concat(['bin']).forEach(function (b) {
+      ['logo', 'name', 'qr', 'price', 'details', 'sku', 'unit', 'bin'].forEach(function (b) {   // the SKU before the serial number, which sits under it
         var list = els.filter(function (e) { return e.b === b; }); if (!list.length) return;
         // 8z114: the serial number is its own block; until it has been moved itself it keeps following the QR code
-        var t = (tw && tw[b]) || null, follow = (!t && b === 'unit') ? qrDelta : null;
+        var t = (tw && tw[b]) || null, follow = (!t && b === 'unit') ? (list.some(function (e) { return e.under === 'sku'; }) ? skuDelta : qrDelta) : null;
         if (t && t.hide) { blocks[b] = { hidden: true }; return; }
         var sc = t ? Number(t.s) || 1 : 1; sc = Math.max(0.5, Math.min(2.5, sc));
         var bb = listBox(list);
@@ -702,10 +713,38 @@
                  dy = Math.max(-bb[1], Math.min(dy, H - bb[3])); if (bb[3] - bb[1] > H) dy = -bb[1]; dx = Math.round(dx); dy = Math.round(dy); }
         if (dx || dy) list.forEach(function (e) { e.x += dx; e.y += dy; });
         if (b === 'qr' && t) qrDelta = { dx: dx, dy: dy };
+        if (b === 'sku' && t) skuDelta = { dx: dx, dy: dy };
         bb = listBox(list);
         blocks[b] = { x: Math.round(bb[0]), y: Math.round(bb[1]), w: Math.round(bb[2] - bb[0]), h: Math.round(bb[3] - bb[1]), dx: dx, dy: dy, s: sc };
         keep = keep.concat(list);
       });
+      // 8z131: the details never run into the SKU line — they give up their last lines until they end above it
+      try {
+        var sk = blocks.sku, dt = blocks.details;
+        if (sk && !sk.hidden && dt && !dt.hidden && dt.y < sk.y + sk.h) {   /* 8z133b: also when they start ON the group */
+          var dl = keep.filter(function (e) { return e.b === 'details' && e.t === 'text'; }).sort(function (a, b) { return a.y - b.y; }), lim = sk.y - 4, guard = 0;
+          var bot = function () { var m = -1e9; dl.forEach(function (e) { m = Math.max(m, e.y + (e.rows || ['']).length * e.font); }); return m; };
+          // what goes first: Chip (unless it leads — a transponder), then Fits lines, then Fits, then Type; the FCC ID stays to the end
+          var kindOf = function (e) { var r0 = String((e.rows || [''])[0]); return /^Fits:/.test(r0) ? 'fits' : /^FCC/.test(r0) ? 'fcc' : /^Chip:/.test(r0) ? 'chip' : /^Type:/.test(r0) ? 'type' : 'other'; };
+          var closeUp = function (i, by) { for (var q = i; q < dl.length; q++) dl[q].y -= by; };
+          var dropEl = function (e) { var i = dl.indexOf(e), by = (i + 1 < dl.length) ? (dl[i + 1].y - e.y) : 0; dl.splice(i, 1); keep.splice(keep.indexOf(e), 1); if (by > 0) closeUp(i, by); };
+          while (dl.length && bot() > lim && guard++ < 30) {
+            var chipE = dl.filter(function (e) { return kindOf(e) === 'chip'; })[0], fitsE = dl.filter(function (e) { return kindOf(e) === 'fits'; })[0], typeE = dl.filter(function (e) { return kindOf(e) === 'type'; })[0];
+            if (chipE && dl.indexOf(chipE) > 0) { dropEl(chipE); continue; }
+            if (fitsE && fitsE.rows.length > 1) { var fi = dl.indexOf(fitsE); fitsE.rows = fitsE.rows.slice(0, -1); var li = fitsE.rows.length - 1;
+              if (!/(\.\.\.|…)$/.test(fitsE.rows[li])) fitsE.rows[li] = fitsE.rows[li].replace(/[\s,]+$/, '') + ' …';
+              fitsE.text = fitsE.rows.join(' '); fitsE.lines = fitsE.rows.length; closeUp(fi + 1, fitsE.font); continue; }
+            if (fitsE && dl.length > 1) { dropEl(fitsE); continue; }
+            if (typeE && dl.length > 1) { dropEl(typeE); continue; }
+            if (dl.length > 1) { dropEl(dl[dl.length - 1]); continue; }
+            break;
+          }
+          if (dl.length && bot() > lim) { var topY = 1e9; dl.forEach(function (e) { topY = Math.min(topY, e.y); }); var lift = Math.min(bot() - lim, Math.max(0, topY)); dl.forEach(function (e) { e.y -= lift; }); }   /* 8z133b: what is left sits above the group, never on it */
+          keep = keep.filter(function (e) { return !(e.b === 'details' && e.t === 'line'); }).concat(keep.filter(function (e) { return e.b === 'details' && e.t === 'line'; }));
+          if (dl.length) { var nb = listBox(dl); blocks.details.x = Math.round(nb[0]); blocks.details.y = Math.round(nb[1]); blocks.details.w = Math.round(nb[2] - nb[0]); blocks.details.h = Math.round(nb[3] - nb[1]); }
+          else blocks.details = { hidden: true, crowded: true };
+        }
+      } catch (e) {}
       return { els: els.filter(function (e) { return keep.indexOf(e) >= 0; }), blocks: blocks };
     }
 
@@ -714,7 +753,7 @@
       if ((opt && opt.fits === false) || (!(opt && opt.fits === true) && prefs.labels.fits === false)) return null;   // switched off
       var list = String(part.fitment || '').split(/[\r\n;]+/).map(function (t) { return t.trim(); }).filter(Boolean);
       if (!list.length) return '';
-      return z(list.slice(0, 5).join(', ')) + (list.length > 5 ? ' … +' + (list.length - 5) + ' more' : '');
+      return z(list.slice(0, 3).join(', ')) + (list.length > 3 ? ' … +' + (list.length - 3) + ' more' : '');   // 8z132: three, not five
     }
 
     function layoutFor(part, unit, sizeId, opt) {
@@ -728,8 +767,9 @@
       // 8z104: a turned label is laid out on the turned shape (and printed as one picture, see toZPL)
       var turned = (opt.turned != null) ? !!opt.turned : (opt.widthIn ? false : isTurned(sp.id, opt.orient)), rollShift = 0;
       if (turned) { var tsw = wIn; wIn = hIn; hIn = tsw; PW = Math.round(wIn * dpi); LL = Math.round(hIn * dpi) - shift; rollShift = shift; shift = 0; }
-      var fullW = PW - shift - 2 * m;
       var tier = (hIn <= 1.1 && wIn <= 2.5) ? 1 : (hIn >= 1.75 ? 3 : 2);
+      if (tier === 3) m = Math.round(0.10 * dpi);   // 8z132c: a small white border on big labels (nothing sits against the edge)
+      var fullW = PW - shift - 2 * m;
       var sku = z(part.sku || part.id || ''), name = z(part.name || '');
       var price = (part.sellPriceCents != null && part.sellPriceCents !== '') ? '$' + (Number(part.sellPriceCents) / 100).toFixed(2) : '';
       var code = unit ? z(unit.serial || unit.id || '') : sku;
@@ -799,18 +839,21 @@
         var nLen = function (e) { return e.rows.join(' ').replace(/\.\.\.$/, '').length; };
         var build3 = function (k, g) {
           g = g || 0;   // g = extra dots between the lines (the leftover white space, shared out)
-          var out = [], gaps = 0, sFont = Math.round(Math.min(0.2, hIn * 0.1) * dpi * Math.min(k, 2) * (tsz === 'l' ? 1 : 0.85)), sY = LL - m - sFont, ruleY = sY - 8, limit = ruleY - 4;
+          var out = [], gaps = 0, sFont = Math.round(Math.min(0.2, hIn * 0.1) * dpi * Math.min(k, 2) * (tsz === 'l' ? 1 : 0.85));
+          var snF = unit ? Math.max(14, Math.round(sFont * 0.5)) : 0, snH = unit ? snF + 4 : 0;   // 8z132: the serial number goes right under the SKU, small
+          var sY = LL - m - sFont - snH, ruleY = sY - 8, footTop = ruleY - 4;
           var small = Math.round(0.085 * dpi * k), lh = Math.round(small * 1.2), uf = Math.round(0.1 * dpi * k);
-          var unitLines = unit ? 1 + (unit.acquired_at ? 1 : 0) : 0, unitH = unit ? unitLines * (uf + 4) + 4 : 0;
+          var typeY = footTop - lh, limit = typeTxt ? typeY - 2 : footTop;   // 8z133: the Type line sits just above the rule, as part of the SKU group; the details end above it
+          var unitH = 0;   // nothing is reserved under the QR code any more (8z132)
           var nFont1 = Math.round(Math.min(0.13, hIn * 0.065) * dpi), nFont = Math.round(nFont1 * k), pFont = Math.round(Math.min(0.24, hIn * 0.12) * dpi * k);
           // a long name holds its own size back, not the whole label's
           var fitName = function (x0, w0) { var e = textEl(x0, top, w0, nFont, 3, name, 'L');
             if (k > 1) { var need = nLen(textEl(x0, top, w0, nFont1, 3, name, 'L')); while (nFont > nFont1 && nLen(e) < need) { nFont = Math.max(nFont1, nFont - 2); e = textEl(x0, top, w0, nFont, 3, name, 'L'); } }
             return e; };
-          var unitEls = function (uy, snW) { if (!unit) return;
-            var snT = unit.serial ? 'SN: ' + code : code, rcT = unit.acquired_at ? 'Received: ' + fmtDate(unit.acquired_at) : '', fitW = function (t, f) { return Math.max(12, Math.min(f, Math.floor(snW / (t.length * 0.56)))); };
-            out.push(textEl(m, uy, snW, fitW(snT, uf), 1, snT, 'L', { raw: 1 }));
-            if (rcT) out.push(textEl(m, uy + uf + 4, snW, fitW(rcT, small), 1, rcT, 'L', { raw: 1 })); };
+          var unitEls = function () { if (!unit) return;   // one small line under the SKU: "SN: K7Q2M9X · Received: 2026-11-13" (the date is left off when it does not fit)
+            var snT = unit.serial ? 'SN: ' + code : code, rcT = unit.acquired_at ? '   Received: ' + fmtDate(unit.acquired_at) : '';
+            var one = (snT + rcT).length * 0.56 * snF <= fullW ? snT + rcT : snT, f = Math.max(12, Math.min(snF, Math.floor(fullW / (one.length * 0.56))));
+            out.push(textEl(m, sY + sFont + 2, fullW, f, 1, one, 'L', { raw: 1, blk: 'sku' })); };   /* 8z133: part of the SKU group */
           var y, nm3, qr3, qrBottom, priceW, dx, dw;
           if (stack) {
             // 8z104 tall label: name across the top, then the QR with the price beside it, then the details full width
@@ -820,14 +863,14 @@
             out.push({ t: 'qr', x: m, y: qrY, size: qr3, data: code, mag: unit ? 3 : 4 });
             var px3 = m + qr3 + Math.round(0.07 * dpi); priceW = Math.max(60, PW - shift - px3 - m);
             if (price) { pFont = Math.min(pFont, fitFont(price, priceW, pFont), qr3); out.push(textEl(px3, qrY + Math.round((qr3 - pFont) / 2), priceW, pFont, 1, price, 'L', { raw: 1 })); }
-            unitEls(qrY + qr3 + 4, fullW);
+            unitEls();
             qrBottom = qrY + qr3 + unitH; y = qrBottom + 8 + g; gaps++;
             dx = m; dw = fullW;
           } else {
-            qr3 = qrFor(Math.min(Math.round(0.45 * (LL - band) * Math.min(k, 1.25)), Math.round(0.45 * PW), Math.round(1.4 * dpi), limit - top - unitH));
-            var colW3 = unit ? Math.max(qr3, Math.round(1.0 * dpi)) : qr3;
+            qr3 = qrFor(Math.min(Math.round(0.45 * (LL - band) * Math.min(k, 1.25)), Math.round(0.45 * PW), Math.round(1.4 * dpi), footTop - top - unitH));   /* beside the text column: the QR may reach down to the rule */
+            var colW3 = qr3;
             out.push({ t: 'qr', x: m, y: top, size: qr3, data: code, mag: unit ? 3 : 4 });
-            unitEls(top + qr3 + 4, colW3);
+            unitEls();
             qrBottom = top + qr3 + unitH;
             var tx3 = m + colW3 + Math.round(0.05 * dpi); priceW = Math.max(60, PW - shift - tx3 - m);
             nm3 = fitName(tx3, priceW); out.push(nm3);
@@ -837,26 +880,30 @@
           }
           var cands = [], dropped = 0;   // in display order; "drop" = order they are given up when the label is full (1 first)
           var ft3 = fitsText(part, opt);   // null = the shop switched "Fits" off
-          if (ft3) cands.push({ key: 'fits', text: 'Fits: ' + ft3, n: 4, drop: 0.5 });   // up to 4 lines; it gives lines back first when the label is full
-          else if (ft3 === '') cands.push({ key: 'fits', text: 'Fits:', n: 1, drop: 4, blank: 1 });   // 8z104: not filled in → "Fits:" and room to write
-          if (part.fccId) cands.push({ key: 'fcc', text: 'FCC ID: ' + z(part.fccId), n: 1, drop: 3 });
-          if (part.chip) cands.push({ key: 'chip', text: 'Chip: ' + z(part.chip), n: 1, drop: 2 });
-          if (typeTxt) cands.push({ key: 'type', text: 'Type: ' + typeTxt, n: 1, drop: 1 });
+          /* 8z132: the FCC ID leads and is the last thing given up; a smart key prints no Chip line; a transponder key is
+             known by its chip, so there the Chip line leads instead. Shown in this order; given up in "drop" order (1 first). */
+          var isSmart = /^smart key$/i.test(cat), isTp = /^transponder$/i.test(cat);
+          if (isTp && part.chip) cands.push({ key: 'chip', text: 'Chip: ' + z(part.chip), n: 1, drop: 7 });
+          if (part.fccId) cands.push({ key: 'fcc', text: 'FCC ID: ' + z(part.fccId), n: 1, drop: 6 });
+          if (ft3) cands.push({ key: 'fits', text: 'Fits: ' + ft3, n: 3, drop: 0.5 });   // up to 3 lines; it gives lines back before anything else goes (except a smart key's chip)
+          else if (ft3 === '') cands.push({ key: 'fits', text: 'Fits:', n: 1, drop: 3, blank: 1 });   // 8z104: not filled in → "Fits:" and room to write
+          if (!isTp && part.chip) cands.push({ key: 'chip', text: 'Chip: ' + z(part.chip), n: 1, drop: isSmart ? 0.3 : 1 });   // 8z132b: on a smart key the chip prints only when there is room for everything else
           var rowsOf = function (c) { return wrapRows(c.text, dw, small, c.n).length + (c.blank ? 1 : 0); };
           var total = function () { return cands.reduce(function (s, c) { return s + rowsOf(c) * lh; }, 0) + Math.max(0, cands.length - 1) * g; };
           while (cands.length && y + total() > limit) {
             var low = null; cands.forEach(function (c) { if (!low || c.drop < low.drop) low = c; });
             dropped++;
-            if (low.key === 'fits' && low.n > 1 && !low.blank) { low.n--; low.drop = low.n > 2 ? 0.5 : (low.n === 2 ? 4 : 5); dropped--; } else cands.splice(cands.indexOf(low), 1);
+            if (low.key === 'fits' && low.n > 1 && !low.blank) { low.n--; low.drop = low.n > 2 ? 0.5 : (low.n === 2 ? 2 : 3); dropped--; } else cands.splice(cands.indexOf(low), 1);
           }
           var cut = 0;
           cands.forEach(function (c, ci) { if (ci) { y += g; gaps++; }
             var e = textEl(dx, y, dw, small, c.n, c.text, 'L'); out.push(e);
             if (c.blank) y += lh;   // 8z106: room to write, no lines (owner: "we need those removed")
             y += e.rows.length * lh; if (/\.\.\.$/.test(e.text)) cut++; });
+          if (typeTxt) out.push(textEl(dx, typeY, dw, small, 1, 'Type: ' + typeTxt, 'L', { blk: 'sku' }));   // 8z133: OEM / aftermarket always prints, locked to the SKU
           out.push({ t: 'line', x: m, y: ruleY, w: fullW });
           out.push(skuEl(sFont, sY));
-          return { els: out, ok: !dropped && y <= limit && qrBottom <= limit && (!price || price.length * pFont * 0.55 <= priceW),
+          return { els: out, ok: !dropped && y <= limit && qrBottom <= (stack ? limit : footTop) && (!price || price.length * pFont * 0.55 <= priceW),
             nameChars: nLen(nm3), cut: cut, yEnd: y, limit: limit, gaps: gaps, lh: lh };
         };
         var base3 = build3(1), best3 = base3, bestK = 1;
@@ -1008,15 +1055,15 @@
         var cb = la.blocks[sel]; if (cb && !cb.hidden && peek()[sel] && peek()[sel].ax != null) { var c0 = peek()[sel]; c0.ax = in100(cb.x, la.dpi); c0.ay = in100(cb.y, la.dpi); c0.s = Math.round(cb.s * 100) / 100; }
         var st = $('leStage'); st.style.width = Math.round(la.PW * scale) + 'px'; st.style.height = Math.round(la.fullLL * scale) + 'px';
         st.innerHTML = toSVG(la) + BLOCKS.map(function (b) { var q = la.blocks[b]; if (!q || q.hidden) return '';
-          return '<div data-blk="' + b + '" title="' + BLOCK_NAME[b] + '" style="position:absolute;left:' + Math.round(((la.shift || 0) + q.x) * scale - 3) + 'px;top:' + Math.round(q.y * scale - 3) + 'px;width:' + Math.round(q.w * scale + 6) + 'px;height:' + Math.max(14, Math.round(q.h * scale + 6)) + 'px;box-sizing:border-box;border-radius:5px;cursor:move;z-index:' + (b === sel ? 3 : 1) + ';border:2px ' + (b === sel ? 'solid #c8323c;background:rgba(200,50,60,.10)' : 'dashed rgba(47,111,237,.75)') + '">'
+          return '<div data-blk="' + b + '" title="' + blkName(b, la) + '" style="position:absolute;left:' + Math.round(((la.shift || 0) + q.x) * scale - 3) + 'px;top:' + Math.round(q.y * scale - 3) + 'px;width:' + Math.round(q.w * scale + 6) + 'px;height:' + Math.max(14, Math.round(q.h * scale + 6)) + 'px;box-sizing:border-box;border-radius:5px;cursor:move;z-index:' + (b === sel ? 3 : 1) + ';border:2px ' + (b === sel ? 'solid #c8323c;background:rgba(200,50,60,.10)' : 'dashed rgba(47,111,237,.75)') + '">'
             + (b === sel ? '<span data-handle="1" title="Drag to make it bigger or smaller" style="position:absolute;right:-13px;bottom:-13px;width:26px;height:26px;border-radius:50%;background:#c8323c;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);cursor:nwse-resize;touch-action:none"></span>' : '') + '</div>'; }).join('');
         $('leChips').innerHTML = BLOCKS.filter(function (b) { return la.blocks[b]; }).map(function (b) { var hid = la.blocks[b].hidden;
-          return '<button type="button" data-chip="' + b + '" aria-pressed="' + (b === sel) + '" style="' + B + ';font-size:14px' + (b === sel ? ';background:#c8323c;border-color:#c8323c;color:#fff' : '') + (hid ? ';opacity:.6;text-decoration:line-through' : '') + '">' + BLOCK_NAME[b] + '</button>'; }).join('');
+          return '<button type="button" data-chip="' + b + '" aria-pressed="' + (b === sel) + '" style="' + B + ';font-size:14px' + (b === sel ? ';background:#c8323c;border-color:#c8323c;color:#fff' : '') + (hid ? ';opacity:.6;text-decoration:line-through' : '') + '">' + blkName(b, la) + '</button>'; }).join('');
         var q = la.blocks[sel], t = peek()[sel], parts = [];
         if (q && q.hidden) parts.push('hidden — it will not print');
         else if (t) { var sc = Number(t.s) || 1;
           if (t.ax != null) parts.push('fixed ' + (Number(t.ax) / 100).toFixed(2) + ' in from the left, ' + ((Number(t.ay) || 0) / 100).toFixed(2) + ' in from the top'); if (sc !== 1) parts.push('size ' + Math.round(sc * 100) + '%'); }
-        $('leRead').innerHTML = '<b>' + BLOCK_NAME[sel] + '</b>: ' + (parts.length ? parts.join(' · ') : 'in its usual place');
+        $('leRead').innerHTML = '<b>' + blkName(sel, la) + '</b>: ' + (parts.length ? parts.join(' · ') : 'in its usual place');
         $('leHide').textContent = (q && q.hidden) ? 'Show' : 'Hide';
       }
       function act(a) {
