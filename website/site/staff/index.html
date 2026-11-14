@@ -1989,6 +1989,7 @@ window.tksDemoOn = function(){
 <script src="app/vendor/jspdf.umd.min.js"></script><!-- 8j: one local jsPDF for the app (was CDN here + a second copy inside receipts-engine.js); cloud-config.js is already loaded in <head> -->
 <!-- Shared data layer (localStorage today; flips to cloud via TKS.connectCloud) -->
 <script src="app/store.js"></script>
+<script src="app/form-sections.js"></script>
 <script src="app/access.js"></script>
 <!-- Shared Year/Make/Model dropdowns (same as the scheduler) — used by the desktop Register -->
 <script src="app/ymm.js"></script>
@@ -2514,7 +2515,7 @@ function openJobModal(b){
   try{ const sb=(window.TKS&&TKS._sb)?TKS._sb():null; const logEl=ov.querySelector('#jobLog');
     if(sb && b.id && !(TKS.isDemo&&TKS.isDemo())){ sb.from('audit_log').select('action,detail,created_at').eq('entity_type','job').eq('entity_id',String(b.id)).order('created_at',{ascending:false}).limit(12).then(function(r){
       const rows=(r&&r.data)||[]; if(!rows.length) return;
-      const lbl={dispatch_line_declined:'Not done',dispatch_line_added:'Added',unit_scanned_out:'Key scanned out',unit_scanned_in:'Key scanned back in',unit_handover_sent:'Key scanned out to the van',unit_handover_accepted:'Key scanned in on the van',unit_handover_returned:'Key swapped — scanned back in'};
+      const lbl={dispatch_line_declined:'Not done',dispatch_line_added:'Added',unit_scanned_out:'Key scanned out',unit_scanned_in:'Key scanned back in',unit_handover_sent:'Key scanned out to the van',unit_handover_accepted:'Key scanned in on the van',unit_handover_returned:'Key swapped — scanned back in',unit_handover_keychanged:'A different key was used'};
       logEl.innerHTML='<div style="font-weight:700;margin-bottom:4px;color:var(--text-primary)">Job log</div>'+rows.map(function(x){ const d=x.detail||{}; return '<div>• '+esc(lbl[x.action]||x.action)+(d.desc?(': '+esc(d.desc)):'')+(d.reason?(' — '+esc(d.reason)):'')+' <span style="opacity:.7">'+esc(new Date(x.created_at).toLocaleString())+'</span></div>'; }).join('');
     }); } }catch(e){}
 }
@@ -8735,6 +8736,10 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     var flagEls=document.querySelectorAll('#view-schedule [data-vanflag]'); if(!flagEls.length) return;
     // 8z148: keys already scanned out to a van and waiting for its technician's scan (one request for the whole board)
     var pendP=(window.keyHandoversPending?window.keyHandoversPending():Promise.resolve(null)).then(function(p){ return ((p&&p.sent)||[]).concat((p&&p.mine)||[]); }, function(){ return []; });
+    /* 8z161: which job each scanned-out key belongs to (jobs still open only). A key on the van, or on its way, for ANOTHER job does not
+       cover this one — two jobs for one technician that need the same kind of key each get their own. */
+    var claim={}, claimList=[]; try{ (TKS.Bookings.all()||[]).forEach(function(j){ if(!j || !Array.isArray(j.keyUnits)) return; var sj=stKey(j.status), pj=false; try{ pj=!!jobPaid(j); }catch(e){} if(sj==='completed'||sj==='canceled'||pj) return;
+      j.keyUnits.forEach(function(k){ if(k && k.unit){ claim[k.unit]=j.id; claimList.push({ job:j.id, item:k.item, to:k.to }); } }); }); }catch(e){}
     flagEls.forEach(function(el){
       var id=el.dataset.vanflag, b=TKS.Bookings.get(id); if(!b) return;
       /* 8z157 (owner: "it's telling me I need to scan out the key after I've already closed out the job"): a job that is finished, paid or
@@ -8746,11 +8751,14 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
         parts.forEach(function(p){ TKS.InvOps.locations(p.item_id).then(function(lr){ n++; var locs=(lr&&lr.data)||[];
           var onVan=locs.find(function(l){return l.location==='van:'+van && (l.qty||0)>0;});
           var atShop=locs.find(function(l){return l.location==='shop' && (l.qty||0)>0;});
-          var wait=pend.filter(function(x){ return x.item_id===p.item_id && x.to==='van:'+van; })[0]||null;
+          var wait=pend.filter(function(x){ return x.item_id===p.item_id && x.to==='van:'+van && (!claim[x.unit_id] || claim[x.unit_id]===b.id); })[0]||null;   // 8z161: not one that is on its way for another job
           /* 8z150: need = how many of this key the job lists; mine = the keys already scanned out for THIS job (kept on the booking) */
           var needN=parts.filter(function(x){ return x.item_id===p.item_id; }).reduce(function(a,x){ return a+Math.max(1, parseInt(x.qty,10)||1); }, 0);
           var mineK=(Array.isArray(b.keyUnits)?b.keyUnits:[]).filter(function(k){ return k && k.item===p.item_id; });
-          if(!onVan){ if(!missing.some(function(x){ return x.item===p.item_id; })) missing.push({item:p.item_id, name:p.description||'part', shop:!!atShop, waiting:wait, need:needN, handed:mineK}); }
+          /* 8z161: the van's stock of this key that is NOT spoken for by another open job */
+          var vanQty=onVan?(parseInt(onVan.qty,10)||0):0, others=claimList.filter(function(c){ return c.job!==b.id && c.item===p.item_id && c.to==='van:'+van; }).length;
+          var covered=mineK.length ? vanQty>0 : (vanQty-others)>0;
+          if(!covered){ if(!missing.some(function(x){ return x.item===p.item_id; })) missing.push({item:p.item_id, name:p.description||'part', shop:!!atShop, waiting:wait, need:needN, handed:mineK}); }
           else if(!have.some(function(x){ return x.item===p.item_id; })) have.push({item:p.item_id, name:p.description||'part', need:needN, handed:mineK, serials:mineK.map(function(k){ return k.serial; }).filter(Boolean)});   // 8z151: listed even with no serial on record, so the key can be swapped
           if(n===parts.length && (missing.length || have.length)){ renderVanFlag(el, b, van, m, missing, have); }
         }).catch(function(){ n++; }); });
@@ -8859,6 +8867,30 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     if(signedIn() && TKS.Jobs && TKS.Jobs.parts){
       TKS.Jobs.parts(jobId).then(function(r){ var parts=((r&&r.data)||[]).filter(function(p){return p.state!=='used'&&p.state!=='returned';}); if(!parts.length){ markConsolidated(b); return; } reconcileModal(jobId, parts); }).catch(function(){ markConsolidated(b); });
     } else { markConsolidated(b); }   // offline / no cloud parts list -> mark consolidated
+  }
+  /* 8z162 (owner: "trying to mark the job as completed … it says reconciliation is still needed"): the cloud will not complete a job while a
+     key / part on it is still pending. Completing settles them first —
+       · a key that was SCANNED OUT for this job (job.keyUnits) was plainly used: marked used, no question;
+       · anything else on the job gets ONE question, "used on this job?" — yes marks it used; no opens the returned / used list
+         (the job then stays as it was until that is done).
+     go() = carry on and complete · stop() = the job was not completed. */
+  function settlePartsThen(jobId, go, stop){
+    if(!(signedIn() && TKS.Jobs && TKS.Jobs.parts && TKS.Jobs.reconcilePart)){ go(); return; }
+    TKS.Jobs.parts(jobId).then(function(r){
+      var pend=((r&&r.data)||[]).filter(function(p){ return p.state!=='used' && p.state!=='returned'; });
+      if(!pend.length){ go(); return; }
+      var jb=TKS.Bookings.get(jobId)||{}, scanned={}; (Array.isArray(jb.keyUnits)?jb.keyUnits:[]).forEach(function(k){ if(k && k.item) scanned[k.item]=1; });
+      var markUsed=function(list){ return Promise.all(list.map(function(p){ return TKS.Jobs.reconcilePart(p.id, 'used', '').then(function(x){ if(x && x.error) throw new Error(x.error.message||'refused'); }); })); };
+      var sure=pend.filter(function(p){ return p.item_id && scanned[p.item_id]; }), ask=pend.filter(function(p){ return !(p.item_id && scanned[p.item_id]); });
+      var fail=function(e){ toast('Could not mark the key as used: '+((e&&e.message)||e)); stop(); };
+      markUsed(sure).then(function(){
+        if(!ask.length){ go(); return; }
+        var names=ask.map(function(p){ return p.description||'Part'; }).join(', ');
+        uiConfirm({ title:'Used on this job?', message:names+' — '+(ask.length===1?'was it':'were they')+' used on this job? “Yes” marks '+(ask.length===1?'it':'them')+' used and completes the job.', okText:'Yes — used', cancelText:'No — something came back' })
+          .then(function(yes){ if(yes){ markUsed(ask).then(go, fail); return; }
+            stop(); toast('Mark what came back, then set the job to Completed again.'); reconcileModal(jobId, ask); });
+      }, fail);
+    }, function(){ go(); });
   }
   // reconcile each outstanding part (returned -> stock, or used); cut keys need a return photo.
   function reconcileModal(jobId, parts){
@@ -9728,7 +9760,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     try{ var logEl=q('sjJobLog'); var sbl=(window.TKS&&TKS._sb)?TKS._sb():null;
       if(logEl && sbl && b.id && !(TKS.isDemo&&TKS.isDemo())){ sbl.from('audit_log').select('action,detail,created_at').eq('entity_type','job').eq('entity_id',String(b.id)).order('created_at',{ascending:false}).limit(12).then(function(r){
         var rows=(r&&r.data)||[]; if(!rows.length) return;
-        var lbl={dispatch_line_declined:'Not done',dispatch_line_added:'Added',unit_scanned_out:'Key scanned out',unit_scanned_in:'Key scanned back in',unit_handover_sent:'Key scanned out to the van',unit_handover_accepted:'Key scanned in on the van',unit_handover_returned:'Key swapped — scanned back in'};
+        var lbl={dispatch_line_declined:'Not done',dispatch_line_added:'Added',unit_scanned_out:'Key scanned out',unit_scanned_in:'Key scanned back in',unit_handover_sent:'Key scanned out to the van',unit_handover_accepted:'Key scanned in on the van',unit_handover_returned:'Key swapped — scanned back in',unit_handover_keychanged:'A different key was used'};
         logEl.innerHTML='<div style="font-weight:700;margin-bottom:4px;color:var(--ink)">Job log</div>'+rows.map(function(x){ var d=x.detail||{}; return '<div>• '+esc(lbl[x.action]||x.action)+(d.desc?(': '+esc(d.desc)):'')+(d.reason?(' — '+esc(d.reason)):'')+' <span style="opacity:.7">'+esc(new Date(x.created_at).toLocaleString())+'</span></div>'; }).join('');
       }); } }catch(e){}
     // 8z57: draft of a NEW job — collected the same way Save reads the form, but never written to the schedule
@@ -9789,14 +9821,19 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       // The SERVER owns the status (role rules, reconciliation gate, 8g terminal-state guard). If it
       // refuses, roll the local label back so the board never shows a status the cloud rejected.
       if(stChanged && signedIn() && TKS.Jobs && TKS.Jobs.setStatus){
-        TKS.Jobs.setStatus(jid, sel).then(function(res){
-          if(res&&res.error){ try{ var b=TKS.Bookings.get(jid); if(b){ b.status=prevStatus; TKS.Bookings.save(b); } }catch(_){} toast('Status not changed: '+(res.error.message||'refused')); try{ render(); }catch(_){} }
-        }).catch(function(e){ try{ var b=TKS.Bookings.get(jid); if(b){ b.status=prevStatus; TKS.Bookings.save(b); } }catch(_){} toast('Status not changed: '+((e&&e.message)||'offline')); try{ render(); }catch(_){} });
+        var backToPrev=function(){ try{ var b=TKS.Bookings.get(jid); if(b){ b.status=prevStatus; TKS.Bookings.save(b); } }catch(_){} try{ render(); }catch(_){} };
+        var pushStatus=function(){ TKS.Jobs.setStatus(jid, sel).then(function(res){
+            if(res&&res.error){ backToPrev(); toast('Status not changed: '+(res.error.message||'refused')); }
+          }).catch(function(e){ backToPrev(); toast('Status not changed: '+((e&&e.message)||'offline')); }); };
+        if(sel==='completed') settlePartsThen(jid, pushStatus, backToPrev);   // 8z162: the job's keys are settled first — the cloud refuses Completed otherwise
+        else pushStatus();
       }
       if(isNew && rec.date){ try{ cursor=fromISO(rec.date); }catch(_){} }   // 8z144: land the board on the booked day (as the step-by-step screen does) — the new job is in front of you
       close(); render();
       toast(isNew?'Job created.':'Saved.');
     };
+    // 8z159: collapsing sections. Queued LAST, so the setTimeout(0)s above (contract blocks, charges, more vehicles) have already filled their blocks
+    setTimeout(function(){ try{ var secOff=false; try{ secOff=localStorage.getItem('tks_form_sections')==='off'; }catch(e){} if(ov.isConnected && window.TKS_SECTIONS && TKS_SECTIONS.jobForm && !secOff) TKS_SECTIONS.jobForm(ov); }catch(e){} }, 0);
   }
 
   // Deep link (index.html?go=schedule): the shell taps the nav button before this script has defined

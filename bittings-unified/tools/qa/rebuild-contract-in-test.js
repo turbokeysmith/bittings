@@ -33,7 +33,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
       const bookings = [J('jP', 'TEST Site Customer One', '09:00', {}), J('jC', 'TEST Site Customer Two', '11:00', { items: [{ desc: 'TEST Car lockout', qty: 1, each: 200, amount: 200, taxable: false }], quote: { subtotal: 200, tax: 0, total: 200, taxRate: 8.625 } })];
       const shop_config = [{ id: 'c1', shop_id: 's', tax_rate: 8.625, updated_at: iso, data: { taxRate: 8.625 } }];
       localStorage.setItem('__db', JSON.stringify({ receipts: [], inventory: [], customers: [], bookings, shop_config, web_leads: [], payment_transactions: [], audit_log: [] }));
-      localStorage.setItem('__role', 'owner');
+      localStorage.setItem('__role', 'owner'); localStorage.setItem('tks_form_sections', 'open');   /* 8z159: the job form's sections all open, so this test still checks the fields themselves */
       localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'owner@test.invalid' } }));
     }, UID);
     const boot = async () => { await pg.goto(BASE + '/index.html?go=schedule', { waitUntil: 'domcontentloaded' }); await pg.waitForFunction(() => window.TKS && TKS.adapter && TKS.adapter() === 'cloud', { timeout: 15000 }); await sleep(3500); };

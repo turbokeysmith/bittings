@@ -66,6 +66,10 @@
         else if(name==='unit_transfer_cancel'){ ud.unit_transfers=ud.unit_transfers.filter(function(t){ return t.unit_id!==un.id; }); v={ ok:true }; }
         else if(name==='unit_set_bin'){ un.bin=String(args.p_bin||''); v={ ok:true, bin:un.bin }; }
         save(ud); }
+      /* 8z162: like the real cloud — a job cannot be completed while a part on it is still pending; reconciling sets its state */
+      if(name==='job_set_status' && (args||{}).p_status==='completed'){ var sd=db(), np=(sd.job_parts||[]).filter(function(x){ return x.job_id===args.p_job && x.state!=='used' && x.state!=='returned'; }).length;
+        if(np) return later({ data:null, error:{ message:'cannot complete: '+np+' part(s) still need reconciling' } }); }
+      if(name==='job_reconcile_part'){ var rd=db(); (rd.job_parts||[]).forEach(function(x){ if(x.id===(args||{}).p_part) x.state=args.p_state; }); save(rd); }
       if(name==='key_failed'){ var kd=db(), ku=(kd.inventory_units||[]).filter(function(x){ return x.id===(args||{}).p_unit && x.status==='in_stock'; })[0];   // 8z151: one exact key marked failed
         if(!ku) return later({ data:null, error:{ message:'no in-stock unit of that item to mark failed' } });
         ku.status='failed'; ku.disposition=String(args.p_reason||'failed'); (kd.inventory_locations||[]).forEach(function(x){ if(x.item_id===ku.item_id && x.location===ku.location) x.qty=Math.max(0,(x.qty||0)-1); }); save(kd); v={ failed_unit:ku.id }; }

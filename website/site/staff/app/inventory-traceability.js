@@ -718,7 +718,7 @@
     if (window.unitMoveOpen()) return null;
     var cam = (window.TKS_CAM && TKS_CAM.available()), who = o.techName || 'the technician', vanName = o.vanName || (who + '’s van'), q = Promise.resolve(), done = false;
     var m = modal('🔑 Scan the key out',
-      '<div style="font-weight:800;font-size:15px;margin-bottom:4px">' + E(o.itemName || 'Key') + '</div>' +
+      '<div id="jhItemName" style="font-weight:800;font-size:15px;margin-bottom:4px">' + E(o.itemName || 'Key') + '</div>' +
       '<div class="sub" style="margin-bottom:10px;line-height:1.4">Scan the label on the exact key you are handing to <b>' + E(who) + '</b>' + (o.jobLabel ? ' for ' + E(o.jobLabel) : '') + '. It counts as on the van only when ' + E(who) + ' scans it in.</div>' +
       (cam ? '<button type="button" id="jhCam" style="' + BTN + ';min-height:48px;margin-bottom:8px">📷 Scan the key’s QR code</button>' : '') +
       '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px"><input id="jhIn" placeholder="or type the key’s serial" autocomplete="off" autocapitalize="characters" spellcheck="false" style="' + INP + 'margin:0;flex:1;min-width:0;min-height:44px">' +
@@ -729,6 +729,24 @@
     var inp = m.body.querySelector('#jhIn'), msg = m.body.querySelector('#jhMsg');
     function tell(kind, text){ msg.style.color = kind === 'ok' ? '#1c7d3e' : (kind === 'bad' ? '#c8323c' : 'inherit'); msg.style.fontWeight = kind === 'ok' ? '700' : '600'; msg.textContent = text; }
     function finish(){ refreshWaiting(); afterChange(); try { if (window.TKS && TKS.refresh) TKS.refresh(); } catch (e) {} try { if (o.onDone) o.onDone(); } catch (e2) {} }
+    /* 8z160: the job's key becomes another stock item. The job's key row is changed in place when the cloud allows it; if not (some
+       roles may only add), the new key is added and the old row is taken off if that is allowed. A charge line on the job that
+       pointed at the old key follows it, so the invoice gets one key line, linked to the key that was really used. */
+    function jobVehicle(){ try { var bk = window.TKS && TKS.Bookings && TKS.Bookings.get(o.jobId), v = bk && bk.vehicle; return (v && v.make) ? { year: String(v.year || ''), make: String(v.make || ''), model: String(v.model || '') } : null; } catch (e) { return null; } }
+    function jobVehicleWords(){ var v = jobVehicle(); return v ? ('a ' + [v.year, v.make, v.model].filter(Boolean).join(' ')) : 'this vehicle'; }
+    // true = the shop's Fits say this key is for the job's vehicle · false = they say it is not · null = cannot tell (no vehicle on the job)
+    function keyFitsJob(itemId){ var v = jobVehicle(); if (!v || !(window.TKS_FIT && TKS_FIT.keysFor)) return null;
+      try { var L = TKS_FIT.keysFor(TKS.Inventory.all(), v, '') || {}, ok = {}; [L.list, L.maybe, L.universal].forEach(function (a){ (a || []).forEach(function (p){ if (p && p.id) ok[p.id] = 1; }); }); return !!ok[itemId]; } catch (e) { return null; } }
+    async function changeJobKey(fromItem, toItem, toName){
+      if (!o.jobId) return;
+      var jp = await s.from('job_parts').select('id,item_id,state').eq('job_id', String(o.jobId)); if (jp.error) throw new Error(jp.error.message);
+      var row = (jp.data || []).filter(function (p){ return p.item_id === fromItem && p.state !== 'used' && p.state !== 'returned'; })[0] || null, moved = false;
+      if (row) { try { await s.from('job_parts').update({ item_id: toItem, description: toName }).eq('id', row.id); } catch (e1) {}
+        try { var chk = await s.from('job_parts').select('id,item_id').eq('id', row.id); moved = !!((chk.data || [])[0] && (chk.data || [])[0].item_id === toItem); } catch (e2) {} }
+      if (!moved) { var ins = await s.from('job_parts').insert({ job_id: String(o.jobId), item_id: toItem, description: toName, qty: 1 }); if (ins && ins.error) throw new Error(ins.error.message);
+        if (row) { try { await s.from('job_parts').delete().eq('id', row.id); } catch (e3) {} } }
+      try { var bk = window.TKS && TKS.Bookings && TKS.Bookings.get(o.jobId); if (bk && Array.isArray(bk.items)) { var ch = false; bk.items.forEach(function (it){ if (it && it.partId === fromItem) { it.partId = toItem; ch = true; } }); if (ch) TKS.Bookings.save(bk); } } catch (e4) {}
+    }
     function logJob(action, text, why, u){ try { if (o.jobId && window.TKS && TKS.Audit) TKS.Audit.log(action, 'job', String(o.jobId), { desc: text, reason: why || '', unit: (u && u.id) || '', serial: (u && u.serial) || '', item: (u && u.item_id) || '' }); } catch (e) {} }
     /* 8z150 (owner, 2026-11-14: "I don't want to scan out another one to that job … match quantity to the job"): the keys of this kind
        already scanned out FOR THIS JOB and still out (waiting for a scan-in, or on a van). Known from the job itself (o.handed, kept
@@ -794,7 +812,25 @@
       tell('', 'Checking…');
       var res; try { res = await window.unitLookup(code); } catch (e) { tell('bad', '✗ ' + ((e && e.message) || e)); return; }
       var u = res.unit, nm = (res.part && res.part.name) || u.item_id, sn = u.serial || u.id;
-      if (o.itemId && u.item_id !== o.itemId) { tell('bad', '✗ SN ' + sn + ' is “' + nm + '”. This job needs “' + (o.itemName || 'another key') + '”. Scan that key — or change the key on the job first.'); return; }
+      /* 8z160 (owner, in the field: "it's telling me it is the incorrect key … it is the correct key because I've already programmed it"):
+         a key that is a different stock item than the job lists is no longer refused. The person holding it decides — it asks once,
+         and on yes the job's key is changed to the scanned one (the job's key list, and a charge line that pointed at the old key),
+         then the scan-out carries on as usual. Stock often holds the same key under two names; the job should follow the key in hand. */
+      if (o.itemId && u.item_id !== o.itemId) {
+        if (u.status !== 'in_stock') { tell('bad', '✗ SN ' + sn + ' is ' + String(ST_LABEL[u.status] || u.status).toLowerCase() + ', so it can’t be handed over.'); return; }
+        /* owner: "we don't want to swap a Ford with a Chrysler … a Ford with a Ford, and they're both keys that will fit the vehicle" — the
+           scanned key must be one the shop's own Fits lists for this job's vehicle (an exact fit, a make-and-year "might fit", or a
+           universal key). A job with no vehicle on it cannot be judged, so it only asks. */
+        var fits = keyFitsJob(u.item_id);
+        if (fits === false) { tell('bad', '✗ SN ' + sn + ' is “' + nm + '”. That is not a key for ' + jobVehicleWords() + ', so it can’t be used on this job. (If it really fits, add the vehicle to that key’s Fits in Stock.)'); return; }
+        var yes = await ask({ title: 'Different key than the job lists', message: 'SN ' + sn + ' is “' + nm + '”. The job lists “' + (o.itemName || 'another key') + '”. Use this key for the job instead? The job’s key will be changed to this one.', okText: 'Use this key', cancelText: 'No — scan another' });
+        if (!yes) { tell('', 'Not used. Scan the key you are handing over.'); return; }
+        var oldItem = o.itemId, oldName = o.itemName || '';
+        try { await changeJobKey(oldItem, u.item_id, nm); } catch (eK) { tell('bad', '✗ Could not change the job’s key: ' + ((eK && eK.message) || eK)); return; }
+        o.itemId = u.item_id; o.itemName = nm; try { var hd = m.body.querySelector('#jhItemName'); if (hd) hd.textContent = nm; } catch (eH) {}
+        logJob('unit_handover_keychanged', nm + ' · SN ' + sn, 'instead of ' + oldName, u);
+        try { if (o.onKeyChanged) o.onKeyChanged({ from: oldItem, to: u.item_id, name: nm }); } catch (eC) {}
+      }
       if (u.status !== 'in_stock') { tell('bad', '✗ SN ' + sn + ' is ' + String(ST_LABEL[u.status] || u.status).toLowerCase() + ', so it can’t be handed over.'); return; }
       var out = await outForJob();   // 8z150: one key per key the job lists
       if (out.some(function (x){ return x.id === u.id; })) { tell('ok', '✓ SN ' + sn + ' is already scanned out for this job (' + out.filter(function (x){ return x.id === u.id; })[0].where + ').'); return; }

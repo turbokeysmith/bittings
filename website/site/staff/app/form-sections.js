@@ -55,7 +55,21 @@
       '[data-bt-theme="dark"] .qs.open{border-left-color:#e0525c}',
       '[data-bt-theme="dark"] .qs-s,[data-bt-theme="dark"] .qs-c,[data-bt-theme="dark"] .qs-mode{color:#9aa1ac}',
       '[data-bt-theme="dark"] .qs-next{border-color:#e0525c;color:#ff8d95}',
-      '[data-bt-theme="dark"] .qs-foot{border-top-color:#3a414c;box-shadow:0 -6px 12px -8px rgba(0,0,0,.7)}'
+      '[data-bt-theme="dark"] .qs-foot{border-top-color:#3a414c;box-shadow:0 -6px 12px -8px rgba(0,0,0,.7)}',
+      // 8z159: the Scheduler's job form (.sch-modal .sheet) colours itself with CSS variables, so the sections follow them (light AND dark)
+      '.sch-modal .sheet .qs{border-color:var(--edge);border-left-color:var(--edge)}',
+      '.sch-modal .sheet .qs.open{border-left-color:#c8323c}',
+      '.sch-modal .sheet .qs-s,.sch-modal .sheet .qs-c,.sch-modal .sheet .qs-mode,.sch-modal .sheet .qs-total span{color:var(--dim)}',
+      '.sch-modal .sheet .qs-t,.sch-modal .sheet .qs-total b{color:var(--ink)}',
+      '.sch-modal .sheet .qs-next{border-color:#c8323c;color:#c8323c;background:transparent}',
+      '.sch-modal .sheet .qs-s.empty{padding:0;text-align:right;font-size:14px;line-height:normal}',   // the page has a global .empty{padding:40px 10px;text-align:center}
+      '.sch-modal .sheet .qs-b>label:first-child{margin-top:0}',
+      '.sch-modal .sheet .qs-b .row2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}',
+      '.sch-modal .sheet .qs-b .row2>div,.sch-modal .sheet .qs-b input,.sch-modal .sheet .qs-b select{min-width:0;max-width:100%}',
+      '.sch-modal .sheet .qs-foot{background:var(--card,#fff);margin:8px -18px -18px;padding:8px 18px max(8px,env(safe-area-inset-bottom));border-top:1px solid var(--edge)}',
+      '.sch-modal .sheet .qs-foot .msg{margin:0 0 4px;min-height:0;font-size:12.5px;line-height:1.25}',
+      '.sch-modal .sheet .qs-foot .msg:empty{display:none}',
+      '.sch-modal .sheet .qs-act>.btn{border-radius:11px}'
     ].join('\n');
     (document.head || document.documentElement).appendChild(st);
   }
@@ -194,6 +208,10 @@
         if (r.cfg.follow) {
           var hide = !!f && f.style.display === 'none', want = hide ? 'none' : '';
           if (r.el.style.display !== want) r.el.style.display = want;
+        }
+        if (r.cfg.hideWhen) {   // 8z159: generic "hide this section when" (the form owns nothing here: our own class-free inline display, like follow)
+          var hw = false; try { hw = !!r.cfg.hideWhen(box); } catch (e) {}
+          var hwant = hw ? 'none' : ''; if (r.el.style.display !== hwant) r.el.style.display = hwant;
         }
         var s = ''; try { s = r.cfg.summary ? String(r.cfg.summary(box) || '') : ''; } catch (e) {}
         var show = s || 'Tap to fill in';
@@ -352,5 +370,123 @@
     });
   }
 
-  window.TKS_SECTIONS = { apply: apply, quoteForm: quoteForm };
+  // ---------- the Scheduler's job form (8z159) ----------
+  // The sheet's real children are NOT in section order (phone and service share a row, date and time share a row, technician
+  // and status come last), so first the form's own pieces are moved (never copied) into one wrapper per section, then apply()
+  // groups the wrappers. Anything missing is skipped.
+  function jobForm(sheetOrOverlay) {
+    if (!sheetOrOverlay) return null;
+    var box = sheetOrOverlay.classList && sheetOrOverlay.classList.contains('sheet') ? sheetOrOverlay : sheetOrOverlay.querySelector('.sheet');
+    if (!box) return null;
+    if (box._tksSections) return box._tksSections;
+    var Q = function (s) { return box.querySelector(s); };
+    var val = function (s) { var e = Q(s); return e ? String(e.value || '').trim() : ''; };
+    var join = function (a, sep) { return a.filter(Boolean).join(sep || ' · '); };
+    if (!Q('#sjSave') || !Q('#sjJt')) return null;
+    var isNew = !!Q('#sjDraftBtn');
+    var labelOf = function (el) { var p = el && el.previousElementSibling; return p && p.tagName === 'LABEL' ? p : null; };
+    var up = function (el) { return el ? childOf(box, el) : null; };
+    var rowOf = function (el) { var p = el; while (p && p !== box && !(p.classList && p.classList.contains('row2'))) p = p.parentNode; return p && p !== box ? p : null; };
+
+    // 1. collect every piece BEFORE moving anything
+    var jt = Q('#sjJt'), nameRow = up(Q('#sjName')), whereEl = Q('#sjWhere');
+    var phoneDiv = Q('#sjPhone') ? Q('#sjPhone').parentNode : null, svcDiv = Q('#sjSvc') ? Q('#sjSvc').parentNode : null;
+    var dateRow = rowOf(Q('#sjDate')), phoneRow = rowOf(Q('#sjPhone'));
+    var groups = {
+      when: [dateRow, labelOf(Q('#sjTech')), Q('#sjTech'), labelOf(Q('#sjSt')), Q('#sjSt')],
+      customer: [labelOf(jt), jt, labelOf(nameRow), nameRow, Q('#sjCustList'), phoneDiv],
+      location: [labelOf(whereEl), whereEl, Q('#sjAddrWrap')],
+      vehicle: [up(Q('#sjVeh')), up(Q('#sjKeys'))],
+      job: [svcDiv, up(Q('#sjCharges'))],
+      contract: [up(Q('#sjContract')), up(Q('#sjContractIn'))],
+      notes: [labelOf(Q('#sjINotes')), Q('#sjINotes'), up(Q('#sjJobLog'))]
+    };
+    var anchor = up(jt); anchor = labelOf(jt) || anchor;
+    var mark = document.createElement('div'); mark.style.display = 'none';
+    box.insertBefore(mark, anchor);
+    var wraps = {};
+    ['when', 'customer', 'location', 'vehicle', 'job', 'contract', 'notes'].forEach(function (id) {
+      var nodes = groups[id].filter(function (n) { return !!n; });
+      if (!nodes.length) return;
+      var w = document.createElement('div'); w.className = 'qsw'; w.setAttribute('data-qsw', id);
+      box.insertBefore(w, mark);
+      nodes.forEach(function (n) { w.appendChild(n); });
+      wraps[id] = w;
+    });
+    box.removeChild(mark);
+    if (phoneRow && !phoneRow.children.length && phoneRow.parentNode) phoneRow.parentNode.removeChild(phoneRow);
+    var W = function (id) { return function () { return wraps[id] || null; }; };
+
+    // 2. readers
+    function totalText() {   // the "Total" row of the charges totals box (the box has other rows: tax, you keep …)
+      var t = Q('#sjChTot'); if (!t) return '';
+      var rows = t.querySelectorAll('div');
+      for (var i = 0; i < rows.length; i++) {
+        var sp = rows[i].querySelectorAll(':scope > span');
+        if (sp.length >= 2 && txt(sp[0]) === 'Total') { var m = /-?\$\s?[\d,]*\.?\d+/.exec(sp[sp.length - 1].textContent); return m ? m[0].replace(/\s/g, '') : ''; }
+      }
+      return '';
+    }
+    function dateText() {
+      var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(val('#sjDate')); if (!m) return '';
+      try { return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); } catch (e) { return val('#sjDate'); }
+    }
+    function timeText() {
+      var m = /^(\d{1,2}):(\d{2})/.exec(val('#sjTime')); if (!m) return '';
+      var h = +m[1]; return (h % 12 || 12) + ':' + m[2] + ' ' + (h < 12 ? 'AM' : 'PM');
+    }
+    function techText() { var s = Q('#sjTech'); if (!s) return ''; var o = s.options[s.selectedIndex]; return o && s.value ? txt(o).replace(/\s+—.*$/, '') : 'Unassigned'; }
+    function keyCount() { var m = /On this job \((\d+)\)/.exec(txt(Q('#sjKeys'))); return m ? +m[1] : 0; }
+    function empty(el) { return !el || (!el.children.length && !txt(el)); }
+
+    return apply(box, {
+      storeKey: 'tks_form_sections',
+      initial: isNew ? 'customer' : 'when',
+      errorEl: function () { return Q('#sjMsg'); },
+      errorMap: [
+        [/could not add|key|VIN|decod/i, 'vehicle'],
+        [/name|customer|phone/i, 'customer'],
+        [/date|time/i, 'when'],
+        [/charge|price/i, 'job']
+      ],
+      footer: {
+        err: function () { return Q('#sjMsg'); },
+        actions: function () { return [{ el: Q('#sjSave') }]; },
+        total: totalText
+      },
+      sections: [
+        { id: 'when', icon: '📅', title: 'When & who', first: W('when'), last: W('when'),
+          summary: function () { return join([dateText(), timeText(), techText(), txt(Q('#sjSt .on'))]); } },
+        { id: 'customer', icon: '👤', title: 'Customer', first: W('customer'), last: W('customer'),
+          summary: function () { return join([val('#sjName'), val('#sjPhone')]); } },
+        { id: 'location', icon: '📍', title: 'Location', first: W('location'), last: W('location'),
+          summary: function () {
+            var w = Q('#sjWhere .on'), wd = w ? w.dataset.w : '';
+            if (wd === 'shop') return 'In shop';
+            var a = join([val('#sjStreet'), val('#sjCity')], ', ');
+            return a || (wd === 'mobile' ? 'Mobile' : '');
+          } },
+        { id: 'vehicle', icon: '🚗', title: 'Vehicle & keys', first: W('vehicle'), last: W('vehicle'),
+          hideWhen: function () { var v = Q('#sjVeh'); return (!v || v.style.display === 'none') && empty(Q('#sjKeys')); },
+          summary: function () {
+            var v = Q('#sjVeh'), shown = v && v.style.display !== 'none';
+            var n = keyCount();
+            return join([shown ? join([val('#sjYear'), val('#sjMake'), val('#sjModel')], ' ') : '', n ? n + ' key' + (n === 1 ? '' : 's') + ' on the job' : '']);
+          } },
+        { id: 'job', icon: '🔧', title: 'Service & charges', first: W('job'), last: W('job'),
+          summary: function () { return join([val('#sjSvc'), totalText()]); } },
+        { id: 'contract', icon: '🤝', title: 'Contracting', first: W('contract'), last: W('contract'),
+          hideWhen: function () { return empty(Q('#sjContract')) && empty(Q('#sjContractIn')); },
+          summary: function () {
+            var out = val('#sjConName'), co = val('#sjCinCo');
+            if (!co && !Q('#sjCinCo')) { var m = /Job from (.+?)(?: · their job #|$)/.exec(txt(Q('#sjContractIn'))); co = m ? m[1].trim() : ''; }
+            return join([out ? 'Out: ' + out : '', co ? 'From: ' + co : '']);
+          } },
+        { id: 'notes', icon: '📝', title: 'Notes & log', first: W('notes'), last: W('notes'),
+          summary: function () { return val('#sjINotes') ? 'Notes added' : ''; } }
+      ]
+    });
+  }
+
+  window.TKS_SECTIONS = { apply: apply, quoteForm: quoteForm, jobForm: jobForm };
 })();

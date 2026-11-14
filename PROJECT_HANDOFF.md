@@ -408,6 +408,30 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-11-14, night (8z159: job form in sections · 8z160: a different key that fits can be used · 8z161: keys count per job · 8z162: Completed settles the job's keys) — LIVE (73c6b0f237ec); committed and pushed 2026-11-14
+- **8z159 — the Scheduler's job form in sections** (sonnet helper; `TKS_SECTIONS.jobForm(ov)` in `app/form-sections.js`, hooked by a
+  `setTimeout(…,0)` at the end of `openForm`). The sheet's fields were not in section order (phone + service share a row, date +
+  time share a row, technician and status came last), so `jobForm` first MOVES the pieces into one wrapper per section, then calls
+  `apply`. Sections: When & who · Customer · Location · Vehicle & keys · Service & charges · Contracting · Notes & log. An existing
+  job opens on "When & who", a new one on "Customer". Pinned bar: message, total, Save. New generic `hideWhen(box)` option
+  (Contracting hidden when empty — technicians). 2791 px → 1041 px on a phone. Tests that type into this form run with
+  `tks_form_sections=open`. The job sheet stays light in dark mode (it already did; separate matter).
+- **8z160 — "it is the correct key, I've already programmed it".** Scan-out refused any key that was not the exact stock item on
+  the job. Now a different key ASKS "Use this key for the job instead?" — only when it is a key for the job's vehicle
+  (`TKS_FIT.keysFor`: exact fit, make-and-year "might fit", or universal; owner: "a Ford with a Ford … not a Ford with a Chrysler");
+  a key for another make is refused without asking; a job with no vehicle only asks. Yes → `changeJobKey` (the `job_parts` row is
+  changed in place, or added + old removed; a charge line pointing at the old key follows), job log `unit_handover_keychanged`.
+  Swap key uses the same rule, so trying the other of two candidate keys works.
+- **8z161 — per job.** `checkVanFlags`: a key on the van or on its way FOR ANOTHER open job (its `keyUnits`) no longer covers this
+  job (two jobs for one technician needing the same kind of key each get their own scan button).
+- **8z162 — Completed.** The cloud (`job_set_status`) refuses Completed while a `job_parts` row is pending, and the app only offered
+  to settle parts on CANCEL — so a job with a key could not be completed at all. Now `settlePartsThen`: a key scanned out for the
+  job is marked used by itself; anything with no scan gets one question ("used on this job?"); "no" opens the returned / used list.
+- **Owner feedback to act on next:** the whole key flow "is cumbersome — we're going to have to rework this". Ask him which steps
+  cost the time before redesigning (scan out · scan in · where on the van · scan on the invoice · complete).
+- **Tests.** `rebuild-job-sections-test.js` (new, port 8115); `rebuild-van-handover-test.js` grew to cover 8z160–8z162; the stand-in
+  cloud now enforces the completion rule and records reconciles.
+
 ### 2026-11-14, evening (8z158: the quote / invoice form in collapsing sections) — LIVE (05111bd5779a); committed and pushed 2026-11-14
 - **Why (owner).** "The quick quote form and the job form are very very long … I have to scroll quite a bit to get from the top to the
   bottom on my phone." He asked for one rebuilt form; agreed layout: one section open at a time, a finished section shrinks to a

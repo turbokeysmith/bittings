@@ -31,16 +31,17 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
       const iso = new Date(Date.now() - 20 * 60000).toISOString();
       const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); const today = d.toISOString().slice(0, 10);
       const K = (id, o) => Object.assign({ id, shop_id: 's', qty: 3, cost: 20, sell_price_cents: 15000, chip: '', fcc_id: '', grade: '', serialized: true, deleted_at: null, updated_at: iso }, o);
-      const inventory = [K('key1', { name: 'TEST Smart Key 5-Button', sku: 'T-KEY1', category: 'Keys/Smart Key', qty: 3 }), K('key2', { name: 'TEST Flip Key', sku: 'T-KEY2', category: 'Keys/Remote Head / Flip', qty: 1 }),
-        K('part1', { name: 'TEST Battery CR2032', sku: 'T-BAT', category: 'Parts', qty: 9, serialized: false })];
+      const inventory = [K('key1', { name: 'TEST Smart Key 5-Button', sku: 'T-KEY1', category: 'Keys/Smart Key', qty: 3, fitment: 'Jaguar F-Pace 2016-2020' }), K('key2', { name: 'TEST Flip Key', sku: 'T-KEY2', category: 'Keys/Remote Head / Flip', qty: 1, fitment: 'Jaguar F-Pace 2016-2020' }),
+        K('part1', { name: 'TEST Battery CR2032', sku: 'T-BAT', category: 'Parts', qty: 9, serialized: false }), K('key3', { name: 'TEST Remote Key', sku: 'T-KEY3', category: 'Keys/Remote / Fob', qty: 1, fitment: '2016-2020 Jaguar' }),   // make and years only — a "might fit"
+        K('key4', { name: 'TEST Other Make Key', sku: 'T-KEY4', category: 'Keys/Smart Key', qty: 1, fitment: 'Honda Civic 2016-2020' })];
       const U = (id, item, serial) => ({ id, shop_id: 's', item_id: item, serial, location: 'shop', status: 'in_stock', bin: '', acquired_at: iso, updated_at: iso });
-      const inventory_units = [U('u_' + 'a'.repeat(32), 'key1', 'AAA2222'), U('u_' + 'b'.repeat(32), 'key1', 'BBB3333'), U('u_' + 'c'.repeat(32), 'key1', 'CCC4444'), U('u_' + 'd'.repeat(32), 'key2', 'DDD5555')];
-      const inventory_locations = [{ id: 'l1', item_id: 'key1', location: 'shop', qty: 3 }, { id: 'l2', item_id: 'key2', location: 'shop', qty: 1 }, { id: 'l3', item_id: 'part1', location: 'shop', qty: 9 }];
+      const inventory_units = [U('u_' + 'a'.repeat(32), 'key1', 'AAA2222'), U('u_' + 'b'.repeat(32), 'key1', 'BBB3333'), U('u_' + 'c'.repeat(32), 'key1', 'CCC4444'), U('u_' + 'd'.repeat(32), 'key2', 'DDD5555'), U('u_' + 'e'.repeat(32), 'key3', 'EEE6666'), U('u_' + 'f'.repeat(32), 'key4', 'FFF7777')];
+      const inventory_locations = [{ id: 'l1', item_id: 'key1', location: 'shop', qty: 3 }, { id: 'l2', item_id: 'key2', location: 'shop', qty: 1 }, { id: 'l3', item_id: 'part1', location: 'shop', qty: 9 }, { id: 'l4', item_id: 'key3', location: 'shop', qty: 1 }];
       const vans = [{ id: 'van1', shop_id: 's', nickname: 'TEST Van One', fleet_no: '1', status: 'active' }, { id: 'van2', shop_id: 's', nickname: 'TEST Van Two', fleet_no: '2', status: 'active' }];
       const J = (id, name, tech, techId, time) => ({ id, shop_id: 's', date: today, time, customer_name: name, deleted_at: null, updated_at: iso, data: { id, date: today, time, status: 'Scheduled', jobType: 'auto', subType: 'TEST key job', customer: { name, phone: '4055550100' }, technician: tech, technicianId: techId, vehicle: { year: '2018', make: 'Jaguar', model: 'F-Pace' } } });
-      const bookings = [J('jA', 'TEST Customer A', 'TEST Jay', 'u-jay', '09:00'), J('jB', 'TEST Customer B', 'TEST Owner', UID, '11:00'), J('jC', 'TEST Customer C', 'TEST Jay', 'u-jay', '13:00')];
+      const bookings = [J('jA', 'TEST Customer A', 'TEST Jay', 'u-jay', '09:00'), J('jB', 'TEST Customer B', 'TEST Owner', UID, '11:00'), J('jC', 'TEST Customer C', 'TEST Jay', 'u-jay', '13:00'), J('jD', 'TEST Customer D', 'TEST Jay', 'u-jay', '15:00'), J('jE', 'TEST Customer E', 'TEST Jay', 'u-jay', '16:00')];
       const job_parts = [{ id: 'jp1', job_id: 'jA', item_id: 'key1', description: 'TEST Smart Key 5-Button', qty: 1, created_at: iso }, { id: 'jp2', job_id: 'jB', item_id: 'key1', description: 'TEST Smart Key 5-Button', qty: 1, created_at: iso },
-        { id: 'jp3', job_id: 'jC', item_id: 'part1', description: 'TEST Battery CR2032', qty: 1, created_at: iso }];
+        { id: 'jp3', job_id: 'jC', item_id: 'part1', description: 'TEST Battery CR2032', qty: 1, created_at: iso }, { id: 'jp4', job_id: 'jD', item_id: 'key2', description: 'TEST Flip Key', qty: 1, created_at: iso }, { id: 'jp5', job_id: 'jE', item_id: 'key1', description: 'TEST Smart Key 5-Button', qty: 1, created_at: iso }];
       const shop_config = [{ id: 'c1', shop_id: 's', tax_rate: 8.625, updated_at: iso, data: { taxRate: 8.625 } }];
       localStorage.setItem('__db', JSON.stringify({ receipts: [], inventory, inventory_units, inventory_locations, vans, customers: [], bookings, job_parts, shop_config, web_leads: [], payment_transactions: [], audit_log: [], unit_transfers: [] }));
       localStorage.setItem('__staff', JSON.stringify([{ user_id: UID, name: 'TEST Owner', role: 'owner', active: true, home_van_id: 'van1' }, { user_id: 'u-jay', name: 'TEST Jay', role: 'technician', active: true, home_van_id: 'van2' }]));
@@ -69,8 +70,12 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     await pg.screenshot({ path: path.join(OUT, 'handover-scan-box.png') });
     await type('HELLO'); r = await box();
     check('something that is not a key label is refused', /isn’t a key label/.test(r.msg), r.msg);
-    await type('DDD5555'); r = await box();
-    check('the WRONG kind of key is refused, by name — it cannot leave by mistake', /SN DDD5555 is “TEST Flip Key”\. This job needs “TEST Smart Key 5-Button”/.test(r.msg) && (await dbs()).waiting === '', r.msg);
+    // 8z160: a DIFFERENT key than the job lists is not refused any more — it asks, by name; "No" leaves everything as it was
+    await type('DDD5555');
+    r = await pg.evaluate(() => { const c = Array.from(document.querySelectorAll('.chg-modal-ov')).pop(); const o = c ? { text: c.innerText.replace(/\s+/g, ' '), yes: (c.querySelector('[data-yes]') || {}).textContent, no: (c.querySelector('[data-no]') || {}).textContent } : { text: '' }; if (c) c.querySelector('[data-no]').click(); return o; }); await sleep(500);
+    check('a different key than the job lists: it asks "Use this key for the job instead?" and names both keys', /Different key than the job lists/.test(r.text) && /SN DDD5555 is “TEST Flip Key”\. The job lists “TEST Smart Key 5-Button”\. Use this key for the job instead\?/.test(r.text) && r.yes === 'Use this key' && /No/.test(r.no), r);
+    r = await box(); const dNo = await dbs();
+    check('"No": nothing leaves and the job keeps its key', /Not used/.test(r.msg) && dNo.waiting === '' && /DDD5555@shop/.test(dNo.units), { msg: r.msg, d: dNo });
     await type('bbb3333'); r = await box(); let d = await dbs();
     check('the right key (serial typed in lower case): scanned out — "waiting for TEST Jay to scan it in", and it still counts as in the shop', /✓ SN BBB3333 scanned out\. Waiting for TEST Jay to scan it in/.test(r.msg) && r.inputOff === true && /BBB3333@shop/.test(d.units) && d.waiting === 'b→van:van2', { msg: r.msg, d });
     check('the job\'s log records WHICH key went out, and where to', d.log.length === 1 && d.log[0] === 'unit_handover_sent job:jA TEST Smart Key 5-Button · SN BBB3333 to TEST Jay’s van', d.log);
@@ -167,6 +172,34 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     check('and the card names the new key', f.jB.text === '🔑 SN BBB3333 on TEST Owner’s van for this job', f.jB);
     await pg.evaluate(() => document.querySelector('[data-vanflag="jB"]').scrollIntoView({ block: 'center' })); await sleep(300);
     await pg.screenshot({ path: path.join(OUT, 'swap-done-card.png') });
+
+    // ================= 8z160: "it is the correct key — I've already programmed it" =================
+    // job jD lists the flip key; the key in hand is the remote key (another stock item). Saying yes changes the job's key and carries on.
+    await pg.evaluate(() => { document.querySelectorAll('.sch-modal').forEach(x => x.remove()); window.renderSchedule(); }); await sleep(2600);
+    // 8z161: job jE is the same technician's and needs the same kind of key as job jA — jA's key (CCC4444, on its way) must not count for jE
+    f = await flags();
+    check('a key on its way for ANOTHER job does not cover this one: the second job still says its key is not on the van', /1 not on TEST Jay’s van/.test(f.jE.text) && !/sent — waiting/.test(f.jE.text) && /CCC4444 sent — waiting/.test(f.jA.text), { jE: f.jE, jA: f.jA });
+    await pg.evaluate(() => { const bt = document.querySelector('[data-vanflag="jD"] .vanMove'); if (!bt) throw new Error('no scan-out button on jD: ' + (document.querySelector('[data-vanflag="jD"]') || {}).innerText); bt.click(); }); await sleep(900);
+    await type('FFF7777'); r = await box();
+    check('a key for ANOTHER MAKE is still refused — "that is not a key for a 2018 Jaguar F-Pace" — and it does not even ask', /SN FFF7777 is “TEST Other Make Key”. That is not a key for a 2018 Jaguar F-Pace/.test(r.msg) && (await pg.evaluate(() => document.querySelectorAll('.chg-modal-ov').length)) === 0, r.msg);
+    await type('EEE6666');
+    await pg.evaluate(() => { const c = Array.from(document.querySelectorAll('.chg-modal-ov')).pop(); c.querySelector('[data-yes]').click(); }); await sleep(1600);
+    r = await box(); d = await dbs();
+    const jd = await pg.evaluate(() => { const db = JSON.parse(localStorage.getItem('__db')); return { parts: (db.job_parts || []).filter(p => p.job_id === 'jD').map(p => p.item_id + ' ' + p.description), keys: (TKS.Bookings.get('jD').keyUnits || []).map(k => k.item + ' ' + k.serial).join(','), head: (document.getElementById('jhItemName') || {}).textContent }; });
+    check('"Use this key": the job\'s key is changed to the one in hand (one key on the job, not two) and it is scanned out as usual', jd.parts.join('|') === 'key3 TEST Remote Key' && jd.keys === 'key3 EEE6666' && jd.head === 'TEST Remote Key' && /✓ SN EEE6666 scanned out\. Waiting for TEST Jay/.test(r.msg) && / e→van:van2/.test(' ' + d.waiting), { jd, msg: r.msg, waiting: d.waiting });
+    check('the job\'s log says which key was used instead of which', d.log.filter(x => /job:jD/.test(x)).join(' | ') === 'unit_handover_keychanged job:jD TEST Remote Key · SN EEE6666 instead of TEST Flip Key | unit_handover_sent job:jD TEST Remote Key · SN EEE6666 to TEST Jay’s van', d.log.filter(x => /job:jD/.test(x)));
+    await pg.evaluate(() => document.getElementById('jhDone').click()); await sleep(400);
+
+    // ================= 8z162: completing a job settles its keys (the cloud refuses Completed while one is pending) =================
+    const complete = async (id) => { await pg.evaluate((id) => { document.querySelectorAll('.sch-modal').forEach(x => x.remove()); document.querySelector('[data-open="' + id + '"]').click(); }, id); await pg.waitForSelector('#sjSave', { timeout: 8000 }); await sleep(1500);
+      await pg.evaluate(() => { document.querySelector('#sjSt button[data-s="completed"]').click(); document.getElementById('sjSave').click(); }); await sleep(1800); };
+    const jobNow = (id) => pg.evaluate((id) => { const db = JSON.parse(localStorage.getItem('__db')); return { status: String(TKS.Bookings.get(id).status), parts: (db.job_parts || []).filter(p => p.job_id === id).map(p => p.item_id + ':' + (p.state || 'pending')).join(','), asked: !!Array.from(document.querySelectorAll('.chg-modal-ov')).pop() }; }, id);
+    await complete('jB'); r = await jobNow('jB');
+    check('a job whose key was scanned out for it: Completed goes through with NO question — the key is marked used by itself', /^completed$/i.test(r.status) && r.parts === 'key1:used' && !r.asked, r);
+    await complete('jC');
+    r = await pg.evaluate(() => { const c = Array.from(document.querySelectorAll('.chg-modal-ov')).pop(); const o = c ? { text: c.innerText.replace(/\s+/g, ' ') } : { text: '' }; if (c) c.querySelector('[data-yes]').click(); return o; }); await sleep(1800);
+    const jc = await jobNow('jC');
+    check('a job with a part that was never scanned: ONE question, by name ("used on this job?"); yes marks it used and completes the job', /Used on this job\?/.test(r.text) && /TEST Battery CR2032/.test(r.text) && /^completed$/i.test(jc.status) && jc.parts === 'part1:used', { asked: r.text.slice(0, 160), jc });
 
     // the job log in the job form names the key
     await pg.evaluate(() => { const el = document.querySelector('[data-open="jA"]'); el.click(); }); await pg.waitForSelector('#sjSave', { timeout: 8000 }); await sleep(1800);
