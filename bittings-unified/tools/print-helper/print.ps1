@@ -5,6 +5,8 @@
 #   -Action preview → the same drawing into a PNG file ("out" in the job) instead of on paper — for checking a layout
 #   -Action zpl     → sends raw ZPL to the Zebra
 #   -Action drawer  → only kicks the drawer
+#   -Action reset   → (8z137) "Reset printing": removes every waiting print job, stops the Windows print spooler, deletes
+#                     its waiting files and starts it again — the cure for a jammed queue. Every printer's waiting jobs go.
 param([string]$Action = 'status')
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
@@ -36,8 +38,18 @@ $zebra = Find-Printer 'ZDesigner|Zebra|ZD4'
 function Kick-Drawer { if (-not $star) { throw 'no Star printer' }
   # Star: BEL (0x07) fires drawer port 1 in Star mode; ESC p 0 25 250 is the ESC/POS equivalent — the driver passes both through raw
   [BtRaw]::Send($star, [byte[]](0x07, 0x1B, 0x70, 0x00, 0x19, 0xFA), 'Bittings drawer') }
-$in = ''; if ($Action -ne 'status' -and $Action -ne 'drawer') { $in = [Console]::In.ReadToEnd() }
+$in = ''; if ($Action -notin 'status', 'drawer', 'reset') { $in = [Console]::In.ReadToEnd() }
 switch ($Action) {
+  'reset'  {
+    $n = 0
+    try { Get-Printer -ErrorAction SilentlyContinue | ForEach-Object { Get-PrintJob -PrinterName $_.Name -ErrorAction SilentlyContinue | ForEach-Object { $n++; Remove-PrintJob -InputObject $_ -ErrorAction SilentlyContinue } } } catch { }
+    Stop-Service Spooler -Force -ErrorAction SilentlyContinue
+    $t = 0; while ((Get-Service Spooler).Status -ne 'Stopped' -and $t -lt 20) { Start-Sleep -Milliseconds 500; $t++ }
+    if ((Get-Service Spooler).Status -ne 'Stopped') { Get-CimInstance Win32_Process -Filter "Name='spoolsv.exe'" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; Start-Sleep -Seconds 1 }
+    Get-ChildItem (Join-Path $env:WINDIR 'System32\spool\PRINTERS') -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+    Start-Service Spooler
+    $t = 0; while ((Get-Service Spooler).Status -ne 'Running' -and $t -lt 20) { Start-Sleep -Milliseconds 500; $t++ }
+    @{ cleared = $n; spooler = [string](Get-Service Spooler).Status } | ConvertTo-Json -Compress; break }
   'status' { @{ receiptPrinter = $star; labelPrinter = $zebra; printers = @((Get-CimInstance Win32_Printer).Name) } | ConvertTo-Json -Compress; break }
   'drawer' { Kick-Drawer; 'ok'; break }
   'zpl'    { if (-not $zebra) { throw 'no Zebra printer' }; $j = $in | ConvertFrom-Json; [BtRaw]::Send($zebra, [Text.Encoding]::UTF8.GetBytes([string]$j.zpl), 'Bittings label'); 'ok'; break }

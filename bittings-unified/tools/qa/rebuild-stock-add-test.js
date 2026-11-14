@@ -171,6 +171,16 @@ function stubAdd() {
       return [c(55, 'Keys/Smart Key', 'x'), c(25, 'Keys/Remote Head / Flip', 'x'), c(7, 'Keys/Transponder', 'x'), c(26.5, 'Keys/Remote / Fob', 'x'), c(40, 'Keys/Remote / Fob', 'TEST PEPS key'), c(10, 'Hardware/Locks', 'x'), c(0, 'Keys/Smart Key', 'x')]; });
     check('the rule: smart key = cost + 200%, other keys = cost + 150%, rounded up to $5, with a lowest price; parts that are not keys are left alone',
       JSON.stringify(r) === JSON.stringify(['16500 smart', '6500 std', '2500 std', '7000 std', '12000 smart', null, null]), r);
+    // 8z137: remote keys and transponder keys each have their own lowest price
+    r = await pg.evaluate(() => { const real = TKS.Config.autoPrice; const c = (cost, cat, name) => { const a = autoPriceFor(cost, cat, name); return a ? a.cents : null; };
+      const run = (A) => { TKS.Config.autoPrice = () => A; return [c(20, 'Keys/Remote Head / Flip', 'TEST flip'), c(20, 'Keys/Remote / Fob', 'TEST fob'), c(7, 'Keys/Transponder', 'TEST chip key'), c(12, 'Keys/Key Shell', 'TEST shell'), c(4, 'Keys/Mechanical', 'TEST metal key'), c(40, 'Keys/Remote Head / Flip', 'TEST dear flip'), c(30, 'Keys/Smart Key', 'TEST smart')]; };
+      const base = { on: true, stdMarkupPct: 150, smartMarkupPct: 200, roundTo: 5, stdMin: 25, smartMin: 150 };
+      const out = { blank: run(base), set: run(Object.assign({}, base, { remoteMin: 95, transponderMin: 60 })), emptyText: run(Object.assign({}, base, { remoteMin: '', transponderMin: null })) };
+      TKS.Config.autoPrice = real; return out; });
+    check('with no remote / transponder minimum filled in, nothing changes (they use the "any other key" minimum): flip $50, fob $50, transponder $25',
+      JSON.stringify(r.blank) === JSON.stringify([5000, 5000, 2500, 3000, 2500, 10000, 15000]) && JSON.stringify(r.emptyText) === JSON.stringify(r.blank), r);
+    check('with a remote minimum of $95 and a transponder minimum of $60: a $20 flip or fob is $95, a $7 transponder is $60, a shell and a metal key keep the other minimum, a $40 flip (already $100) and smart keys are untouched',
+      JSON.stringify(r.set) === JSON.stringify([9500, 9500, 6000, 3000, 2500, 10000, 15000]), r.set);
     r = await pg.evaluate(() => new Promise(res => { const s = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
       s('pName', 'TEST PEPS smart key for pricing'); s('pCost', '55'); const a = document.getElementById('pSell').value, h1 = document.getElementById('pAutoHint').innerText;
       s('pCost', '60'); const b2 = document.getElementById('pSell').value;
@@ -182,7 +192,46 @@ function stubAdd() {
     await pg.evaluate(() => document.querySelector('.bt-sidebar .bt-nav__item[data-go="settings"]').click()); await sleep(900);
     await pg.evaluate(() => { const it = Array.from(document.querySelectorAll('.railItem')).find(x => /Inventory/.test(x.innerText)); if (it) it.click(); }); await sleep(900);
     r = await pg.evaluate(() => { const bk = document.getElementById('apBlock'); return bk ? { on: document.getElementById('f_apOn').checked, std: document.getElementById('f_apStd').value, smart: document.getElementById('f_apSmart').value, ex1: document.getElementById('f_apStdEx').innerText, ex2: document.getElementById('f_apSmartEx').innerText } : null; });
-    check('Settings › Inventory shows the two percentages with a worked example and the margin each gives', !!r && r.on === true && r.std === '150' && r.smart === '200' && /costs you \$25\.00 sells for \$65\.00 \(60% margin\)/.test(r.ex1) && /costs you \$55\.00 sells for \$165\.00 \(67% margin\)/.test(r.ex2), r);
+    check('Settings › Inventory shows the percentages with a worked example and the margin each gives', !!r && r.on === true && r.std === '150' && r.smart === '200' && /Cost \$12 → sells for \$30\.00 \(60% margin\)/.test(r.ex1) && /Cost \$55 → sells for \$165\.00 \(67% margin\)/.test(r.ex2), r);
+    // 8z138: one row per kind of key — "add %" and "lowest price" side by side; remote / flip and transponder have their own of both
+    r = await pg.evaluate(() => { const rows = [].map.call(document.querySelectorAll('#apGrid .ap-row'), (row) => { const ins = row.querySelectorAll('input'), a = ins[0].getBoundingClientRect(), b2 = ins[1].getBoundingClientRect(), lab = row.querySelector('b').getBoundingClientRect();
+        return { label: row.querySelector('b').innerText, caps: [].map.call(row.querySelectorAll('label'), x => x.innerText).join(), pct: ins[0].id, min: ins[1].id, sameLine: Math.abs(a.top - b2.top) < 3, pctLeftOfMin: a.right <= b2.left, nameAbove: lab.bottom <= a.top + 1 }; });
+      return { rows, vals: ['f_apTran', 'f_apTranMin', 'f_apRemote', 'f_apRemoteMin'].map(id => document.getElementById(id).value) }; });
+    check('one block per kind, in the order Transponder, Remote / flip, Smart, Other keys, Accessories — the name on top, then "Add %" and "Lowest price $" side by side',
+      r.rows.every(x => x.caps === 'Add %,Lowest $,Highest $' && x.nameAbove) && r.rows.map(x => x.label).join('|') === 'Transponder keys|Remote / flip keys|Smart keys|Other keys (shells, metal keys)|Accessories' &&
+      r.rows.map(x => x.pct + '+' + x.min).join() === 'f_apTran+f_apTranMin,f_apRemote+f_apRemoteMin,f_apSmart+f_apSmartMin,f_apStd+f_apStdMin,f_apAcc+f_apAccMin' && r.rows.every(x => x.sameLine && x.pctLeftOfMin), r);
+    check('until the owner changes them, transponder and remote / flip show the same numbers the other keys use (150 %, $25)', r.vals.join() === '150,25,150,25', r.vals);
+    r = await pg.evaluate(() => new Promise(res => { const set = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); };
+      set('f_apRemote', '300'); set('f_apRemoteMin', '95'); set('f_apTran', '200'); set('f_apTranMin', '60');
+      setTimeout(() => { const A = TKS.Config.autoPrice(), c = (cost, cat) => autoPriceFor(cost, cat, 'TEST x').cents; res({ saved: [A.remoteMarkupPct, A.remoteMin, A.transponderMarkupPct, A.transponderMin, A.stdMarkupPct, A.stdMin],
+        flip20: c(20, 'Keys/Remote Head / Flip'), fob40: c(40, 'Keys/Remote / Fob'), tran7: c(7, 'Keys/Transponder'), tran30: c(30, 'Keys/Transponder'), shell12: c(12, 'Keys/Key Shell'), ex: document.getElementById('f_apRemoteEx').innerText }); }, 900); }));
+    check('remote / flip with its own 300 % and $95 lowest: a $20 flip is $95, a $40 fob is $160; transponder with its own 200 % and $60: $7 → $60, $30 → $90; a shell still uses the other-keys rule ($30)',
+      JSON.stringify(r.saved) === JSON.stringify([300, 95, 200, 60, 150, 25]) && r.flip20 === 9500 && r.fob40 === 16000 && r.tran7 === 6000 && r.tran30 === 9000 && r.shell12 === 3000 && /Cost \$20 → sells for \$95\.00/.test(r.ex), r);
+    // 8z141: accessories — off until a percentage is typed; own lowest / highest / rounding
+    r = await pg.evaluate(() => new Promise(res => { const set = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); };
+      const c = (cost, cat, name) => { const a = autoPriceFor(cost, cat, name || 'TEST x'); return a ? a.cents : null; };
+      const out = { boxes: ['f_apAcc', 'f_apAccMin', 'f_apAccMax', 'f_apAccRound'].map(id => document.getElementById(id).value).join('|'), offHint: document.getElementById('f_apAccEx').innerText, off: [c(0.3, 'Accessories/Key Rings & Clips'), c(6, 'Accessories/Key Hiders & Safes')] };
+      set('f_apAcc', '300'); set('f_apAccMin', '2'); set('f_apAccMax', '20'); set('f_apAccRound', '1');
+      setTimeout(() => { const A = TKS.Config.autoPrice(); out.saved = [A.accMarkupPct, A.accMin, A.accMax, A.accRoundTo];
+        out.on = [c(0.3, 'Accessories/Key Rings & Clips'), c(2.5, 'Accessories/Lanyards & Coils'), c(7, 'Accessories/Locks & Padlocks'), c(30, 'Accessories/Locks & Padlocks'), c(2.5, 'Accessories/Skins & Covers', 'TEST prox key cover')];
+        out.keysSame = [c(20, 'Keys/Remote Head / Flip'), c(55, 'Keys/Smart Key')]; out.ex = document.getElementById('f_apAccEx').innerText;
+        set('f_apAcc', ''); set('f_apAccMin', ''); set('f_apAccMax', ''); set('f_apAccRound', '');
+        setTimeout(() => { out.cleared = TKS.Config.autoPrice().accMarkupPct; out.offAgain = c(2.5, 'Accessories/Lanyards & Coils'); res(out); }, 900); }, 900); }));
+    check('accessories start switched off (boxes blank, the line under them says so) and are not priced by the rules', r.boxes === '|||' && /Not switched on/.test(r.offHint) && r.off[0] === null && r.off[1] === null, r);
+    check('accessories with +300 %, lowest $2, highest $20, $1 steps: a 30-cent ring is $2, a $2.50 lanyard is $10, a $7 lock is capped at $20, a $30 lock is never under cost ($30), a cover with "prox" in its name is priced as an accessory ($10), and keys are unchanged (the flip is still $95 from the remote rule set just above, the smart key $165)',
+      JSON.stringify(r.saved) === JSON.stringify([300, 2, 20, 1]) && JSON.stringify(r.on) === JSON.stringify([200, 1000, 2000, 3000, 1000]) && JSON.stringify(r.keysSame) === JSON.stringify([9500, 16500]) && /Cost \$2 → sells for \$8\.00/.test(r.ex), r);
+    check('emptying the accessories percentage switches them off again', r.cleared === null && r.offAgain === null, r);
+    // 8z140: a highest price per kind — blank = none; never under what the key cost
+    r = await pg.evaluate(() => new Promise(res => { const set = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); };
+      const blank = ['f_apTranMax', 'f_apRemoteMax', 'f_apSmartMax', 'f_apStdMax'].map(id => document.getElementById(id).value).join('|'), c = (cost, cat) => autoPriceFor(cost, cat, 'TEST x').cents, before = c(199.5, 'Keys/Smart Key');
+      set('f_apSmartMax', '400'); set('f_apRemoteMax', '60');
+      setTimeout(() => { const A = TKS.Config.autoPrice(), out = { blank, before, saved: [A.smartMax, A.remoteMax, A.transponderMax, A.stdMax], smartDear: c(199.5, 'Keys/Smart Key'), smartCheap: c(55, 'Keys/Smart Key'), remoteOverCost: c(120, 'Keys/Remote / Fob'), ex: document.getElementById('f_apSmartEx').innerText };
+        set('f_apSmartMax', ''); set('f_apRemoteMax', ''); setTimeout(() => { const B = TKS.Config.autoPrice(); out.cleared = [B.smartMax, B.remoteMax]; out.after = c(199.5, 'Keys/Smart Key'); res(out); }, 900); }, 900); }));
+    check('the "Highest $" boxes start blank (no highest price): a $199.50 smart key follows the percentage ($600)', r.blank === '|||' && r.before === 60000, r);
+    check('with a highest price of $400 for smart keys that key is $400 and a $55 one is untouched ($165); a highest price under the cost never sells under cost ($120 remote key, highest $60 → $120); the example line shows it',
+      JSON.stringify(r.saved) === JSON.stringify([400, 60, null, null]) && r.smartDear === 40000 && r.smartCheap === 16500 && r.remoteOverCost === 12000 && /highest price/.test(r.ex), r);
+    check('emptying the box again removes the highest price', JSON.stringify(r.cleared) === JSON.stringify([null, null]) && r.after === 60000, r);
+    await pg.evaluate(() => { const set = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); }; set('f_apRemote', '150'); set('f_apRemoteMin', '25'); set('f_apTran', '150'); set('f_apTranMin', '25'); }); await sleep(900);
     await pg.evaluate(() => document.getElementById('apBlock').scrollIntoView({ block: 'start' })); await sleep(200);
     await pg.screenshot({ path: path.join(OUT, 'auto-price-settings.png') });
     r = await pg.evaluate(() => new Promise(res => { const e = document.getElementById('f_apSmart'); e.value = '100'; e.dispatchEvent(new Event('change', { bubbles: true })); setTimeout(() => res({ ex2: document.getElementById('f_apSmartEx').innerText, saved: TKS.Config.autoPrice().smartMarkupPct, stdKept: TKS.Config.autoPrice().stdMarkupPct, price: autoPriceFor(55, 'Keys/Smart Key', 'x').cents, db: JSON.parse(localStorage.getItem('__db')).shop_config.map(x => ((x.data || {}).autoPrice || {}).smartMarkupPct).filter(v => v != null) }), 900); }));
@@ -190,7 +239,7 @@ function stubAdd() {
     // ================= One tap: change every key's price to the rules (8z89) =================
     r = await pg.evaluate(() => ({ btn: (document.getElementById('f_apAll') || {}).innerText, plan: (function () { const P = repricePlan(); return { n: P.changes.length, up: P.up, down: P.down, noCost: P.noCost, same: P.same, list: P.changes.map(c => c.sku + ':' + c.old + '>' + c.cents).sort() }; })() }));
     check('the plan: every key with a cost gets the price the rules give (smart +100% here, others +150%, $5 steps, minimums); keys with no cost are left alone',
-      /Change every key/.test(r.btn || '') && r.plan.n === 4 && r.plan.down === 4 && r.plan.up === 0 && r.plan.noCost === 1 &&
+      /Change every price/.test(r.btn || '') && r.plan.n === 4 && r.plan.down === 4 && r.plan.up === 0 && r.plan.noCost === 1 &&
       JSON.stringify(r.plan.list) === JSON.stringify(['T-HAVE:15000>7500', 'T-LOW:15000>5000', 'T-OUT2:15000>5000', 'T-OUT:15000>7500'].sort()), r.plan);
     await pg.evaluate(() => document.getElementById('f_apAll').click()); await sleep(500);
     r = await pg.evaluate(() => { const c = document.getElementById('rpCard'); return c ? c.innerText.replace(/\s+/g, ' ') : null; });

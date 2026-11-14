@@ -3743,12 +3743,34 @@ function autoPriceFor(cost, category, name){
   var A; try{ A=TKS.Config.autoPrice(); }catch(e){ A=null; }
   cost=parseFloat(cost); if(!A || !A.on || !(cost>0)) return null;
   var sub=''; try{ sub=TKS_FIT.keySub({ name:name||'', category:category||'' }); }catch(e){}
+  // 8z141 (owner: "include accessories in the automated pricing"): anything filed under Accessories has its own numbers — Add %,
+  // lowest, highest and its own rounding. Add % left blank = accessories are still priced by hand.
+  if(/^accessor/i.test(String(category||''))){
+    var ap=parseFloat(A.accMarkupPct); if(A.accMarkupPct==null || A.accMarkupPct==='' || isNaN(ap)) return null;
+    var as=parseFloat(A.accRoundTo), astep=(A.accRoundTo==null || A.accRoundTo==='' || isNaN(as)) ? Math.max(0, parseFloat(A.roundTo)||0) : Math.max(0, as);
+    var aup=function(x){ return astep>0 ? Math.ceil((x-1e-9)/astep)*astep : x; };
+    var apct=Math.max(0, ap), amin=Math.max(0, parseFloat(A.accMin)||0), amx=parseFloat(A.accMax), aprice=aup(cost*(1+apct/100)), acap=false;
+    if(aprice<amin) aprice=amin;
+    if(amx>0 && aprice>amx){ aprice=Math.max(amx, aup(cost)); acap=true; }
+    return { cents:Math.round(aprice*100), group:'acc', pct:apct, kind:'accessory', capped:acap };
+  }
   var isKey=/^keys\//i.test(String(category||''));
   var group = (sub==='Smart Key') ? 'smart' : (isKey ? 'std' : '');
   if(!group) return null;
-  var pct=Math.max(0, parseFloat(group==='smart'?A.smartMarkupPct:A.stdMarkupPct)||0), min=Math.max(0, parseFloat(group==='smart'?A.smartMin:A.stdMin)||0), step=Math.max(0, parseFloat(A.roundTo)||0);
+  // 8z137 (owner, 2026-11-13: "we need a lowest cost for remote key versus transponder key"): remote keys (remote-head / flip / fob)
+  // and transponder keys each have their own lowest price; left blank they use the "any other key" one.
+  var own=(group==='smart') ? A.smartMin : (/^remote/i.test(sub) ? A.remoteMin : (/^transponder/i.test(sub) ? A.transponderMin : null));
+  if(group!=='smart' && (own==null || own==='' || isNaN(parseFloat(own)))) own=A.stdMin;
+  var kind=(group==='smart') ? 'smart' : (/^remote/i.test(sub) ? 'remote' : (/^transponder/i.test(sub) ? 'transponder' : 'other'));
+  // 8z138: remote / flip and transponder keys may have their OWN markup too; blank = the "other keys" one
+  var ownPct=(kind==='smart') ? A.smartMarkupPct : (kind==='remote' ? A.remoteMarkupPct : (kind==='transponder' ? A.transponderMarkupPct : null));
+  if(kind!=='smart' && (ownPct==null || ownPct==='' || isNaN(parseFloat(ownPct)))) ownPct=A.stdMarkupPct;
+  var pct=Math.max(0, parseFloat(ownPct)||0), min=Math.max(0, parseFloat(own)||0), step=Math.max(0, parseFloat(A.roundTo)||0);
   var price=cost*(1+pct/100); if(step>0) price=Math.ceil((price-1e-9)/step)*step; if(price<min) price=min;
-  return { cents:Math.round(price*100), group:group, pct:pct };
+  // 8z140: a highest price for this kind of key (blank = none) — but never under what the key cost
+  var mx=parseFloat(kind==='smart'?A.smartMax:(kind==='remote'?A.remoteMax:(kind==='transponder'?A.transponderMax:A.stdMax))), capped=false;
+  if(mx>0 && price>mx){ var fl=cost; if(step>0) fl=Math.ceil((cost-1e-9)/step)*step; price=Math.max(mx, fl); capped=true; }
+  return { cents:Math.round(price*100), group:group, pct:pct, kind:kind, capped:capped };
 }
 /* 8z89 (owner, 2026-11-12: "give me a button to change all prices with one tap based on the rules").
    repricePlan() works out, for every key in stock that has a cost, the price the rules give and keeps the ones that
@@ -3814,22 +3836,25 @@ function repriceLast(){
         try{ toast(((q.data&&q.data.restored)||0)+' prices put back.'); }catch(e){} try{ if(TKS.refresh) TKS.refresh(true); }catch(e){} repriceLast(); }, function(){ u.disabled=false; }); }); };
   }, function(){});
 }
-var pAutoLast='';
-function pAutoSync(){
+var pAutoLast='', pAutoKind='';   // pAutoKind (8z139): the price kind (smart / remote / transponder / other) the form last showed
+function pAutoSync(typeChanged){
   var sell=document.getElementById('pSell'), costEl=document.getElementById('pCost'), hint=document.getElementById('pAutoHint'); if(!sell || !costEl || !hint) return;
   var cw=document.getElementById('pCostWrap'); if(sell.readOnly || (cw && cw.style.display==='none')){ hint.innerHTML=''; return; }
   var a=autoPriceFor(costEl.value, pCategoryValue(), document.getElementById('pName').value);
   if(!a){ hint.innerHTML=''; return; }
-  var v=(a.cents/100).toFixed(2), why='cost $'+(parseFloat(costEl.value)||0).toFixed(2)+' + '+a.pct+'% ('+(a.group==='smart'?'smart key':'key')+')';
+  var v=(a.cents/100).toFixed(2), why='cost $'+(parseFloat(costEl.value)||0).toFixed(2)+' + '+a.pct+'% ('+({ smart:'smart key', remote:'remote / flip key', transponder:'transponder key', accessory:'accessory' }[a.kind]||'key')+(a.capped?', highest price':'')+')';
+  // 8z139 (owner: "when we set smart key it automatically changes the price to match"): the TYPE was changed → the price is the rule's
+  if(typeChanged===true && pAutoKind && a.kind!==pAutoKind){ pAutoKind=a.kind; if(sell.value!==v){ sell.value=v; pAutoLast=v; hint.textContent='Type changed, so the price was set by the rules: '+why+' = $'+v+'. Change it if you want.'; return; } }
+  pAutoKind=a.kind;
   if(sell.value.trim()==='' || sell.value===pAutoLast){ sell.value=v; pAutoLast=v; hint.textContent='Automatic price: '+why+' = $'+v+'. Change it if you want.'; return; }
   if(parseFloat(sell.value)===a.cents/100){ hint.textContent='Matches the automatic price ('+why+').'; return; }
   hint.innerHTML='Automatic price would be <b>$'+v+'</b> ('+esc(why)+'). <button type="button" id="pAutoUse" class="btn ghost" style="min-height:36px;padding:4px 10px;margin-left:4px">Use $'+v+'</button>';
   var u=document.getElementById('pAutoUse'); if(u) u.onclick=function(){ sell.value=v; pAutoLast=v; pAutoSync(); };
 }
 (function(){ ['pCost','pName'].forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener('input', function(){ try{ pAutoSync(); }catch(_){} }); });
-  ['pGrade','pSub'].forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener('change', function(){ setTimeout(function(){ try{ pAutoSync(); }catch(_){} }, 0); }); }); })();
+  ['pGrade','pSub'].forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener('change', function(){ setTimeout(function(){ try{ pAutoSync(id==='pSub'); }catch(_){} }, 0); }); }); })();
 function openPart(id){
-  pAutoLast=''; try{ document.getElementById('pAutoHint').innerHTML=''; }catch(e){}   // 8z87
+  pAutoLast=''; pAutoKind=''; try{ document.getElementById('pAutoHint').innerHTML=''; }catch(e){}   // 8z87
   if(!window.__partFromSet) partReturnView = 'inventory'; window.__partFromSet = false;   // 8z17: back goes to where it was opened
   try{ window.pChipSuggestRefresh && pChipSuggestRefresh(); }catch(_){}   // 8z11
   editPartId = id;
@@ -3844,6 +3869,7 @@ function openPart(id){
   pFitAddFill();
   document.getElementById('pCost').value = (p.cost!=null? p.cost : '');
   document.getElementById('pSell').value = (p.sellPriceCents!=null ? (p.sellPriceCents/100) : '');
+  try{ var a0=autoPriceFor(p.cost, p.category, p.name); pAutoKind=(a0&&a0.kind)||''; }catch(_){ pAutoKind=''; }   // 8z139: what kind this key is priced as today
   document.getElementById('pLocation').value = p.location || '';
   var lw=document.getElementById('pLocWrap'); if(lw) lw.style.display = bothLoc()?'block':'none';
   setPartLoc(partLoc(p));
@@ -4031,9 +4057,12 @@ document.getElementById('pSaveInfo').onclick = async function(){
   var map = { sku:'sku', category:'category', grade:'grade', brand:'brand', fcc_id:'fccId', chip:'chip', location:'location', supplier:'supplier',
               vendor_sku:'vendorSku', fitment:'fitment', notes:'notes', link:'link', low_at:'lowAt', reorder_qty:'reorderQty' };
   var local = {}; Object.keys(patch).forEach(function(k){ local[map[k]] = patch[k]; });
+  // 8z139: the server re-prices a key whose TYPE changed (a technician cannot set a price) — show the new one
+  var newCents=(r.data && r.data.price_changed && r.data.sell_price_cents!=null) ? Number(r.data.sell_price_cents) : null;
+  if(newCents!=null && !isNaN(newCents)) local.sellPriceCents=newCents;
   try{ TKS.Inventory.applyServerPatch(id, local); }catch(e){}
-  note.textContent='✓ Saved';
-  setTimeout(partBack, 500);
+  note.textContent = (newCents!=null && !isNaN(newCents)) ? ('✓ Saved. The type changed, so the price is now $'+(newCents/100).toFixed(2)+' by the shop\'s price rules.') : '✓ Saved';
+  setTimeout(partBack, (newCents!=null && !isNaN(newCents)) ? 2600 : 500);
 };
 
 document.getElementById('pSaveNew').onclick = async function(){   // 8z83
@@ -5698,7 +5727,7 @@ function repExportCsv(){
   const head=['Date','Time','Document','Customer','Description','Paid by','Card','Sale before tax','Sales tax','Card surcharge','Collected','Refunded','Cost of parts','Card fee (estimated)','Status','Technician'];
   const lines=[head.join(',')].concat(rows.map(function(t){ const d=new Date(t.created_at), r=rc[t.invoice_id]||{}, tax=t.tax_cents||0, sur=t.surcharge_applied?(t.surcharge_cents||0):0;
     return [ d.toLocaleDateString('en-US'), d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}), r.number||t.invoice_id||'', r.customer||'', t.description||'', t.method||'', (t.card_brand||'')+(t.card_funding?(' '+t.card_funding):''),
-      money2((t.base_cents||0)-tax), money2(tax), money2(sur), money2(t.captured_cents!=null?t.captured_cents:(t.base_cents||0)+sur), money2(t.refunded_cents), money2(t.cost_cents), money2((t.status==='completed'||t.status==='partially_refunded')?repCardFee(t):0), t.status||'', t.technician||'' ].map(q).join(','); }));
+      money2((t.base_cents||0)-tax), money2(tax), money2(sur), money2(t.captured_cents!=null?t.captured_cents:(t.base_cents||0)+sur), money2(t.refunded_cents), money2(t.cost_cents), money2((t.status==='completed'||t.status==='partially_refunded')?repCardFee(t):0), t.status||'', techName(t.technician) ].map(q).join(','); }));
   const blob=new Blob(['\ufeff'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'}), a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download='bittings-sales-'+(_repExport.label||'export')+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
   try{ toast('Exported '+rows.length+' payments.'); }catch(e){}
@@ -5767,7 +5796,7 @@ function repExemptCsv(){
   const head=['Date','Document','Customer','Exemption','Name on permit / card','Address','Type of business','Permit / exemption number','Expires','Sale amount (no tax charged)','Paid by','Applied by','Photo on file','Signed'];
   const lines=[head.join(',')].concat(ex.map(function(x){ const e=x.r.taxExempt||{};
     return [ new Date(x.t.created_at).toLocaleDateString('en-US'), x.r.number||x.t.invoice_id||'', x.r.customer||'', e.kindLabel||e.kind||'', e.holderName||'', e.holderAddress||x.r.address||'', e.businessType||'', e.permitNumber||'', e.expiresOn||'',
-      (x.amt/100).toFixed(2), x.t.method||'', e.appliedBy||x.t.technician||'', e.hasDoc?'yes':'no', e.signedAt?'yes':'no' ].map(q).join(','); }));
+      (x.amt/100).toFixed(2), x.t.method||'', techName(e.appliedBy||x.t.technician), e.hasDoc?'yes':'no', e.signedAt?'yes':'no' ].map(q).join(','); }));
   const blob=new Blob(['\ufeff'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'}), a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download='bittings-tax-exempt-sales-'+(_repExport.label||'export')+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
   try{ toast('Exported '+ex.length+' tax-exempt sale'+(ex.length>1?'s':'')+'.'); }catch(e){}
@@ -6013,6 +6042,28 @@ function openCommissionRules(){
     };
   }).catch(e=>{ const b=document.getElementById('crBody'); if(b) b.innerHTML='<div class="chg-cpempty">Couldn’t load rules.</div>'; });
 }
+/* 8z143 (owner, 2026-11-13: "it's adding the email and the name as separate technicians — these need to be merged"). A sale rung up at
+   the counter records who made it as the LOGIN EMAIL; an invoice made from a scheduled job records the technician's NAME. Same person,
+   two spellings, so the technician filter listed everyone twice and each entry showed only part of their sales. Reports now show one
+   entry per person, by name: an email (or a name typed in another case) is turned into the name of the team member it belongs to —
+   the team's logins first (Settings → Team; emails are readable by managers / the owner), the hand-typed Employees list as a fall-back.
+   The saved sales are not changed, and pay / commission is worked out on the server from the job and the login, not from this text. */
+let _techDir=null, _techDirAt=0;
+async function techDirLoad(){
+  if(_techDir && (Date.now()-_techDirAt)<5*60000) return _techDir;
+  const d={ byEmail:{}, byName:{} }, low=v=>String(v||'').trim().toLowerCase(); let emps=[];
+  try{ emps=(TKS.Config.access().employees||[]).filter(e=>e && String(e.name||'').trim()); }catch(e){}
+  emps.forEach(e=>{ const n=String(e.name).trim(); d.byName[low(n)]=n; if(low(e.email)) d.byEmail[low(e.email)]=n; });
+  try{ const sb=TKS._sb&&TKS._sb(); if(sb){
+    const res=await Promise.all([ sb.from('staff').select('user_id,name'), sb.rpc('staff_contacts').then(x=>x, ()=>({ data:[] })) ]);
+    const nm={}; ((res[0]&&res[0].data)||[]).forEach(st=>{ const n=String((st&&st.name)||'').trim(); if(n){ nm[st.user_id]=n; d.byName[low(n)]=n; } });
+    ((res[1]&&res[1].data)||[]).forEach(c=>{ const em=low(c&&c.email); if(em && nm[c.user_id]) d.byEmail[em]=nm[c.user_id]; });
+    // "Jayden" in the Employees list and "Jayden Geyer" on the login are one person when they share the email
+    emps.forEach(e=>{ const em=low(e.email); if(em && d.byEmail[em]) d.byName[low(e.name)]=d.byEmail[em]; });
+  } }catch(e){}
+  _techDir=d; _techDirAt=Date.now(); return d;
+}
+function techName(raw){ const k=String(raw||'').trim(); if(!k) return ''; const d=_techDir||{ byEmail:{}, byName:{} }, l=k.toLowerCase(); return d.byEmail[l] || d.byName[l] || k; }
 async function renderReports(){
   const v=repView(), m=repMetrics();
   const cards=document.getElementById('repCards'), list=document.getElementById('repList'), wrap=document.getElementById('repChartWrap');
@@ -6022,16 +6073,16 @@ async function renderReports(){
   const cw=document.getElementById('repCustom'); if(cw) cw.style.display = v.period==='custom' ? 'flex' : 'none';
   if(v.period==='custom'){ const f=document.getElementById('repFrom'), t=document.getElementById('repTo'); if(f) f.value=v.from||''; if(t) t.value=v.to||''; }
   const {start,end}=repRange(v.period);
-  const res=await TKPay.dayTransactions(start.toISOString(), end.toISOString());
+  const res=(await Promise.all([ TKPay.dayTransactions(start.toISOString(), end.toISOString()), techDirLoad().catch(()=>null) ]))[0];   // 8z143: + who is who
   if(res.error){ list.innerHTML='<div class="empty">'+esc2(res.error)+'</div>'; return; }
   const allRows=res.rows||[];
   // Technician filter: options from whoever appears this period (keep selection).
-  const techs=Array.from(new Set(allRows.map(t=>(t.technician||'').trim()).filter(Boolean))).sort();
-  const sel=document.getElementById('repTech'); const want=(v.tech||'all');
+  const techs=Array.from(new Set(allRows.map(t=>techName(t.technician)).filter(Boolean))).sort((a,b)=>a.localeCompare(b));   // 8z143: one entry per person
+  const sel=document.getElementById('repTech'); const want=(v.tech && v.tech!=='all') ? techName(v.tech) : 'all';   // a choice saved as an email still finds its person
   sel.innerHTML='<option value="all">All technicians</option>'+techs.map(t=>'<option value="'+esc2(t)+'">'+esc2(t)+'</option>').join('');
   sel.value = (want==='all'||techs.indexOf(want)>=0) ? want : 'all';
-  if(sel.value!==want){ const vv=repView(); vv.tech=sel.value; repSetView(vv); }
-  const rows = sel.value==='all' ? allRows : allRows.filter(t=>(t.technician||'').trim()===sel.value);
+  if(sel.value!==(v.tech||'all')){ const vv=repView(); vv.tech=sel.value; repSetView(vv); }
+  const rows = sel.value==='all' ? allRows : allRows.filter(t=>techName(t.technician)===sel.value);
   _repExport={ rows:rows, label:start.toISOString().slice(0,10)+'_to_'+new Date(end.getTime()-1).toISOString().slice(0,10) };   // 8z72: what "⬇ Export" writes
   const gran=repGran(v.period), buckets=repBuckets(start,end,gran);
   const agg={}; buckets.forEach(b=> agg[b.key]={sales:0,cost:0,profit:0,jobs:0});
@@ -6104,7 +6155,7 @@ async function renderReports(){
     const refund = ((t.status==='completed'||t.status==='partially_refunded') && payCanRefund(t)) ?
       '<button class="repRefund" data-cap="refundVoid" data-id="'+esc2(t.id)+'" data-pi="'+esc2(t.stripe_payment_intent_id||'')+'" data-method="'+esc2(t.method)+'" data-inv="'+esc2(t.invoice_id||'')+'">↩︎ Refund</button>' : '';
     return '<div class="crow repRow" data-inv="'+esc2(t.invoice_id||'')+'" style="cursor:pointer" title="Open the customer and this invoice"><div style="flex:1"><div class="nm">'+esc2(t.description||t.invoice_id||'Charge')+'</div>'+
-      '<div class="sub">'+when+' · '+ml+(t.technician?(' · '+esc2(t.technician)):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
+      '<div class="sub">'+when+' · '+ml+(t.technician?(' · '+esc2(techName(t.technician))):'')+(t.surcharge_applied?' · +2%':'')+' · '+t.status+'</div></div>'+
       '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'+
         '<span class="tag '+cls+'">'+repMoney(t.captured_cents||t.base_cents)+'</span>'+refund+'</div></div>';
   }).join('');
@@ -6331,14 +6382,18 @@ function dashPeriodJobs(p){
   const ti=days.findIndex(x=>{ const t=new Date(); return t>=x.start && t<x.end; });
   return {days, title:B.title, todayKey: ti>=0?days[ti].key:todayKey};
 }
+/* 8z142 (owner, 2026-11-13: "it's showing something else on every job. Can you classify them"): each completed job is sorted by what it
+   was — car lockout, all keys lost, spare key / programming, rekey, lock change… — worked out from the job's "Service / details" and its
+   charges (TKS.JobKinds in app/store.js). Before, the chart read a field only the guided wizard filled in. Biggest group first. */
 function dashTypes(monthB){
-  const all=dashAllBookings(), counts={}; let total=0;
-  all.forEach(b=>{ if((b.status||'')!=='Completed') return; if(!dashInMonth(b.date,monthB)) return; const c=b.serviceCategory||'other'; counts[c]=(counts[c]||0)+1; total++; });
+  const all=dashAllBookings(), counts={}, seen={}; let total=0, n=0;
+  all.forEach(b=>{ if((b.status||'')!=='Completed') return; if(!dashInMonth(b.date,monthB)) return;
+    let lbl='Other'; try{ lbl=TKS.JobKinds.classify(b).label||'Other'; }catch(e){}
+    counts[lbl]=(counts[lbl]||0)+1; if(seen[lbl]==null) seen[lbl]=n++; total++; });
   if(!total) return {rows:[],total:0};
-  let cats=[]; try{ cats=TKS.ServiceCats.active()||[]; }catch(e){}
-  const order=cats.map(c=>c.key); Object.keys(counts).forEach(k=>{ if(order.indexOf(k)<0) order.push(k); });
-  let rows=order.filter(k=>counts[k]).map(k=>{ let lbl=k; try{ lbl=TKS.ServiceCats.label(k,'en')||k; }catch(e){} return {key:k,label:lbl,n:counts[k],pct:Math.round(counts[k]/total*100)}; });
-  if(rows.length>5){ const head=rows.slice(0,4), tail=rows.slice(4), tn=tail.reduce((s,r)=>s+r.n,0); head.push({key:'_other',label:'Other',n:tn,pct:Math.round(tn/total*100)}); rows=head; }
+  const isOther=k=>/^Other\b/.test(k)?1:0;
+  let rows=Object.keys(counts).sort((a,b)=>(isOther(a)-isOther(b)) || (counts[b]-counts[a]) || (seen[a]-seen[b])).map(k=>({key:k,label:k,n:counts[k],pct:Math.round(counts[k]/total*100)}));
+  if(rows.length>7){ const head=rows.slice(0,6), tail=rows.slice(6), tn=tail.reduce((s,r)=>s+r.n,0); head.push({key:'_other',label:'Everything else',n:tn,pct:Math.round(tn/total*100)}); rows=head; }
   return {rows,total};
 }
 function dashDeltaPct(cur,prev){ if(!(prev>0)) return null; return Math.round((cur-prev)/prev*100); }
@@ -6399,13 +6454,13 @@ async function renderDashboard(){
     return '<div class="wk"><div class="wk-val'+(d.n?'':' z')+'">'+d.n+'</div><div class="wk-bar'+(i===hi?' hot':'')+'" style="height:'+h+'px"></div><div class="wk-lbl">'+d.label+'</div></div>';
   }).join('');
   // Jobs by type
-  const ty=dashTypes(monthB), tcolors=['#ffb000','#4aa3ff','#9b6bd6','#22994a','#c92c3d','#5a616c'];
+  const ty=dashTypes(monthB), tcolors=['#ffb000','#4aa3ff','#9b6bd6','#22994a','#c92c3d','#1aa6a6','#5a616c'];
   const tbox=document.getElementById('dashTypes');
-  tbox.innerHTML = ty.total ? ty.rows.map((r,i)=>'<div class="ty"><div class="ty-top"><span>'+esc2(r.label)+'</span><span>'+r.pct+'%</span></div>'+
+  tbox.innerHTML = ty.total ? ty.rows.map((r,i)=>'<div class="ty"><div class="ty-top"><span>'+esc2(r.label)+'</span><span>'+r.n+' · '+r.pct+'%</span></div>'+
       '<div class="ty-track"><div class="ty-fill" style="width:'+r.pct+'%;background:'+tcolors[i%tcolors.length]+'"></div></div></div>').join('')
     : '<div class="dash-empty">No completed jobs logged for '+esc2(pLabel)+'.</div>';
   document.getElementById('dashFoot').innerHTML =
-    'Revenue, Jobs &amp; Tax collected match Transaction History for '+esc2(pLabel)+'. Owed (A/R) is your current unpaid-invoice total across all customers. The two job charts read completed scheduler bookings. Deltas compare with the previous '+noun+' and appear only when it has real data.';
+    'Revenue, Jobs &amp; Tax collected match Transaction History for '+esc2(pLabel)+'. Owed (A/R) is your current unpaid-invoice total across all customers. The two job charts read completed scheduler bookings; a job’s type comes from its “Service / details” and its charges. Deltas compare with the previous '+noun+' and appear only when it has real data.';
   _dashData={ month:pLabel, noun:noun, chartTitle:wk.title, revenue:cur.sales, jobs:cur.jobs,
     repeatPct:rc.pct, avgTicket:cur.jobs?curAvg:null, week:wk.days.map(d=>({label:d.label,n:d.n})), types:ty.rows.map(r=>({label:r.label,n:r.n,pct:r.pct})) };
 }
@@ -7394,29 +7449,46 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
         '<div class="panel" id="serBlock" style="margin-top:16px;padding:12px 14px"><label style="margin-top:0">Serial numbers</label><div class="sub" id="serMsg" style="margin:0 0 8px;line-height:1.5">Checking…</div><div id="serAct"></div></div>'+
         (function(){ setTimeout(function(){ try{ serSettingsPaint(); }catch(e){} }, 0); return ''; })()+
         /* 8z87: automatic key prices */
-        (function(){ var A=TKS.Config.autoPrice(), num=function(id,v,ph){ return '<input id="'+id+'" type="number" inputmode="decimal" min="0" step="1" value="'+esc(String(v==null?'':v))+'" placeholder="'+ph+'" style="max-width:120px">'; };
-          return '<div class="panel" id="apBlock" style="margin-top:16px;padding:12px 14px"><label style="margin-top:0">Automatic key prices</label>'+
-            '<div class="sub" style="margin:0 0 8px;line-height:1.5">When a key is added with its cost, the sale price is worked out for you: cost plus the percentage below, rounded up, never under the minimum. Whoever adds the key can still change it. Prices already in your stock list are not touched.</div>'+
+        (function(){ var A=TKS.Config.autoPrice(), num=function(id,v,ph){ return '<input id="'+id+'" type="number" inputmode="decimal" min="0" step="1" value="'+esc(String(v==null?'':v))+'" placeholder="'+ph+'" style="max-width:120px;width:100%;min-width:0">'; },
+          // 8z138: one block per kind of key — its name, then "Add %" and "Lowest price $" side by side, then a worked example
+          apRow=function(label,pid,pv,mid,mv,xid,xv,exId){ return '<div class="ap-row" style="min-width:0"><b style="display:block;font-size:15.5px;margin-bottom:4px">'+label+'</b>'+
+            '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;max-width:400px"><div><label style="margin:0 0 3px">Add %</label>'+num(pid,pv,'%')+'</div><div><label style="margin:0 0 3px">Lowest $</label>'+num(mid,mv,'$')+'</div><div><label style="margin:0 0 3px">Highest $</label>'+num(xid,xv,'none')+'</div></div>'+
+            '<div class="hint" id="'+exId+'" style="margin:4px 0 0"></div></div>'; };
+          return '<div class="panel" id="apBlock" style="margin-top:16px;padding:12px 14px"><label style="margin-top:0">Automatic prices (keys and accessories)</label>'+
+            '<div class="sub" style="margin:0 0 8px;line-height:1.5">When a key or an accessory is added with its cost, the sale price is worked out for you: cost plus the percentage for that kind of item, rounded up, never under its lowest price and never over its highest (leave Highest blank for no limit). Whoever adds the key can still change it. Prices already in your stock list are not touched.</div>'+
             '<label class="toggle"><input type="checkbox" id="f_apOn" '+(A.on?'checked':'')+'> <b>Work out the sale price from the cost</b></label>'+
-            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:8px">'+
-              '<div><label>Remote-head, flip, transponder and remote keys — add %</label>'+num('f_apStd', A.stdMarkupPct, '150')+'<div class="hint" id="f_apStdEx"></div></div>'+
-              '<div><label>Smart keys — add %</label>'+num('f_apSmart', A.smartMarkupPct, '200')+'<div class="hint" id="f_apSmartEx"></div></div>'+
-              '<div><label>Lowest price for a key $</label>'+num('f_apStdMin', A.stdMin, '25')+'</div>'+
-              '<div><label>Lowest price for a smart key $</label>'+num('f_apSmartMin', A.smartMin, '75')+'</div>'+
-              '<div><label>Round up to the next $</label>'+num('f_apRound', A.roundTo, '5')+'<div class="hint">0 = no rounding</div></div>'+
-            '</div><div class="hint" id="f_apMsg" style="min-height:16px"></div>'+
+            '<div id="apGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px 22px;margin-top:12px">'+
+              apRow('Transponder keys', 'f_apTran', (A.transponderMarkupPct==null||A.transponderMarkupPct==='')?A.stdMarkupPct:A.transponderMarkupPct, 'f_apTranMin', (A.transponderMin==null||A.transponderMin==='')?A.stdMin:A.transponderMin, 'f_apTranMax', A.transponderMax, 'f_apTranEx')+
+              apRow('Remote / flip keys', 'f_apRemote', (A.remoteMarkupPct==null||A.remoteMarkupPct==='')?A.stdMarkupPct:A.remoteMarkupPct, 'f_apRemoteMin', (A.remoteMin==null||A.remoteMin==='')?A.stdMin:A.remoteMin, 'f_apRemoteMax', A.remoteMax, 'f_apRemoteEx')+
+              apRow('Smart keys', 'f_apSmart', A.smartMarkupPct, 'f_apSmartMin', A.smartMin, 'f_apSmartMax', A.smartMax, 'f_apSmartEx')+
+              apRow('Other keys (shells, metal keys)', 'f_apStd', A.stdMarkupPct, 'f_apStdMin', A.stdMin, 'f_apStdMax', A.stdMax, 'f_apStdEx')+
+              apRow('Accessories', 'f_apAcc', A.accMarkupPct, 'f_apAccMin', A.accMin, 'f_apAccMax', A.accMax, 'f_apAccEx')+   // 8z141
+            '</div>'+
+            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px 22px;margin-top:12px">'+
+              '<div><label>Round keys up to the next $</label>'+num('f_apRound', A.roundTo, '5')+'<div class="hint">0 = no rounding</div></div>'+
+              '<div><label>Round accessories up to the next $</label>'+num('f_apAccRound', A.accRoundTo, 'same as keys')+'<div class="hint">For example 1. Blank = same as keys.</div></div>'+
+            '</div>'+
+            '<div class="hint" id="f_apMsg" style="min-height:16px"></div>'+
             '<div style="border-top:1px solid var(--edge);margin-top:10px;padding-top:10px">'+
-              '<button type="button" class="btn save" id="f_apAll" style="width:100%;min-height:48px">💲 Change every key\'s price to these rules…</button>'+
+              '<button type="button" class="btn save" id="f_apAll" style="width:100%;min-height:48px">💲 Change every price to these rules…</button>'+
               '<div class="hint" style="margin-top:6px">Shows you exactly what will change first. Nothing changes until you confirm, and you can undo it afterwards.</div>'+
               '<div id="f_apLast" style="margin-top:8px"></div></div></div>'; })()+
         suppliersBlockHTML()+     // 8i: suppliers & their house brands (saves as you type)
         univBrandsBlockHTML();    // 8i: universal key brands you stock (saved as you tick; also on Programmers › My tools)
       bindSuppliers(p); bindUnivBrands(p);
-      (function(){ var ids=['f_apOn','f_apStd','f_apSmart','f_apStdMin','f_apSmartMin','f_apRound'], msg=gid('f_apMsg'); if(!gid('f_apOn')) return;
-        var read=function(){ var n=function(id,d){ var v=parseFloat(gid(id).value); return (isNaN(v)||v<0)?d:v; }; return { on:gid('f_apOn').checked, stdMarkupPct:n('f_apStd',150), smartMarkupPct:n('f_apSmart',200), stdMin:n('f_apStdMin',0), smartMin:n('f_apSmartMin',0), roundTo:n('f_apRound',0) }; };
-        var ex=function(){ var a=read(), m=function(p){ return (100-100/(1+p/100)).toFixed(0); }, pr=function(c,p,min){ var x=c*(1+p/100); if(a.roundTo>0) x=Math.ceil((x-1e-9)/a.roundTo)*a.roundTo; return Math.max(x,min).toFixed(2); };
-          gid('f_apStdEx').textContent='A key that costs you $25.00 sells for $'+pr(25,a.stdMarkupPct,a.stdMin)+' ('+m(a.stdMarkupPct)+'% margin).';
-          gid('f_apSmartEx').textContent='A smart key that costs you $55.00 sells for $'+pr(55,a.smartMarkupPct,a.smartMin)+' ('+m(a.smartMarkupPct)+'% margin).'; };
+      (function(){ var ids=['f_apOn','f_apStd','f_apSmart','f_apRemote','f_apTran','f_apStdMin','f_apSmartMin','f_apRemoteMin','f_apTranMin','f_apStdMax','f_apSmartMax','f_apRemoteMax','f_apTranMax','f_apAcc','f_apAccMin','f_apAccMax','f_apAccRound','f_apRound'], msg=gid('f_apMsg'); if(!gid('f_apOn')) return;
+        var read=function(){ var n=function(id,d){ var v=parseFloat(gid(id).value); return (isNaN(v)||v<0)?d:v; }; return { on:gid('f_apOn').checked, stdMarkupPct:n('f_apStd',150), smartMarkupPct:n('f_apSmart',200), stdMin:n('f_apStdMin',0), smartMin:n('f_apSmartMin',0), remoteMarkupPct:n('f_apRemote',null), transponderMarkupPct:n('f_apTran',null), remoteMin:n('f_apRemoteMin',null), transponderMin:n('f_apTranMin',null), stdMax:n('f_apStdMax',null), smartMax:n('f_apSmartMax',null), remoteMax:n('f_apRemoteMax',null), transponderMax:n('f_apTranMax',null), accMarkupPct:n('f_apAcc',null), accMin:n('f_apAccMin',null), accMax:n('f_apAccMax',null), accRoundTo:n('f_apAccRound',null), roundTo:n('f_apRound',0) }; };   // 8z137: blank = same as other keys
+        var ex=function(){ var a=read(), or=function(v,d){ return (v==null||isNaN(v))?d:v; },
+          pr=function(c,p,min,max){ var up=function(x){ return a.roundTo>0 ? Math.ceil((x-1e-9)/a.roundTo)*a.roundTo : x; }, x=Math.max(up(c*(1+p/100)), min||0); if(max>0 && x>max) x=Math.max(max, up(c)); return x; },
+          line=function(id,cost,p,min,max){ var el=gid(id); if(!el) return; var x=pr(cost,p,min,max), t='Cost $'+cost+' → sells for $'+x.toFixed(2)+' ('+(x>0?(100-100*cost/x).toFixed(0):'0')+'% margin)';
+            if(max>0){ var big=Math.ceil(max/(1+p/100))+50, xb=pr(big,p,min,max); t+=' · cost $'+big+' → $'+xb.toFixed(2)+' (highest price)'; } el.textContent=t; };
+          line('f_apTranEx', 7, or(a.transponderMarkupPct,a.stdMarkupPct), or(a.transponderMin,a.stdMin), a.transponderMax); line('f_apRemoteEx', 20, or(a.remoteMarkupPct,a.stdMarkupPct), or(a.remoteMin,a.stdMin), a.remoteMax);
+          line('f_apSmartEx', 55, a.smartMarkupPct, a.smartMin, a.smartMax); line('f_apStdEx', 12, a.stdMarkupPct, a.stdMin, a.stdMax);
+          (function(){ var el=gid('f_apAccEx'); if(!el) return;   // 8z141
+            if(a.accMarkupPct==null){ el.textContent='Not switched on: type a percentage in Add % to price accessories by the rules. Blank = you price them by hand.'; return; }
+            var st=(a.accRoundTo==null)?a.roundTo:a.accRoundTo, up=function(x){ return st>0 ? Math.ceil((x-1e-9)/st)*st : x; }, x=Math.max(up(2*(1+a.accMarkupPct/100)), a.accMin||0);
+            if(a.accMax>0 && x>a.accMax) x=Math.max(a.accMax, up(2));
+            el.textContent='Cost $2 → sells for $'+x.toFixed(2)+' ('+(x>0?(100-100*2/x).toFixed(0):'0')+'% margin)'; })(); };
         var t=null, save=function(){ try{ TKS.Config.save({ autoPrice: read() }); msg.textContent='✓ Saved'; }catch(e){ msg.textContent='Could not save.'; } };
         ids.forEach(function(id){ var el=gid(id); el.oninput=function(){ ex(); clearTimeout(t); t=setTimeout(save, 600); }; el.onchange=function(){ ex(); clearTimeout(t); save(); }; });
         ex();
@@ -9481,7 +9553,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       var tv=q('sjTech').value||''; if(tv){ var tm=memberById(tv); r.technician=tm?tm.name:''; r.technicianId=(tv.indexOf('name:')===0)?null:tv; }
       if(!chargeLock){ var cs=chargesForSave(); r.items=cs.items; r.quote=cs.quote; }
       if(!conLock) r.contract=contractForSave();
-      r.serviceWhere=jobWhere||''; if(jobExempt) r.taxExempt=jobExempt; if(b.fromEstimate) r.fromEstimate=b.fromEstimate;   // 8z78
+      r.serviceWhere=jobWhere||''; if(jobExempt) r.taxExempt=jobExempt; if(b.fromEstimate) r.fromEstimate=b.fromEstimate; if(b.need) r.need=b.need;   // 8z78 / 8z142
       if(jt==='auto'){ var mvd=moreVehForSave(); if(mvd.length) r.moreVehicles=mvd; }   // 8z84
       return r; }
     function sjHasContent(r){ return !!(r.customer.name || r.customer.phone || r.subType || r.addr.street || (r.items&&r.items.length) || r.internalNotes || (r.vehicle&&(r.vehicle.vin||r.vehicle.make))); }
@@ -9504,6 +9576,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       rec.serviceWhere=jobWhere||''; if(jobExempt) rec.taxExempt=jobExempt; else delete rec.taxExempt;   // 8z78
       { var mvs=(jt==='auto')?moreVehForSave():[]; if(mvs.length) rec.moreVehicles=mvs; else delete rec.moreVehicles; }   // 8z84
       if(b.fromEstimate && !rec.fromEstimate) rec.fromEstimate=b.fromEstimate;   // 8z78: the estimates list shows "on the schedule"
+      if(b.need && !rec.need) rec.need=b.need;   // 8z142
       rec.addr={ street:q('sjStreet').value.trim(), unit:q('sjUnit').value.trim(), city:q('sjCity').value.trim(), state:q('sjState').value, zip:q('sjZip').value.trim() };   // 8z31
       rec.address=composeAddress(rec.addr);
       if(jt==='auto'){ rec.vehicle={year:(q('sjYear').value||'').trim(),make:(q('sjMake').value||'').trim(),model:(q('sjModel').value||'').trim(),vin:(q('sjVin').value||'').trim().toUpperCase(),ignition:(q('sjIgn')||{}).value||''}; }
@@ -9530,6 +9603,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
           if(res&&res.error){ try{ var b=TKS.Bookings.get(jid); if(b){ b.status=prevStatus; TKS.Bookings.save(b); } }catch(_){} toast('Status not changed: '+(res.error.message||'refused')); try{ render(); }catch(_){} }
         }).catch(function(e){ try{ var b=TKS.Bookings.get(jid); if(b){ b.status=prevStatus; TKS.Bookings.save(b); } }catch(_){} toast('Status not changed: '+((e&&e.message)||'offline')); try{ render(); }catch(_){} });
       }
+      if(isNew && rec.date){ try{ cursor=fromISO(rec.date); }catch(_){} }   // 8z144: land the board on the booked day (as the step-by-step screen does) — the new job is in front of you
       close(); render();
       toast(isNew?'Job created.':'Saved.');
     };
@@ -9552,6 +9626,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
         internalNotes:[qj.fromEstimate?('From estimate '+qj.fromEstimate):'', String(qj.internalNotes||'')].filter(Boolean).join(' — ') };
       if(qj.addr && typeof qj.addr==='object' && (qj.addr.street||qj.addr.city||qj.addr.state||qj.addr.zip)) nb.addr={ street:String(qj.addr.street||''), city:String(qj.addr.city||''), state:String(qj.addr.state||''), zip:String(qj.addr.zip||'') };   // 8z96b
       if(qj.fromLead) nb.fromLead=String(qj.fromLead);
+      if(qj.need==='key' || qj.need==='service') nb.need=qj.need;   // 8z142: what the caller said they need (estimate)
       if(qj.serviceWhere==='shop'||qj.serviceWhere==='mobile') nb.serviceWhere=qj.serviceWhere;   // 8z78
       if(qj.taxExempt && typeof qj.taxExempt==='object') nb.taxExempt=qj.taxExempt;
       if(Array.isArray(qj.moreVehicles) && qj.moreVehicles.length) nb.moreVehicles=qj.moreVehicles;   // 8z84

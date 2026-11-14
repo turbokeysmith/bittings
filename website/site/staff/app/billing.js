@@ -1,10 +1,10 @@
 /* ============================================================================
-   app/billing.js — Stripe subscription billing (TEST MODE) client.
+   app/billing.js — the shop's own Bittings subscription (Stripe) — client.
    TKS_TIER.startCheckout() defers here. Calls the `billing-checkout` edge
    function to open Stripe Checkout (subscription) for a tier, and `connect-onboard`
    to connect the shop's own Stripe account (card payouts + Bittings' plan-based fee). NO keys live in
-   the client — the edge functions hold STRIPE_SECRET_KEY (test). Until the test
-   keys + price ids are configured, calls surface a clear "not configured" notice.
+   the client — the edge functions hold STRIPE_SECRET_KEY. Until the plans' price
+   ids are set in the cloud, calls surface a clear "not set up yet" notice.
    ========================================================================= */
 (function () {
   function sb() { try { return window.TKS && TKS._sb && TKS._sb(); } catch (e) { return null; } }
@@ -19,19 +19,25 @@
   }
   async function invoke(fn, body) {
     var c = sb();
-    if (!c || !c.functions) { note('Billing needs a signed-in cloud session (Stripe test keys pending).'); return null; }
+    if (!c || !c.functions) { note('Sign in to the cloud first, then try again.'); return null; }
     try {
       var r = await c.functions.invoke(fn, { body: body || {} });
       if (r.error) { note('Billing error: ' + (await serverError(r.error))); return null; }
       return r.data;
-    } catch (e) { note('Billing is not configured yet (Stripe test keys + price ids pending): ' + (e && e.message || e)); return null; }
+    } catch (e) { note('Could not reach billing just now. Check the connection and try again. (' + (e && e.message || e) + ')'); return null; }
   }
 
   async function startCheckout(tier) {
-    // owner only; opens Stripe Checkout (test) for the tier subscription
+    // owner only; opens Stripe Checkout for the plan — or Stripe's billing portal when the shop already has a subscription (8z136)
     var data = await invoke('billing-checkout', { tier: tier });
-    if (data && data.url) { location.href = data.url; }          // Stripe-hosted Checkout (test mode)
+    if (data && data.url) { location.href = data.url; }          // Stripe-hosted page
     else if (data && data.error) { note(data.error); }
+  }
+
+  // 8z136: what this shop would be offered — { plans:{lookup,starter,pro}, founder, founder_off, founder_months } or null. No alerts.
+  async function offer() {
+    var c = sb(); if (!c || !c.functions) return null;
+    try { var r = await c.functions.invoke('billing-checkout', { body: { action: 'offer' } }); return r.error ? null : r.data; } catch (e) { return null; }
   }
 
   async function openPortal() {
@@ -72,5 +78,5 @@
   // Called once when Stripe sends the owner back with ?code=…&state=…
   async function connectExistingFinish(code, state) { return oauthCall({ action: 'finish', code: code, state: state }); }
 
-  window.TKS_BILLING = { connectExistingAvailable: connectExistingAvailable, connectExistingStart: connectExistingStart, connectExistingFinish: connectExistingFinish, startCheckout: startCheckout, openPortal: openPortal, connectOnboard: connectOnboard, connectStatus: connectStatus };
+  window.TKS_BILLING = { connectExistingAvailable: connectExistingAvailable, connectExistingStart: connectExistingStart, connectExistingFinish: connectExistingFinish, startCheckout: startCheckout, offer: offer, openPortal: openPortal, connectOnboard: connectOnboard, connectStatus: connectStatus };
 })();

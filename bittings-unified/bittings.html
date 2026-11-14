@@ -335,6 +335,15 @@
   .qk-r{flex:0 0 auto;text-align:right;}
   .qk-p{font-weight:800;font-size:15px;color:#14171b;}
   .qk-add{margin-top:4px;min-height:44px;min-width:74px;border:0;border-radius:10px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;}
+  /* 8z142: the services of the shop as tap-to-add buttons (builder) */
+  .qi-quick{border:2px solid rgba(242,180,58,.5);border-radius:12px;padding:10px;margin-top:8px;background:rgba(242,180,58,.08);}
+  .qq-h{font-weight:800;font-size:15px;color:#14171b;}
+  .qq-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .qq-b{min-height:44px;max-width:100%;padding:8px 12px;border-radius:10px;border:1.5px solid #d5d9df;background:#fff;color:#14171b;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;text-align:left;}
+  .qq-b b{font-weight:800;color:#156632;margin-left:6px;white-space:nowrap;}
+  .qq-b.on{border-color:#22994a;background:rgba(34,153,74,.12);}
+  [data-bt-theme="dark"] .qq-h{color:#f4f5f7;} [data-bt-theme="dark"] .qq-b{background:#252a32;border-color:#3a414c;color:#f4f5f7;} [data-bt-theme="dark"] .qq-b b{color:#6fdc9f;}
+  [data-bt-theme="dark"] .qq-b.on{border-color:#6fdc9f;background:#1d2a22;}
   .qk-added{margin-top:4px;border:2px solid #22994a;border-radius:10px;background:#eaf7ee;color:#156632;font-weight:800;padding:8px 9px;font-size:13px;white-space:nowrap;}
   .qk-more{width:100%;min-height:44px;margin-top:6px;border:1px dashed #b7791f;border-radius:10px;background:transparent;color:#8a5a00;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;}
   [data-bt-theme="dark"] .qk-h,[data-bt-theme="dark"] .qk-n,[data-bt-theme="dark"] .qk-p{color:#f4f5f7;}
@@ -1359,7 +1368,7 @@ function estimateToJob(r){
   const lines=(r.items||[]).filter(it=>it && !it.isDiscount && !it.declined).map(it=>{
     const q=Math.max(1, parseInt(it.qty,10)||1), amt=Number(it.amount)||0;
     return { desc:String(it.desc||"Service"), qty:q, each:Math.round(amt/q*100)/100, amount:amt, taxable:!!it.taxable, partId:it.partId||"" }; });
-  const d={ fromEstimate:r.number||"", estimateId:r.id||"", serviceType:r.serviceType||"",
+  const d={ fromEstimate:r.number||"", estimateId:r.id||"", serviceType:r.serviceType||"", need:r.need||"",
     customer:{ name:r.noCustomer?"":(r.customer||""), phone:r.phone||"", email:r.email||"" }, address:r.address||"", addr:(r.addr&&typeof r.addr==="object")?r.addr:null,
     vehicle:{ year:r.vehYear||"", make:r.vehMake||"", model:r.vehModel||"", vin:r.vin||"", ignition:(r.vehIgnition==="push"||r.vehIgnition==="keyed")?r.vehIgnition:"" }, vehicleText:r.vehicle||"",
     items:lines, notes:r.notes||"", internalNotes:r.internalNotes||"", serviceWhere:r.serviceWhere||"", taxExempt:r.taxExempt||null, moreVehicles:Array.isArray(r.moreVehicles)?r.moreVehicles:[], ts:Date.now() };
@@ -3035,6 +3044,11 @@ function canEditPricing(){
       <div class="qi-seg" id="qiType"><button type="button" class="qiTB" data-t="receipt">Receipt (paid)</button><button type="button" class="qiTB" data-t="invoice">Invoice (unpaid)</button><button type="button" class="qiTB" data-t="estimate">Estimate</button></div>
       <label class="qi-l">Service</label>
       <div class="qi-seg" id="qiSvc">${svcOpts.map(s=>'<button type="button" class="qiSB" data-s="'+esc(s)+'">'+esc(s)+'</button>').join("")}</div>
+      <div id="qiNeedWrap" style="display:none">
+        <label class="qi-l">What do they need? <span class="m">(optional)</span></label>
+        <div class="qi-seg" id="qiNeed"><button type="button" class="qiNeedB" data-need="key" aria-pressed="false">🔑 A key</button><button type="button" class="qiNeedB" data-need="service" aria-pressed="false">🔧 A service — lockout, repair…</button></div>
+      </div>
+      <div id="qiQuickTop"></div>
       <div id="qiNastfWrap" style="display:none">
         <label class="qi-l">NASTF D1 <span class="m">(automotive key paperwork — optional)</span></label>
         <div class="qi-seg" id="qiNastf"><button type="button" class="qiNB" data-n="">None</button><button type="button" class="qiNB" data-n="Customer D1">Customer</button><button type="button" class="qiNB" data-n="Auction/Fleet D1">Auction/Fleet</button><button type="button" class="qiNB" data-n="Contracting D1">Contracting</button></div>
@@ -3065,6 +3079,7 @@ function canEditPricing(){
         <div id="qiMoreVeh"></div>
         <button type="button" class="qi-add" id="qiAddVeh" style="margin-top:8px">➕ Add another vehicle</button>
       </div>
+      <div id="qiQuickLow"></div>
       <label class="qi-l">Line items <span class="req">*</span></label><div id="qiItems"></div>
       <button type="button" class="qi-add" id="qiAdd">+ Add item</button><button type="button" class="qi-add" id="qiAddDisc"${canDisc?"":' style="display:none"'}>− Discount${(!pricing&&techDiscMax>0)?(" (up to "+esc(techDiscMax)+"%)"):""}</button>
       <div class="qi-tot" id="qiTot" aria-live="polite"></div>
@@ -3218,7 +3233,7 @@ function canEditPricing(){
       syncCustomerType();
     }
     nastfBtns.forEach(b=>b.onclick=()=>setNastf(b.dataset.n, true));
-    function syncNastfVisibility(){ const auto=getSvc()==="Automotive"; nastfWrap.style.display=auto?"block":"none"; if(!auto && nastfType) setNastf("", false); }
+    function syncNastfVisibility(){ const auto=getSvc()==="Automotive"; nastfWrap.style.display=(auto && !(need==="service" && !nastfType))?"block":"none";   /* 8z142: no key paperwork on a plain service */ if(!auto && nastfType) setNastf("", false); }
     function getNastf(){
       if(getSvc()!=="Automotive" || !nastfType) return null;
       const vals={}; $$(".qiNF").forEach(el=>{ vals[el.dataset.key]=(el.value||"").trim(); });
@@ -3508,6 +3523,49 @@ function canEditPricing(){
     }
     $q("#qiAdd").onclick=()=>{ const r=addItem(); try{ r.querySelector(".qiDesc").focus(); }catch(e){} };
 
+    /* ---------- 8z142 (owner, 2026-11-13): "when they first call we ask what they need — if it's a key we select key, if it's a service
+       we select service, so we're not selecting keys for just a service or scrolling through everything for just a service" ----------
+       Car work only (it is the only kind with a key list). Nothing chosen = the screen as it always was.
+         🔧 A service → the shop's services appear right here as buttons (one tap puts the line on the document with its price),
+                        and the key list and the NASTF key paperwork are left out.
+         🔑 A key     → the vehicle's key list as before, and the same service buttons sit just above the line items
+                        (programming, service call).
+       House / business / other work has no key list, so its services are always offered as buttons at the top.
+       The answer is saved on the document (need) and goes with the job when the estimate is scheduled. */
+    var need=(src.need==="key"||src.need==="service")?src.need:"";
+    const needWrap=$q("#qiNeedWrap"), quickTop=$q("#qiQuickTop"), quickLow=$q("#qiQuickLow");
+    const KEYWORK=/key|program|remote|fob|transponder|chip|prox|push[\s-]to[\s-]start/i;
+    function quickSet(el, h){ if(!el) return; if(el._h===h) return; el._h=h; el.innerHTML=h; el.querySelectorAll(".qq-b").forEach(b=>{ b.onclick=()=>addQuick(b.dataset.n); }); }
+    // the shop's own services for this kind of work + the common jobs it has used or starred (the built-in example jobs are left out);
+    // a shop that has set up neither still gets the full list
+    function quickList(){ const own={};
+      try{ const key=TKS.ServiceCats.keyForInvoice(getSvc()); (key?TKS.ServiceCats.servicesFor(key):[]).forEach(x=>{ const n=(x&&(x.value||x.en))||""; if(n) own[n.toLowerCase()]=1; }); }catch(e){}
+      try{ getCommonJobs().forEach(j=>{ if(j && j.desc && (Number(j.useCount)>0 || (j.lastPrice!=null && j.lastPrice!==""))) own[String(j.desc).toLowerCase()]=1; }); }catch(e){}
+      const l=qiPresets.filter(p=>own[p.name.toLowerCase()]); return l.length?l:qiPresets.slice(); }
+    function paintQuick(){ if(!modal || !quickTop || !quickTop.isConnected) return;
+      const auto=getSvc()==="Automotive", mode=auto?need:"service", top=(mode==="service");
+      const box=top?quickTop:quickLow; quickSet(top?quickLow:quickTop, "");
+      if(!mode || !qiPresets.length){ quickSet(box, ""); return; }
+      const onDoc={}; $$(".qi-item").forEach(r=>{ if(r.classList.contains("disc")) return; const d=r.querySelector(".qiDesc"); if(d && d.value.trim()) onDoc[d.value.trim().toLowerCase()]=1; });
+      const kw=p=>KEYWORK.test(p.name)?1:0, list=quickList();
+      if(auto) list.sort((a,b)=>(top?(kw(a)-kw(b)):(kw(b)-kw(a))) || a.name.localeCompare(b.name));   // a service: lockout, ignition… first · a key: programming first
+      quickSet(box, '<div class="qi-quick"><div class="qq-h">'+(top?"🔧 Which service? Tap to add it":"🔧 Add a service — programming, service call…")+'</div><div class="qq-list">'+
+        list.slice(0,80).map(p=>{ const on=!!onDoc[p.name.toLowerCase()]; return '<button type="button" class="qq-b'+(on?" on":"")+'" data-n="'+esc(p.name)+'" aria-pressed="'+(on?"true":"false")+'">'+(on?"✓ ":"")+esc(p.name)+(p.price!=null?("<b>$"+p.price.toFixed(2)+"</b>"):"")+'</button>'; }).join("")+'</div></div>'); }
+    function addQuick(name){ const p=qiPresets.find(x=>x.name===name); if(!p) return;
+      const have=$$(".qi-item").find(r=>{ if(r.classList.contains("disc")) return false; const d=r.querySelector(".qiDesc"); return !!d && d.value.trim().toLowerCase()===p.name.toLowerCase(); });
+      if(have){ try{ have.scrollIntoView({ block:"center" }); const qe=have.querySelector(".qiQty"); if(qe && !qe.readOnly) qe.focus(); }catch(e){} toastMsg("Already on this document. Change the quantity on its line."); return; }
+      // an untouched blank line is replaced by the service rather than left sitting above it
+      $$(".qi-item").forEach(r=>{ if(r.classList.contains("disc") || r.dataset.part || (r._meta&&r._meta.fromDispatch)) return; const d=r.querySelector(".qiDesc"), a=r.querySelector(".qiAmt"); if(d && a && !d.value.trim() && !a.value.trim()) r.remove(); });
+      addItem({ desc:p.name, amount:(p.price!=null)?p.price.toFixed(2):"", qty:1 });
+      paintQuick(); try{ paintTotals(); }catch(e){} toastMsg("Added "+p.name+(p.price!=null?"":" — type its price on the line")); }
+    function syncNeed(){ if(!modal || !needWrap || !needWrap.isConnected) return;
+      needWrap.style.display=(getSvc()==="Automotive")?"block":"none";
+      $$(".qiNeedB").forEach(b=>{ const on=(b.dataset.need===need); b.classList.toggle("on", on); b.setAttribute("aria-pressed", on?"true":"false"); });
+      try{ syncNastfVisibility(); }catch(e){} paintQuick(); try{ keysLater(); }catch(e){} }
+    $$(".qiNeedB").forEach(b=>{ b.onclick=()=>{ need=(need===b.dataset.need)?"":b.dataset.need; syncNeed(); }; });
+    $$(".qiSB").forEach(b=>b.addEventListener("click", ()=>setTimeout(syncNeed,0)));   // Automotive ↔ Residential … : other services, and the question only for car work
+    ["change","click"].forEach(ev=>modal.addEventListener(ev, ()=>setTimeout(paintQuick,0)));   // a line typed, removed or starred → the ✓ marks follow
+
     /* ---------- 8z76 (owner, 2026-11-12): "for the quick quote I need to put in a vehicle and get the key information —
        what fits, what the prices are" ----------
        Pick year / make / model (or type a VIN) and the keys YOU stock for that vehicle appear right under it: name, OEM or
@@ -3521,6 +3579,7 @@ function canEditPricing(){
       paintKeys(keysBox, vehObj(), mainKeysSt, 0); try{ extraVeh.forEach((x,i)=>paintKeys(x.keysBox, x.get(), x.st, i+1)); syncRowVeh(); }catch(e){} }
     function paintKeys(keysBox, v, st, vIdx){
       if(!keysBox || !modal || !keysBox.isConnected) return;   // the builder was closed before a late repaint ran
+      if(need==="service"){ keysBox.innerHTML=""; return; }   // 8z142: "a service" — no key list to scroll past
       if(!(window.TKS_FIT && TKS_FIT.keysFor && window.TKS && TKS.Inventory) || !v.make){ keysBox.innerHTML=""; return; }
       if(!v.model){ keysBox.innerHTML='<div class="qi-keys"><div class="qk-h">🔑 Keys for this vehicle</div><div class="qk-sub">Pick the model to see the keys you stock for it and their prices.</div></div>'; return; }
       let L; try{ L=TKS_FIT.keysFor(TKS.Inventory.all(), v, st.ign||""); }catch(e){ L={groups:[],list:[],maybe:[]}; }
@@ -3625,6 +3684,8 @@ function canEditPricing(){
     { const applyVeh0=modal._qiApplyVeh; if(applyVeh0) modal._qiApplyVeh=function(){ const r=applyVeh0.apply(this, arguments); keysLater(); return r; }; }   // a decoded VIN fills the vehicle
     try{ new MutationObserver(keysLater).observe(itemsBox, { childList:true }); }catch(e){}   // a line removed → its key can be added again
     keysLater();
+    try{ new MutationObserver(()=>setTimeout(paintQuick,0)).observe(itemsBox, { childList:true }); }catch(e){}   // 8z142
+    syncNeed();   // 8z142
     $q("#qiAddDisc").onclick=()=>{ if(!canDisc) return; const r=addDisc(); try{ r.querySelector(".qiDV").focus(); }catch(e){} };
 
     // ---- Technician / tax / warranty ----
@@ -3699,7 +3760,7 @@ function canEditPricing(){
     $q("#qiX").onclick=cancel; $q("#qiCancel").onclick=cancel;
     { const after=(what)=>()=>{ window._tksAfterCreate={ do:what, t:Date.now() }; $q("#qiGo").click(); };   // 8z122
       const gs=$q("#qiGoSend"), gp=$q("#qiGoPdf"); if(gs) gs.onclick=after("send"); if(gp) gp.onclick=after("pdf"); }
-    $q("#qiGo").onclick=()=>submit({getType,getSvc,getPay,getStatus,getCT,getNastf,getNastfChecklist,getSig:()=>sigData,getExempt:()=>exempt,getWhere:()=>where,getVehLabels:()=>vehLabels(),getMoreVeh:()=>moreVehForSave(),getIgn:()=>mainKeysSt.ign,edit,isEdit,pricing,techDiscMax,src,setErr});
+    $q("#qiGo").onclick=()=>submit({getType,getSvc,getPay,getStatus,getCT,getNastf,getNastfChecklist,getSig:()=>sigData,getExempt:()=>exempt,getWhere:()=>where,getVehLabels:()=>vehLabels(),getMoreVeh:()=>moreVehForSave(),getIgn:()=>mainKeysSt.ign,getNeed:()=>((getSvc()==="Automotive")?need:""),edit,isEdit,pricing,techDiscMax,src,setErr});
     try{ if(!isEdit && !$q("#qiName").value) $q("#qiName").focus(); }catch(e){}
   };
 
@@ -3785,6 +3846,7 @@ function canEditPricing(){
     R.vehYear=($q("#qiVYear").value||"").trim(); R.vehMake=($q("#qiVMake").value||"").trim(); R.vehModel=($q("#qiVModel").value||"").trim();
     R.vin=vin; R.vehicle=($q("#qiVehText").value||"").trim();
     { const ig=S.getIgn?qiIgn(S.getIgn()):""; if(ig) R.vehIgnition=ig; else delete R.vehIgnition; }   // 8z96b: push-to-start / turn key (same values as the Scheduler)
+    { const nd=S.getNeed?S.getNeed():""; if(nd==="key"||nd==="service") R.need=nd; else delete R.need; }   // 8z142: what the caller said they need
     _mv.forEach(v=>{ delete v._n; }); if(_mv.length) R.moreVehicles=_mv; else delete R.moreVehicles;   // 8z84
     R.technician=($q("#qiTech").value||"").trim() || R.technician || currentTechnician();
     R.notes=($q("#qiNotes").value||"").trim();

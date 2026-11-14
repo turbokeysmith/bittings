@@ -41,7 +41,8 @@
   window.supabase = { createClient: function(){ return {
     from: function(t){ return new Q(t); },
     rpc: function(name, args){ window.__calls.push('rpc '+name);
-      var v=null; if(name==='mfa_pending') v=false; if(name==='shop_tier') v='pro'; if(name==='seat_usage') v=[{used:2,allowed:5}];
+      var v=null; if(name==='mfa_pending') v=false; if(name==='shop_tier') v=localStorage.getItem('__tier')||'pro'; if(name==='seat_usage') v=[{used:2,allowed:5}];
+      if(name==='billing_state'){ try{ v=JSON.parse(localStorage.getItem('__bill')||'null'); }catch(e){ v=null; } }   // 8z136: a test sets __tier / __bill to play a shop's billing state
       if(name==='log_activity'){ var d=db(); d.audit_log=(d.audit_log||[]).concat([{ id:'a'+Date.now()+Math.random(), user_id:UID, role:'owner', action:args.p_action, entity_type:args.p_entity_type, entity_id:args.p_entity_id, detail:args.p_detail, created_at:new Date().toISOString() }]); save(d); }
       return later({ data:v, error:null }); },
     functions: { invoke: function(){ return later({ data:null, error:null }); } },

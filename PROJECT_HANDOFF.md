@@ -408,7 +408,180 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
-### 2026-11-13, evening (8z135: stock-count sheet saves made safe) — LIVE; NOT committed
+### 2026-11-13, closing (8z144: the Quick form lands on the booked day) — LIVE (64d181343abe); committed and pushed 2026-11-13 (the "billing, price rules, jobs by type" commit)
+- **8z144 (owner: "Fix the quick form").** A NEW job made in the Scheduler's Quick form for another day was saved, but
+  the board stayed on the day you were looking at, so the job seemed to vanish. After "Create job" the board now moves
+  to the booked day (`cursor=fromISO(rec.date)` in `sjSave`, `index.html`) — what the step-by-step screen already did.
+  Editing an existing job does not move the board. Checked in `tools/qa/rebuild-need-test.js`.
+- Everything from 8z136 to 8z144 went to GitHub in one commit on `phase3-frontend-unification`. `tools/qa/out/`
+  (test screenshots) is now git-ignored.
+- **Still not seen on a real phone** (CLAUDE.md mobile rule): billing bar / lock, Reset printing, the price-rule table,
+  the type-change repricing, "What do they need?", Jobs by type with the shop's real jobs, the merged technician list,
+  the Quick form landing on the booked day. No real Stripe checkout has run yet.
+
+### 2026-11-13, after that (8z143: one entry per technician in Reports · the evening-only test failure) — LIVE (db13bd93830b); committed and pushed 2026-11-13 (the "billing, price rules, jobs by type" commit)
+- **Reports → technician filter listed everyone twice (owner: "it's adding the email and the name as separate
+  technicians … merged").** Cause: `payment_transactions.technician` is free text copied from the receipt. A counter
+  sale stores the LOGIN EMAIL (`currentTechnician()` in `bittings.html`); an invoice made from a scheduled job stores the
+  technician's NAME (since 2026-11-11). Fix is display-only, in `index.html`: `techDirLoad()` builds email → name and
+  name → name from `staff` + the `staff_contacts()` RPC (emails come back for managers / owner only) with the hand-typed
+  Employees list as fall-back; `techName(raw)` is used for the filter options, the filter itself, each row, and both
+  CSV exports. A view saved with an email as the choice still opens on that person. Unknown emails are left as they
+  are. **No data was changed**, and the pay-* functions were not touched. Pay / commission is not affected: the server
+  resolves the technician from `technicianId` → the job's responsible tech → the email (8z53), never from this label.
+  Not done: a non-manager does not get the team's emails, so for them an Employees-list name that differs from the
+  login name ("Jayden" vs "Jayden Geyer") can still show as two. Test: `tools/qa/rebuild-tech-merge-test.js` (port 8106).
+- **`rebuild-exempt-estimates-test.js` "the job card says In shop and Tax exempt"** — was a test bug, not an app bug:
+  the test booked the job for `new Date().toISOString()` (the UTC date). After 6 pm Central that is tomorrow, so the
+  card was not on today's board; it passed every morning and failed every evening. Now uses the local date. Passes.
+  (Side note, not changed: the guided wizard moves the board to the booked day after "Create job"; the Quick form does
+  not — a job booked for another day is saved but the board stays on the day you were looking at.)
+
+### 2026-11-13, very last (8z142: Jobs by type · "What do they need?" on the estimate) — LIVE (a8ae3f024653); committed and pushed 2026-11-13 (same commit)
+- **Jobs by type (owner: "it's showing something else on every job. Can you classify them").** Cause: the dashboard
+  chart read `booking.serviceCategory`, which only the guided wizard fills in; every Quick-form / estimate job has
+  `jobType` + free-text `subType` + `items` and fell into "Something else". New `TKS.JobKinds.classify(booking)` in
+  `app/store.js` → `{kind, label}`. Order: `booking.jobKind` (nothing sets it yet) → the wizard's code (lockout / lost /
+  spare / ignition / rekey / new / master / access) → the words in "Service / details" (AKL, lockout, rekey…) → the
+  charges on the job (most telling line wins; "Service call" / "Travel fee" say nothing) → `need === 'key'` →
+  "Other car / home / business work". Kinds: lockout (Car / Home / Business), All keys lost, Spare key / programming,
+  Ignition / key problem, Rekey, Lock change / repair, Master key system, Access control, Safe work. `dashTypes()` in
+  `index.html` groups by that label, biggest first, "Other…" last, up to 6 rows + "Everything else"; each row now shows
+  the count and the share. Nothing was changed in the data — old jobs are re-read, so past periods are fixed too.
+  To add a word (a shop's own shorthand), add it to `JOB_KIND_RULES` in `app/store.js`.
+- **Estimate: "What do they need?" (owner: "if it's a key we select key, if it's a service we select service … so we're
+  not selecting keys for just a service or scrolling through everything").** In the document builder
+  (`openQuickInvoice`, `bittings.html`), under Service, for **Automotive** only: 🔑 A key / 🔧 A service (optional; tap
+  the chosen one again to clear; nothing chosen = the old screen). **A service** → the shop's services for that kind of
+  work show right there as tap-to-add buttons with prices (`#qiQuickTop`), the key list and the NASTF block are left
+  out, the vehicle boxes stay. **A key** → key list as before, the same buttons sit above the line items
+  (`#qiQuickLow`, programming first). Residential / commercial / other have no key list, so they never ask and always
+  get the buttons at the top. Buttons = the shop's Settings → Services for that category + common jobs it has used or
+  starred (the built-in example common jobs are left out). Saved on the document as `need` (`key` | `service`), passed
+  by "Schedule this job" (`tks_quote_job.need`) and kept on the booking (`need`). It shows in every document type, not
+  only estimates.
+- Tests: `tools/qa/job-kinds-test.js` (pure) and `tools/qa/rebuild-need-test.js` (browser, port 8105) — ALL PASSED;
+  the three older quote tests pass. `rebuild-exempt-estimates-test.js` fails one check ("the job card says In shop and
+  Tax exempt") — it fails the same way on the files from before this change, so it is older and still to be looked at.
+- **NOT seen on a real phone yet** (CLAUDE.md mobile rule): the question + buttons on the owner's Android and the
+  technician's iPhone, and the chart with the shop's real jobs.
+- **Stripe founder discount (owner asked how to be sure it applies and comes off):** nothing new built — it is the
+  8z136 design. `billing-checkout` adds coupon `founder-50-12mo` to every shop's FIRST subscription while the secret
+  `STRIPE_COUPON_FOUNDER` is set; the coupon is "repeating, 12 months", so Stripe itself drops it after 12 invoices.
+  To stop offering it: delete that secret (or the coupon in Stripe) — existing subscribers keep theirs.
+
+### 2026-11-13, last thing (8z141: accessories in the price rules · Stripe public name) — LIVE (a40cab01699a); committed and pushed 2026-11-13 (same commit)
+- **8z141 (owner: "also include accessories in the automated pricing please").** Anything whose category starts with
+  "Accessories" is now its own price kind (`accessory`) with its own row in Settings → Inventory → Automatic prices:
+  `accMarkupPct`, `accMin`, `accMax`, and its own rounding `accRoundTo` (blank = the keys' step). **Add % blank = off**
+  — accessories stay priced by hand until the owner types a percentage (he had not, when this was written). An accessory
+  with "prox" in its name is no longer treated as a smart key. Same rule in the database
+  (`supabase/phase8/8z141_price_accessories.sql`, APPLIED); `price-rule-sql-check.js` now compares 2,816 cases.
+  The button reads "Change every price to these rules…". Only 34 of the shop's 103 accessories have a cost — the rest
+  cannot be priced by any rule until a cost is entered.
+- **Stripe (owner asked):** public business name **Bittings**, statement descriptor **BITTINGS** (shortened BITTINGS),
+  "show phone number on receipts and invoices" **off**, support email **support@bittings.app** (Stripe says bank / card
+  statements always carry the support phone). `STRIPE_BILLING_WEBHOOK_SECRET` was saved by the owner at 00:12 UTC
+  2026-11-14 — not yet proven against a real Stripe event.
+
+### 2026-11-13, later that night (8z138 – 8z140: price rules per key type, highest price, price follows the type) — LIVE (04189f5c2c69); committed and pushed 2026-11-13 (same commit)
+- **8z138 (owner: "a column for each and have each have its own markup … side by side").** Settings → Inventory → Automatic
+  key prices is now one block per kind of key — **Transponder, Remote / flip, Smart, Other (shells, metal keys)** — each
+  with **Add %**, **Lowest $** and **Highest $** side by side and a worked example underneath. New settings in
+  `shop_config.data.autoPrice`: `remoteMarkupPct`, `transponderMarkupPct` (blank = the "other keys" %), `remoteMin`,
+  `transponderMin` (blank = the other-keys minimum).
+- **8z140 (owner: "we should set a max price … if left blank it doesn't have a max").** `smartMax`, `remoteMax`,
+  `transponderMax`, `stdMax`: blank = none; the price is capped at it, **but never under what the key cost**.
+- **8z139 (owner: "when we set smart key it automatically changes the price to match").** SQL
+  `supabase/phase8/8z139_price_follows_key_type.sql` (APPLIED): the rule now also exists in the database
+  (`key_price_kind`, `auto_price_calc`, `auto_price_cents`), and trigger `trg_inventory_reprice_on_kind` re-prices a key
+  when its price KIND changes (category, or a name that makes it a smart key) unless the same save set a price itself;
+  each one is in `audit_log` as `part_price_auto`. `inv_update_info` now answers with the price, and the technician's
+  part screen says "the type changed, so the price is now $…". In the owner's part form, changing the sub-category sets
+  the price box to the rule's price straight away (he can still type over it).
+  A change WITHIN a kind (fob → flip) does not touch the price. A key with no cost is not priced.
+- Tests: `rebuild-stock-add-test.js` (table, own %, lowest, highest); **`tools/qa/price-rule-sql-check.js`** runs the
+  app's rule and the database's rule over 1,352 settings × cost × key-type cases and they agree to the cent; the trigger
+  was exercised on a throwaway row in the QA shop inside a rolled-back block.
+- NOT done: nobody has yet changed a real key's type on a phone and watched the price move; the owner has not yet typed
+  his own numbers. Existing stock is only re-priced by "Change every key's price to these rules" (preview first, undo after).
+- Decided (owner, 2026-11-13): a technician does NOT change selling prices — "he doesn't need to change the price with
+  automatic pricing now". `inv_update_info` stays as it is (no price, no cost).
+- **Stripe set up for billing (2026-11-13, in the owner's browser, the "Bittings" platform account `acct_1SDorv8SGvOJftFV`,
+  LIVE mode):** products + monthly prices — Lookup $69 `price_1UbU8l8SGvOJftFVETRBn8QU`, Starter $129
+  `price_1UbU9D8SGvOJftFVEhlfi3Zd`, Pro $199 `price_1UbU9S8SGvOJftFVwwtXaDzh`, extra user $20
+  `price_1UbU9r8SGvOJftFVHzZRwnBD`; coupons `founder-50-12mo` ($50 off, 12 months) and `founder-50-ext-2mo` ($50 off,
+  2 months); webhook destination `bittings-billing` (`we_1UbUGT8SGvOJftFVoOowV9Pz`, the six events) →
+  `…/functions/v1/billing-webhook`; customer portal saved (update card, cancel, switch between the three plans,
+  prorated). The six ids are set as Supabase secrets (`STRIPE_PRICE_*`, `STRIPE_COUPON_FOUNDER`, `_EXT`).
+  **Owed by the owner:** paste the webhook's signing secret into Supabase as `STRIPE_BILLING_WEBHOOK_SECRET` — until then
+  the listener refuses Stripe's reports and a paid shop would NOT unlock. The public business name in Stripe (Settings → Business →
+  Business details → Public details) was changed from "Turbo Keysmith LLC" to **"Bittings"** at his request; the
+  statement descriptor (what shows on a shop's card statement) is still "TURBO KEYSMITH LLC" and the support phone is
+  still shown on receipts — both his call.
+  Still never run for real: a checkout, a webhook delivery, a failed payment.
+
+### 2026-11-13, night (8z136 billing · 8z137 print helper v2, price minimums) — LIVE (3e22ad93a7f9); committed and pushed 2026-11-13 (same commit)
+**8z137 — the counter could not print (owner, with photos: "now we can't print anything").** What happened, from the
+counter PC itself: a 15-label job (≈0.9 MB of label pictures, sent as ONE job) jammed the Windows print queue at 4:54 pm
+(job stuck "Printing, Restarted, Retained"; spoolsv + PlugPlay pinned the PC at 100 %). The next print script hung, was
+stopped at its 30 s limit while the label was still being piped to it, and the unhandled pipe error killed the helper
+(reproduced: `tools/qa/print-helper-crash-test.js`, nothing is printed). The task's "restart on failure" did NOT bring it back.
+- Cleared remotely (queue + spooler reset, helper started). **Helper v2** installed on the counter PC
+  (`tools/print-helper/helper.js`, `print.ps1`, `install.ps1`; old files kept as `*.bak-20261113`): a failed hand-over is a
+  failed print, nothing can end the process, one job at a time, an over-size job is answered (limit 12 MB) instead of cut
+  off, **`POST /reset`** (clears every waiting job, restarts the spooler), and the scheduled task also fires **every minute**
+  (`MultipleInstances IgnoreNew`) so a helper that is not running is back within a minute. Proven on the counter PC:
+  reset 2.9 s; helper stopped on purpose → back by itself in 62 s.
+- App (`app/hardware.js`): "each key's own label" jobs go as **small jobs one after the other** (picture labels one per
+  job) instead of one big job; a failure part-way says "7 of 15 labels were sent, then…"; **Reset printing** button under a
+  label print error and in Settings → Printers & scanner (next to "Check again"). The "can't reach the helper" message now
+  says it restarts by itself within a minute.
+- NOT yet seen by the owner / Jayden on the real counter: the Reset printing button, and a 15-label job going as small jobs.
+
+**8z137 — price minimums (owner: "they didn't hit the minimum … we need a lowest cost for remote key versus transponder
+key").** The rule was doing what its settings said: only two minimums existed (smart $150, every other key $25), so a $20
+flip key priced at $50. `autoPriceFor` (index.html) now has **`remoteMin`** (sub-category starting "Remote": Remote Head /
+Flip, Remote / Fob) and **`transponderMin`**; blank = the "any other key" minimum, so nothing changed until the owner fills
+them in (Settings → Inventory → Automatic key prices) and taps "Change every key's price to these rules". Tests added to
+`rebuild-stock-add-test.js`. **Open question to the owner:** Jayden cannot change a selling price — that is the standing
+rule (`inv_update_info` lets a technician edit part info but not price or cost); he has not said whether to change it.
+
+**8z136 — Bittings' own billing (owner: "yes build it with 7 days of grace").** Built, applied and deployed; no shop is
+billed through Stripe yet, so nothing changed for the two existing shops (both `pro` + `active`, not billed).
+- SQL `supabase/phase8/8z136_billing_lock_and_notices.sql` (APPLIED): new dates on `subscriptions`; `shop_tier()` = the plan
+  while paid up **or within 7 days of a failed payment**, else `'none'` (before: a shop that never paid, or stopped, got
+  Lookup free); `tier_feature(tier, feature)` = the plan table as one pure function (new: `estimates`, `leads` Starter+;
+  `timesheets`, `keysystems` Pro); `billing_state()` → `ok / past_due / locked / ended / none`; `billing_runs`; pg_cron +
+  pg_net job `billing-notices-daily` (14:15 UTC).
+- Functions (DEPLOYED): `billing-checkout` (all three plans, founder coupon on a first subscription, an already-subscribed
+  shop goes to the portal, `action:'offer'`), `billing-webhook` (NEW deploy, `--no-verify-jwt`; always re-reads the
+  subscription from Stripe; users follow the plan 1 / 2 / 5 + extra-user quantity; starts the grace; emails the owner once),
+  `billing-notices` (NEW, `--no-verify-jwt`, daily: re-syncs with Stripe, failed-payment + paused emails, the founder-price
+  notice 45–30 days ahead, and **extends the founder price 2 months if no notice is on record 30 days ahead**). Rules in
+  `_shared/billing.ts` (Node-testable), Stripe / database / mail in `_shared/billing-io.ts`.
+- App: `app/tier.js` — red bar for the owner after a failed payment ("update the card by …"), lock screen when the grace is
+  over / plan ended / no plan (owner: Update card or Choose a plan; staff: ask the owner), founder-price note, unlocks by
+  itself. Lock sits ABOVE the phone's bottom menu. `app/billing.js` `offer()`.
+- Tests: `billing-unit-test.mjs` (77), `rebuild-plans-test.js` (8103), `rebuild-billing-app-test.js` (8104, real page,
+  phone + desktop), `plans-matrix-check.js` (reads the live server table and compares it with the app's, 84 cells).
+- The Starter 1 % card fee WAS confirmed in code (`pay-create-intent`, `pay-link`: Pro 0 %, anything else 1 %, or the shop's
+  pinned rate). The payment path was not touched.
+- **STILL OWED before a shop can pay:** in Stripe (the platform account, live): products + monthly prices Lookup $69 /
+  Starter $129 / Pro $199 / extra user $20; coupon "Founder price" $50 off, repeating 12 months; coupon "Founder price
+  (extended)" $50 off, repeating 2 months; a webhook endpoint → `…/functions/v1/billing-webhook` (events
+  `checkout.session.completed`, `customer.subscription.created/updated/deleted`, `invoice.paid`, `invoice.payment_failed`);
+  the customer portal switched on. Then secrets `STRIPE_PRICE_LOOKUP / _STARTER / _PRO / _SEAT`, `STRIPE_COUPON_FOUNDER`,
+  `STRIPE_COUPON_FOUNDER_EXT` (ids, not secret) and **`STRIPE_BILLING_WEBHOOK_SECRET` (the owner pastes it himself)**.
+  Billing emails go out from the address in `MAIL_FROM` shown as "Bittings" until `BILLING_MAIL_FROM` is set (needs
+  bittings.app verified in Resend and a key that may send from it). Not gated yet on the server: the newer screens' own
+  data calls (timesheets, key systems, leads) — locked in the menu only. `vin-decode` still reads `tier` without `status`.
+- Nothing here has been run against real Stripe: no checkout, no webhook, no failed payment. First real proof = the
+  owner's friend subscribing.
+- Known, older: `rebuild-cloud-boot-test.js` fails 2 checks ("Receipts list shows documents") on the last commit too —
+  from the one-list receipts change; the test or the list needs a look.
+
+### 2026-11-13, evening (8z135: stock-count sheet saves made safe) — LIVE; committed 7ae982a
 Owner: "a lot of the reconciliation Jayden did yesterday didn't save to today." What the cloud shows (audit_log +
 cycle_count_lines): the count Jayden sent on 11-12 13:28 was applied at 13:29 — 514 lines, 218 stock changes, all still in
 place (the 6 that differ today are explained by sales, receiving, one deleted item and one van move). His 12 part edits and
@@ -465,10 +638,10 @@ NOT committed yet:
 - **Email from Bittings (8z130):** `supabase/functions/send-document` (DEPLOYED) sends via Resend with the PDF attached;
   `sendDocument(r)` in bittings.html = review box (To / Subject / Message / attachment) used by the finished card's Send, the
   estimates list's Send and "Save & send"; "Share another way" = the old share sheet. The estimate remembers `sentTo / sentAt`.
-  Secrets: `MAIL_FROM=estimates@turbokeysmith.com` and `MAIL_ONLY_SHOP=<TK shop id>` are set; **`RESEND_API_KEY` is NOT set**
-  (the owner must create a sending key in Resend and set it himself) — until then the function answers 503 not_configured and
-  the app falls back to the share sheet. For other shops: verify bittings.app in Resend, change MAIL_FROM, drop MAIL_ONLY_SHOP.
-- Not verified on real equipment: scanning at the Register, van hand-over, the email send (no key yet).
+  Secrets: `MAIL_FROM=estimates@turbokeysmith.com` and `MAIL_ONLY_SHOP=<TK shop id>` are set; **`RESEND_API_KEY` was set by the owner
+  on 2026-11-13 (≈4:41 pm CST) and he confirmed a real estimate email arrived.** Without that key the function answers
+  503 not_configured and the app falls back to the share sheet. For other shops: verify bittings.app in Resend, change MAIL_FROM, drop MAIL_ONLY_SHOP.
+- Not verified on real equipment: scanning at the Register, van hand-over. (The email send WAS confirmed by the owner on 2026-11-13.)
 
 ### 2026-11-13, last (8z115 – 8z118) — LIVE (64d9aa210085), NOT committed
 - **The owner switched "serial numbers for everything" ON himself at 17:43 UTC** (audit_log `serialize_all_on`: 529 items,

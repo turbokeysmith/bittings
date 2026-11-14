@@ -1068,11 +1068,77 @@
   }
   function getConfig() { if (!configCache) configCache = mergeConfig(read(CONFIG_LSKEY, null)); return configCache; }
 
+  // ===================== JOB KINDS (what a job was — the dashboard's "Jobs by type") =====================
+  // 8z142 (owner, 2026-11-13: "it's showing something else on every job. Can you classify them please? We already select all
+  // keys lost or locked out"). The chart read booking.serviceCategory, which only the guided wizard ever filled in, so every
+  // Quick-form / estimate job fell into "Something else". The kind is now worked out from what the job already says, in order:
+  //   1. booking.jobKind, if a screen ever sets it;   2. the guided wizard's choice (lockout / lost / spare / ignition / rekey / new …);
+  //   3. the words typed in "Service / details" (AKL, lockout, rekey…);   4. the charges on the job ("Car lockout", "Rekey"…).
+  // Nothing matched → "Other car / home / business work". Rules are tried top to bottom; the first that matches wins.
+  var JOB_KIND_RULES = [
+    ['akl',      /\bakl\b|all keys? (are )?lost|lost (all|every|the only|both)|lost (my |his |her |their |the )?keys?|\bno keys?\b|key replacement|replacement key/],
+    ['lockout',  /lock(ed)?[\s-]*out|unlock|locked in\b|keys? (are |is )?(locked )?in(side)? the/],
+    ['ignition', /ignition|\besl\b|steering (lock|column)|broken key|extraction|stuck/],
+    ['rekey',    /re-?\s?key/],
+    ['master',   /master key/],
+    ['access',   /access control|card reader|key ?pad|mag ?lock/],
+    ['safe',     /\bsafes?\b|vault/],
+    ['locks',    /lock (change|replace|repair|install)|(change|new|replace|repair|install)( the| a| new)? (locks?|deadbolt)|deadbolt|cylinder|mortise|panic|exit device|push bar|door closer|storefront|high[\s-]security|smart lock|\binstall/],
+    ['key',      /spare|duplicat|\bcop(y|ies)\b|extra key|add[\s-]a[\s-]key|second key|cut (a |the )?(customer|key)|key cut|program|re-?sync|remote|\bfob|smart|prox|transponder|\bchip|push[\s-]to[\s-]start/]
+  ];
+  var JOB_KIND_WIZ = { lockout: 'lockout', lost: 'akl', spare: 'key', ignition: 'ignition', rekey: 'rekey', 'new': 'locks', master: 'master', access: 'access' };
+  var JOB_KIND_LABEL = {
+    lockout:  { auto: 'Car lockout', res: 'Home lockout', com: 'Business lockout', any: 'Lockout' },
+    akl:      { auto: 'All keys lost', any: 'Lost keys' },
+    key:      { auto: 'Spare key / programming', any: 'Key copies' },
+    ignition: { any: 'Ignition / key problem' },
+    rekey:    { any: 'Rekey' },
+    locks:    { any: 'Lock change / repair' },
+    master:   { any: 'Master key system' },
+    access:   { any: 'Access control' },
+    safe:     { any: 'Safe work' },
+    other:    { auto: 'Other car work', res: 'Other home work', com: 'Other business work', any: 'Other' }
+  };
+  function jobKindOfText(t) {
+    t = String(t || '').toLowerCase(); if (!t.trim()) return null;
+    for (var i = 0; i < JOB_KIND_RULES.length; i++) if (JOB_KIND_RULES[i][1].test(t)) return JOB_KIND_RULES[i][0];
+    return null;
+  }
+  var JobKinds = {
+    kinds: function () { return Object.keys(JOB_KIND_LABEL); },
+    ofText: jobKindOfText,
+    // 'auto' | 'res' | 'com' | another category code ('safe', 'emergency'…) | ''
+    jobType: function (b) {
+      var jt = String((b && b.jobType) || '');
+      if (!jt && b && b.serviceCategory) jt = _catByKey[b.serviceCategory] ? _catByKey[b.serviceCategory].code : String(b.serviceCategory);
+      return jt;
+    },
+    label: function (kind, jt) { var L = JOB_KIND_LABEL[kind] || JOB_KIND_LABEL.other; return L[jt] || L.any; },
+    // → { kind, label }   (label is what the chart shows, and what jobs are grouped by)
+    classify: function (b) {
+      b = b || {}; var jt = this.jobType(b), kind = null;
+      if (b.jobKind && JOB_KIND_LABEL[b.jobKind]) kind = b.jobKind;
+      var sub = String(b.subType || '').trim();
+      if (!kind && sub && JOB_KIND_WIZ[sub.toLowerCase()]) kind = JOB_KIND_WIZ[sub.toLowerCase()];
+      if (!kind) kind = jobKindOfText(sub);
+      if (!kind) {   // the charges: the most telling line wins (a lost-all-keys job also has programming and a service call on it)
+        var lines = (Array.isArray(b.items) ? b.items : []).map(function (x) { return String((x && (x.desc || x.name)) || '').toLowerCase(); }).filter(Boolean);
+        if (b.serviceLabel && b.bookedVia !== 'guided') lines.push(String(b.serviceLabel).toLowerCase());
+        for (var i = 0; i < JOB_KIND_RULES.length && !kind; i++) { for (var j = 0; j < lines.length; j++) if (JOB_KIND_RULES[i][1].test(lines[j])) { kind = JOB_KIND_RULES[i][0]; break; } }
+      }
+      if (!kind && jt === 'safe') kind = 'safe';
+      if (!kind && jt === 'accesscontrol') kind = 'access';
+      if (!kind && b.need === 'key') kind = 'key';   // the estimate said "a key" and nothing on the job says more
+      if (!kind) kind = 'other';
+      return { kind: kind, label: this.label(kind, jt) };
+    }
+  };
+
   global.TKS = {
     KEYS: KEYS, uid: uid, read: read, write: write,
     adapter: function () { return ADAPTER.name; },
     Customers: Customers, Inventory: Inventory, Bookings: Bookings,
-    Services: Services, ServiceCats: ServiceCats, decodeVin: decodeVin,
+    Services: Services, ServiceCats: ServiceCats, JobKinds: JobKinds, decodeVin: decodeVin,
     /* 8r: running log for field events (dispatched-line changes, keys scanned out / back in). Lands in audit_log via the
        log_activity RPC (security definer; stamps user, role, shop). Demo / offline → resolves {data:null}. */
     Audit: { log: function (action, entityType, entityId, detail) {

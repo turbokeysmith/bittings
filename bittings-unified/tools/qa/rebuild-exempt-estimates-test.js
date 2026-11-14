@@ -180,7 +180,9 @@ function stubServer() {
     r = await pg.evaluate(() => ({ url: location.pathname, name: document.getElementById('sjName').value, where: (document.querySelector('#sjWhere button.on') || {}).innerText, addrHidden: getComputedStyle(document.getElementById('sjAddrWrap')).display === 'none',
       tot: document.getElementById('sjChTot').innerText.replace(/\s+/g, ' '), ex: (document.getElementById('sjExBtn') || {}).innerText }));
     check('Schedule opens the job form filled in: In shop chosen (no address asked), tax exempt carried over', /index\.html/.test(r.url) && r.name === 'TEST Dealer Motors' && /In shop/.test(r.where || '') && r.addrHidden && /Tax — exempt \$0\.00/.test(r.tot) && /Total \$100\.00/.test(r.tot) && /Tax exempt ✓ \(Resale · 123456\)/.test(r.ex || ''), r);
-    await pg.evaluate(() => { document.getElementById('sjDate').value = new Date().toISOString().slice(0, 10); document.getElementById('sjTime').value = '14:00'; document.getElementById('sjSave').scrollIntoView({ block: 'center' }); }); await sleep(200);
+    // today in the SHOP'S time, not UTC: after 6 pm Central the UTC date is already tomorrow, the job was booked for tomorrow and its card
+    // was not on today's board (this check failed every evening and passed every morning)
+    await pg.evaluate(() => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); document.getElementById('sjDate').value = d.toISOString().slice(0, 10); document.getElementById('sjTime').value = '14:00'; document.getElementById('sjSave').scrollIntoView({ block: 'center' }); }); await sleep(200);
     await pg.screenshot({ path: path.join(OUT, 'job-inshop-exempt.png') });
     await pg.evaluate(() => document.getElementById('sjSave').click()); await sleep(1200);
     r = await pg.evaluate(() => { const j = (TKS.list('bookings') || []).find(x => x.customer && x.customer.name === 'TEST Dealer Motors'); const card = Array.from(document.querySelectorAll('.sch-card')).map(x => x.innerText.replace(/\s+/g, ' ')).find(x => /TEST Dealer Motors/.test(x)) || '';

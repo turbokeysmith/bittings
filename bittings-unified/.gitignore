@@ -11,3 +11,6 @@ desktop.ini
 
 # QA harness output (regenerable screenshots + report.json)
 tools/qa/audit/
+
+# Test screenshots (regenerable)
+tools/qa/out/

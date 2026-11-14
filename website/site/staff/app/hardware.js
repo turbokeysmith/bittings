@@ -153,9 +153,21 @@
     var opt = payload === undefined ? { method: 'GET' } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
     return fetch(helperUrl() + pathName, opt).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) {
       if (!r.ok || (j && j.error)) throw new Error((j && j.error) || ('Print helper error ' + r.status)); return j; }); },
-      function () { throw new Error('Can\'t reach the Bittings Print Helper on this computer. Use the counter PC (the one with the printers), or restart it.'); });
+      function () { var e = new Error('Can\'t reach the Bittings Print Helper on this computer. On the counter PC it starts again by itself within a minute — wait a moment and try again. (Printing only works on the computer with the printers.)'); e.helperDown = true; throw e; });
   }
   function helperStatus() { return helperCall('/status'); }
+  // 8z137: "Reset printing" — the helper clears every waiting print job and restarts the Windows print spooler (un-jams the queue)
+  function helperReset() { return helperCall('/reset', {}); }
+  // A "Reset printing" button under a print error (el = the element showing the error). Not offered when the helper itself is not answering.
+  function offerReset(el, err) {
+    if (!el || (err && err.helperDown)) return;
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Reset printing';
+    b.style.cssText = 'display:block;margin-top:8px;min-height:44px;padding:8px 14px;border-radius:10px;border:1px solid currentColor;background:transparent;color:inherit;font-weight:700;font-size:14px;cursor:pointer';
+    b.onclick = function () { b.disabled = true; b.textContent = 'Resetting… (up to a minute)';
+      helperReset().then(function () { el.textContent = 'Printing was reset — the waiting jobs were cleared. Print again.'; },
+        function (e) { el.textContent = (e && e.message) || 'Could not reset printing.'; }); };
+    el.appendChild(b);
+  }
 
   // 8z28: QR as a ZPL graphic (^GFA) we draw ourselves — exact size and position on every printer.
   // Uses qrcode-generator (app/vendor/qrcode-generator-1.4.4.js, MIT). Falls back to the printer's ^BQ if it isn't loaded.
@@ -1168,8 +1180,20 @@
       if (!prefs.labels.enabled) return Promise.reject(new Error('Label printing is disabled in Hardware settings.'));
       units = (units || []).filter(function (u) { return u && u.id; });
       if (!units.length) return Promise.reject(new Error('No units to print.'));
-      if ((prefs.labels.mode || 'helper') === 'helper')   // 8z26: one job, all labels
-        return helperCall('/zpl', { zpl: home(units.map(function (u) { return buildUnitZPL(u, part, opt); }).join('\n')) }).then(function () { return units.length; });
+      if ((prefs.labels.mode || 'helper') === 'helper') {
+        /* 8z137: SMALL jobs, one after the other. 8z26 sent every label as ONE job; on 2026-11-13 a 15-label job (about
+           1 MB of label pictures) jammed the Windows print queue at the counter and took the print helper down with it.
+           Labels drawn as pictures go one per job; plain-text labels are grouped up to about 100 KB. */
+        var jobs = [], cur = [], size = 0, counts = [];
+        units.forEach(function (u) { var z = home(buildUnitZPL(u, part, opt));
+          if (cur.length && size + z.length > 100000) { jobs.push(cur.join('\n')); counts.push(cur.length); cur = []; size = 0; }
+          cur.push(z); size += z.length; });
+        if (cur.length) { jobs.push(cur.join('\n')); counts.push(cur.length); }
+        var sent = 0;
+        return jobs.reduce(function (p, z, i) { return p.then(function () { return helperCall('/zpl', { zpl: z }).then(function () { sent += counts[i]; }); }); }, Promise.resolve())
+          .then(function () { return units.length; },
+            function (e) { if (sent > 0) { var e2 = new Error(sent + ' of ' + units.length + ' labels were sent, then it stopped: ' + ((e && e.message) || 'the printer did not answer')); e2.helperDown = !!(e && e.helperDown); throw e2; } throw e; });
+      }
       return device().then(function (d) {
         var i = 0;
         function next() {
@@ -1318,7 +1342,8 @@
         st.busy = true; render();
         var job = (st.mode === 'own' && st.units.length) ? printUnits(ownList(), part, { size: st.size }) : printPart(part, kopt({ size: st.size, copies: copies() }));
         job.then(function () { toast(n + (isBin() ? ' bin' : '') + ' label' + (n === 1 ? '' : 's') + ' sent to the printer.'); mo.close(); })
-          .catch(function (err) { st.busy = false; render(); $('plErr').textContent = (err && err.message) || 'The label printer did not answer. Check that it is on and has labels.'; });
+          .catch(function (err) { st.busy = false; render(); $('plErr').textContent = (err && err.message) || 'The label printer did not answer. Check that it is on and has labels.';
+            if ((prefs.labels.mode || 'helper') === 'helper') offerReset($('plErr'), err); });   // 8z137
       };
       render();
       ensureLogo().then(function () { anchorLegacy(st.size); if (document.body.contains(mo.card)) render(); });   // 8z103
@@ -1421,7 +1446,8 @@
       + '<div style="border:1px solid var(--edge,#2a2f3a);border-radius:12px;padding:12px;margin-bottom:12px">'
       + '<b>Bittings Print Helper</b> <span id="hwHelpSt" style="font-size:12px;color:#9aa3af">● checking…</span>'
       + '<div style="font-size:12px;color:var(--dim,#9aa3af);margin-top:4px">Runs on the counter PC and prints to its Star receipt printer, cash drawer and Zebra label printer. Use Bittings on that PC to print.</div>'
-      + '<div>' + btn('Check again', 'hwHelpChk') + btn('Open cash drawer', 'hwDrawer') + '</div>'
+      + '<div>' + btn('Check again', 'hwHelpChk') + btn('Open cash drawer', 'hwDrawer') + btn('Reset printing', 'hwHelpReset') + '</div>'
+      + '<div class="hw-hint" id="hwHelpResetMsg" style="font-size:13px;color:#9aa3af;margin-top:4px">Printer stuck, or labels not coming out? <b>Reset printing</b> clears every waiting print job on this computer and restarts Windows printing. Then print again.</div>'
       + '</div>'
 
       // SCANNER
@@ -1573,6 +1599,9 @@
       helperStatus().then(function (j) { st.textContent = '● connected — receipt: ' + (j.receiptPrinter || 'none') + ' · labels: ' + (j.labelPrinter || 'none'); st.style.color = '#7fd49b'; })
         .catch(function () { st.textContent = '● not found on this computer'; st.style.color = '#f2b43a'; }); }
     chk(); $('hwHelpChk').onclick = chk;
+    if ($('hwHelpReset')) $('hwHelpReset').onclick = function () { var b = $('hwHelpReset'), m = $('hwHelpResetMsg'); b.disabled = true; if (m) m.textContent = 'Resetting printing… this can take up to a minute.';   // 8z137
+      helperReset().then(function (j) { b.disabled = false; if (m) m.textContent = '✓ Printing was reset' + (j && j.cleared ? ' (' + j.cleared + ' waiting job' + (j.cleared === 1 ? '' : 's') + ' cleared)' : '') + '. Print again.'; chk(); },
+        function (e) { b.disabled = false; if (m) m.textContent = (e && e.message) || 'Could not reset printing.'; chk(); }); };
     $('hwDrawer').onclick = function () { thermal.openDrawer().then(function () { toast('Drawer opened.');
         try { if (window.TKS && TKS.Audit) TKS.Audit.log('drawer_open_manual', 'drawer', 'counter', { from: 'Hardware settings' }); } catch (e) {}   // 8z69
       }).catch(function (e) { toast(e.message, false); }); };
