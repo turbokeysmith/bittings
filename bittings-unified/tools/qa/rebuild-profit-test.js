@@ -84,7 +84,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     const setSel = async (id, v) => { await pg.evaluate((id, v) => { const el = document.querySelector('.sch-modal #' + id); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, id, v); };
     await setSel('sjYear', '2015'); await sleep(400); await setSel('sjMake', 'Ford'); await sleep(600);
     await pg.evaluate(() => window.__mark()); let t0 = Date.now(); await setSel('sjModel', 'F-150'); const callMs = Date.now() - t0; await sleep(2500);
-    r = await pg.evaluate(() => ({ frozen: window.__mark(), keys: document.querySelectorAll('.sch-modal .sjkAdd').length, hasKey: /TEST FORD F-150 2015-2017 5-Button/.test(document.querySelector('.sch-modal #sjKeys').innerText), stock: TKS.Inventory.all().length }));
+    r = await pg.evaluate(() => ({ frozen: window.__mark(), keys: document.querySelectorAll('.sch-modal .sjkAdd').length, hasKey: /TEST FORD F-150 2015-2017 5-Button/.test(document.querySelector('.sch-modal #sjKeys').textContent)   /* 8z147: the kinds of key are collapsing bars now — read the closed ones too */, stock: TKS.Inventory.all().length }));
     r.callMs = callMs;
     check('picking the vehicle model no longer freezes the form (501 stock items, CPU slowed 4x: under 1.5 s; it was 14+ s)', r.frozen < 1500 && callMs < 1500 && r.keys > 0 && r.hasKey && r.stock === 501, r);
     await pg.evaluate(() => window.__mark()); t0 = Date.now();

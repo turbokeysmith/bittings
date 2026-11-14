@@ -25,7 +25,9 @@
     window.__net.push(this.mode+' '+this.raw+(this.mode==='update'?(' '+Object.keys(this.row||{}).join(',')):''));
     if(this.t==='staff'){ var me={ role: localStorage.getItem('__role')||'owner', active:true, user_id:UID, name:'TEST Owner' }; return { data: this.one?me:[me], error:null }; }
     if(this.mode==='select'){ var k=this.ord||'id', out=rows.filter(pass).sort(function(a,b){ return String(a[k])<String(b[k])?-1:1; }); if(this.desc) out.reverse(); if(this.rng) out=out.slice(this.rng[0], this.rng[1]+1); if(this.lim) out=out.slice(0,this.lim); return { data: this.one?(out[0]||null):JSON.parse(JSON.stringify(out)), error:null }; }
-    if(this.mode==='insert'||this.mode==='upsert'){ var r=Object.assign({}, this.row); if(!r.id) r.id='00000000-0000-4000-8000-'+String(1000000000000+rows.length).slice(1); r.updated_at=new Date().toISOString(); var ix=rows.findIndex(function(x){ return x.id===r.id; }); if(ix>=0) rows[ix]=Object.assign(rows[ix], r); else rows.push(r); d[this.t]=rows; save(d); return { data:[r], error:null }; }
+    if(this.mode==='insert'||this.mode==='upsert'){ var outR=[];   // one row, or a list of rows (the real library takes both)
+      (Array.isArray(this.row)?this.row:[this.row]).forEach(function(row0){ var r=Object.assign({}, row0); if(!r.id) r.id='00000000-0000-4000-8000-'+String(1000000000000+rows.length).slice(1); r.updated_at=new Date().toISOString(); var ix=rows.findIndex(function(x){ return x.id===r.id; }); if(ix>=0) rows[ix]=Object.assign(rows[ix], r); else rows.push(r); outR.push(r); });
+      d[this.t]=rows; save(d); return { data:outR, error:null }; }
     if(this.mode==='update'){ rows.forEach(function(x){ if(pass(x)){ Object.assign(x, self.row); } }); d[this.t]=rows; save(d); return { data:null, error:null }; }
     if(this.mode==='delete'){ var gone=rows.filter(pass); d[this.t]=rows.filter(function(x){ return !pass(x); }); save(d); return { data:gone, error:null }; }
     return { data:null, error:null };

@@ -2544,7 +2544,12 @@ function jobToInvoiceDraft(b){
   try{ const hit=(TKS.Config.services()||[]).find(function(s){ return String(s.value||'').toLowerCase()===String(svcLabel).toLowerCase(); }); if(hit && hit.price!=null && String(hit.price).trim()!=='') price=String(hit.price).trim(); }catch(e){}
   // 8z42: charges the office listed on the job win — each arrives with its price, qty and tax flag
   const jobLines=(Array.isArray(b.items)?b.items:[]).filter(function(x){ return x && (x.desc || Number(x.amount)>0); });
-  if(jobLines.length) jobLines.forEach(function(x){ items.push({ name:String(x.desc||'Service'), price:String(Number(x.amount)||0), qty:parseInt(x.qty,10)||1, taxable:!!x.taxable, fromDispatch:true }); });
+  /* 8z145: a charge line that is a stock key (it was picked on the estimate) arrives linked to that key — it leaves stock when the
+     invoice is paid, and its cost counts toward profit — and the same key on the job's key list is not added a second time. */
+  const linePart={};
+  if(jobLines.length) jobLines.forEach(function(x){ const o={ name:String(x.desc||'Service'), price:String(Number(x.amount)||0), qty:parseInt(x.qty,10)||1, taxable:!!x.taxable, fromDispatch:true };
+      if(x.partId){ let pt=null; try{ pt=TKS.Inventory.get(x.partId); }catch(e){} if(pt){ const c0=parseFloat(pt.cost); o.partId=String(x.partId); o.category='Materials'; o.unitCost=(!isNaN(c0)&&c0>0)?c0:0; linePart[o.partId]=(linePart[o.partId]||0)+(o.qty||1); } }
+      items.push(o); });
   else if(svcLabel) items.push({ name:svcLabel, price:price, qty:1, fromDispatch:true });
   const veh=b.vehicle?[b.vehicle.year,b.vehicle.make,b.vehicle.model].filter(Boolean).join(' '):(b.vehicleText||'');
   let catKey=b.serviceCategory||b.jobType||'automotive'; try{ if(TKS.ServiceCats && !TKS.ServiceCats.byKey(catKey)) catKey=TKS.ServiceCats.codeToKey(catKey)||catKey; }catch(e){}
@@ -2555,6 +2560,7 @@ function jobToInvoiceDraft(b){
   const parts=(window.TKS&&TKS.Jobs&&TKS.Jobs.parts&&TKS.auth&&TKS.auth.isSignedIn()&&!(TKS.isDemo&&TKS.isDemo()))?TKS.Jobs.parts(b.id):Promise.resolve({data:[]});
   let partsTaxed=true; try{ partsTaxed=!!TKS.Config.taxableDefault('Materials'); }catch(e){}
   return parts.then(function(r){ ((r&&r.data)||[]).filter(function(p){ return p.state!=='returned'; }).forEach(function(p){
+      if(p.item_id && linePart[p.item_id]>0){ linePart[p.item_id]--; return; }   // 8z145: already on the invoice as its charge line
       const part=p.item_id?TKS.Inventory.get(p.item_id):null;
       /* 8z63 (owner, 2026-11-11): a key or part pulled for the job is goods — it arrives on the invoice as Materials with the tax box
          already set the way Setup › Sales tax says (it used to arrive as untaxed labor and had to be ticked by hand). */
@@ -9311,12 +9317,22 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     var vb=q('sjVinBtn'); if(vb) vb.onclick=function(){ var vin=(q('sjVin').value||'').trim().toUpperCase(); if(vin.length!==17){ q('sjMsg').textContent='Enter a 17-character VIN.'; return; } q('sjMsg').textContent='Decoding…'; try{ TKS.decodeVin(vin).then(function(r){ sjFillVeh(r.year||q('sjYear').value, r.make||q('sjMake').value, r.model||''); q('sjMsg').textContent='Decoded: '+[r.year,r.make,r.model].filter(Boolean).join(' '); }).catch(function(e){ q('sjMsg').textContent=(e&&e.message)||'Could not decode VIN.'; }); }catch(e){ q('sjMsg').textContent='VIN decode unavailable.'; } };
     // ---------- 8z32: Keys for this vehicle ----------
     var KEY_GROUPS=[['Smart Key','Smart keys'],['Remote Head / Flip','Flip keys'],['Remote / Fob','Remotes'],['Super Remote','Super remotes'],['Transponder','Transponder keys'],['Key Shell','Shells'],['Mechanical','Blades / mechanical']];
-    var jobParts=[], pendingParts=[], keysBusy=false;
+    var jobParts=[], pendingParts=[], keysBusy=false, kOpenGrp='';   // 8z147: kOpenGrp = the kind of key whose list is open
     // ---------- 8z42: Charges for this job ----------
     // The office lists what will be charged (description, qty, price each, taxable) and sees the total with tax and with
     // any keys picked above. It is saved on the job (items + quote) and "Invoice this job" opens with these lines and
     // prices already in place, so the technician only takes the payment. A technician sees the lines but cannot edit them.
-    var chargeLines=(Array.isArray(b.items)?b.items:[]).map(function(x){ return { desc:String(x.desc||''), qty:parseInt(x.qty,10)||1, each:(x.each!=null&&x.each!=='')?String(x.each):'', taxable:!!x.taxable }; });
+    var chargeLines=(Array.isArray(b.items)?b.items:[]).map(function(x){ return { desc:String(x.desc||''), qty:parseInt(x.qty,10)||1, each:(x.each!=null&&x.each!=='')?String(x.each):'', taxable:!!x.taxable, partId:String(x.partId||'') }; });
+    /* 8z145 (owner, 2026-11-14: "it asks me to select more keys even though I've already selected the key"): a key that was
+       picked on the estimate arrives as a charge line that still knows which stock item it is (partId). On a NEW job it is put
+       on the job as its key straight away (shown as ✓ Added in the key list, saved with the job) — so the van check, the
+       "not on the van" flag on the board and the cancel step all know about it. Its price stays the one on the charge line;
+       it is not counted a second time under "Keys picked above", and the invoice gets it once, linked to stock. */
+    function chLinePartCounts(){ var m={}; chargeLines.forEach(function(l){ if(l.partId) m[l.partId]=(m[l.partId]||0)+1; }); return m; }
+    function chAdoptKeys(late){ if(!isNew) return false; var missing=false, changed=false;   // true = a key's stock record has not arrived on this device yet → tried again shortly
+      try{ chargeLines.forEach(function(l){ if(!l.partId || pendingParts.indexOf(l.partId)>=0) return; if(TKS.Inventory.get(l.partId)){ pendingParts.push(l.partId); changed=true; } else missing=true; }); }catch(e){}
+      if(late && changed){ try{ renderKeys(); chSyncTotals(); }catch(e){} } return missing; }
+    if(chAdoptKeys(false)) setTimeout(function(){ if(ov.isConnected && chAdoptKeys(true)) setTimeout(function(){ if(ov.isConnected) chAdoptKeys(true); }, 4000); }, 1500);
     var chargeLock=false; try{ chargeLock=(TKS.auth && TKS.auth.staffRole && TKS.auth.staffRole()==='technician'); }catch(e){}
     /* 8z84 (owner: "we will go to them and do multiple cars"): vehicles 2, 3… on the job. Year / make / model / VIN each.
        The key picker above stays with the first vehicle; keys for the others are added on the invoice, where every
@@ -9348,9 +9364,9 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     function chTaxRate(){ if(jobExempt) return 0; try{ return Number(TKS.Config.get().taxRate)||0; }catch(e){ return 0; } }
     function chSvcs(){ try{ return (TKS.Config.services()||[]).filter(function(x){ return x && x.value; }); }catch(e){ return []; } }
     function chCents(v){ var n=Math.round(parseFloat(v)*100); return isNaN(n)||n<0?0:n; }
-    function chPartsCents(){ var c=0;
-      try{ jobParts.forEach(function(x){ if(x.state==='returned'||!x.item_id) return; var pt=TKS.Inventory.get(x.item_id); if(pt&&pt.sellPriceCents!=null) c+=Number(pt.sellPriceCents)||0; });
-           pendingParts.forEach(function(id){ var pt=TKS.Inventory.get(id); if(pt&&pt.sellPriceCents!=null) c+=Number(pt.sellPriceCents)||0; }); }catch(e){}
+    function chPartsCents(){ var c=0, cov=chLinePartCounts();   // 8z145: cov = keys already priced as a charge line
+      try{ jobParts.forEach(function(x){ if(x.state==='returned'||!x.item_id) return; if(cov[x.item_id]>0){ cov[x.item_id]--; return; } var pt=TKS.Inventory.get(x.item_id); if(pt&&pt.sellPriceCents!=null) c+=Number(pt.sellPriceCents)||0; });
+           pendingParts.forEach(function(id){ if(cov[id]>0){ cov[id]--; return; } var pt=TKS.Inventory.get(id); if(pt&&pt.sellPriceCents!=null) c+=Number(pt.sellPriceCents)||0; }); }catch(e){}
       return c; }
     function chTotals(){ var taxable=0, nontax=0;
       chargeLines.forEach(function(l){ var a=chCents(l.each)*(parseInt(l.qty,10)||1); if(l.taxable) taxable+=a; else nontax+=a; });
@@ -9437,13 +9453,13 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
         qy.oninput=function(){ l.qty=Math.max(1, parseInt(qy.value,10)||1); chSyncTotals(); };
         ea.oninput=function(){ l.each=ea.value; chSyncTotals(); };
         tx.onchange=function(){ l.taxable=tx.checked; chSyncTotals(); };
-        if(x) x.onclick=function(){ chargeLines.splice(+row.dataset.chrow,1); renderCharges(); };
+        if(x) x.onclick=function(){ var gone=chargeLines.splice(+row.dataset.chrow,1)[0]; if(gone && gone.partId){ var pi=pendingParts.indexOf(gone.partId); if(pi>=0){ pendingParts.splice(pi,1); try{ renderKeys(); }catch(e){} } } renderCharges(); };   // 8z145
       });
       var add=q('sjChAdd'); if(add) add.onclick=function(){ chargeLines.push({ desc:'', qty:1, each:'', taxable:false }); renderCharges(); var all=box.querySelectorAll('.chD'); if(all.length) all[all.length-1].focus(); };
     }
     function chargesForSave(){ var t=chTotals();
       return { items: chargeLines.filter(function(l){ return String(l.desc||'').trim() || chCents(l.each)>0; }).map(function(l){ var qy=parseInt(l.qty,10)||1, e=chCents(l.each);
-                 return { desc:String(l.desc||'').trim()||'Service', qty:qy, each:e/100, amount:(e*qy)/100, taxable:!!l.taxable }; }),
+                 var o={ desc:String(l.desc||'').trim()||'Service', qty:qy, each:e/100, amount:(e*qy)/100, taxable:!!l.taxable }; if(l.partId) o.partId=l.partId; return o; }),
                quote: { subtotal:(t.lines+t.parts)/100, tax:t.tax/100, total:t.total/100, taxRate:t.rate } }; }
     setTimeout(function(){ renderContract(); renderCharges();   // keys are added / removed in #sjKeys → keep the total in step
       try{ var kb=q('sjKeys'); if(kb && window.MutationObserver) new MutationObserver(chSyncTotals).observe(kb, { childList:true, subtree:true }); }catch(e){} }, 0);
@@ -9472,12 +9488,19 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       if(KL.universalHint) html+='<div class="sub" style="margin-top:8px;font-weight:700">'+esc(KL.universalHint)+'</div>';
       var missingVan=0;
       var kGroupsOf=function(src, prefix){ return KEY_GROUPS.concat([['__other','Other']]).map(function(g){ return [g[0], prefix+g[1], src]; }); };
-      kGroupsOf(list, '').concat((KL.universal&&KL.universal.length)?[['__univ', (window.TKS_FIT&&TKS_FIT.KEY_UNIVERSAL_LABEL)||'Universal', KL.universal]]:[]).concat(maybe.length?[['__maybeHead','',maybe]].concat(kGroupsOf(maybe, 'Might fit · ')):[]).forEach(function(g){
+      /* 8z147 (owner, 2026-11-14: "have the key types be a collapsing list … on the phone it's a lot to scroll through"): each kind of key is one bar —
+         tap it and its keys open, and the kind that was open closes. A single kind shows open, as before. */
+      var kAllG=kGroupsOf(list, '').concat((KL.universal&&KL.universal.length)?[['__univ', (window.TKS_FIT&&TKS_FIT.KEY_UNIVERSAL_LABEL)||'Universal', KL.universal]]:[]).concat(maybe.length?[['__maybeHead','',maybe]].concat(kGroupsOf(maybe, 'Might fit · ')):[]);
+      var kGrpItems=function(g){ var src=g[2]; return g[0]==='__univ' ? src : src.filter(function(p){ var sb=kSub(p); return g[0]==='__other' ? !KEY_GROUPS.some(function(k){ return k[0]===sb; }) : sb===g[0]; }); };
+      var kSolo=kAllG.filter(function(g){ return g[0]!=='__maybeHead' && kGrpItems(g).length; }).length<=1;
+      kAllG.forEach(function(g){
         if(g[0]==='__maybeHead'){ html+='<div style="margin:14px 0 2px;padding-top:10px;border-top:2px dashed rgba(183,121,31,.45);font-weight:800;color:#b7791f">Might fit — not confirmed for this model</div><div class="sub" style="margin:0">These list the make and year only. To confirm one for good, add this vehicle to its Fits (Stock → part).</div>'; return; }
-        var list=g[2];
-        var items=g[0]==='__univ' ? list : list.filter(function(p){ var sb=kSub(p); return g[0]==='__other' ? !KEY_GROUPS.some(function(k){ return k[0]===sb; }) : sb===g[0]; });
+        var items=kGrpItems(g);
         if(!items.length) return;
-        html+='<div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--dim);text-transform:uppercase;margin:12px 0 6px">'+esc(g[1])+'</div>';
+        var gOpen=kSolo || kOpenGrp===g[1], gOn=items.filter(function(p){ return !!onJob[p.id]; }).length;
+        html+= kSolo ? ('<div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--dim);text-transform:uppercase;margin:12px 0 6px">'+esc(g[1])+'</div>')
+          : ('<button type="button" class="sjkGrp" data-g="'+esc(g[1])+'" aria-expanded="'+(gOpen?'true':'false')+'" style="display:flex;align-items:center;gap:8px;width:100%;min-height:48px;margin:10px 0 6px;padding:10px 12px;border:1px solid '+(gOpen?'#c8323c':'var(--edge,#e3e5e8)')+';border-radius:12px;background:var(--card,#fff);color:inherit;font:inherit;font-size:14.5px;font-weight:800;text-align:left;cursor:pointer"><span aria-hidden="true" style="flex:0 0 auto;width:14px">'+(gOpen?'▾':'▸')+'</span><span style="flex:1;min-width:0">'+esc(g[1])+'</span>'+(gOn?'<span style="flex:0 0 auto;color:#22994a;font-size:12.5px">✓ '+gOn+' added</span>':'')+'<span style="flex:0 0 auto;font-size:12.5px;font-weight:700;opacity:.7">'+items.length+'</span></button>');
+        html+='<div class="sjkGrpBody"'+(gOpen?'':' style="display:none"')+'>';
         items.forEach(function(p){ var st=kStock(p), onVan=van?(st.vans[van]||0):0, added=!!onJob[p.id];
           var grade=String(p.grade||''), tag=/oem/i.test(grade)?'<span style="font-size:11px;font-weight:800;border-radius:6px;padding:1px 6px;margin-left:4px;background:#fdecea;color:#a3252e">OEM</span>':(/aftermarket/i.test(grade)?'<span style="font-size:11px;font-weight:800;border-radius:6px;padding:1px 6px;margin-left:4px;background:#eef2ff;color:#3949ab">AM</span>':'');
           var where=[(st.shop>0?'Shop '+st.shop:'Shop 0')].concat(Object.keys(st.vans).filter(function(k){ return st.vans[k]>0; }).map(function(k){ return ((typeof invVanName==='function')?invVanName(k).replace(/^🚐\s*/,''):'Van')+' '+st.vans[k]; })).join(' · ');
@@ -9492,14 +9515,16 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
             (added ? '<div style="margin-top:4px;border:2px solid #22994a;border-radius:10px;background:#eaf7ee;color:#156632;font-weight:800;padding:7px 9px;font-size:13px">✓ Added</div>'
                    : '<button type="button" class="sjkAdd" data-id="'+esc(p.id)+'" style="margin-top:4px;border:0;border-radius:10px;background:linear-gradient(180deg,#c8323c,#8f1f27);color:#fff;font-weight:800;padding:9px 12px;font-size:14px;cursor:pointer">+ Add</button>')+
             '</div></div>'; });
+        html+='</div>';
       });
       // what's on the job
-      var lines=jobParts.map(function(x){ var pt=x.item_id?TKS.Inventory.get(x.item_id):null; return { id:x.id, name:(pt&&pt.name)||x.description||'Part', sku:pt&&pt.sku, price:pt&&pt.sellPriceCents, state:x.state }; })
-        .concat(pendingParts.map(function(id){ var pt=TKS.Inventory.get(id)||{}; return { pending:id, name:pt.name||'Part', sku:pt.sku, price:pt.sellPriceCents }; }));
+      var lines=jobParts.map(function(x){ var pt=x.item_id?TKS.Inventory.get(x.item_id):null; return { id:x.id, item:x.item_id, name:(pt&&pt.name)||x.description||'Part', sku:pt&&pt.sku, price:pt&&pt.sellPriceCents, state:x.state }; })
+        .concat(pendingParts.map(function(id){ var pt=TKS.Inventory.get(id)||{}; return { pending:id, item:id, name:pt.name||'Part', sku:pt.sku, price:pt.sellPriceCents }; }));
       if(lines.length){
+        var covL=chLinePartCounts(); lines.forEach(function(l){ if(l.item && l.state!=='returned' && covL[l.item]>0){ covL[l.item]--; l.inCharges=true; } });   // 8z145
         html+='<div style="margin-top:10px;background:var(--card,#fff);border:1px dashed #22994a;border-radius:12px;padding:10px;font-size:13.5px"><b>On this job ('+lines.length+'):</b>'+
           lines.map(function(l){ return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:4px"><span>'+esc(l.name)+(l.sku?' <span class="sub">('+esc(l.sku)+')</span>':'')+(l.pending?' <span class="sub">— saved with the job</span>':'')+(l.state==='used'?' <span class="sub">— used</span>':'')+'</span>'+
-            '<span style="white-space:nowrap">'+esc(kMoney(l.price))+((l.pending||(canRemove&&l.state!=='used'))?' <button type="button" class="sjkDel" data-id="'+esc(l.id||'')+'" data-pending="'+esc(l.pending||'')+'" title="Remove from this job" style="border:0;background:none;color:#c8323c;font-size:16px;cursor:pointer">✕</button>':'')+'</span></div>'; }).join('')+
+            '<span style="white-space:nowrap">'+(l.inCharges?'<span class="sub">price is in the charges</span>':esc(kMoney(l.price)))+((l.pending||(canRemove&&l.state!=='used'))?' <button type="button" class="sjkDel" data-id="'+esc(l.id||'')+'" data-pending="'+esc(l.pending||'')+'" title="Remove from this job" style="border:0;background:none;color:#c8323c;font-size:16px;cursor:pointer">✕</button>':'')+'</span></div>'; }).join('')+
           '<div class="sub" style="margin-top:6px">Goes to the invoice. If the job is canceled, it\'s flagged to come back to stock.</div></div>';
       }
       if(missingVan) html+='<div style="background:#fff3cd;border:1px solid #f2b43a;color:#7a4f00;border-radius:10px;padding:8px 10px;font-size:12.5px;font-weight:600;margin-top:8px">⚠ Load onto '+esc(techName?techName+'\'s van':'the van')+' before leaving — '+missingVan+' added key'+(missingVan===1?' isn\'t':'s aren\'t')+' on it yet.</div>';
@@ -9507,6 +9532,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
       box.innerHTML=html+'</div>';
       box.querySelectorAll('.sjkPh').forEach(function(el){ if(el.dataset.img) el.onclick=function(){ TKS_PHOTO.view(el.dataset.img); }; });
       box.querySelectorAll('.sjkAdd').forEach(function(btn){ btn.onclick=function(){ addKey(btn.dataset.id, btn); }; });
+      box.querySelectorAll('.sjkGrp').forEach(function(btn){ btn.onclick=function(){ kOpenGrp=(kOpenGrp===btn.dataset.g)?'':btn.dataset.g; renderKeys(); }; });   // 8z147
       box.querySelectorAll('.sjkDel').forEach(function(btn){ btn.onclick=function(){ removeKey(btn.dataset.id, btn.dataset.pending); }; });
     }
     function addKey(itemId, btn){
@@ -9518,7 +9544,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
         loadJobParts(); });
     }
     function removeKey(id, pending){
-      if(pending){ pendingParts=pendingParts.filter(function(x){ return x!==pending; }); renderKeys(); return; }
+      if(pending){ pendingParts=pendingParts.filter(function(x){ return x!==pending; }); var ci=-1; chargeLines.forEach(function(l,i){ if(ci<0 && l.partId===pending) ci=i; }); if(ci>=0){ chargeLines.splice(ci,1); try{ renderCharges(); }catch(e){} } renderKeys(); return; }   // 8z145: its charge line goes with it
       if(!id || !cloud) return;
       TKS._sb().from('job_parts').delete().eq('id', id).select().then(function(r){ if(r.error||!(r.data||[]).length){ q('sjMsg').textContent='Only a manager can remove a part from a job.'; return; } loadJobParts(); });
     }
@@ -9619,7 +9645,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
   function openJobFromDraft(qj){
     if(qj && qj.ts && (Date.now()-qj.ts)<10*60000){
       var st=String(qj.serviceType||''), jt0=/resid/i.test(st)?'res':(/commer/i.test(st)?'com':'auto');
-      var its=(Array.isArray(qj.items)?qj.items:[]).map(function(x){ return { desc:String(x.desc||'Service'), qty:parseInt(x.qty,10)||1, each:(x.each!=null?x.each:x.amount), amount:Number(x.amount)||0, taxable:!!x.taxable }; });
+      var its=(Array.isArray(qj.items)?qj.items:[]).map(function(x){ var o={ desc:String(x.desc||'Service'), qty:parseInt(x.qty,10)||1, each:(x.each!=null?x.each:x.amount), amount:Number(x.amount)||0, taxable:!!x.taxable }; if(x.partId) o.partId=String(x.partId); return o; });   // 8z145: a key line keeps its stock link
       var c=qj.customer||{}, v=qj.vehicle||{};
       var nb={ jobType:jt0, customer:{ name:String(c.name||''), phone:String(c.phone||''), email:String(c.email||'') }, subType:String(qj.subType||'')||(its[0]&&its[0].desc)||'',
         address:String(qj.address||''), items:its, fromEstimate:String(qj.fromEstimate||''),

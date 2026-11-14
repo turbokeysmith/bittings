@@ -138,7 +138,7 @@ const DOCS = [
     const keyRows = (sc) => pg.evaluate((sc) => Array.from(document.querySelectorAll((sc || '#qiKeys') + ' .qk-row .qk-n')).map(x => x.innerText.replace(/\s+/g, ' ').replace(/ ?(AM|OEM)$/, '')), sc);
     await open('?quote=1');
     await setVeh('2015', 'Ford', 'F-150');
-    r = await pg.evaluate(() => { const bs = Array.from(document.querySelectorAll('#qiKeys .qkIgn')); return { t: bs.map(x => x.innerText), on: bs.filter(x => x.classList.contains('on')).map(x => x.innerText), h: bs.map(x => Math.round(x.getBoundingClientRect().height)), note: !!document.querySelector('#qiKeys .qk-hid'),
+    r = await pg.evaluate(() => { const box = document.getElementById('qiKeys'); box.querySelectorAll('.qk-grp').forEach(x => { x.hidden = false; });   /* 8z147: the kinds of key are collapsing bars now — open them all to read the list */ const bs = Array.from(document.querySelectorAll('#qiKeys .qkIgn')); return { t: bs.map(x => x.innerText), on: bs.filter(x => x.classList.contains('on')).map(x => x.innerText), h: bs.map(x => Math.round(x.getBoundingClientRect().height)), note: !!document.querySelector('#qiKeys .qk-hid'),
       top: bs.length ? bs[0].getBoundingClientRect().top < document.querySelector('#qiKeys .qk-row').getBoundingClientRect().top : false, over: document.documentElement.scrollWidth - window.innerWidth }; });
     check('above the key list: "Push to start" / "Turn key" / "Not sure / show all", the last one chosen by default, all 44px+', r.t.join('|') === 'Push to start|Turn key|Not sure / show all' && r.on.join() === 'Not sure / show all' && r.h.every(x => x >= 44) && r.top && !r.note && r.over <= 0, r);
     let rows = await keyRows();

@@ -408,6 +408,43 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-11-14 (8z145: an estimate's key rides onto the job · 8z146: the service buttons learn · 8z147: key types collapse) — LIVE (8a58a88b5455); committed and pushed 2026-11-14
+- **Why (owner, 2026-11-14).** He wrote an estimate with a key on it, scheduled it, the customer cancelled; the cancel
+  step asked about consolidating keys although none had been touched, the job form had asked him to pick keys again, and
+  nothing told him the key had to go on the van. Checked in the live data: the job had **no key attached at all**
+  (`job_parts` empty) — an estimate / job never takes anything out of stock; stock only leaves on a paid sale or a scan-out.
+- **8z145 — the estimate's key goes onto the job as its key.** `estimateToJob` (bittings.html) already sent `partId` on
+  each line; `openJobFromDraft` (index.html) dropped it. Now the Quick form's charge lines keep `partId`, and on a NEW job
+  each such key is put in `pendingParts` (`chAdoptKeys`, retried if stock has not loaded yet) → shown "✓ Added" /
+  "On this job", saved to `job_parts` with the job. So the van check in the form, the "not on the van" flag on the board
+  and the cancel step all know the key. Money: the key is priced ONCE at the quoted price — `chPartsCents` skips a job
+  part already covered by a charge line (`chLinePartCounts`), and `jobToInvoiceDraft` sends that line to the invoice
+  linked to stock (`partId`, Materials, `unitCost`) and skips the duplicate job part. Before this the invoice line from
+  an estimate had lost its stock link (the key would not have left stock when sold). ✕ on the key of an unsaved job takes
+  its charge line too, and the other way round. Card-payment code untouched.
+- **8z146 — the service buttons learn (bittings.html, `quickLearn` / `paintQuick`).** Ordered by how often the shop put
+  each service on a past document of the same kind: key job vs service job · push-to-start vs turn-key · in shop vs
+  mobile (closer match counts more: base + 3×ignition + 3×place + 6×both). Old documents with no ignition are read from
+  the kind of key on them; old car documents with no shop / mobile mark count as mobile when they carry a
+  service-call / travel line, otherwise in the shop. **Nothing is ruled out by name** (owner: "it only goes to the bottom
+  because it would be a transponder key"): a service used 2+ times on the OTHER kind and never on this one sinks to the
+  bottom and is greyed, once this kind has 3+ documents. Nothing is stored — read from the receipts on the device each
+  time the builder opens. Counts only match when the old line's wording equals a button's name (the shop's old invoices
+  say "smart key programming"; the current service is "Smart / proximity key programming" — those do not match).
+- **8z147 — key types collapse.** In the estimate's key list (`paintKeys`, `.qk-gb` bars + `.qk-grp`) and the job form's
+  key list (`.sjkGrp` + `.sjkGrpBody`) each kind of key is one bar with its count (and "✓ n added"); one open at a time;
+  a single kind shows open as before.
+- **Tests.** New `tools/qa/rebuild-estimate-key-job-test.js` (port 8108, 27 checks). `rebuild-fake-cloud.js` now accepts
+  a list of rows on insert (the real library does; the job's keys are inserted as a list). Four older tests open the new
+  bars before reading the key list. 13 browser tests + job-kinds pass.
+- **Open.** (1) That cancelled job is saved with **no charges ($0)** although its estimate has three lines ($255) —
+  could not reproduce (the same steps keep the charges in the test; other jobs from estimates kept theirs); ask the owner
+  whether he cleared them. (2) The key on that estimate ("EXPLORER/F-SERIES 11-20 with RMT") shows **0 in stock** and has
+  no serial-numbered units — if he has one on the shelf, the count is off. (3) Not seen on a real phone yet.
+- **Also this day:** GitGuardian emailed "Bearer Token exposed". It is the Supabase *publishable* key in
+  `website/site/contact/index.html` (public by design; verified a stranger with it is refused on all 43 tables; no secret
+  keys anywhere in the history). **The GitHub repository is public** — owner told, his decision whether to make it private.
+
 ### 2026-11-13, closing (8z144: the Quick form lands on the booked day) — LIVE (64d181343abe); committed and pushed 2026-11-13 (the "billing, price rules, jobs by type" commit)
 - **8z144 (owner: "Fix the quick form").** A NEW job made in the Scheduler's Quick form for another day was saved, but
   the board stayed on the day you were looking at, so the job seemed to vanish. After "Create job" the board now moves
