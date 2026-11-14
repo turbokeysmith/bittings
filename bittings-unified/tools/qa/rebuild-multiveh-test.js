@@ -34,7 +34,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
         K('key7', { name: 'TEST Honda Civic 2016-2021 smart key', sku: 'T-KEY7', category: 'Keys/Smart Key', fitment: 'Honda Civic 2016-2021', qty: 2, cost: 35, sell_price_cents: 18900 })];
       const shop_config = [{ id: 'c1', shop_id: 's', tax_rate: 8.625, updated_at: iso, data: { taxRate: 8.625, identity: { name: 'TEST Shop', address: '1 Test Shop Rd, Testville, OK 73000' }, taxableByCategory: { Materials: true } } }];
       localStorage.setItem('__db', JSON.stringify({ receipts: [], inventory, customers: [], bookings: [], shop_config, web_leads: [], payment_transactions: [], audit_log: [], tax_exemptions: [] }));
-      localStorage.setItem('__role', 'owner'); localStorage.setItem('bt_theme', 'dark');
+      localStorage.setItem('__role', 'owner'); localStorage.setItem('tks_form_sections', 'open');   /* 8z158: the form's sections all open, so this test still checks the fields themselves */ localStorage.setItem('bt_theme', 'dark');
       localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'test-person@example.com' } }));
     }, UID);
     let r;

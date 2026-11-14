@@ -51,7 +51,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
         J('j7', { jobType: 'auto', subType: 'TEST see notes' }),
         J('j8', { jobType: 'auto', subType: 'lockout', status: 'Scheduled' })];
       localStorage.setItem('__db', JSON.stringify({ receipts: [], inventory, customers: [], bookings, shop_config, web_leads: [], payment_transactions: [], audit_log: [] }));
-      localStorage.setItem('__role', 'owner');
+      localStorage.setItem('__role', 'owner'); localStorage.setItem('tks_form_sections', 'open');   /* 8z158: the form's sections all open, so this test still checks the fields themselves */
       localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'owner@test.invalid' } }));
     }, UID);
 

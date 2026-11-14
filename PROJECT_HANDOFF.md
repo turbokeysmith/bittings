@@ -408,7 +408,28 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
-### 2026-11-14, late (8z153: Build a quote → Book it · 8z154: the invoice asks for the key · 8z155: technicians see only their own prices · 8z156: job log really sent · 8z157: key locked to the invoice) — LIVE (78b6e145fd72); NOT committed yet
+### 2026-11-14, evening (8z158: the quote / invoice form in collapsing sections) — LIVE (05111bd5779a); committed and pushed 2026-11-14
+- **Why (owner).** "The quick quote form and the job form are very very long … I have to scroll quite a bit to get from the top to the
+  bottom on my phone." He asked for one rebuilt form; agreed layout: one section open at a time, a finished section shrinks to a
+  line showing its ANSWER, total + main buttons pinned at the bottom.
+- **How.** New `app/form-sections.js` (`TKS_SECTIONS.apply(box, config)` generic; `TKS_SECTIONS.quoteForm(modal)` = this form),
+  built by a sonnet helper from a written spec, reviewed from screenshots (first version sent back: pinned bar too tall, top block
+  not collapsible). It is a LAYER: `openQuickInvoice` builds the form exactly as before and then calls `quoteForm(modal)`, which
+  MOVES the existing nodes into sections (ids and listeners survive) — none of the form's rules (tax, stock keys, NASTF, units,
+  discounts, signature) were rewritten. Sections: Job (type / service / need / NASTF) · Customer · Location · Vehicle & keys · Charges ·
+  Payment · Notes, tax & signature. Vehicle and Payment follow the form's own show / hide. Pinned bar = error line + Total +
+  "Save & book it" + Create (the two buttons are moved there); Save & send / PDF and Cancel sit at the end of the form.
+  An error opens the section it is about. "Show everything" / "One section at a time" is remembered on the device
+  (`localStorage.tks_form_sections` = `open`; `off` = flat form, used by one test to measure the original height).
+- **Numbers (390 px phone, new quote):** 2214 px tall before → 965 px with the first section open (−56%) → 619 px all closed.
+- **Tests.** New `rebuild-form-sections-test.js` (port 8114). The older form tests run with every section open
+  (`tks_form_sections=open` in their seed) so they keep checking the fields; `rebuild-book-it-test.js` runs in the real default
+  (one at a time) and passes end to end. 30 browser tests pass; `rebuild-cloud-boot-test.js` still has its 2 old failures.
+- **Not done yet:** the Scheduler's Quick job form (now mostly the editor of a booked job) has no sections; the quote form and the
+  Quick job form are still two screens — deleting the Quick form needs "job without a quote" and "edit a booked job" to move
+  into the one form first. The technician price lock is still screen-level (no database rule).
+
+### 2026-11-14, late (8z153: Build a quote → Book it · 8z154: the invoice asks for the key · 8z155: technicians see only their own prices · 8z156: job log really sent · 8z157: key locked to the invoice) — LIVE (78b6e145fd72); committed and pushed 2026-11-14 (9d2b540)
 - **8z153 — one way to start (the "bridge"; the owner also wants the full rebuild, below).** Built by two sonnet helpers from a
   written brief, reviewed and tested here. bittings.html: quote builder titled "Build a quote"; "📅 Save & book it" (estimates
   only, `#qiBookRow` / `#qiGoBook`, via the existing `_tksAfterCreate` hook); `bookEstimate(r)` = sheet `#bkSheet` (day — preset from
@@ -443,7 +464,7 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   form — open-one-section-at-a-time, finished sections collapse to a one-line summary, total + Save pinned at the bottom —
   built alongside the old screens, switched over when it passes the same tests, then the old two deleted.
 
-### 2026-11-14, afternoon (8z152: jobs RECEIVED from another company) — LIVE (408ff59a0302); NOT committed yet
+### 2026-11-14, afternoon (8z152: jobs RECEIVED from another company) — LIVE (408ff59a0302); committed and pushed 2026-11-14 (9d2b540)
 - **Why (owner).** "We have a way of contracting jobs out. We need a way to receive contracted jobs, like I'm about to go do
   right now." The mirror of 8z56 (`booking.contract`, contracted OUT).
 - **What.** Job form (Scheduler Quick form, owner / manager): "📥 Job from another company" — company, their job / PO #,

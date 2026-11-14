@@ -574,6 +574,7 @@ try{ if(window.self!==window.top){
 <script async src="https://js.stripe.com/v3/"></script>
 <script src="app/cloud-config.js"></script>
 <script src="app/store.js"></script>
+<script src="app/form-sections.js"></script><!-- 8z158: the quote / invoice form in collapsing sections -->
 <script src="app/vendor/jsqr-1.4.0.js"></script><!-- 8r: QR decoder fallback for camera-scan (iPhone Safari) -->
 <script src="app/camera-scan.js"></script>
 <script src="app/hardware.js"></script><!-- 8z80: the receipt printer (Bittings Print Helper on the counter computer) -->
@@ -3866,6 +3867,10 @@ function canEditPricing(){
     (function(m){ const iv=setInterval(()=>{ if(!m.isConnected){ clearInterval(iv); return; } paintTotals(); },700); })(modal);
     paintTotals();
 
+    /* 8z158 (owner, 2026-11-14: "the forms are very very long … I have to scroll quite a bit … on my phone"): once the form has built itself, its
+       parts are grouped into sections — one open at a time, a finished one shrinks to a line showing its answer, total + Save pinned at the
+       bottom (app/form-sections.js). The form's own nodes are only MOVED, so every rule above keeps working. "off" (tests) leaves it flat. */
+    try{ let secOff=false; try{ secOff=localStorage.getItem("tks_form_sections")==="off"; }catch(e){} if(window.TKS_SECTIONS && !secOff) TKS_SECTIONS.quoteForm(modal); }catch(e){ try{ console.warn("sections", e); }catch(_){} }
     // ---- Wire up ----
     const cancel=()=>{ close(); if(typeof onCancel==="function") onCancel(); };
     $q("#qiX").onclick=cancel; $q("#qiCancel").onclick=cancel;

@@ -35,7 +35,7 @@ function stubFiles() { const sb = TKS._sb(), real = sb.rpc.bind(sb); window.__up
     await pg.evaluate((UID) => { const iso = new Date(Date.now() - 20 * 60000).toISOString();
       const inventory = [{ id: 'k1', shop_id: 's', name: 'TEST smart key', sku: 'T-K1', category: 'Keys/Smart Key', qty: 3, cost: 20, sell_price_cents: 15000, deleted_at: null, updated_at: iso }];
       localStorage.setItem('__db', JSON.stringify({ receipts: [], inventory, customers: [], bookings: [], web_leads: [], payment_transactions: [], audit_log: [], receipt_docs: [], shop_config: [{ id: 'c1', shop_id: 's', tax_rate: 8.625, updated_at: iso, data: { taxRate: 8.625, identity: { name: 'TEST Shop' }, services: [{ cat: 'automotive', en: 'TEST programming', value: 'TEST programming', price: '125' }] } }] }));
-      localStorage.setItem('__role', 'owner'); localStorage.setItem('bt_theme', 'dark');
+      localStorage.setItem('__role', 'owner'); localStorage.setItem('tks_form_sections', 'open');   /* 8z158: the form's sections all open, so this test still checks the fields themselves */ localStorage.setItem('bt_theme', 'dark');
       localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'test-person@example.com' } })); }, UID);
     let r;
     const setV = (sel, v, ev) => pg.evaluate((sel, v, ev) => { const e = document.querySelector(sel); if (e.type === 'checkbox') { e.checked = !!v; } else e.value = v; e.dispatchEvent(new Event(ev || 'change', { bubbles: true })); if (!ev) e.dispatchEvent(new Event('input', { bubbles: true })); }, sel, v, ev);

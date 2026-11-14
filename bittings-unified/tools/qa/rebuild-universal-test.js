@@ -76,7 +76,7 @@ const INV = [
       function iso0() { return new Date(Date.now() - 20 * 60000).toISOString(); }
       localStorage.clear();
       localStorage.setItem('__db', JSON.stringify({ receipts: [], inventory: INV, customers: [], bookings: [], shop_config, web_leads: [], payment_transactions: [], audit_log: [] }));
-      localStorage.setItem('__role', 'owner'); localStorage.setItem('bt_theme', 'dark');
+      localStorage.setItem('__role', 'owner'); localStorage.setItem('tks_form_sections', 'open');   /* 8z158: the form's sections all open, so this test still checks the fields themselves */ localStorage.setItem('bt_theme', 'dark');
       localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'test-person@example.com' } }));
     }, UID, INV);
 

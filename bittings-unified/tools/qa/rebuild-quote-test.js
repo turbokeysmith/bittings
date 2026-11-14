@@ -22,7 +22,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
       await pg.goto('http://127.0.0.1:8088/START-DEMO.html', { waitUntil: 'networkidle2' }).catch(() => {});
       await sleep(1200);
       await pg.evaluate((role) => {
-        localStorage.setItem('tks_demo_role', role);
+        localStorage.setItem('tks_demo_role', role); localStorage.setItem('tks_form_sections', 'open');   /* 8z158: the form's sections all open, so this test still checks the fields themselves */
         if (role !== 'owner') for (const k of Object.keys(localStorage)) if (/^sb-.*-auth-token$/.test(k)) { try { const o = JSON.parse(localStorage[k]); o.user.email = 'tech@example.com'; localStorage[k] = JSON.stringify(o); } catch (e) {} }
       }, role);
 

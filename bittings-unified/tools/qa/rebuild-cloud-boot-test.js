@@ -77,7 +77,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
         const customers = []; for (let i = 1; i <= 40; i++) customers.push({ id: '00000000-0000-4000-8000-' + String(100000000000 + i), name: 'TEST Customer ' + i, phone: '40555501' + String(i).padStart(2, '0'), is_contracting: false, customer_type: 'individual', updated_at: iso });
         const bookings = [{ id: 'b1', date: day, time: '09:00', customer_name: 'TEST Customer 1', updated_at: iso, data: { id: 'b1', jobType: 'auto', subType: 'TEST lost key', date: day, time: '09:00', status: 'Scheduled', customer: { name: 'TEST Customer 1', phone: '4055550101' }, vehicle: { year: '2015', make: 'Toyota', model: 'Camry' } } }];
         localStorage.setItem('__db', JSON.stringify({ receipts, inventory, customers, bookings, shop_config: [] }));
-        localStorage.setItem('__role', role);
+        localStorage.setItem('__role', role); localStorage.setItem('tks_form_sections', 'open');   /* 8z158: the form's sections all open, so this test still checks the fields themselves */
         localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: role === 'owner' ? 'samer@turbokeysmith.com' : 'tech@example.com' } }));
       }, UID, role);
 

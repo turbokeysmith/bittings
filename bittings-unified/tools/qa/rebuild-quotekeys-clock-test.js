@@ -57,7 +57,7 @@ function stubClock() {
       const shop_config = [{ id: 'c1', shop_id: 's', tax_rate: 8.625, updated_at: iso, data: { taxRate: 8.625, services: [{ cat: 'automotive', en: 'TEST Smart key programming', es: '', value: 'TEST Smart key programming', price: '125' }] } }];
       localStorage.setItem('__db', JSON.stringify({ receipts: [], inventory, customers: [], bookings: [], shop_config, web_leads: [], payment_transactions: [], audit_log: [] }));
       localStorage.setItem('tks_vehicle_keyways', JSON.stringify([{ make: 'Ford', model: 'F-150', year_start: 2015, year_end: 2020, keyway: 'HU101', transponder_system: 'Hitag Pro ID49', programming_path: 'OBD — all keys lost needs 10 min wait', oem_only: 'No', nastf_required: 'No', notes: '' }, { make: 'Toyota', model: '', year_start: 2010, year_end: 2019, keyway: 'TOY48', transponder_system: 'H chip', programming_path: 'OBD', oem_only: 'No', nastf_required: 'Yes' }]));
-      localStorage.setItem('__role', 'owner'); localStorage.setItem('bt_theme', 'dark');
+      localStorage.setItem('__role', 'owner'); localStorage.setItem('tks_form_sections', 'open');   /* 8z158: the form's sections all open, so this test still checks the fields themselves */ localStorage.setItem('bt_theme', 'dark');
       localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'samer@turbokeysmith.com' } }));
     }, UID);
 

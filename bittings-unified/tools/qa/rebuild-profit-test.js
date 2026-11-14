@@ -52,7 +52,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
         T('t2', { method: 'reader', base_cents: 20000, tax_cents: 0, surcharge_cents: 400, surcharge_applied: true, captured_cents: 20400, cost_cents: 3000, card_brand: 'visa', card_funding: 'credit', description: 'TEST credit card on the reader' }),
         T('t3', { method: 'keyed', base_cents: 10000, tax_cents: 0, captured_cents: 10000, cost_cents: null, card_brand: 'visa', card_funding: 'debit', description: 'TEST typed debit card' })];
       localStorage.setItem('__db', JSON.stringify({ receipts: [], inventory, customers: [], bookings, job_parts, shop_config, web_leads: [], payment_transactions, audit_log: [] }));
-      localStorage.setItem('__role', 'owner'); localStorage.setItem('bt_theme', 'dark');
+      localStorage.setItem('__role', 'owner'); localStorage.setItem('tks_form_sections', 'open');   /* 8z158: the form's sections all open, so this test still checks the fields themselves */ localStorage.setItem('bt_theme', 'dark');
       localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'samer@turbokeysmith.com' } }));
     }, UID);
     await pg.goto('http://127.0.0.1:8088/index.html', { waitUntil: 'domcontentloaded' });

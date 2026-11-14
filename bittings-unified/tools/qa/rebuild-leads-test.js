@@ -34,7 +34,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
         { id: 'L2', shop_id: 's', name: 'TEST Hill Dental', phone: '4055550155', email: '', address: '', service: 'Commercial rekey', notes: '', lang: 'en', page: '/contact', status: 'new', created_at: new Date(now - 3 * 3600000).toISOString() }];
       const payment_transactions = [{ id: 't1', invoice_id: 'r1', method: 'cash', base_cents: 10863, tax_cents: 863, surcharge_cents: 0, surcharge_applied: false, captured_cents: 10863, refunded_cents: 0, cost_cents: 2500, status: 'completed', description: 'TEST Service — TEST Ann', technician: 'TEST Tech', created_at: new Date(now - 3600000).toISOString() }];
       localStorage.setItem('__db', JSON.stringify({ receipts, inventory: [], customers: [], bookings: [], shop_config: [], web_leads, payment_transactions, audit_log: [] }));
-      localStorage.setItem('__role', 'owner');
+      localStorage.setItem('__role', 'owner'); localStorage.setItem('tks_form_sections', 'open');   /* 8z158: the form's sections all open, so this test still checks the fields themselves */
       localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'samer@turbokeysmith.com' } }));
     }, UID);
     await pg.goto('http://127.0.0.1:8088/index.html', { waitUntil: 'domcontentloaded' });

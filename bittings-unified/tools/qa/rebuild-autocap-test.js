@@ -34,7 +34,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
       const bookings = [{ id: 'jx', shop_id: 's', date: today, time: '09:00', customer_name: 'TEST Old Name', deleted_at: null, updated_at: iso, data }];
       const shop_config = [{ id: 'c1', shop_id: 's', tax_rate: 8.625, updated_at: iso, data: { taxRate: 8.625 } }];
       localStorage.setItem('__db', JSON.stringify({ receipts: [], inventory: [], customers: [], bookings, shop_config, web_leads: [], payment_transactions: [], audit_log: [] }));
-      localStorage.setItem('__role', 'owner');
+      localStorage.setItem('__role', 'owner'); localStorage.setItem('tks_form_sections', 'open');   /* 8z158: the form's sections all open, so this test still checks the fields themselves */
       localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'owner@test.invalid' } }));
     }, UID);
     // types into a box the way a person does (clear it, type, leave it) and gives back what the box then holds

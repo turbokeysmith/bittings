@@ -50,7 +50,7 @@ function stubSales() { const now = new Date().toISOString();
         { id: 'r5', data: { id: 'r5', number: 'TKS-TEST-5', customer: 'TEST Riley', items: [I('TEST smart key', 100, true, { category: 'Materials', sku: 't-k1' }), Object.assign(I('Discount', -10, false), { isDiscount: true })] } }];
       receipts.forEach(x => { x.shop_id = 's'; x.deleted_at = null; x.updated_at = iso; x.number = x.data.number; x.customer_name = x.data.customer; });
       localStorage.setItem('__db', JSON.stringify({ receipts, inventory, customers: [], bookings: [], web_leads: [], payment_transactions: [], audit_log: [], tax_exemptions: [], shop_config: [{ id: 'c1', shop_id: 's', tax_rate: 8.625, updated_at: iso, data: { taxRate: 8.625, identity: { name: 'TEST Shop' } } }] }));
-      localStorage.setItem('__role', 'owner'); localStorage.setItem('bt_theme', 'dark');
+      localStorage.setItem('__role', 'owner'); localStorage.setItem('tks_form_sections', 'open');   /* 8z158: the form's sections all open, so this test still checks the fields themselves */ localStorage.setItem('bt_theme', 'dark');
       localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'test-person@example.com' } })); }, UID);
     await pg.goto('http://127.0.0.1:8088/index.html', { waitUntil: 'domcontentloaded' });
     await pg.waitForFunction(() => window.TKS && TKS.adapter && TKS.adapter() === 'cloud', { timeout: 15000 }); await sleep(2500);
