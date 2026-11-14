@@ -410,6 +410,10 @@
   [data-bt-theme="dark"] .qi-sig img{background:#fff;}
   /* the saved-customer picker + alerts must sit above the builder overlay */
   #custPanel{z-index:100000;}
+  /* 8z153: Book it sheet reuses the builder overlay; only the "already booked" notice needs its own colours */
+  #bkSheet{align-items:center;}
+  #bkSheet .bk-note{background:rgba(242,180,58,.18);color:#8a5a00;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700;margin:0 0 8px;}
+  [data-bt-theme="dark"] #bkSheet .bk-note{color:#f2b43a;}
 
   /* 8r: dispatched lines (locked for technicians), "Didn't do this", scanned keys */
   .qi-dtag{display:none;font-size:11px;font-weight:700;color:#8a5a00;background:rgba(242,180,58,.18);border-radius:6px;padding:3px 7px;margin:0 0 6px;width:max-content;max-width:100%;}
@@ -906,7 +910,7 @@ function whereLine(r){ if(!r) return ""; if(r.serviceWhere==="shop") return "Ser
 const ESTM=/[?&](estimates|quote)=1/.test(location.search);   // the page was opened from the Quotes & estimates menu item
 /* 8z96b: estimates that are still open = not billed (an invoice / receipt came from them) and not on the schedule. */
 function bookedEstimateMap(){ const m={}; try{ (TKS.Bookings.all()||[]).forEach(b=>{ if(b && b.fromEstimate && !b.deletedAt && !/cancel/i.test(String(b.status||""))) m[b.fromEstimate]=b; }); }catch(e){} return m; }
-function openEstimates(){ const hist=getHistory(), conv={}, bk=bookedEstimateMap(); hist.forEach(x=>{ if(x && x.fromEstimate) conv[x.fromEstimate]=1; });
+function openEstimates(){ const hist=getHistory().filter(x=>!window.TKS_MINE || TKS_MINE.seesDoc(x)), conv={}, bk=bookedEstimateMap();   /* 8z155: a technician sees their own */ hist.forEach(x=>{ if(x && x.fromEstimate) conv[x.fromEstimate]=1; });
   return hist.filter(r=>r && (r.docType||"receipt")==="estimate" && !conv[r.number] && !bk[r.number]); }
 function refreshHomeEst(){ try{ const b=document.getElementById("homeEst"); if(b && ESTM) b.textContent="📋 Estimates ("+openEstimates().length+")"; }catch(e){} }
 function showHome(){
@@ -953,6 +957,8 @@ function jobDraftToPrefill(d){
     const q=parseInt(it.qty,10); if(q>0) o.qty=q;
     if(it.partId) o.partId=String(it.partId);
     if(Number(it.unitCost)>0) o.unitCost=Number(it.unitCost);   // 8z74: a stock part brings its cost
+    if(Array.isArray(it.unitIds) && it.unitIds.length) o.unitIds=it.unitIds.filter(Boolean).map(String);   // 8z154: the key scanned out for the job comes attached
+    if(Array.isArray(it.lockedUnitIds) && it.lockedUnitIds.length) o.lockedUnitIds=it.lockedUnitIds.filter(Boolean).map(String);   // 8z157: …and locked to it
     if(it.category) o.category=String(it.category);
     if(it.taxable!=null) o.taxable=!!it.taxable;
     // 8r: lines the Scheduler dispatched stay tagged (locked for technicians — "Didn't do this" instead of delete)
@@ -1370,7 +1376,7 @@ function estimateToInvoice(r){
   return inv;
 }
 /* 8z65: book the job an estimate was written for — hands the customer, vehicle and priced lines to the Scheduler's new-job form. */
-function estimateToJob(r){
+function estimateToJob(r, book){   // 8z153: with `book` the Scheduler makes the job straight away (no second form)
   const lines=(r.items||[]).filter(it=>it && !it.isDiscount && !it.declined).map(it=>{
     const q=Math.max(1, parseInt(it.qty,10)||1), amt=Number(it.amount)||0;
     return { desc:String(it.desc||"Service"), qty:q, each:Math.round(amt/q*100)/100, amount:amt, taxable:!!it.taxable, partId:it.partId||"" }; });
@@ -1378,9 +1384,46 @@ function estimateToJob(r){
     customer:{ name:r.noCustomer?"":(r.customer||""), phone:r.phone||"", email:r.email||"" }, address:r.address||"", addr:(r.addr&&typeof r.addr==="object")?r.addr:null,
     vehicle:{ year:r.vehYear||"", make:r.vehMake||"", model:r.vehModel||"", vin:r.vin||"", ignition:(r.vehIgnition==="push"||r.vehIgnition==="keyed")?r.vehIgnition:"" }, vehicleText:r.vehicle||"",
     items:lines, notes:r.notes||"", internalNotes:r.internalNotes||"", serviceWhere:r.serviceWhere||"", taxExempt:r.taxExempt||null, moreVehicles:Array.isArray(r.moreVehicles)?r.moreVehicles:[], ts:Date.now() };
+  { const t=r.totals||{}; d.totals={ subtotal:Number(t.subtotal)||0, tax:Number(t.tax)||0, total:Number(t.total)||0 }; d.taxRate=Number(r.taxRate)||0; }   // 8z153: so the job carries the quoted price
+  if(book) d.book={ date:String(book.date||""), time:String(book.time||""), techId:String(book.techId||""), techName:String(book.techName||"") };   // 8z153
   try{ sessionStorage.setItem("tks_quote_job", JSON.stringify(d)); }catch(e){}
   location.href="index.html?go=schedule&newjob=quote";
 }
+/* 8z153: "Book it" — the customer said yes: pick day / time / technician and the job lands on the schedule, no second long form. */
+function bookEstimate(r){
+  try{ const old=document.getElementById("bkSheet"); if(old) old.remove(); }catch(e){}
+  const ok=/^\d{4}-\d{2}-\d{2}$/.test(String(window._tksBookDay||""));
+  const n=new Date(), p2=x=>String(x).padStart(2,"0"), day0=ok?window._tksBookDay:(n.getFullYear()+"-"+p2(n.getMonth()+1)+"-"+p2(n.getDate()));   // local date, not UTC
+  const veh=(vehicleString(r)||[r.vehYear,r.vehMake,r.vehModel].filter(Boolean).join(" ")||"");
+  const tot=Number((r.totals&&r.totals.total)||0);
+  const sum=[r.noCustomer?"":(r.customer||""), veh, money(tot)].filter(Boolean).join(" · ");
+  let booked=null; try{ booked=bookedEstimateMap()[r.number]||null; }catch(e){}
+  let note="";
+  if(booked){ let when=""; try{ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(booked.date||"")); if(m) when=new Date(+m[1],+m[2]-1,+m[3]).toLocaleDateString([], {weekday:"long",month:"short",day:"numeric"}); }catch(e){}
+    note='<div class="qi-note bk-note">Already on the schedule: '+escapeHtml([when, booked.time||"", booked.technician||""].filter(Boolean).join(" · "))+'</div>'; }
+  const ov=document.createElement("div"); ov.className="qi-ov"; ov.id="bkSheet";
+  ov.innerHTML='<div class="qi-box" role="dialog" aria-label="Book it">'+
+    '<div class="qi-head"><b>📅 Book it</b></div>'+note+
+    '<div class="qi-note" style="font-size:14px">'+escapeHtml(sum)+'</div>'+
+    '<label class="qi-l" for="bkDate">Day</label><input type="date" class="qi-i" id="bkDate" value="'+escapeHtml(day0)+'">'+
+    '<label class="qi-l" for="bkTime">Time (optional)</label><input type="time" class="qi-i" id="bkTime">'+
+    '<label class="qi-l" for="bkTech">Technician</label><select class="qi-i" id="bkTech"><option value="">Unassigned</option></select>'+
+    '<div class="qi-err" id="bkMsg"></div>'+
+    '<div class="qi-foot" style="flex-wrap:wrap"><button type="button" class="qi-cancel" id="bkCancel">Not now</button>'+(booked?'<button type="button" class="qi-cancel" id="bkOpen">Open the schedule</button>':'')+'<button type="button" class="qi-go" id="bkGo" style="flex:1 1 160px">'+(booked?"Book another visit":"Book it")+'</button></div></div>';
+  document.body.appendChild(ov);
+  const $=s=>ov.querySelector(s), close=()=>{ try{ ov.remove(); }catch(e){} };
+  ov.addEventListener("click", e=>{ if(e.target===ov) close(); });   // the dark backdrop closes it
+  $("#bkCancel").onclick=close;
+  if(booked) $("#bkOpen").onclick=()=>{ location.href="index.html?go=schedule"; };
+  const sel=$("#bkTech"), addOpt=(v,t)=>{ const o=document.createElement("option"); o.value=v; o.textContent=t; sel.appendChild(o); };
+  const fallback=()=>{ try{ ((TKS.Config.access()||{}).employees||[]).forEach(e=>{ if(e && e.name) addOpt("name:"+e.name, e.name); }); }catch(e){} };   // offline: the Employees list
+  try{ Promise.resolve(TKS.Fleet.staff()).then(res=>{ const list=((res&&res.data)||[]).filter(s=>s && s.name && s.active!==false);
+      if(res && !res.error && list.length) list.forEach(s=>addOpt(s.user_id||("name:"+s.name), s.name)); else fallback(); }).catch(fallback); }catch(e){ fallback(); }
+  $("#bkGo").onclick=()=>{ const date=$("#bkDate").value, time=$("#bkTime").value||"";
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){ $("#bkMsg").textContent="Pick a day first."; return; }
+    const o=sel.options[sel.selectedIndex]; estimateToJob(r, { date, time, techId:sel.value, techName:sel.value?o.textContent:"" }); };
+}
+try{ const _bd=new URLSearchParams(location.search).get("day"); if(_bd && /^\d{4}-\d{2}-\d{2}$/.test(_bd)) window._tksBookDay=_bd; }catch(e){}   // 8z153: ?day=YYYY-MM-DD from the schedule's "+" on a day
 /* 8r: the result-screen buttons (also rebuilt after a "Scan back in"). */
 function finishedActions(r){
   if(r && String(r.internalNotes||"").trim()) resultNote("🔒 Internal note (staff only): "+String(r.internalNotes).trim());   // 8z45
@@ -1394,7 +1437,7 @@ function finishedActions(r){
   _acts.push({label:"⬇ PDF", onClick:()=>makePDF(r, "en", true)});
   if(receiptScannedUnits(r).length) _acts.push({label:"↩ Scan back in", onClick:()=>scanBackInFromReceipt(r)});
   if(r.docType==="estimate"){   // 8z65: what happens after a quote — book it, or bill it
-    _acts.push({label:"📅 Schedule this job", primary:true, onClick:()=>estimateToJob(r)});
+    _acts.push({label:"📅 Book it", primary:true, onClick:()=>bookEstimate(r)});
     _acts.push({label:"🧾 Make it an invoice", onClick:()=>{ const inv=estimateToInvoice(r); chat.innerHTML=""; resultNote("Created "+inv.number+" from "+r.number+"."); renderFinished(inv); }});
     _acts.push({label:"💬 New quote", onClick:()=>openNewDocument({ docType:"estimate", quote:true })});
   }
@@ -1408,7 +1451,7 @@ function renderFinished(r){ renderReceiptCard(r); finishedActions(r);
      (Only honoured for a few seconds after the tap, so a save that was stopped by a missing field never fires it later.) */
   tksAfterCreate(r); }
 function tksAfterCreate(r){ try{ const w=window._tksAfterCreate; window._tksAfterCreate=null;
-    if(w && r && (Date.now()-w.t)<20000){ if(w.do==="send") sendDocument(r); else if(w.do==="pdf") makePDF(r, "en", true); } }catch(e){} }
+    if(w && r && (Date.now()-w.t)<20000){ if(w.do==="book") bookEstimate(r); else if(w.do==="send") sendDocument(r); else if(w.do==="pdf") makePDF(r, "en", true); } }catch(e){} }
 /* 8z90: a NASTF document shows its photo box under the buttons — what is on file, what is missing, and how to add them */
 function hasD1(r){ return !!(r && ((r.nastf && r.nastf.type) || (Array.isArray(r.moreVehicles) && r.moreVehicles.some(v=>v && v.d1===true)))); }
 function d1PhotoBox(r){ try{ if(!hasD1(r) || !r.id || !window.TKS_RDOCS || r.docType==="estimate") return; const b=document.createElement("div"); b.className="d1-docs"; chat.appendChild(b); TKS_RDOCS.panel(b, r, { pdf:(x)=>makePDF(x, "en", false, true) }); scrollDown(); }catch(e){} }
@@ -2076,7 +2119,7 @@ try{ document.addEventListener('visibilitychange', function(){ if(document.visib
 function closeHist(){ document.getElementById("histPanel").classList.remove("open"); refreshHomeEst(); }
 function renderHistList(){
   const list=document.getElementById("histList");
-  let hist=getHistory();
+  let hist=getHistory(); if(window.TKS_MINE && TKS_MINE.restricted()) hist=hist.filter(x=>TKS_MINE.seesDoc(x));   // 8z155: a technician's list holds their own documents only
   { // 8z81: an estimate that became an invoice / receipt is not listed any more — only the document it became
     const conv={}; hist.forEach(x=>{ if(x && x.fromEstimate) conv[x.fromEstimate]=1; });
     hist=hist.filter(r=>!((r.docType||"receipt")==="estimate" && conv[r.number])); }
@@ -2117,7 +2160,7 @@ function renderHistList(){
     const dn=escapeHtml(r.number);
     // 8z78: an estimate leads with what you do next — put it on the schedule, or change it (any role: nothing has been sold yet)
     const bk=(type==="estimate")?_booked[r.number]:null;
-    let actions=(type==="estimate" ? ('<button data-act="sched" data-num="'+dn+'" style="background:var(--red);border-color:var(--red);color:#fff;font-weight:700">'+(bk?"📅 Schedule again":"📅 Schedule")+'</button>'+
+    let actions=(type==="estimate" ? ('<button data-act="sched" data-num="'+dn+'" style="background:var(--red);border-color:var(--red);color:#fff;font-weight:700">'+(bk?"📅 Book again":"📅 Book it")+'</button>'+
                                       '<button data-act="edit" data-num="'+dn+'" style="font-weight:700">✏️ Edit</button>') : '')+
                 '<button data-act="print" data-num="'+dn+'">🖨 Print</button>'+
                 '<button data-act="share" data-num="'+dn+'">📤 Send</button>'+
@@ -2162,7 +2205,7 @@ function histAction(act, r, b, done, cancel){
       if(!r.totals){ r.totals=computeTotals(r.items||[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}], r.payment, receiptTaxRate(r)); }
       if(!r.items) r.items=[{desc:r.descLine||"Service",amount:r.amount||0,taxable:false}];
       if(act==="share") sendDocument(r);
-      else if(act==="sched"){ closeHist(); estimateToJob(r); }   // 8z78
+      else if(act==="sched"){ closeHist(); bookEstimate(r); }   // 8z78 / 8z153: opens the Book it sheet
       else if(act==="print") printPaper(r, b, true);   // 8z80: a reprint never opens the cash drawer
       else if(act==="pdf") makePDF(r, "en");
       else if(act==="pdfes") makePDF(r, "es");
@@ -3045,7 +3088,7 @@ function canEditPricing(){
     const svcOpts=serviceOptions();
     if(src.serviceType && svcOpts.indexOf(src.serviceType)<0) svcOpts.push(src.serviceType);   // keep a retired type on an old receipt
     modal=node(`<div class="qi-ov"><div class="qi-box" role="dialog" aria-modal="true" aria-label="Document builder">
-      <div class="qi-head"><b id="qiTitle">${isEdit?("✏️ Edit "+esc(edit.number||"document")):((prefill&&prefill.quote)?"💬 Quick quote":"⚡ New document")}</b><button type="button" class="qi-x" id="qiX" aria-label="Close">&times;</button></div>
+      <div class="qi-head"><b id="qiTitle">${isEdit?("✏️ Edit "+esc(edit.number||"document")):((prefill&&prefill.quote)?"💬 Build a quote":"⚡ New document")}</b><button type="button" class="qi-x" id="qiX" aria-label="Close">&times;</button></div>
       <label class="qi-l">Type</label>
       <div class="qi-seg" id="qiType"><button type="button" class="qiTB" data-t="receipt">Receipt (paid)</button><button type="button" class="qiTB" data-t="invoice">Invoice (unpaid)</button><button type="button" class="qiTB" data-t="estimate">Estimate</button></div>
       <label class="qi-l">Service</label>
@@ -3105,6 +3148,7 @@ function canEditPricing(){
       <div id="qiSigWrap"><label class="qi-l">Customer signature <span class="m">(optional)</span></label>
         <div class="qi-sig"><div class="qi-seg"><button type="button" class="qiSG" data-sg="none">None</button><button type="button" class="qiSG" data-sg="LINE">Signature line</button><button type="button" class="qiSG" data-sg="draw">✍ Sign on screen</button></div><img id="qiSigImg" alt="signature" style="display:none"></div></div>
       <div class="qi-err" id="qiErr" role="alert"></div>
+      <div class="qi-foot" id="qiBookRow" style="display:none"><button type="button" class="qi-go" id="qiGoBook" style="flex:1;min-height:48px">📅 Save &amp; book it</button></div>
       <div class="qi-foot" id="qiSendRow" style="display:none"><button type="button" class="qi-cancel" id="qiGoSend" style="flex:1;min-height:48px;font-weight:800">📤 Save &amp; send</button><button type="button" class="qi-cancel" id="qiGoPdf" style="flex:1;min-height:48px;font-weight:800">⬇ Save &amp; PDF</button></div>
       <div class="qi-foot"><button type="button" class="qi-go" id="qiGo">${isEdit?"Save changes":"Create"}</button><button type="button" class="qi-cancel" id="qiCancel">Cancel</button></div>
     </div></div>`);
@@ -3176,6 +3220,7 @@ function canEditPricing(){
     paintSig();
     function syncPay(){ const t=getType();
       $q("#qiPayWrap").style.display=(t==="estimate")?"none":"block";
+      { const br=$q("#qiBookRow"); if(br) br.style.display=(t==="estimate")?"flex":"none"; }   // 8z153: Save & book it — estimates only
       { const sr=$q("#qiSendRow"); if(sr) sr.style.display=(t==="estimate")?"flex":"none"; }   // 8z122: Save & send / Save & PDF — estimates only
       $q("#qiStatusWrap").style.display=(t==="receipt")?"block":"none";
       $q("#qiPayNS").style.display=(t==="invoice")?"":"none";
@@ -3382,10 +3427,14 @@ function canEditPricing(){
       r.querySelector(".qiPick").onclick=()=> pickInventoryPart(applyPart, vehObj());
       // ---- 8r: scanned keys on this line ----
       function paintUnits(){ const n=M.units.length; unitsBox.classList.toggle("on", n>0);
-        unitsBox.innerHTML = n ? ('<span>🔑 '+n+' scanned</span>'+M.units.map(u=>'<button type="button" class="qi-chip" data-u="'+esc(u)+'" title="Detach this key">'+esc(shortUnit(u))+' <b>&times;</b></button>').join("")) : "";
+        /* 8z157 (owner: "that key needs to be locked in to that invoice, that job, that technician … unless it is a warranty exchange or a swapped
+           out key"): the key scanned out for the job shows with a lock and cannot be detached here — it is changed with "Swap key" on the job. */
+        const lk=M.lockedUnits||[];
+        unitsBox.innerHTML = n ? ('<span>🔑 '+n+' scanned</span>'+M.units.map(u=>lk.indexOf(u)>=0 ? ('<span class="qi-chip qi-chip-lock" title="This job’s key — change it with Swap key on the job">🔒 '+esc(shortUnit(u))+'</span>') : ('<button type="button" class="qi-chip" data-u="'+esc(u)+'" title="Detach this key">'+esc(shortUnit(u))+' <b>&times;</b></button>')).join("")) : "";
         unitsBox.querySelectorAll(".qi-chip").forEach(b=>b.onclick=()=>{ M.units=M.units.filter(x=>x!==b.dataset.u); paintUnits(); }); }
       r._attachUnit=function(unit, part){   // → true when the key is now on this line
         if(M.units.indexOf(unit.id)>=0){ toastMsg("That key is already on this line"); return true; }
+        if((M.lockedUnits||[]).length && M.units.length>=(parseInt(qtyEl.value,10)||1)){ appAlert("This job’s key is locked", "This line already has the key that was scanned out for the job. To use a different key, go to the job on the Scheduler and tap Swap key (wrong key or defective)."); return false; }   // 8z157
         const q=parseInt(qtyEl.value,10)||1, cap=locked?(M.dispatchQty||q):Infinity;
         if(M.units.length+1>cap){ appAlert("More keys than dispatched", "This line was dispatched for "+cap+". Add the extra key on its own line."); return false; }
         M.units.push(String(unit.id));
@@ -3474,6 +3523,7 @@ function canEditPricing(){
           if(!pricing){ locked=true; r.classList.add("locked"); desc.readOnly=true; amt.readOnly=true; costEl.readOnly=true; cat.disabled=true; tax.disabled=true;
             delBtn.style.display="none"; }
         }
+        if(Array.isArray(pre.lockedUnitIds)) M.lockedUnits=pre.lockedUnitIds.filter(Boolean).map(String);   // 8z157
         if(Array.isArray(pre.unitIds)){ M.units=pre.unitIds.filter(Boolean).map(String); paintUnits(); }
         if(pre.declined || parseInt(pre.declinedQty,10)>0){ M.declinedQty=parseInt(pre.declinedQty,10)||0; M.declineReason=pre.declineReason||""; M.declined=!!pre.declined; paintDecline(); }
         paintStar();
@@ -3820,8 +3870,26 @@ function canEditPricing(){
     const cancel=()=>{ close(); if(typeof onCancel==="function") onCancel(); };
     $q("#qiX").onclick=cancel; $q("#qiCancel").onclick=cancel;
     { const after=(what)=>()=>{ window._tksAfterCreate={ do:what, t:Date.now() }; $q("#qiGo").click(); };   // 8z122
-      const gs=$q("#qiGoSend"), gp=$q("#qiGoPdf"); if(gs) gs.onclick=after("send"); if(gp) gp.onclick=after("pdf"); }
-    $q("#qiGo").onclick=()=>submit({getType,getSvc,getPay,getStatus,getCT,getNastf,getNastfChecklist,getSig:()=>sigData,getExempt:()=>exempt,getWhere:()=>where,getVehLabels:()=>vehLabels(),getMoreVeh:()=>moreVehForSave(),getIgn:()=>mainKeysSt.ign,getNeed:()=>((getSvc()==="Automotive")?need:""),edit,isEdit,pricing,techDiscMax,src,setErr});
+      const gs=$q("#qiGoSend"), gp=$q("#qiGoPdf"); if(gs) gs.onclick=after("send"); if(gp) gp.onclick=after("pdf");
+      const gb=$q("#qiGoBook"); if(gb) gb.onclick=after("book"); }   // 8z153
+    /* 8z154 (owner, 2026-11-14: "it did not ask me to scan that code out when I charged the customer"). An invoice / receipt line that is a
+       SERIAL-NUMBERED key with no key scanned on it: before the document is saved it asks for the scan, so that exact key leaves stock.
+       "Charge without scanning" is always there — a damaged label must never stop a sale in the field (the system then takes one of
+       that key from stock, as it always did). Not asked on an estimate, on a document already paid, or offline. */
+    let scanWaived=false;
+    function keyRowsToScan(){ if(!cloudReady()) return []; return $$(".qi-item").filter(r=>{ if(r.classList.contains("disc") || !r.dataset.part) return false; const M=r._meta||{}; if(M.declined) return false;
+      let pt=null; try{ pt=TKS.Inventory.get(r.dataset.part); }catch(e){} if(!pt || !pt.serialized) return false;
+      const q=Math.max(1, parseInt((r.querySelector(".qiQty")||{}).value,10)||1); return (M.units||[]).length<q; }); }
+    function askKeyScan(){ const rows=keyRowsToScan(); if(!rows.length || scanWaived) return Promise.resolve(true);
+      const r=rows[0], nm=((r.querySelector(".qiDesc")||{}).value||"This key").trim();
+      return showModal({ title:"🔑 Scan the key", body:"“"+nm+"” has a serial number and no key has been scanned for it. Scan the one you are handing over, so that exact key leaves stock."+(rows.length>1?(" ("+rows.length+" keys to scan.)"):""),
+        buttons:[{label:"Back",kind:"no",value:"back"},{label:"Charge without scanning",kind:"no",value:"skip"},{label:"📷 Scan it now",kind:"yes",value:"scan"}] }).then(v=>{
+          if(v==="skip"){ scanWaived=true; return true; }
+          if(v!=="scan") return false;
+          return scanCode("📷 Scan the key","Point the camera at the label's QR code.").then(code=>{ if(!code) return false; return Promise.resolve(routeScan(code, r)).then(()=>askKeyScan()); }); }); }
+    $q("#qiGo").onclick=()=>{ const closed=!!(edit && (edit.paidAt || (typeof receiptClosed==="function" && receiptClosed(edit))));
+      if(getType()==="estimate" || closed){ goSubmit(); return; } askKeyScan().then(ok=>{ if(ok) goSubmit(); }); };
+    const goSubmit=()=>submit({getType,getSvc,getPay,getStatus,getCT,getNastf,getNastfChecklist,getSig:()=>sigData,getExempt:()=>exempt,getWhere:()=>where,getVehLabels:()=>vehLabels(),getMoreVeh:()=>moreVehForSave(),getIgn:()=>mainKeysSt.ign,getNeed:()=>((getSvc()==="Automotive")?need:""),edit,isEdit,pricing,techDiscMax,src,setErr});
     try{ if(!isEdit && !$q("#qiName").value) $q("#qiName").focus(); }catch(e){}
   };
 
@@ -3882,6 +3950,7 @@ function canEditPricing(){
       // 8r: dispatch origin, scanned keys, decline — all ride on the saved item (server: declined lines pull no stock; unitIds sell first)
       if(M.fromDispatch){ it.fromDispatch=true; if(M.jobId) it.jobId=M.jobId; it.dispatchQty=M.dispatchQty||qty||1; it.dispatchAmount=(M.dispatchAmount!=null)?M.dispatchAmount:it.amount; }
       if(Array.isArray(M.units) && M.units.length) it.unitIds=M.units.slice();
+      if(Array.isArray(M.lockedUnits) && M.lockedUnits.length){ const lkS=M.lockedUnits.filter(u=>(M.units||[]).indexOf(u)>=0); if(lkS.length) it.lockedUnitIds=lkS; }   // 8z157: the lock stays with the saved line
       if(M.declined || M.declinedQty>0){ it.declined=!!M.declined; it.declineReason=M.declineReason||""; it.declinedQty=M.declined?(M.dispatchQty||M.declinedQty||1):M.declinedQty; }
       if(M.declineLoggedQty!=null) it.declineLoggedQty=M.declineLoggedQty;
       if(M.addLogged) it.addLogged=true;

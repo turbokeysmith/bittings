@@ -7,6 +7,7 @@ const puppeteer = require('puppeteer');
 const ROOT = path.resolve(__dirname, '..', '..');
 const OUT = path.join(__dirname, 'audit'); try { fs.mkdirSync(OUT, { recursive: true }); } catch (e) {}
 const FAKE = fs.readFileSync(path.join(__dirname, 'rebuild-fake-cloud.js'), 'utf8');
+const FAKE_EMAIL = (FAKE.match(/email:'([^']+)'/) || [])[1] || '';   // 8z155: whoever the stand-in cloud signs in as
 const UID = '11111111-2222-4333-8444-555555555555';
 const PORT = 8095, BASE = 'http://127.0.0.1:' + PORT + '/';
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
@@ -21,7 +22,7 @@ let failed = 0;
 function check(name, ok, detail) { console.log((ok ? 'PASS ' : 'FAIL ') + name + (ok ? '' : '  → ' + JSON.stringify(detail).slice(0, 800))); if (!ok) failed++; }
 
 const now = Date.now();
-const mk = (id, over) => Object.assign({ id, docType: 'receipt', customer: 'TEST X', date: 'November 1, 2026', savedAt: now - 1000, items: [{ desc: 'TEST Lock service', amount: 50, taxable: false }], totals: { subtotal: 50, tax: 0, total: 50 } }, over);
+const mk = (id, over) => Object.assign({ technician: FAKE_EMAIL /* 8z155: the signed-in person's own documents (the e-mail the stand-in cloud signs in) */, id, docType: 'receipt', customer: 'TEST X', date: 'November 1, 2026', savedAt: now - 1000, items: [{ desc: 'TEST Lock service', amount: 50, taxable: false }], totals: { subtotal: 50, tax: 0, total: 50 } }, over);
 const DOCS = [
   mk('t1', { number: 'TKS-T1', customer: 'TEST Receipt Alice', status: 'Paid in Full', payment: 'Cash', paidAt: now - 5000, savedAt: now - 5000 }),
   mk('t2', { number: 'INV-T2', docType: 'invoice', customer: 'TEST Invoice Bob', status: 'Unpaid', savedAt: now - 4000 }),
@@ -30,7 +31,7 @@ const DOCS = [
   mk('t5', { number: 'EST-T5', docType: 'estimate', customer: 'TEST Converted Quote', status: 'Estimate', savedAt: now - 6000 }),
   mk('t6', { number: 'INV-T6', docType: 'invoice', customer: 'TEST Invoice From Quote', status: 'Unpaid', fromEstimate: 'EST-T5', savedAt: now - 1500 }),
   mk('t8', { number: 'EST-T8', docType: 'estimate', customer: 'TEST Scheduled Quote Fay', status: 'Estimate', savedAt: now - 2500 }),
-  mk('t7', { number: 'TKS-T7', customer: 'TEST NASTF Eve', status: 'Paid in Full', payment: 'Cash', paidAt: now - 7000, savedAt: now - 7000, nastf: { type: 'D1', d1Days: 7, d1DueDate: '2026-12-01' } }),
+  mk('t7', { technician: 'someone.else@example.com' /* 8z155: belongs to another technician */, number: 'TKS-T7', customer: 'TEST NASTF Eve', status: 'Paid in Full', payment: 'Cash', paidAt: now - 7000, savedAt: now - 7000, nastf: { type: 'D1', d1Days: 7, d1DueDate: '2026-12-01' } }),
 ];
 
 (async () => {
@@ -149,6 +150,9 @@ const DOCS = [
     await pg.evaluate(async () => { localStorage.setItem('__role', 'technician'); try { await TKS.clearDeviceCache(); } catch (e) {} });
     await ready('index.html?go=receipts'); r = await pg.evaluate(() => ({ del: Array.from(document.querySelectorAll('#rcList [data-act="del"]')).filter(x => x.offsetParent !== null).length, all: document.querySelectorAll('#rcList [data-act="del"]').length, view: document.querySelectorAll('#rcList [data-act="view"]').length }));
     check('a technician does not see Delete (buttons are hidden)', r.del === 0 && r.view > 0, r);
+    // 8z155: a technician sees only their own documents
+    r = await pg.evaluate(() => Array.from(document.querySelectorAll('#rcList .ro-item .ro-num')).map(x => x.innerText.trim()));
+    check('a technician does not see a document that belongs to someone else (TKS-T7 not listed)', r.length > 0 && r.indexOf('TKS-T7') < 0, r);
     await pg.goto(BASE + 'bittings.html?docact=del&num=INV-T6', { waitUntil: 'domcontentloaded' }); await sleep(3500);
     r = await pg.evaluate(() => ({ url: location.pathname + location.search, modal: (document.getElementById('modalTitle') || {}).innerText, open: document.getElementById('modalBackdrop').classList.contains('open') }));
     check('a technician typing the delete address gets "Owner only" and nothing is deleted', r.open && /Owner only/.test(r.modal), r);
@@ -183,7 +187,7 @@ const DOCS = [
     await pg.screenshot({ path: path.join(OUT, 'quotes-landing-phone.png') });
     await pg.evaluate(() => document.getElementById('homeNew').click()); await sleep(900);
     r = await pg.evaluate(() => ({ title: (document.querySelector('#qiTitle') || {}).innerText, type: (document.querySelector('.qiTB.on') || { dataset: {} }).dataset.t, hist: document.getElementById('histPanel').classList.contains('open') }));
-    check('"New estimate" opens the builder straight in Estimate mode', /Quick quote/.test(r.title || '') && r.type === 'estimate' && !r.hist, r);
+    check('"New estimate" opens the builder (Build a quote, 8z153) straight in Estimate mode', /Build a quote/.test(r.title || '') && r.type === 'estimate' && !r.hist, r);
     await pg.evaluate(() => document.getElementById('qiCancel').click()); await sleep(500);
     check('Cancel from it returns to the card', await pg.evaluate(() => !document.querySelector('.qi-box') && !!document.querySelector('#chat .res-home #homeNew')));
     await pg.evaluate(() => document.getElementById('homeEst').click()); await sleep(500);

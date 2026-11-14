@@ -408,6 +408,60 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-11-14, late (8z153: Build a quote → Book it · 8z154: the invoice asks for the key · 8z155: technicians see only their own prices · 8z156: job log really sent · 8z157: key locked to the invoice) — LIVE (78b6e145fd72); NOT committed yet
+- **8z153 — one way to start (the "bridge"; the owner also wants the full rebuild, below).** Built by two sonnet helpers from a
+  written brief, reviewed and tested here. bittings.html: quote builder titled "Build a quote"; "📅 Save & book it" (estimates
+  only, `#qiBookRow` / `#qiGoBook`, via the existing `_tksAfterCreate` hook); `bookEstimate(r)` = sheet `#bkSheet` (day — preset from
+  `?day=`, time, technician from `TKS.Fleet.staff()`); `estimateToJob(r, book)` adds `book`, `totals`, `taxRate` to the hand-over
+  in `sessionStorage.tks_quote_job`. index.html: `openJobFromDraft` → `bookFromQuote(nb, qj)` creates the job directly
+  (`persistJob`, `bookedVia:'quote'`, quote totals from the estimate) and `queueQuoteKeys` writes the quote's keys to
+  `job_parts`; no Quick form. "+ New quote / job" → `openStartChooser` (`#stQuote` / `#stGuided` / `#stQuick`).
+  `estimateToJob(r)` with no second argument still opens the pre-filled Quick form (Leads uses that path).
+- **8z154 — the invoice knows the job's key and asks for a scan.** Found on a real sale: the invoice never asked for a scan,
+  so `pos_decrement_stock` took the oldest unit in the SHOP while the key actually sold was on the van. Now
+  `jobToInvoiceDraft` attaches the job's `keyUnits` (verified still in stock) to the key line as `unitIds`; and saving an
+  invoice / receipt with a serial-numbered key line that has no scan asks "Scan the key" (Scan it now · Charge without
+  scanning · Back) — never a hard stop. Not asked on estimates, on a closed document, or offline. Card-payment code untouched.
+- **8z157 — locked.** A key attached from the job carries `lockedUnitIds`: on the invoice it shows 🔒, cannot be detached, and
+  another key scanned onto that line is refused ("use Swap key on the job"). Finished / paid / canceled jobs no longer run the
+  van check (the owner got "scan out to van" on a completed, paid job once its key was correctly marked sold).
+- **8z155 — a technician sees only their own.** `TKS_MINE` (end of store.js): job is mine = I am its technician; document is
+  mine = its job is mine, or (no job) its `technician` is my e-mail / my Employees-list name. Applied to: the board card's
+  price, the job form's charges (a note instead), the receipts list (`receipts-view.js`), the history list and the open-estimates
+  list in bittings.html. **Screen-level only — not a database rule** (`receipts_safe` is still readable by any staff login).
+- **8z156 — job log.** `TKS.Audit.log` built the cloud call but nothing awaited it, and supabase-js only sends on `.then` — so
+  fire-and-forget callers (8z148's "key scanned out" lines) were never written in production. Now wrapped in
+  `Promise.resolve()`. The stand-in cloud's `log_activity` is lazy now too, so a test catches this.
+- **Data fixes made at the owner's request (SQL, each with an `audit_log` line):** receipt rcpt_mwgl5wer98dve now has
+  SN V552Z5S as the sold key and SN AN96VG9 is back in shop stock (the sale had taken the wrong one).
+- **Tests.** New `rebuild-book-it-test.js` (port 8113, 21 checks: quote → book → scan out → invoice → lock → finished job → who
+  sees prices). Older tests that expected "Quick quote", "Schedule" or the old "+ New job" were updated by a helper.
+- **Known gaps.** Swap key only swaps for the SAME kind of key (a job that could take either of two different keys cannot
+  swap between them — remove the line on the invoice and scan the other). A manager approving a technician's stock-move
+  request still uses `inv_move` (no scan). The guided booking has no contracted-job step.
+- **NEXT (owner asked for both the bridge and this):** rebuild ONE new form to replace the quote builder and the Quick job
+  form — open-one-section-at-a-time, finished sections collapse to a one-line summary, total + Save pinned at the bottom —
+  built alongside the old screens, switched over when it passes the same tests, then the old two deleted.
+
+### 2026-11-14, afternoon (8z152: jobs RECEIVED from another company) — LIVE (408ff59a0302); NOT committed yet
+- **Why (owner).** "We have a way of contracting jobs out. We need a way to receive contracted jobs, like I'm about to go do
+  right now." The mirror of 8z56 (`booking.contract`, contracted OUT).
+- **What.** Job form (Scheduler Quick form, owner / manager): "📥 Job from another company" — company, their job / PO #,
+  who collects the money, the amount. Saved as `booking.contractIn {company, ref, mode, amount, settledAt}`:
+  `they_pay` = the company pays the shop `amount`, the customer on site is not charged, "Invoice this job"
+  (`jobToInvoiceDraft`) makes the invoice out to the company (one "Contract job …" line when the job lists no charges; the
+  person on site goes in the staff note); `we_collect` = the customer is charged as usual and the shop owes the company
+  `amount` — it comes off "You keep" in the form and off profit in Reports (`contractOf`, like a contractor's share).
+  The job card says who the job is from and whether to collect on site for EVERY role (the technician must know); money
+  only for owner / manager; a technician's form shows a read-only note. Salary / Commission: `renderContractIn` →
+  "📥 Jobs from other companies — they owe you / you owe them", per company, Mark settled / undo (records only).
+- **Bug caught by the test:** 8z149's opt-out marker was `data-cap`, which `app/access.js` already uses for permissions — a
+  box marked `data-cap="off"` was hidden and disabled. Renamed to `data-autocap` (nothing live had used it yet).
+- **Not done:** the guided step-by-step booking screen has no "from another company" step; a `they_pay` job's unpaid
+  invoice is the only receivable record besides the Mark-settled list (the two are not linked).
+- **Tests.** New `rebuild-contract-in-test.js` (port 8111, 13 checks). 16 browser tests + job-kinds pass.
+- **Owner asked for an opinion only (nothing built):** shortening the long Quick quote / job forms with collapsing sections.
+
 ### 2026-11-14, later (8z148: a job's key is SCANNED OUT to the van · 8z149: names / addresses capitalised · 8z150: one key per job · 8z151: swap key) — LIVE (f8c40c2775ce); committed and pushed 2026-11-14
 - **Why (owner, 2026-11-14).** He tapped "Move to van" on a job card and it never asked for a scan: the button used the old
   `inv_move` (moves "one of them" on paper, oldest unit first, no hand-over). He wants the exact key scanned, and proof the
@@ -432,7 +486,7 @@ Dated record of major changes. Each entry = roughly a work session or milestone.
   step 1 scan the OLD key (must be this job's key; `unit_send` to shop, which also takes back a waiting hand-over) →
   step 2 scan the NEW key out. Job log: `unit_handover_returned` with the reason.
 - **8z149 — capitalising** (end of `app/store.js`, so every page). Name / address boxes (matched by id / placeholder words;
-  e-mail, search, VIN / serial / SKU, price, note, part-name and state boxes excluded; `data-cap="off" | "words"` overrides)
+  e-mail, search, VIN / serial / SKU, price, note, part-name and state boxes excluded; `data-autocap="off" | "words"` overrides — not `data-cap`, which access.js uses for permissions)
   get `autocapitalize="words"` on focus and are tidied on change / blur: only a word's first letter is raised, nothing is
   lowered; Mc / O' names, NW/NE/SW/SE, "PO Box" and the state in a one-line address are handled. Saved records untouched.
 - **Data fix made for the owner (his request).** The old button had put SN VGA36VR (MaxiIM IKEY 5-Btn, Land Rover style)

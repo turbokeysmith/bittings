@@ -46,7 +46,9 @@ const THEME = process.env.THEME || 'dark', SLOW = Number(process.env.SLOW || 6);
     const step = async (name, fn, wait) => { await pg.evaluate(() => window.__mark()); const t0 = Date.now(); const ret = await pg.evaluate(fn); await sleep(wait || 2500); const m = await pg.evaluate(() => window.__mark()); console.log((name + ' '.repeat(52)).slice(0, 52), 'call', String(Date.now() - t0 - (wait || 2500)).padStart(5), 'ms | frozen', String(m.frozenMs).padStart(6), 'ms in', m.tasks, 'tasks, worst', m.worst, ret !== undefined ? JSON.stringify(ret).slice(0, 300) : ''); return ret; };
     await step('idle (nothing touched, 2.5 s)', () => {});
     await step('open Scheduler', () => { document.querySelector('.bt-sidebar .bt-nav__item[data-go="schedule"]').click(); });
-    await step('tap + New job (guided booking)', () => { const n = document.querySelector('#view-schedule [data-new]'); if (n) n.click(); return !!n; });
+    await step('tap + New quote / job (chooser)', () => { const n = document.querySelector('#view-schedule [data-new]'); if (n) n.click(); return !!n; });
+    // 8z153: the button opens a chooser first; "Guided" is what + New job used to open
+    await step('chooser → guided booking', () => { const g = document.querySelector('#stGuided'); if (g) g.click(); return !!g; });
     await step('guided → Quick form', () => { const k = document.querySelector('#wzQuick'); if (k) k.click(); return { quick: !!k, form: !!document.querySelector('.sch-modal') }; });
     await pg.screenshot({ path: path.join(OUT, 'perf-form-open.png') });
     await step('idle with the form open', () => {});

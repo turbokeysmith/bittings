@@ -81,7 +81,7 @@ function scan(where) {
     // pop-ups in the main app
     await pg.evaluate(() => document.querySelector('.bt-sidebar .bt-nav__item[data-go="schedule"]').click()); await sleep(700);
     await pg.evaluate(() => { const c = document.querySelector('#schBody [data-open]'); if (c) c.click(); }); await sleep(700); await grab('popup:job form', true); await closeAll();
-    await pg.evaluate(() => { const n = document.querySelector('#schBody [data-new]'); if (n) n.click(); }); await sleep(800); await grab('popup:new job wizard', true);
+    await pg.evaluate(() => { const n = document.querySelector('#schBody [data-new]'); if (n) n.click(); }); await sleep(600); await pg.evaluate(() => { const g = document.querySelector('#stGuided'); if (g) g.click(); }); await sleep(800); /* 8z153: chooser, then the guided wizard */ await grab('popup:new job wizard', true);
     for (let i = 0; i < 6; i++) { const moved = await pg.evaluate(() => { const n = Array.from(document.querySelectorAll('.sch-wizmodal button')).find(x => /next|continue|start/i.test(x.innerText || '') && !x.disabled); if (!n) return false; n.click(); return true; }); if (!moved) break; await sleep(400); await grab('popup:wizard step ' + (i + 2), i < 2); }
     await closeAll();
     await pg.evaluate(() => document.querySelector('.bt-sidebar .bt-nav__item[data-go="customers"]').click()); await sleep(500);

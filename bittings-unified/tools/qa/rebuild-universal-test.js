@@ -105,8 +105,9 @@ const INV = [
     await pg.goto(BASE + 'index.html', { waitUntil: 'domcontentloaded' });
     await pg.waitForFunction(() => window.TKS && TKS.adapter && TKS.adapter() === 'cloud', { timeout: 15000 }); await sleep(3500);
     await pg.evaluate(() => document.querySelector('.bt-sidebar .bt-nav__item[data-go="schedule"]').click()); await sleep(900);
-    await pg.evaluate(() => { const n = document.querySelector('#view-schedule [data-new]'); if (n) n.click(); }); await sleep(900);
-    await pg.evaluate(() => { const k = document.querySelector('#wzQuick'); if (k) k.click(); }); await sleep(900);
+    await pg.evaluate(() => { const n = document.querySelector('#view-schedule [data-new]'); if (n) n.click(); }); await sleep(700);
+    // 8z153: "+ New quote / job" opens a chooser; the Quick form is its own button now
+    await pg.evaluate(() => { const k = document.querySelector('#stQuick'); if (k) k.click(); }); await sleep(900);
     const sSel = async (id, v) => { await pg.evaluate((id, v) => { const el = document.querySelector('.sch-modal #' + id); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, id, v); await sleep(450); };
     await sSel('sjYear', '2019'); await sSel('sjMake', 'Honda'); await sSel('sjModel', 'Civic');
     r = await pg.evaluate(() => { const box = document.querySelector('.sch-modal #sjKeys'); return { text: box.innerText, adds: Array.from(box.querySelectorAll('.sjkAdd')).map(x => x.dataset.id) }; });

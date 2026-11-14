@@ -69,7 +69,9 @@
       if(name==='key_failed'){ var kd=db(), ku=(kd.inventory_units||[]).filter(function(x){ return x.id===(args||{}).p_unit && x.status==='in_stock'; })[0];   // 8z151: one exact key marked failed
         if(!ku) return later({ data:null, error:{ message:'no in-stock unit of that item to mark failed' } });
         ku.status='failed'; ku.disposition=String(args.p_reason||'failed'); (kd.inventory_locations||[]).forEach(function(x){ if(x.item_id===ku.item_id && x.location===ku.location) x.qty=Math.max(0,(x.qty||0)-1); }); save(kd); v={ failed_unit:ku.id }; }
-      if(name==='log_activity'){ var d=db(); d.audit_log=(d.audit_log||[]).concat([{ id:'a'+Date.now()+Math.random(), user_id:UID, role:'owner', action:args.p_action, entity_type:args.p_entity_type, entity_id:args.p_entity_id, detail:args.p_detail, created_at:new Date().toISOString() }]); save(d); }
+      if(name==='log_activity'){   // 8z156: like the real library, the call is only SENT when something waits for its answer (.then / await)
+        var sent=false, send=function(){ if(sent) return; sent=true; var d=db(); d.audit_log=(d.audit_log||[]).concat([{ id:'a'+Date.now()+Math.random(), user_id:UID, role:'owner', action:args.p_action, entity_type:args.p_entity_type, entity_id:args.p_entity_id, detail:args.p_detail, created_at:new Date().toISOString() }]); save(d); };
+        return { then: function(ok, bad){ send(); return later({ data:null, error:null }).then(ok, bad); } }; }
       return later({ data:v, error:null }); },
     functions: { invoke: function(){ return later({ data:null, error:null }); } },
     storage: { from: function(){ return { getPublicUrl: function(){ return { data:{ publicUrl:'' } }; }, createSignedUrl: function(){ return later({ data:null, error:null }); } }; } },

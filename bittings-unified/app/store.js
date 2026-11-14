@@ -1143,7 +1143,9 @@
        log_activity RPC (security definer; stamps user, role, shop). Demo / offline → resolves {data:null}. */
     Audit: { log: function (action, entityType, entityId, detail) {
       try { if (!authState.sb || _demoOn()) return Promise.resolve({ data: null });
-            return authState.sb.rpc('log_activity', { p_action: String(action || ''), p_entity_type: String(entityType || ''), p_entity_id: String(entityId || ''), p_detail: detail || {} }); }
+            /* 8z156: the cloud library only SENDS a call once something waits for its answer. Callers that just fire the log and move on
+               (the job's "key scanned out" lines) were never sent at all — Promise.resolve() waits for it, so it always goes. */
+            return Promise.resolve(authState.sb.rpc('log_activity', { p_action: String(action || ''), p_entity_type: String(entityType || ''), p_entity_id: String(entityId || ''), p_detail: detail || {} })); }
       catch (e) { return Promise.resolve({ data: null, error: e }); } } },
 
     /* ---------------------------------------------------------------- *
@@ -1698,13 +1700,33 @@
   };
 })(window);
 
+/* 8z155 (owner, 2026-11-14: "Jayden was able to see how much I charged for a customer that was assigned to me. He doesn't need to see
+   that at all unless it's assigned to him"). One place both pages ask: is this job / this document MINE? Only a TECHNICIAN is
+   limited (owner, manager and front desk see everything, as before). A job is mine when I am its technician; a document is mine
+   when its job is mine, or — with no job behind it — when I made it (the document carries my login e-mail or my name).
+   This hides it on the screens; it is not a database rule. */
+(function (global) {
+  function role() { try { return (global.TKS.auth.staffRole && global.TKS.auth.staffRole()) || ''; } catch (e) { return ''; } }
+  function uid() { try { var u = global.TKS.auth.user && global.TKS.auth.user(); return (u && u.id) || ''; } catch (e) { return ''; } }
+  function names() { var out = []; try { var em = String(global.TKS.auth.email() || '').trim().toLowerCase(); if (em) { out.push(em);
+      ((global.TKS.Config.access() || {}).employees || []).forEach(function (e) { if (e && String(e.email || '').trim().toLowerCase() === em && String(e.name || '').trim()) out.push(String(e.name).trim().toLowerCase()); }); } } catch (e) {} return out; }
+  var M = {
+    restricted: function () { return role() === 'technician'; },
+    job: function (b) { if (!b) return false; var id = uid(); if (b.technicianId) return !!id && String(b.technicianId) === id; var n = String(b.technician || '').trim().toLowerCase(); return !!n && names().indexOf(n) >= 0; },
+    doc: function (r) { if (!r) return false; try { if (r.jobId) { var b = global.TKS.Bookings.get(r.jobId); if (b) return M.job(b); } } catch (e) {} var t = String(r.technician || '').trim().toLowerCase(); return !!t && names().indexOf(t) >= 0; },
+    seesJobMoney: function (b) { return !M.restricted() || M.job(b); },
+    seesDoc: function (r) { return !M.restricted() || M.doc(r); }
+  };
+  global.TKS_MINE = M;
+})(typeof window !== 'undefined' ? window : this);
+
 /* 8z149 (owner, 2026-11-14: "auto capitalize everything when I type in someone's name, their address, all that stuff … it bothers me
    that things are in lowercase letters"). On every page that loads this file, a NAME or ADDRESS box (customer, contact, business,
    street, unit, city) gets Each Word Capitalised: the phone keyboard is asked to do it while typing (autocapitalize="words") and
    whatever was typed is tidied the moment you leave the box. Only a word's FIRST letter is ever raised — nothing is lowered, so
    "LLC", "NW" and "DeShawn" stay as typed — plus Mc / O' names, compass points and "PO Box" in an address, and the state
    letters in a one-line address. Left alone: e-mail, web, search, VIN / serial / SKU, price, note, part-name and state boxes, and
-   any box that says data-cap="off" (data-cap="words" opts one in). Saved records are not rewritten. */
+   any box that says data-autocap="off" (data-autocap="words" opts one in; NOT data-cap — that marker belongs to access.js permissions). Saved records are not rewritten. */
 (function (global) {
   if (typeof document === 'undefined') return;
   var YES = /name|street|addr|city|customer|contact|company|business|suite|\bapt\b/i;
@@ -1713,7 +1735,7 @@
   function wants(el) {
     if (!el || el.tagName !== 'INPUT' || el.readOnly || el.disabled) return false;
     var t = String(el.getAttribute('type') || 'text').toLowerCase(); if (t !== 'text') return false;
-    var dc = el.getAttribute('data-cap'); if (dc === 'off') return false; if (dc === 'words') return true;
+    var dc = el.getAttribute('data-autocap'); if (dc === 'off') return false; if (dc === 'words') return true;
     if (SKIP_ID.test(el.id || '')) return false;
     var ac = el.getAttribute('autocapitalize'); if (ac && !/^(words|sentences|on)$/.test(ac)) return false;   // 'characters' / 'none' boxes keep their own rule
     var sig = [el.id, el.getAttribute('name'), el.getAttribute('placeholder'), el.getAttribute('autocomplete'), el.getAttribute('aria-label'), typeof el.className === 'string' ? el.className : ''].join(' ');

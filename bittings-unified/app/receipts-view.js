@@ -26,6 +26,7 @@
     root.querySelectorAll('#rcTabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.rt === tab); });
     var list = gid('rcList'); if (!list) return;
     var hist = getHistory().slice();
+    if (window.TKS_MINE && TKS_MINE.restricted()) hist = hist.filter(function (r) { return TKS_MINE.seesDoc(r); });   // 8z155: a technician's list holds their own documents only
     var q = query.trim().toLowerCase();
     /* 8z81 (owner: "if it has been converted then we don't need to see it again"): an estimate that became an invoice or a
        receipt is not listed any more — only the document it became. (The record itself is kept; it comes back if that

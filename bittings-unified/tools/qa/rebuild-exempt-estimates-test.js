@@ -150,7 +150,7 @@ function stubServer() {
     r = await pg.evaluate(() => ({ open: document.getElementById('histPanel').classList.contains('open'), filter: (document.querySelector('.hist-filter button.active') || {}).innerText, builder: !!document.querySelector('.qi-box'),
       rows: Array.from(document.querySelectorAll('#histList .hist-item')).map(x => x.innerText.replace(/\s+/g, ' ')), acts: Array.from(document.querySelectorAll('#histList .hist-item')).map(x => Array.from(x.querySelectorAll('.hi-actions button')).filter(b => b.offsetParent && !b.classList.contains('tks-cap-hidden')).map(b => b.innerText).slice(0, 2).join('|')) }));
     check('"Estimates (2)" opens the list of the open estimates', r.open && r.filter === 'Estimates' && !r.builder && r.rows.length === 2, r);
-    check('each estimate leads with Schedule and Edit — for a technician too — and shows In shop / Tax exempt', r.acts.every(a => a === '📅 Schedule|✏️ Edit') && r.rows.some(x => /TEST Dealer Motors/.test(x) && /🏪 In shop · 🏛 Tax exempt/.test(x) && /405-555-0101/.test(x)), r);
+    check('each estimate leads with Book it (8z153: was Schedule) and Edit — for a technician too — and shows In shop / Tax exempt', r.acts.every(a => a === '📅 Book it|✏️ Edit') && r.rows.some(x => /TEST Dealer Motors/.test(x) && /🏪 In shop · 🏛 Tax exempt/.test(x) && /405-555-0101/.test(x)), r);
     await pg.screenshot({ path: path.join(OUT, 'estimates-list.png') });
     // ---- Quotes & estimates: no big "＋ New quote" in the list any more (the card has "New estimate"); Done and Cancel come back to the card ----
     r = await pg.evaluate(() => ({ title: document.querySelector('#histPanel .pp-head b').innerText, oldBtn: !!document.getElementById('histNewQuoteBtn'), hint: /Quote a caller, then schedule it or bill it from here./.test(document.getElementById('histPanel').innerText) }));
@@ -160,7 +160,7 @@ function stubServer() {
     check('CHANGED: Done in the list returns to the Quotes & estimates card', !r.open && r.card, r);
     await pg.evaluate(() => document.getElementById('homeNew').click()); await sleep(900);
     r = await pg.evaluate(() => ({ title: (document.querySelector('#qiTitle') || {}).innerText, histOpen: document.getElementById('histPanel').classList.contains('open'), type: (document.querySelector('.qiTB.on') || { dataset: {} }).dataset.t }));
-    check('CHANGED: tapping "New estimate" opens the builder as an Estimate (Quick quote)', /Quick quote/.test(r.title || '') && r.type === 'estimate' && !r.histOpen, r);
+    check('CHANGED: tapping "New estimate" opens the builder as an Estimate (Build a quote; 8z153)', /Build a quote/.test(r.title || '') && r.type === 'estimate' && !r.histOpen, r);
     await pg.screenshot({ path: path.join(OUT, 'quotes-new-phone.png') });
     await pg.evaluate(() => document.getElementById('qiCancel').click()); await sleep(600);
     r = await pg.evaluate(() => ({ builder: !!document.querySelector('.qi-box'), open: document.getElementById('histPanel').classList.contains('open'), card: !!document.querySelector('#chat .res-home #homeNew') }));
@@ -175,14 +175,23 @@ function stubServer() {
     await pg.evaluate(async () => { localStorage.setItem('__role', 'owner'); try { await TKS.clearDeviceCache(); } catch (e) {} });
     await pg.goto('http://127.0.0.1:8088/bittings.html?estimates=1', { waitUntil: 'domcontentloaded' }); await sleep(2800);
     await pg.evaluate(() => document.getElementById('homeEst').click()); await sleep(400);   // the list is one tap from the card now
-    await Promise.all([pg.waitForNavigation({ waitUntil: 'domcontentloaded' }), pg.evaluate(() => { const it = Array.from(document.querySelectorAll('#histList .hist-item')).find(x => /TEST Dealer Motors/.test(x.innerText)); it.querySelector('[data-act="sched"]').click(); })]);
-    await pg.waitForFunction(() => window.TKS && TKS.adapter && TKS.adapter() === 'cloud', { timeout: 15000 }); await pg.waitForSelector('#sjSave', { timeout: 15000 }); await sleep(900);
-    r = await pg.evaluate(() => ({ url: location.pathname, name: document.getElementById('sjName').value, where: (document.querySelector('#sjWhere button.on') || {}).innerText, addrHidden: getComputedStyle(document.getElementById('sjAddrWrap')).display === 'none',
-      tot: document.getElementById('sjChTot').innerText.replace(/\s+/g, ' '), ex: (document.getElementById('sjExBtn') || {}).innerText }));
-    check('Schedule opens the job form filled in: In shop chosen (no address asked), tax exempt carried over', /index\.html/.test(r.url) && r.name === 'TEST Dealer Motors' && /In shop/.test(r.where || '') && r.addrHidden && /Tax — exempt \$0\.00/.test(r.tot) && /Total \$100\.00/.test(r.tot) && /Tax exempt ✓ \(Resale · 123456\)/.test(r.ex || ''), r);
+    // 8z153: "Book it" opens a small sheet (date / time / technician); its Book it button creates the job directly on the schedule — no Quick form
+    await pg.evaluate(() => { const it = Array.from(document.querySelectorAll('#histList .hist-item')).find(x => /TEST Dealer Motors/.test(x.innerText)); it.querySelector('[data-act="sched"]').click(); });
+    await pg.waitForSelector('#bkSheet #bkGo', { timeout: 5000 }); await sleep(300);
     // today in the SHOP'S time, not UTC: after 6 pm Central the UTC date is already tomorrow, the job was booked for tomorrow and its card
     // was not on today's board (this check failed every evening and passed every morning)
-    await pg.evaluate(() => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); document.getElementById('sjDate').value = d.toISOString().slice(0, 10); document.getElementById('sjTime').value = '14:00'; document.getElementById('sjSave').scrollIntoView({ block: 'center' }); }); await sleep(200);
+    await pg.evaluate(() => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); const set = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); }; set('bkDate', d.toISOString().slice(0, 10)); set('bkTime', '14:00'); });
+    await Promise.all([pg.waitForNavigation({ waitUntil: 'domcontentloaded' }), pg.evaluate(() => document.getElementById('bkGo').click())]);
+    await pg.waitForFunction(() => window.TKS && TKS.adapter && TKS.adapter() === 'cloud', { timeout: 15000 });
+    await pg.waitForFunction(() => (TKS.Bookings.all() || []).some(x => /^EST-/.test(x.fromEstimate || '')), { timeout: 15000 }); await sleep(1200);
+    r = await pg.evaluate(() => { const j = (TKS.Bookings.all() || []).find(x => /^EST-/.test(x.fromEstimate || '')); return j && { time: j.time, status: j.status, where: j.serviceWhere, ex: j.taxExempt && j.taxExempt.permitNumber, total: j.quote && j.quote.total, lines: (j.items || []).length }; });
+    check('8z153: Book it created the booking directly (14:00, Scheduled, In shop, exempt, $100, a line)', !!r && r.time === '14:00' && r.status === 'Scheduled' && r.where === 'shop' && r.ex === '123456' && r.total === 100 && r.lines >= 1, r);
+    // 8z153: the form is no longer opened for us; open the created job's card to look inside it
+    await pg.evaluate(() => { const j = (TKS.Bookings.all() || []).find(x => /^EST-/.test(x.fromEstimate || '')); document.querySelector('[data-open="' + j.id + '"]').click(); });
+    await pg.waitForSelector('#sjSave', { timeout: 15000 }); await sleep(900);
+    r = await pg.evaluate(() => ({ url: location.pathname, name: document.getElementById('sjName').value, where: (document.querySelector('#sjWhere button.on') || {}).innerText, addrHidden: getComputedStyle(document.getElementById('sjAddrWrap')).display === 'none',
+      tot: document.getElementById('sjChTot').innerText.replace(/\s+/g, ' '), ex: (document.getElementById('sjExBtn') || {}).innerText }));
+    check('Book it creates the job: its form shows In shop chosen (no address asked), tax exempt carried over', /index\.html/.test(r.url) && r.name === 'TEST Dealer Motors' && /In shop/.test(r.where || '') && r.addrHidden && /Tax — exempt \$0\.00/.test(r.tot) && /Total \$100\.00/.test(r.tot) && /Tax exempt ✓ \(Resale · 123456\)/.test(r.ex || ''), r);
     await pg.screenshot({ path: path.join(OUT, 'job-inshop-exempt.png') });
     await pg.evaluate(() => document.getElementById('sjSave').click()); await sleep(1200);
     r = await pg.evaluate(() => { const j = (TKS.list('bookings') || []).find(x => x.customer && x.customer.name === 'TEST Dealer Motors'); const card = Array.from(document.querySelectorAll('.sch-card')).map(x => x.innerText.replace(/\s+/g, ' ')).find(x => /TEST Dealer Motors/.test(x)) || '';
@@ -195,7 +204,7 @@ function stubServer() {
     r = await pg.evaluate(() => { const rows = () => Array.from(document.querySelectorAll('#histList .hist-item')).map(x => x.innerText.replace(/\s+/g, ' ')); const listed = rows().some(x => /TEST Dealer Motors/.test(x));
       const s = document.getElementById('histSearch'); s.value = 'dealer'; s.dispatchEvent(new Event('input', { bubbles: true })); const found = rows().find(x => /TEST Dealer Motors/.test(x)) || ''; s.value = ''; s.dispatchEvent(new Event('input', { bubbles: true }));
       document.querySelector('#histPanel .pp-head button').click(); return { listed, found, btn: (document.getElementById('homeEst') || {}).innerText }; });
-    check('back in the list the scheduled estimate is gone (open ones only); search still finds it "On the schedule"; the card counts one fewer', !r.listed && /📅 On the schedule \d{4}-\d\d-\d\d 14:00/.test(r.found) && /Schedule again/.test(r.found) && r.btn === '📋 Estimates (1)', r);
+    check('back in the list the scheduled estimate is gone (open ones only); search still finds it "On the schedule"; the card counts one fewer', !r.listed && /📅 On the schedule \d{4}-\d\d-\d\d 14:00/.test(r.found) && /Book again/.test(r.found) && r.btn === '📋 Estimates (1)', r);
 
     // ================= 5. Settings → Sales tax: the certificates on file =================
     await pg.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });

@@ -41,7 +41,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
         years: (document.getElementById('qiVYear') || { options: [] }).options.length }));
       // 8z73: the Year list was once emptied by a note placed on the same line as the loop that fills it
       check(role + ': the Year list has years to pick from', r.years > 20, r.years);
-      check(role + ': quote opens as an estimate, name optional, no payment section', /Quick quote/.test(r.title || '') && r.type === 'estimate' && /optional/.test(r.nameLabel || '') && r.payHidden, r);
+      check(role + ': quote opens as an estimate, name optional, no payment section', /Build a quote/.test(r.title || '') && r.type === 'estimate' && /optional/.test(r.nameLabel || '') && r.payHidden, r);
       // 8z121: a scanned key (the stock record: sellPriceCents, no ready-made "price") fills the price as well as the cost
       { await pg.evaluate(() => document.getElementById('qiAdd').click()); await sleep(200);
         await pg.evaluate(() => { const rows = document.querySelectorAll('.qi-item'), row = rows[rows.length - 1]; row._applyPart({ id: 'tst_scan', name: 'TEST scanned key', sku: 'TST-SCAN', cost: 20, sellPriceCents: 6500, qty: 3 }); }); await sleep(350);
@@ -88,7 +88,7 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
         return { err: (document.querySelector('#qiErr') || {}).innerText || '', saved: !!d, docType: d && d.docType, number: d && d.number, total: d && d.totals && d.totals.total, noCustomer: d && d.noCustomer,
           cust: TKS.list('customers').length, buttons: Array.from(document.querySelectorAll('.res-actions button')).map(x => x.innerText) }; });
       check(role + ': quote saved as an estimate with no customer record made', r.saved && r.docType === 'estimate' && /^EST-/.test(r.number || '') && r.cust === custBefore, r);
-      check(role + ': result offers Schedule / Make it an invoice / New quote', ['📅 Schedule this job', '🧾 Make it an invoice', '💬 New quote'].every(x => r.buttons.indexOf(x) >= 0) && r.buttons.indexOf('💳 Pay Now') < 0, r.buttons);
+      check(role + ': result offers Book it / Make it an invoice / New quote', /* 8z153: was Schedule this job */ ['📅 Book it', '🧾 Make it an invoice', '💬 New quote'].every(x => r.buttons.indexOf(x) >= 0) && r.buttons.indexOf('💳 Pay Now') < 0, r.buttons);
       await pg.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await sleep(200);
       if (role === 'owner') await pg.screenshot({ path: path.join(OUT, 'quote-2-result.png') });
 

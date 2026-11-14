@@ -78,8 +78,9 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
 
     // ================= 3. Scheduler job form: speed + the charge pick-list =================
     await pg.evaluate(() => document.querySelector('.bt-sidebar .bt-nav__item[data-go="schedule"]').click()); await sleep(900);
-    await pg.evaluate(() => { const n = document.querySelector('#view-schedule [data-new]'); if (n) n.click(); }); await sleep(900);
-    await pg.evaluate(() => { const k = document.querySelector('#wzQuick'); if (k) k.click(); }); await sleep(900);
+    await pg.evaluate(() => { const n = document.querySelector('#view-schedule [data-new]'); if (n) n.click(); }); await sleep(700);
+    // 8z153: "+ New quote / job" opens a chooser; the Quick form is its own button now
+    await pg.evaluate(() => { const k = document.querySelector('#stQuick'); if (k) k.click(); }); await sleep(900);
     const cdp = await pg.target().createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     const setSel = async (id, v) => { await pg.evaluate((id, v) => { const el = document.querySelector('.sch-modal #' + id); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, id, v); };
     await setSel('sjYear', '2015'); await sleep(400); await setSel('sjMake', 'Ford'); await sleep(600);

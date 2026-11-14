@@ -95,10 +95,16 @@ function check(name, ok, detail) { results.push((ok ? 'PASS ' : 'FAIL ') + name 
     await pg.evaluate(() => document.getElementById('homeEst').click()); await sleep(400);   // the page lands on the Quotes & estimates card now; the list is one tap away
     r = await pg.evaluate(() => { const s = document.getElementById('histSearch'); s.value = 'golf'; s.dispatchEvent(new Event('input', { bubbles: true })); return Array.from(document.querySelectorAll('#histList .hist-item')).map(x => x.innerText.replace(/\s+/g, ' ')); });
     check('the estimates list shows "2 vehicles" and search finds it by the second vehicle', r.length === 1 && /🚗 2 vehicles/.test(r[0]), r);
-    await Promise.all([pg.waitForNavigation({ waitUntil: 'domcontentloaded' }), pg.evaluate(() => document.querySelector('#histList [data-act="sched"]').click())]);
-    await pg.waitForFunction(() => window.TKS && TKS.adapter && TKS.adapter() === 'cloud', { timeout: 15000 }); await pg.waitForSelector('#sjSave', { timeout: 15000 }); await sleep(900);
+    // 8z153: Book it opens a sheet; its Book it button creates the job directly (no Quick form), so the form is reached by opening the job's card
+    await pg.evaluate(() => document.querySelector('#histList [data-act="sched"]').click()); await pg.waitForSelector('#bkSheet #bkGo', { timeout: 5000 }); await sleep(300);
+    await Promise.all([pg.waitForNavigation({ waitUntil: 'domcontentloaded' }), pg.evaluate(() => document.getElementById('bkGo').click())]);
+    await pg.waitForFunction(() => window.TKS && TKS.adapter && TKS.adapter() === 'cloud', { timeout: 15000 });
+    await pg.waitForFunction(() => (TKS.Bookings.all() || []).some(x => /^EST-/.test(x.fromEstimate || '')), { timeout: 15000 }); await sleep(1200);
+    r = await pg.evaluate(() => { const j = (TKS.Bookings.all() || []).find(x => /^EST-/.test(x.fromEstimate || '')); return { more: (j.moreVehicles || []).map(v => v.text || v.make || ''), n: (j.moreVehicles || []).length, status: j.status }; });
+    check('8z153: Book it creates the booking with the second vehicle carried over', r.n === 1 && /golf cart/i.test(r.more[0] || '') && r.status === 'Scheduled', r);
+    await pg.evaluate(() => { const j = (TKS.Bookings.all() || []).find(x => /^EST-/.test(x.fromEstimate || '')); document.querySelector('[data-open="' + j.id + '"]').click(); }); await pg.waitForSelector('#sjSave', { timeout: 15000 }); await sleep(900);
     r = await pg.evaluate(() => ({ first: [document.getElementById('sjYear').value, document.getElementById('sjMake').value, document.getElementById('sjModel').value].join(' '), more: Array.from(document.querySelectorAll('#sjMoreVeh [data-mv]')).map(x => x.innerText.replace(/\s+/g, ' ').slice(0, 20)), n: document.querySelectorAll('#sjMoreVeh [data-mv]').length, add: !!document.getElementById('sjAddVeh') }));
-    check('Schedule opens the job with the first vehicle and "Vehicle 2" carried over, plus "Add another vehicle"', r.first === '2015 Ford F-150' && r.n === 1 && /Vehicle 2/.test(r.more[0] || '') && r.add, r);
+    check('Book it: the job opens with the first vehicle and "Vehicle 2" carried over, plus "Add another vehicle"', r.first === '2015 Ford F-150' && r.n === 1 && /Vehicle 2/.test(r.more[0] || '') && r.add, r);
     await pg.evaluate(() => document.getElementById('sjAddVeh').click()); await sleep(300);
     await pg.evaluate(() => { const row = document.querySelectorAll('#sjMoreVeh [data-mv]')[1]; const y = row.querySelector('.mvY'); y.value = '2018'; y.dispatchEvent(new Event('change', { bubbles: true })); }); await sleep(300);
     await pg.evaluate(() => { const row = document.querySelectorAll('#sjMoreVeh [data-mv]')[1]; const m = row.querySelector('.mvMk'); m.value = 'Honda'; m.dispatchEvent(new Event('change', { bubbles: true })); }); await sleep(300);

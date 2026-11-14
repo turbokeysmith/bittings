@@ -61,12 +61,12 @@ function stubClock() {
       localStorage.setItem('sb-test-auth-token', JSON.stringify({ access_token: 'x'.repeat(60), expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'samer@turbokeysmith.com' } }));
     }, UID);
 
-    // ================= 1. Quick quote: vehicle → keys and prices =================
+    // ================= 1. Build a quote (8z153: was Quick quote): vehicle → keys and prices =================
     await pg.goto('http://127.0.0.1:8088/bittings.html?quote=1', { waitUntil: 'domcontentloaded' });
     await pg.waitForSelector('.qi-box', { timeout: 15000 }); await sleep(2500);
     const setSel = async (id, v) => { await pg.evaluate((id, v) => { const el = document.querySelector('#' + id); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, id, v); await sleep(350); };
     let r = await pg.evaluate(() => ({ title: document.getElementById('qiTitle').innerText, veh: getComputedStyle(document.getElementById('qiVehWrap')).display, keys: document.getElementById('qiKeys').innerText }));
-    check('Quick quote opens with the vehicle fields and no key list yet', /Quick quote/.test(r.title) && r.veh !== 'none' && r.keys === '', r);
+    check('Build a quote opens with the vehicle fields and no key list yet', /Build a quote/.test(r.title) && r.veh !== 'none' && r.keys === '', r);
     await setSel('qiVYear', '2015'); await setSel('qiVMake', 'Ford');
     r = await pg.evaluate(() => document.getElementById('qiKeys').innerText.replace(/\s+/g, ' '));
     check('with only the make chosen it asks for the model', /Pick the model/.test(r), r);
