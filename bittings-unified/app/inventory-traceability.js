@@ -704,6 +704,124 @@
   setTimeout(refreshWaiting, 3500); setTimeout(refreshWaiting, 9000);
   document.addEventListener('visibilitychange', function (){ if (!document.hidden) refreshWaiting(); });
 
+  // =========================== HAND A JOB'S KEY TO THE VAN (Scheduler) =========
+  /* 8z148 (owner, 2026-11-14: "I tapped Move to van and it didn't ask me to scan the QR code … I need to make sure the technician
+     received the key before they leave and what key it was"). The job card's button opens this: scan the label of the exact key
+     being handed over → it is SENT to the van (unit_send) and stays counted in the shop until the van's technician scans it in
+     on their own phone ("1 key waiting" → unit_accept). If the person scanning IS that van's technician, the one scan is both:
+     the key is on their van at once and the box asks where they put it. The job's log gets a line with the key and its serial.
+     A key of another kind than the job's is refused, so the wrong key cannot leave by mistake. */
+  window.keyHandoversPending = async function (){ var s = sb(); if (!s || demo()) return { mine: [], sent: [] }; return pendingList(s); };
+  window.openJobKeyHandover = function (o){
+    o = o || {}; var s = sb();
+    if (demo() || !s) { say(demo() ? 'Handing a key to a van by scanning needs the live app.' : 'Sign in to the cloud first.'); return null; }
+    if (window.unitMoveOpen()) return null;
+    var cam = (window.TKS_CAM && TKS_CAM.available()), who = o.techName || 'the technician', vanName = o.vanName || (who + '’s van'), q = Promise.resolve(), done = false;
+    var m = modal('🔑 Scan the key out',
+      '<div style="font-weight:800;font-size:15px;margin-bottom:4px">' + E(o.itemName || 'Key') + '</div>' +
+      '<div class="sub" style="margin-bottom:10px;line-height:1.4">Scan the label on the exact key you are handing to <b>' + E(who) + '</b>' + (o.jobLabel ? ' for ' + E(o.jobLabel) : '') + '. It counts as on the van only when ' + E(who) + ' scans it in.</div>' +
+      (cam ? '<button type="button" id="jhCam" style="' + BTN + ';min-height:48px;margin-bottom:8px">📷 Scan the key’s QR code</button>' : '') +
+      '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px"><input id="jhIn" placeholder="or type the key’s serial" autocomplete="off" autocapitalize="characters" spellcheck="false" style="' + INP + 'margin:0;flex:1;min-width:0;min-height:44px">' +
+      '<button type="button" id="jhGo" style="' + ACT + ';flex:0 0 auto;min-width:96px">Scan out</button></div>' +
+      '<div id="jhMsg" role="status" aria-live="polite" style="font-size:14px;line-height:1.4;min-height:20px;margin-bottom:8px"></div>' +
+      '<div id="jhSwap" style="display:none;border-top:1px solid rgba(128,128,128,.3);padding-top:10px;margin-bottom:10px"></div>' +
+      '<button type="button" id="jhDone" style="' + ACT + ';width:100%">Close</button>');
+    var inp = m.body.querySelector('#jhIn'), msg = m.body.querySelector('#jhMsg');
+    function tell(kind, text){ msg.style.color = kind === 'ok' ? '#1c7d3e' : (kind === 'bad' ? '#c8323c' : 'inherit'); msg.style.fontWeight = kind === 'ok' ? '700' : '600'; msg.textContent = text; }
+    function finish(){ refreshWaiting(); afterChange(); try { if (window.TKS && TKS.refresh) TKS.refresh(); } catch (e) {} try { if (o.onDone) o.onDone(); } catch (e2) {} }
+    function logJob(action, text, why, u){ try { if (o.jobId && window.TKS && TKS.Audit) TKS.Audit.log(action, 'job', String(o.jobId), { desc: text, reason: why || '', unit: (u && u.id) || '', serial: (u && u.serial) || '', item: (u && u.item_id) || '' }); } catch (e) {} }
+    /* 8z150 (owner, 2026-11-14: "I don't want to scan out another one to that job … match quantity to the job"): the keys of this kind
+       already scanned out FOR THIS JOB and still out (waiting for a scan-in, or on a van). Known from the job itself (o.handed, kept
+       on the booking) and, for a scan made on another device or before this existed, from the job's log. A key that has come back
+       to the shop, or was sold, no longer counts. */
+    var need = Math.max(1, parseInt(o.needed, 10) || 1), locked = false;
+    async function outForJob(){
+      var ids = {}, sns = {}, meta = {};   // meta: unit / serial → who scanned it out and when (from the job's log)
+      (o.handed || []).forEach(function (h){ if (!h) return; if (h.unit) ids[h.unit] = 1; if (h.serial) sns[String(h.serial).toUpperCase()] = 1; });
+      try { if (o.jobId) { var a = await s.from('audit_log').select('action,detail,created_at,user_id').eq('entity_type', 'job').eq('entity_id', String(o.jobId)).order('created_at', { ascending: false }).limit(30);
+        ((a && a.data) || []).forEach(function (x){ if (x.action !== 'unit_handover_sent') return; var d = x.detail || {}; if (d.unit) { ids[d.unit] = 1; if (!meta[d.unit]) meta[d.unit] = { by: x.user_id, at: x.created_at }; } var mm = /SN ([2-9A-HJKMNP-Z]{7})\b/.exec(String(d.serial ? 'SN ' + d.serial : d.desc || '')); if (mm) { sns[mm[1]] = 1; if (!meta[mm[1]]) meta[mm[1]] = { by: x.user_id, at: x.created_at }; } }); } } catch (e) {}
+      var idL = Object.keys(ids), snL = Object.keys(sns); if (!idL.length && !snL.length) return [];
+      var rows = [];
+      try { if (idL.length) { var r1 = await s.from('inventory_units').select('id,item_id,serial,location,status').in('id', idL); rows = rows.concat((r1 && r1.data) || []); } } catch (e1) {}
+      try { if (snL.length) { var r2 = await s.from('inventory_units').select('id,item_id,serial,location,status').in('serial', snL); rows = rows.concat((r2 && r2.data) || []); } } catch (e2) {}
+      var p = { mine: [], sent: [] }; try { p = await pendingList(s); } catch (e3) {}
+      var wait = {}; p.mine.concat(p.sent).forEach(function (x){ wait[x.unit_id] = x; });
+      var names = {}; try { if (Object.keys(meta).length) { var st = await s.from('staff').select('user_id,name'); ((st && st.data) || []).forEach(function (p){ names[p.user_id] = p.name; }); } } catch (e4) {}
+      function whoWhen(u){ var k = meta[u.id] || meta[String(u.serial || '').toUpperCase()]; if (!k) return ''; return 'scanned out' + (names[k.by] ? ' by ' + names[k.by] : '') + (k.at ? ', ' + hhmm(k.at) : '') + ' — '; }
+      var seen = {}, out = [];
+      rows.forEach(function (u){ if (!u || seen[u.id]) return; if (!ids[u.id] && !sns[String(u.serial || '').toUpperCase()]) return; seen[u.id] = 1;
+        if (o.itemId && u.item_id !== o.itemId) return; if (u.status !== 'in_stock') return;
+        if (wait[u.id]) out.push({ id: u.id, serial: u.serial, where: whoWhen(u) + 'waiting for ' + namesOf(wait[u.id].for_names) + ' to scan it in' });
+        else if (u.location && u.location !== 'shop') out.push({ id: u.id, serial: u.serial, where: whoWhen(u) + (o.vanLoc && u.location === o.vanLoc ? 'now on ' + vanName : 'now on a van') }); });
+      return out; }
+    function fullMsg(out){ return '✓ This job already has its key' + (need > 1 ? 's' : '') + ': ' + out.map(function (x){ return 'SN ' + (x.serial || '?') + ' (' + x.where + ')'; }).join(', ') + '. It only needs ' + need + ' — a second one can’t be scanned out. To swap keys, scan this one back into the shop first (Stock → Move keys by scanning → Shop).'; }
+    function setScan(on, ph){ inp.disabled = !on; var g = m.body.querySelector('#jhGo'); if (g) g.disabled = !on; var c = m.body.querySelector('#jhCam'); if (c) c.style.display = on ? '' : 'none'; if (ph) inp.placeholder = ph; if (on) { try { inp.focus(); } catch (e) {} } }
+    function lock(out){ locked = true; outNow = out; tell('ok', fullMsg(out)); setScan(false); m.body.querySelector('#jhDone').textContent = 'OK'; showSwap(); }
+    /* 8z151 (owner, 2026-11-14: "add a swap key option — the key ends up being defective or we grabbed the wrong key … we scan the old
+       key back in and then we scan the new key out"). Offered whenever the job already has its key:
+         why?  Wrong key → it goes back into shop stock · Defective → that exact key is marked failed and put on the supplier-return list
+         1 of 2  scan the OLD key (it must be this job's key) — it is back in the shop at once, a hand-over still waiting is taken back
+         2 of 2  scan the NEW key out, exactly as the first time.
+       Both halves are written to the job's log with the serials. */
+    var outNow = [], swapMode = null, swapBox = m.body.querySelector('#jhSwap');
+    function snList(a){ return a.map(function (x){ return 'SN ' + (x.serial || '?'); }).join(' or '); }
+    function showSwap(){ if (!swapBox) return; swapBox.style.display = '';
+      swapBox.innerHTML = '<div style="font-weight:800;margin-bottom:4px">🔁 Swap the key</div><div class="sub" style="margin-bottom:8px">Why is ' + E(snList(outNow)) + ' coming back?</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="jhWhy" data-why="wrong" style="' + ACT + '">Wrong key — back on the shelf</button><button type="button" class="jhWhy" data-why="defective" style="' + ACT + '">Defective — set it aside</button></div>';
+      swapBox.querySelectorAll('.jhWhy').forEach(function (b){ b.onclick = function (){ startReturn(b.dataset.why); }; }); }
+    function startReturn(why){ swapMode = { why: why };
+      swapBox.innerHTML = '<div style="font-weight:800;margin-bottom:4px">🔁 Step 1 of 2 — scan the OLD key back in</div><div class="sub">Scan ' + E(snList(outNow)) + '. ' + (why === 'defective' ? 'It will be marked defective and put on the supplier-return list.' : 'It goes back into shop stock.') + '</div>';
+      tell('', ''); setScan(true, 'scan or type the OLD key’s serial'); m.body.querySelector('#jhDone').textContent = 'Close'; }
+    async function handleReturn(code){
+      if (!looksLikeUnit(code)) { tell('bad', '✗ “' + code + '” isn’t a key label.'); return; }
+      tell('', 'Checking…'); var res; try { res = await window.unitLookup(code); } catch (e) { tell('bad', '✗ ' + ((e && e.message) || e)); return; }
+      var u = res.unit, nm = (res.part && res.part.name) || u.item_id, sn = u.serial || u.id, why = swapMode.why;
+      if (!outNow.some(function (x){ return x.id === u.id; })) { tell('bad', '✗ SN ' + sn + ' isn’t this job’s key. The job has ' + snList(outNow) + ' — scan that one.'); return; }
+      var r = await sendUnit(s, u.id, 'shop');   // back in the shop now; a hand-over still waiting is taken back
+      if (!r.ok && !r.same) { tell('bad', '✗ SN ' + sn + ' — ' + r.error); return; }
+      var note = '';
+      if (why === 'defective') { var f; try { f = await s.rpc('key_failed', { p_item: u.item_id, p_location: 'shop', p_reason: 'defective — swapped on a job', p_unit: u.id }); } catch (e2) { f = { error: e2 }; }
+        note = (f && f.error) ? ' It is back in the shop but could NOT be marked defective (' + ((f.error && f.error.message) || 'error') + ') — mark it in Stock.' : ' and marked defective (it is on the supplier-return list)'; }
+      logJob('unit_handover_returned', nm + ' · SN ' + sn, why === 'defective' ? 'defective — set aside for the supplier' : 'wrong key — back in the shop', u);
+      try { if (o.onReturned) o.onReturned({ unit: u.id, serial: sn, item: u.item_id, why: why }); } catch (e3) {}
+      swapMode = null; locked = false; outNow = []; refreshWaiting(); afterChange();
+      swapBox.innerHTML = '<div style="font-weight:800">🔁 Step 2 of 2 — scan the NEW key out</div>';
+      setScan(true, 'scan or type the NEW key’s serial');
+      tell('ok', '✓ SN ' + sn + ' is back in the shop' + (why === 'defective' ? note : '') + '. Now scan the new key.'); }
+    async function handle(code){
+      if (done) return; if (swapMode) return handleReturn(code); if (locked) return;
+      if (!looksLikeUnit(code)) { tell('bad', '✗ “' + code + '” isn’t a key label. Scan the QR code on the key’s own label.'); return; }
+      tell('', 'Checking…');
+      var res; try { res = await window.unitLookup(code); } catch (e) { tell('bad', '✗ ' + ((e && e.message) || e)); return; }
+      var u = res.unit, nm = (res.part && res.part.name) || u.item_id, sn = u.serial || u.id;
+      if (o.itemId && u.item_id !== o.itemId) { tell('bad', '✗ SN ' + sn + ' is “' + nm + '”. This job needs “' + (o.itemName || 'another key') + '”. Scan that key — or change the key on the job first.'); return; }
+      if (u.status !== 'in_stock') { tell('bad', '✗ SN ' + sn + ' is ' + String(ST_LABEL[u.status] || u.status).toLowerCase() + ', so it can’t be handed over.'); return; }
+      var out = await outForJob();   // 8z150: one key per key the job lists
+      if (out.some(function (x){ return x.id === u.id; })) { tell('ok', '✓ SN ' + sn + ' is already scanned out for this job (' + out.filter(function (x){ return x.id === u.id; })[0].where + ').'); return; }
+      if (out.length >= need) { lock(out); return; }
+      if (o.vanLoc && u.location === o.vanLoc) { done = true; tell('ok', '✓ SN ' + sn + ' is already on ' + vanName + ' — it is now this job’s key.'); try { if (o.onSent) o.onSent({ unit: u.id, serial: sn, item: u.item_id, to: o.vanLoc }); } catch (eS) {} logJob('unit_handover_sent', nm + ' · SN ' + sn, 'already on ' + vanName, u); finish(); return; }
+      var r = await sendUnit(s, u.id, o.vanLoc);
+      if (!r.ok) { tell('bad', '✗ SN ' + sn + ' — ' + r.error); return; }
+      done = true; logJob('unit_handover_sent', nm + ' · SN ' + sn, 'to ' + vanName, u); try { if (o.onSent) o.onSent({ unit: u.id, serial: sn, item: u.item_id, to: o.vanLoc }); } catch (eS) {}
+      // my own van? then this scan is also the scan-in
+      var mine = null; try { var p = await pendingList(s); mine = p.mine.filter(function (x){ return x.unit_id === u.id; })[0] || null; } catch (e3) {}
+      if (mine) { m.close(); var ok = await acceptUnit(mine, function (){ finish(); }); if (ok) logJob('unit_handover_accepted', nm + ' · SN ' + sn, 'on ' + vanName, u); else finish(); return; }
+      tell('ok', '✓ SN ' + sn + ' scanned out. Waiting for ' + namesOf(r.d && r.d.for_names) + ' to scan it in — their phone shows “1 key waiting”. Until then it still counts as in the shop.');
+      setScan(false); if (swapBox) swapBox.style.display = 'none'; m.body.querySelector('#jhDone').textContent = 'Done';
+      finish(); }
+    function feed(code){ code = String(code || '').trim(); if (!code) return; q = q.then(function (){ return handle(code); }).catch(function (e){ tell('bad', '✗ ' + ((e && e.message) || e)); }); }
+    m.body.querySelector('#jhGo').onclick = function (){ feed(inp.value); inp.value = ''; };
+    inp.addEventListener('keydown', function (e){ if (e.key === 'Enter') { e.preventDefault(); feed(inp.value); inp.value = ''; } });
+    var cb = m.body.querySelector('#jhCam'); if (cb) cb.onclick = function (){ TKS_CAM.scan({ title: '📷 Scan the key out', hint: 'Point the camera at the key label’s QR code.' }).then(feed).catch(function (e){ if (e && e.message !== 'cancelled') tell('bad', (e && e.message) || String(e)); }); };
+    m.body.querySelector('#jhDone').onclick = m.close;
+    mvOpen = { ov: m.ov, feed: feed };   // a scanner / camera read while this is open goes into it, nowhere else
+    outForJob().then(async function (out){ if (done) return; if (out.length >= need) { lock(out); return; }   // 8z150: already has its key → say so at once
+      // the van already carries this kind of key (it got there without the job's button) → a heads-up, not a refusal
+      try { if (!o.vanLoc || !o.itemId) return; var r = await s.from('inventory_units').select('id,item_id,serial,location,status').eq('item_id', o.itemId).eq('location', o.vanLoc).eq('status', 'in_stock');
+        var onVan = ((r && r.data) || []).filter(function (u){ return u.item_id === o.itemId && u.location === o.vanLoc && u.status === 'in_stock'; });
+        if (onVan.length && !done && !locked && !msg.textContent) tell('', 'Heads up: ' + vanName + ' already carries this kind of key (' + onVan.map(function (u){ return 'SN ' + u.serial; }).join(', ') + '). Scan one of those to make it this job’s key — or another only if the job needs its own.'); } catch (e) {} }, function (){});
+    return m; };
+
   // =========================== MOVE KEYS BY SCANNING (batch) ===================
   var mvOpen = null;
   window.unitMoveOpen = function (){ return !!(mvOpen && document.body.contains(mvOpen.ov)); };

@@ -2513,7 +2513,7 @@ function openJobModal(b){
   try{ const sb=(window.TKS&&TKS._sb)?TKS._sb():null; const logEl=ov.querySelector('#jobLog');
     if(sb && b.id && !(TKS.isDemo&&TKS.isDemo())){ sb.from('audit_log').select('action,detail,created_at').eq('entity_type','job').eq('entity_id',String(b.id)).order('created_at',{ascending:false}).limit(12).then(function(r){
       const rows=(r&&r.data)||[]; if(!rows.length) return;
-      const lbl={dispatch_line_declined:'Not done',dispatch_line_added:'Added',unit_scanned_out:'Key scanned out',unit_scanned_in:'Key scanned back in'};
+      const lbl={dispatch_line_declined:'Not done',dispatch_line_added:'Added',unit_scanned_out:'Key scanned out',unit_scanned_in:'Key scanned back in',unit_handover_sent:'Key scanned out to the van',unit_handover_accepted:'Key scanned in on the van',unit_handover_returned:'Key swapped — scanned back in'};
       logEl.innerHTML='<div style="font-weight:700;margin-bottom:4px;color:var(--text-primary)">Job log</div>'+rows.map(function(x){ const d=x.detail||{}; return '<div>• '+esc(lbl[x.action]||x.action)+(d.desc?(': '+esc(d.desc)):'')+(d.reason?(' — '+esc(d.reason)):'')+' <span style="opacity:.7">'+esc(new Date(x.created_at).toLocaleString())+'</span></div>'; }).join('');
     }); } }catch(e){}
 }
@@ -8673,34 +8673,70 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
   // ---------- async: flag parts not on the assigned tech's van (cloud only) ----------
   function checkVanFlags(){
     if(!signedIn() || !(TKS.Jobs&&TKS.Jobs.parts) || !(TKS.InvOps&&TKS.InvOps.locations)) return;
-    document.querySelectorAll('#view-schedule [data-vanflag]').forEach(function(el){
+    var flagEls=document.querySelectorAll('#view-schedule [data-vanflag]'); if(!flagEls.length) return;
+    // 8z148: keys already scanned out to a van and waiting for its technician's scan (one request for the whole board)
+    var pendP=(window.keyHandoversPending?window.keyHandoversPending():Promise.resolve(null)).then(function(p){ return ((p&&p.sent)||[]).concat((p&&p.mine)||[]); }, function(){ return []; });
+    flagEls.forEach(function(el){
       var id=el.dataset.vanflag, b=TKS.Bookings.get(id); if(!b) return;
       var m=memberById(techOf(b)); var van=m&&m.home_van_id; if(!van) return;
-      TKS.Jobs.parts(id).then(function(r){ var parts=((r&&r.data)||[]).filter(function(p){return p.item_id;}); if(!parts.length) return;
-        var n=0, missing=[];
+      Promise.all([TKS.Jobs.parts(id), pendP]).then(function(rr){ var r=rr[0], pend=rr[1]||[]; var parts=((r&&r.data)||[]).filter(function(p){return p.item_id;}); if(!parts.length) return;
+        var n=0, missing=[], have=[];
         parts.forEach(function(p){ TKS.InvOps.locations(p.item_id).then(function(lr){ n++; var locs=(lr&&lr.data)||[];
           var onVan=locs.find(function(l){return l.location==='van:'+van && (l.qty||0)>0;});
           var atShop=locs.find(function(l){return l.location==='shop' && (l.qty||0)>0;});
-          if(!onVan) missing.push({item:p.item_id, name:p.description||'part', shop:!!atShop});
-          if(n===parts.length && missing.length){ renderVanFlag(el, b, van, m, missing); }
+          var wait=pend.filter(function(x){ return x.item_id===p.item_id && x.to==='van:'+van; })[0]||null;
+          /* 8z150: need = how many of this key the job lists; mine = the keys already scanned out for THIS job (kept on the booking) */
+          var needN=parts.filter(function(x){ return x.item_id===p.item_id; }).reduce(function(a,x){ return a+Math.max(1, parseInt(x.qty,10)||1); }, 0);
+          var mineK=(Array.isArray(b.keyUnits)?b.keyUnits:[]).filter(function(k){ return k && k.item===p.item_id; });
+          if(!onVan){ if(!missing.some(function(x){ return x.item===p.item_id; })) missing.push({item:p.item_id, name:p.description||'part', shop:!!atShop, waiting:wait, need:needN, handed:mineK}); }
+          else if(!have.some(function(x){ return x.item===p.item_id; })) have.push({item:p.item_id, name:p.description||'part', need:needN, handed:mineK, serials:mineK.map(function(k){ return k.serial; }).filter(Boolean)});   // 8z151: listed even with no serial on record, so the key can be swapped
+          if(n===parts.length && (missing.length || have.length)){ renderVanFlag(el, b, van, m, missing, have); }
         }).catch(function(){ n++; }); });
       }).catch(function(){});
     });
   }
-  // Actionable "not on van" flag: manager → one-tap move shop→van; tech → request manager approval.
-  function renderVanFlag(el, b, van, m, missing){
-    var mgr=canReassign(); var moveable=missing.filter(function(x){return x.shop;});
-    el.textContent='⚠ '+missing.length+' not on '+((m&&m.name)||'tech')+'’s van';
+  // Actionable "not on van" flag.
+  /* 8z148 (owner, 2026-11-14: "I tapped Move to van and it didn't ask me to scan … I need to make sure the technician received the key
+     before they leave and what key it was"): a serial-numbered key is SCANNED OUT — the button opens the scan box (openJobKeyHandover),
+     the exact key is sent to the van and the card then reads "SN … sent — waiting for <technician> to scan it in" until they do.
+     A part without serial numbers keeps the old behaviour: manager → one-tap move shop→van; technician → request approval. */
+  function renderVanFlag(el, b, van, m, missing, have){
+    var mgr=canReassign(), who=(m&&m.name)||'the technician';
+    var waiting=missing.filter(function(x){ return x.waiting; }), todo=missing.filter(function(x){ return !x.waiting; });
+    var moveable=todo.filter(function(x){return x.shop;});
+    el.textContent=todo.length?('⚠ '+todo.length+' not on '+who+'’s van'):'';
+    if(waiting.length){ var w=document.createElement('span'); w.className='vanWait'; w.style.cssText='display:block;margin-top:3px;color:#b7791f;font-weight:700';
+      w.textContent='📤 '+waiting.map(function(x){ return 'SN '+(x.waiting.serial||'?'); }).join(', ')+' sent — waiting for '+who+' to scan '+(waiting.length===1?'it':'them')+' in'; el.appendChild(w); }
+    // 8z150 / 8z151: one place opens the scan box for a job's key — to scan it out, or (when the job already has one) to swap it
+    function scanBox(x){ var pt=null; try{ pt=TKS.Inventory.get(x.item); }catch(e){}
+      window.openJobKeyHandover({ jobId:b.id, itemId:x.item, itemName:(pt&&pt.name)||x.name, vanLoc:'van:'+van, techName:who, jobLabel:custName(b)+'’s job',
+        needed:x.need||1, handed:x.handed||[],   // 8z150: one scanned-out key per key the job lists
+        onSent:function(k){ try{ var jb=TKS.Bookings.get(b.id)||b; jb.keyUnits=(Array.isArray(jb.keyUnits)?jb.keyUnits:[]).filter(function(y){ return y && y.unit!==k.unit; }).concat([{ item:k.item, unit:k.unit, serial:k.serial, to:k.to, at:Date.now() }]); TKS.Bookings.save(jb); }catch(e){} },
+        onReturned:function(k){ try{ var jb=TKS.Bookings.get(b.id)||b; jb.keyUnits=(Array.isArray(jb.keyUnits)?jb.keyUnits:[]).filter(function(y){ return y && y.unit!==k.unit; }); TKS.Bookings.save(jb); }catch(e){} },
+        onDone:function(){ try{ render(); }catch(e){} } }); }
+    function isSerial(item){ try{ var pt=TKS.Inventory.get(item); return !!(pt&&pt.serialized) && !!window.openJobKeyHandover; }catch(e){ return false; } }
+    function swapBtn(x){ var sb2=document.createElement('button'); sb2.className='vanSwap'; sb2.textContent='🔁 Swap key';
+      sb2.style.cssText='margin-left:6px;border:1px solid rgba(128,128,128,.45);border-radius:8px;min-height:32px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer;background:transparent;color:inherit';
+      sb2.onclick=function(ev){ ev.stopPropagation(); scanBox(x); }; return sb2; }
+    /* 8z151 (owner: "add a swap key option — the key ends up being defective or we grabbed the wrong key"): a job whose key is on its way or
+       on the van offers "🔁 Swap key" — scan the old one back in, then the new one out. */
+    waiting.forEach(function(x){ if(isSerial(x.item)){ var wEl=el.querySelector('.vanWait'); if(wEl && !wEl.querySelector('.vanSwap')) wEl.appendChild(swapBtn(x)); } });
+    // 8z150: the key this job already has on the van, by serial — "what key it was" at a glance
+    (have||[]).forEach(function(h){ if(!h.serials.length && !isSerial(h.item)) return; var g=document.createElement('span'); g.className='vanHas'; g.style.cssText='display:block;margin-top:3px;color:#1c7d3e;font-weight:700';
+      g.textContent=h.serials.length?('🔑 '+h.serials.map(function(x){ return 'SN '+x; }).join(', ')+' on '+who+'’s van for this job'):('🔑 On '+who+'’s van'); el.appendChild(g);
+      if(isSerial(h.item)) g.appendChild(swapBtn(h)); });
     if(!moveable.length) return;
-    var first=moveable[0];
-    var btn=document.createElement('button');
-    btn.textContent=mgr?('Move to van'):'Request';
-    btn.style.cssText='margin-left:6px;border:none;border-radius:7px;padding:2px 8px;font-size:10.5px;font-weight:800;cursor:pointer;'+(mgr?'background:#c8323c;color:#fff':'background:#e7e9ee;color:#3a4250');
+    var first=moveable[0], part=null; try{ part=TKS.Inventory.get(first.item); }catch(e){}
+    var serial=isSerial(first.item);
+    var btn=document.createElement('button'); btn.className='vanMove';
+    btn.textContent=serial?'📷 Scan out to van':(mgr?('Move to van'):'Request');
+    btn.style.cssText='margin-left:6px;border:none;border-radius:8px;min-height:32px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer;'+((serial||mgr)?'background:#c8323c;color:#fff':'background:#e7e9ee;color:#3a4250');
+    if(waiting.length) el.insertBefore(btn, el.querySelector('.vanWait')); else el.appendChild(btn);
     btn.onclick=function(ev){ ev.stopPropagation();
+      if(serial){ scanBox(first); return; }
       if(mgr){ btn.textContent='…'; TKS.InvOps.move(first.item,'shop','van:'+van,1).then(function(res){ if(res&&res.error){ toast(res.error.message); btn.textContent='Move to van'; } else { toast('Moved to van.'); render(); } }).catch(function(e){ toast((e&&e.message)||'Move failed'); btn.textContent='Move to van'; }); }
       else { try{ window.requestStockMove({itemId:first.item, itemName:first.name, from:'shop', to:'van:'+van, qty:1, jobNote:'for '+custName(b)}); }catch(e){} btn.textContent='Requested'; btn.disabled=true; toast('Requested — a manager will approve.'); }
     };
-    el.appendChild(btn);
   }
 
   // ---------- actions (server-correct; drag + buttons both call these) ----------
@@ -9566,7 +9602,7 @@ setInterval(function(){ if(document.visibilityState==='visible') stockSafetyNet(
     try{ var logEl=q('sjJobLog'); var sbl=(window.TKS&&TKS._sb)?TKS._sb():null;
       if(logEl && sbl && b.id && !(TKS.isDemo&&TKS.isDemo())){ sbl.from('audit_log').select('action,detail,created_at').eq('entity_type','job').eq('entity_id',String(b.id)).order('created_at',{ascending:false}).limit(12).then(function(r){
         var rows=(r&&r.data)||[]; if(!rows.length) return;
-        var lbl={dispatch_line_declined:'Not done',dispatch_line_added:'Added',unit_scanned_out:'Key scanned out',unit_scanned_in:'Key scanned back in'};
+        var lbl={dispatch_line_declined:'Not done',dispatch_line_added:'Added',unit_scanned_out:'Key scanned out',unit_scanned_in:'Key scanned back in',unit_handover_sent:'Key scanned out to the van',unit_handover_accepted:'Key scanned in on the van',unit_handover_returned:'Key swapped — scanned back in'};
         logEl.innerHTML='<div style="font-weight:700;margin-bottom:4px;color:var(--ink)">Job log</div>'+rows.map(function(x){ var d=x.detail||{}; return '<div>• '+esc(lbl[x.action]||x.action)+(d.desc?(': '+esc(d.desc)):'')+(d.reason?(' — '+esc(d.reason)):'')+' <span style="opacity:.7">'+esc(new Date(x.created_at).toLocaleString())+'</span></div>'; }).join('');
       }); } }catch(e){}
     // 8z57: draft of a NEW job — collected the same way Save reads the form, but never written to the schedule

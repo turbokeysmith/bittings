@@ -1697,3 +1697,46 @@
     canFile:   function(receiptId){ if(_demoOn()) return _demoOk(true); return _sb().rpc('can_file_d1', { p_receipt: receiptId }); }
   };
 })(window);
+
+/* 8z149 (owner, 2026-11-14: "auto capitalize everything when I type in someone's name, their address, all that stuff … it bothers me
+   that things are in lowercase letters"). On every page that loads this file, a NAME or ADDRESS box (customer, contact, business,
+   street, unit, city) gets Each Word Capitalised: the phone keyboard is asked to do it while typing (autocapitalize="words") and
+   whatever was typed is tidied the moment you leave the box. Only a word's FIRST letter is ever raised — nothing is lowered, so
+   "LLC", "NW" and "DeShawn" stay as typed — plus Mc / O' names, compass points and "PO Box" in an address, and the state
+   letters in a one-line address. Left alone: e-mail, web, search, VIN / serial / SKU, price, note, part-name and state boxes, and
+   any box that says data-cap="off" (data-cap="words" opts one in). Saved records are not rewritten. */
+(function (global) {
+  if (typeof document === 'undefined') return;
+  var YES = /name|street|addr|city|customer|contact|company|business|suite|\bapt\b/i;
+  var NO = /e-?mail|user|login|pass|search|filter|find|sku|serial|\bvin\b|fcc|chip|url|link|web|price|amount|amt|cost|qty|note|msg|message|code|phone|zip|state|file|color|keyway|plate|\bpin\b|otp|token|svc|desc|nick|sign|\bbin\b|label|tag|domain|part|item|product|service|title|subject|reason|device|blank/i;
+  var SKIP_ID = /^(pName|rdName|dcReason)$/;   // a part's name, a device's name, a discount reason
+  function wants(el) {
+    if (!el || el.tagName !== 'INPUT' || el.readOnly || el.disabled) return false;
+    var t = String(el.getAttribute('type') || 'text').toLowerCase(); if (t !== 'text') return false;
+    var dc = el.getAttribute('data-cap'); if (dc === 'off') return false; if (dc === 'words') return true;
+    if (SKIP_ID.test(el.id || '')) return false;
+    var ac = el.getAttribute('autocapitalize'); if (ac && !/^(words|sentences|on)$/.test(ac)) return false;   // 'characters' / 'none' boxes keep their own rule
+    var sig = [el.id, el.getAttribute('name'), el.getAttribute('placeholder'), el.getAttribute('autocomplete'), el.getAttribute('aria-label'), typeof el.className === 'string' ? el.className : ''].join(' ');
+    return YES.test(sig) && !NO.test(sig);
+  }
+  function isAddress(el) { return /street|addr|city|suite|unit|\bapt\b|line1/i.test([el.id, el.getAttribute('name'), el.getAttribute('placeholder'), el.getAttribute('autocomplete')].join(' ')); }
+  function capWords(v, address) {
+    var out = String(v == null ? '' : v).replace(/(^|[\s\-\/(,&"“])([a-z\u00e0-\u00f6\u00f8-\u00ff])/g, function (m, a, b) { return a + b.toUpperCase(); })
+      .replace(/\b(Mc|O['’])([a-z])/g, function (m, a, b) { return a + b.toUpperCase(); });
+    if (address) {
+      out = out.replace(/\b(Nw|Ne|Sw|Se)\b/g, function (m) { return m.toUpperCase(); }).replace(/\bPo Box\b/g, 'PO Box')
+               .replace(/(,\s*)([A-Za-z]{2})(\s+\d{5}(?:-\d{4})?\s*$|\s*$)/, function (m, a, b, c) { return a + b.toUpperCase() + c; });   // "…, ok 73132" → "…, OK 73132"
+    }
+    return out;
+  }
+  function tidy(el) {
+    if (!wants(el)) return; var v = el.value; if (!v || !/[a-z]/.test(v)) return;
+    var n = capWords(v, isAddress(el)); if (n === v) return;
+    el.value = n; try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}   // anything that follows the box as it is typed in hears about it
+  }
+  // capture phase: the box is tidied BEFORE its own change / blur handlers (and any Save that reads it) see the value
+  document.addEventListener('change', function (e) { tidy(e.target); }, true);
+  document.addEventListener('focusout', function (e) { tidy(e.target); }, true);
+  document.addEventListener('focusin', function (e) { var el = e.target; try { if (wants(el) && !el.getAttribute('autocapitalize')) el.setAttribute('autocapitalize', 'words'); } catch (x) {} }, true);
+  global.TKS_capWords = capWords;
+})(typeof window !== 'undefined' ? window : this);

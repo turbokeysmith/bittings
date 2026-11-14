@@ -408,6 +408,43 @@ From the repo folder:
 ## 11. Changelog (newest first)
 Dated record of major changes. Each entry = roughly a work session or milestone.
 
+### 2026-11-14, later (8z148: a job's key is SCANNED OUT to the van · 8z149: names / addresses capitalised · 8z150: one key per job · 8z151: swap key) — LIVE (f8c40c2775ce); committed and pushed 2026-11-14
+- **Why (owner, 2026-11-14).** He tapped "Move to van" on a job card and it never asked for a scan: the button used the old
+  `inv_move` (moves "one of them" on paper, oldest unit first, no hand-over). He wants the exact key scanned, and proof the
+  technician received it. The hand-over rules from 8z120 (`unit_send` → the van's technician scans it in → `unit_accept`)
+  already existed; the card's button simply did not use them. **No database change in any of this.**
+- **8z148 — scan out from the job card** (`renderVanFlag` / `checkVanFlags` in index.html, `openJobKeyHandover` in
+  `app/inventory-traceability.js`). A serial-numbered key's button reads "📷 Scan out to van" and opens the scan box at
+  once (camera, hardware scanner or typed serial). A key of another kind than the job's is refused by name. The key is
+  SENT (`unit_send`) and still counts as in the shop until the van's technician scans it in; the card then reads
+  "📤 SN … sent — waiting for <tech> to scan it in". If the person scanning IS that van's technician, the one scan is
+  both (it goes on the van and the "where on the van?" box opens). Job log lines: `unit_handover_sent` /
+  `unit_handover_accepted` (entity `job`). Parts without serial numbers keep the old Move / Request button.
+- **8z150 — one key per job.** A job that lists a key once takes one scanned-out key. The scan box checks the booking's
+  own note (`data.keyUnits` = [{item, unit, serial, to, at}], written on scan-out) AND the job's log in `audit_log` (shared by every
+  device — the owner's case: "the technician scanned it on his phone and I didn't know") against the live unit rows; a key
+  still out (waiting or on a van) → "This job already has its key: SN … (scanned out by <name>, <time> — now on …)".
+  A key back in the shop / sold / failed no longer counts. The card shows "🔑 SN … on <tech>'s van for this job".
+  `audit_log` SELECT has a manager-only policy next to the tenant one — if technicians cannot read it, their phones fall back
+  to `keyUnits` alone. Heads-up (not a refusal) when the van already carries that kind of key.
+- **8z151 — swap key.** "🔁 Swap key" on the card (waiting or on the van) and in the "already has its key" box: why
+  (wrong key → back to shop stock · defective → `key_failed(p_unit)` marks that exact key failed + supplier-return list) →
+  step 1 scan the OLD key (must be this job's key; `unit_send` to shop, which also takes back a waiting hand-over) →
+  step 2 scan the NEW key out. Job log: `unit_handover_returned` with the reason.
+- **8z149 — capitalising** (end of `app/store.js`, so every page). Name / address boxes (matched by id / placeholder words;
+  e-mail, search, VIN / serial / SKU, price, note, part-name and state boxes excluded; `data-cap="off" | "words"` overrides)
+  get `autocapitalize="words"` on focus and are tidied on change / blur: only a word's first letter is raised, nothing is
+  lowered; Mc / O' names, NW/NE/SW/SE, "PO Box" and the state in a one-line address are handled. Saved records untouched.
+- **Data fix made for the owner (his request).** The old button had put SN VGA36VR (MaxiIM IKEY 5-Btn, Land Rover style)
+  on the Dodge Grand Caravan at 14:10 UTC. Put back in the shop by SQL at 14:25 UTC with an `audit_log` line (`unit_move`,
+  note in detail). He then scanned a key out himself with the new button.
+- **Tests.** New `rebuild-van-handover-test.js` (port 8109, 30 checks) and `rebuild-autocap-test.js` (port 8110).
+  `rebuild-fake-cloud.js`: `__staff` (a whole team with home vans), `unit_send / unit_accept / unit_transfers_pending /
+  unit_transfer_cancel / unit_set_bin`, `key_failed(p_unit)`. 15 browser tests + job-kinds pass.
+- **Not built — idea only (owner asked for an explanation, not code):** a second, hidden QR sticker inside the key shell,
+  paired with the key's serial, to prove at a warranty claim that a key is the one the shop sold.
+- **Still open.** A manager approving a technician's stock-move REQUEST still uses `inv_move` (no scan). Not seen on Jayden's iPhone.
+
 ### 2026-11-14 (8z145: an estimate's key rides onto the job · 8z146: the service buttons learn · 8z147: key types collapse) — LIVE (8a58a88b5455); committed and pushed 2026-11-14
 - **Why (owner, 2026-11-14).** He wrote an estimate with a key on it, scheduled it, the customer cancelled; the cancel
   step asked about consolidating keys although none had been touched, the job form had asked him to pick keys again, and

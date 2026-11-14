@@ -23,7 +23,10 @@
   Q.prototype.run=function(){
     var d=db(), rows=d[this.t]||[], self=this, pass=function(r){ return self.f.every(function(fn){ return fn(r); }); };
     window.__net.push(this.mode+' '+this.raw+(this.mode==='update'?(' '+Object.keys(this.row||{}).join(',')):''));
-    if(this.t==='staff'){ var me={ role: localStorage.getItem('__role')||'owner', active:true, user_id:UID, name:'TEST Owner' }; return { data: this.one?me:[me], error:null }; }
+    if(this.t==='staff'){ var me={ role: localStorage.getItem('__role')||'owner', active:true, user_id:UID, name:'TEST Owner' };
+      var team=null; try{ team=JSON.parse(localStorage.getItem('__staff')||'null'); }catch(e){}   // a test may set __staff = the whole team (home vans and all)
+      if(team && team.length){ me=team.filter(function(x){ return x.user_id===UID; })[0]||me; return { data: this.one?me:JSON.parse(JSON.stringify(team)), error:null }; }
+      return { data: this.one?me:[me], error:null }; }
     if(this.mode==='select'){ var k=this.ord||'id', out=rows.filter(pass).sort(function(a,b){ return String(a[k])<String(b[k])?-1:1; }); if(this.desc) out.reverse(); if(this.rng) out=out.slice(this.rng[0], this.rng[1]+1); if(this.lim) out=out.slice(0,this.lim); return { data: this.one?(out[0]||null):JSON.parse(JSON.stringify(out)), error:null }; }
     if(this.mode==='insert'||this.mode==='upsert'){ var outR=[];   // one row, or a list of rows (the real library takes both)
       (Array.isArray(this.row)?this.row:[this.row]).forEach(function(row0){ var r=Object.assign({}, row0); if(!r.id) r.id='00000000-0000-4000-8000-'+String(1000000000000+rows.length).slice(1); r.updated_at=new Date().toISOString(); var ix=rows.findIndex(function(x){ return x.id===r.id; }); if(ix>=0) rows[ix]=Object.assign(rows[ix], r); else rows.push(r); outR.push(r); });
@@ -45,6 +48,27 @@
     rpc: function(name, args){ window.__calls.push('rpc '+name);
       var v=null; if(name==='mfa_pending') v=false; if(name==='shop_tier') v=localStorage.getItem('__tier')||'pro'; if(name==='seat_usage') v=[{used:2,allowed:5}];
       if(name==='billing_state'){ try{ v=JSON.parse(localStorage.getItem('__bill')||'null'); }catch(e){ v=null; } }   // 8z136: a test sets __tier / __bill to play a shop's billing state
+      // 8z148: key hand-overs (8z120), played simply — a key sent to a van waits in unit_transfers until it is accepted
+      if(/^unit_(send|accept|set_bin|transfer_cancel|transfers_pending)$/.test(name)){ var ud=db(), team2=[]; try{ team2=JSON.parse(localStorage.getItem('__staff')||'[]')||[]; }catch(e){}
+        var meS=team2.filter(function(x){ return x.user_id===UID; })[0]||{}, namesFor=function(loc){ return team2.filter(function(x){ return x.home_van_id && ('van:'+x.home_van_id)===loc; }).map(function(x){ return x.name; }); };
+        var vanNm=function(loc){ var vv=(ud.vans||[]).filter(function(x){ return ('van:'+x.id)===loc; })[0]; return vv?(vv.nickname||'Van'):'the van'; };
+        ud.unit_transfers=ud.unit_transfers||[]; var un=(ud.inventory_units||[]).filter(function(x){ return x.id===(args||{}).p_unit; })[0];
+        var bumpLoc=function(item, loc, by){ ud.inventory_locations=ud.inventory_locations||[]; var row=ud.inventory_locations.filter(function(x){ return x.item_id===item && x.location===loc; })[0]; if(!row){ row={ id:'il'+Date.now()+Math.random(), item_id:item, location:loc, qty:0 }; ud.inventory_locations.push(row); } row.qty=(row.qty||0)+by; };
+        if(name==='unit_transfers_pending'){ var rows2=ud.unit_transfers.map(function(t){ var u2=(ud.inventory_units||[]).filter(function(x){ return x.id===t.unit_id; })[0]||{}, it=(ud.inventory||[]).filter(function(x){ return x.id===t.item_id; })[0]||{};
+            return { unit_id:t.unit_id, serial:u2.serial, item_id:t.item_id, item_name:it.name, sku:it.sku, from:t.from, to:t.to, van_name:vanNm(t.to), sent_by_name:'TEST Owner', sent_at:t.sent_at, for_names:namesFor(t.to) }; });
+          v={ mine: rows2.filter(function(r2){ return meS.home_van_id && r2.to===('van:'+meS.home_van_id); }), sent: rows2 }; }
+        else if(!un){ return later({ data:null, error:{ message:'No key with that serial in this shop.' } }); }
+        else if(name==='unit_send'){ if(un.location===args.p_to) v={ ok:false, code:'same_place', error:'This key is already there.' };
+          else if(String(args.p_to).indexOf('van:')===0){ ud.unit_transfers=ud.unit_transfers.filter(function(t){ return t.unit_id!==un.id; }); ud.unit_transfers.push({ unit_id:un.id, item_id:un.item_id, from:un.location, to:args.p_to, sent_at:new Date().toISOString() }); v={ ok:true, pending:true, to:args.p_to, van_name:vanNm(args.p_to), for_names:namesFor(args.p_to) }; }
+          else { bumpLoc(un.item_id, un.location, -1); bumpLoc(un.item_id, args.p_to, 1); un.location=args.p_to; v={ ok:true, pending:false, to:args.p_to }; } }
+        else if(name==='unit_accept'){ var tr=ud.unit_transfers.filter(function(t){ return t.unit_id===un.id; })[0]; if(!tr) return later({ data:null, error:{ message:'This key is not waiting to be scanned in.' } });
+          bumpLoc(un.item_id, un.location, -1); bumpLoc(un.item_id, tr.to, 1); un.location=tr.to; ud.unit_transfers=ud.unit_transfers.filter(function(t){ return t.unit_id!==un.id; }); v={ ok:true, to:tr.to, van_name:vanNm(tr.to), item_id:un.item_id, serial:un.serial, bin:'' }; }
+        else if(name==='unit_transfer_cancel'){ ud.unit_transfers=ud.unit_transfers.filter(function(t){ return t.unit_id!==un.id; }); v={ ok:true }; }
+        else if(name==='unit_set_bin'){ un.bin=String(args.p_bin||''); v={ ok:true, bin:un.bin }; }
+        save(ud); }
+      if(name==='key_failed'){ var kd=db(), ku=(kd.inventory_units||[]).filter(function(x){ return x.id===(args||{}).p_unit && x.status==='in_stock'; })[0];   // 8z151: one exact key marked failed
+        if(!ku) return later({ data:null, error:{ message:'no in-stock unit of that item to mark failed' } });
+        ku.status='failed'; ku.disposition=String(args.p_reason||'failed'); (kd.inventory_locations||[]).forEach(function(x){ if(x.item_id===ku.item_id && x.location===ku.location) x.qty=Math.max(0,(x.qty||0)-1); }); save(kd); v={ failed_unit:ku.id }; }
       if(name==='log_activity'){ var d=db(); d.audit_log=(d.audit_log||[]).concat([{ id:'a'+Date.now()+Math.random(), user_id:UID, role:'owner', action:args.p_action, entity_type:args.p_entity_type, entity_id:args.p_entity_id, detail:args.p_detail, created_at:new Date().toISOString() }]); save(d); }
       return later({ data:v, error:null }); },
     functions: { invoke: function(){ return later({ data:null, error:null }); } },
